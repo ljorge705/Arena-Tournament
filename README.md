@@ -83,7 +83,7 @@ Full multilingual text support:
 ## Installation & Requirements
 
 1. **Mod Organizer 2 (MO2)** is recommended.
-2. **Engine used to create the mod**: Requires the [xray-monolith-bodycam](https://github.com/asuparabekon/xray-monolith-bodycam) engine fork.
+2. **Engine used to create the mod**: [xray-monolith-bodycam](https://github.com/asuparabekon/xray-monolith-bodycam) engine fork.
 3. Install this mod (`Arena_Tournament.zip`) into your `MODORGANIZER/mods` folder and enable it in your load order.
 4. Ensure compatibility with **G.A.M.M.A. Mags Reloaded** (if enabled in your profile).
 
