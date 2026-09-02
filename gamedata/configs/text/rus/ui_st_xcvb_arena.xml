@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="windows-1251"?>
+
+<string_table>
+
+	<string id="st_arena_use">
+		<text>Открыть ($$ACTION_USE$$)</text>
+	</string>
+
+	<string id="st_arena_team1">
+		<text>Команда 1</text>
+	</string>
+
+	<string id="st_arena_team2">
+		<text>Команда 2</text>
+	</string>
+
+	<string id="st_arena_bet">
+		<text>Ставка</text>
+	</string>
+
+	<string id="st_arena_gain">
+		<text>Выигрыш</text>
+	</string>
+
+	<string id="st_arena_start">
+		<text>На арену</text>
+	</string>
+
+	<string id="st_arena_kicked_out">
+		<text>Вас выгнали за нападение на участников и ваша ставка потеряна.</text>
+	</string>
+
+	<string id="st_arena_team_1_won">
+		<text>Команда 1 выиграла!</text>
+	</string>
+
+	<string id="st_arena_team_2_won">
+		<text>Команда 2 выиграла!</text>
+	</string>
+
+	<string id="st_arena_your_reward">
+		<text>Вы выиграли %s руб.</text>
+	</string>
+
+
+	<!-- MCM -->
+	<string id="ui_mcm_xcvb_arena_title">
+		<text>Арена DLC</text>
+	</string>
+	<string id="ui_mcm_menu_xcvb_arena">
+		<text>Арена DLC</text>
+	</string>
+
+	<string id="ui_mcm_xcvb_arena_fight_chance">
+		<text>Шанс боя (на каждый времен. промежуток)</text>
+	</string>
+
+	<string id="ui_mcm_xcvb_arena_stalker_team1_chance">
+		<text>Команда 1 сталкеры шанс</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_stalker_team1_chance_desc">
+		<text>Шанс на появление сталкеров в команде 1. Если бросок провалиться - появятся мутанты.</text>
+	</string>
+
+	<string id="ui_mcm_xcvb_arena_stalker_team2_chance">
+		<text>Команда 2 сталкеры шанс</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_stalker_team2_chance_desc">
+		<text>Шанс на появление сталкеров в команде 2. Если бросок провалиться - появятся мутанты.</text>
+	</string>
+
+<!-- Selectores de equipamiento de la arena -->
+	<string id="st_arena_loadout_class_title">
+		<text>PRIMARY WEAPON CLASS:</text>
+	</string>
+	<string id="st_arena_loadout_tier_title">
+		<text>GEAR TIER (SUIT / WEAPON):</text>
+	</string>
+	<string id="st_arena_class_random">
+		<text>Random</text>
+	</string>
+	<string id="st_arena_class_shotgun">
+		<text>Shotgun</text>
+	</string>
+	<string id="st_arena_class_rifle">
+		<text>Assault Rifle</text>
+	</string>
+	<string id="st_arena_class_smg">
+		<text>SMG</text>
+	</string>
+	<string id="st_arena_class_sniper">
+		<text>Sniper</text>
+	</string>
+	<string id="st_arena_tier_auto">
+		<text>Auto (Round)</text>
+	</string>
+	<string id="st_arena_tier_1_btn">
+		<text>Tier 1</text>
+	</string>
+	<string id="st_arena_tier_2_btn">
+		<text>Tier 2</text>
+	</string>
+	<string id="st_arena_tier_3_btn">
+		<text>Tier 3</text>
+	</string>
+	<string id="st_arena_tier_4_btn">
+		<text>Tier 4</text>
+	</string>
+	<string id="st_arena_tier_5_btn">
+		<text>Tier 5</text>
+	</string>
+
+
+<!-- Filtros y apuestas del modo espectador -->
+	<string id="st_arena_filter_all">
+		<text>All Matches</text>
+	</string>
+	<string id="st_arena_filter_svsm">
+		<text>Stalkers vs Mutants</text>
+	</string>
+	<string id="st_arena_filter_svss">
+		<text>Stalkers vs Stalkers</text>
+	</string>
+	<string id="st_arena_filter_mvsm">
+		<text>Mutants vs Mutants</text>
+	</string>
+	<string id="st_arena_btn_refresh">
+		<text>New Bouts</text>
+	</string>
+	<string id="st_arena_match_type_header">
+		<text>Bout</text>
+	</string>
+	<string id="st_arena_label_svsm">
+		<text>S vs M</text>
+	</string>
+	<string id="st_arena_label_svss">
+		<text>S vs S</text>
+	</string>
+	<string id="st_arena_label_mvsm">
+		<text>M vs M</text>
+	</string>
+	<string id="st_arena_btn_spectate">
+		<text>Go to Balcony</text>
+	</string>
+	<string id="st_arena_no_bet_selected">
+		<text>You must select a bet on a match before going to the balcony.</text>
+	</string>
+
+
+</string_table>

@@ -1,0 +1,705 @@
+<?xml version="1.0" encoding="windows-1251"?>
+
+<string_table>
+
+	<!-- Interaccion y Base -->
+	<string id="st_arena_use">
+		<text>Tablon del Torneo ($$ACTION_USE$$)</text>
+	</string>
+	<string id="st_arena_title">
+		<text>TORNEO DE LA ARENA</text>
+	</string>
+	<string id="st_arena_spectator_title">
+		<text>APUESTAS</text>
+	</string>
+	<string id="st_arena_mode_tournament">
+		<text>Torneo (Combate)</text>
+	</string>
+	<string id="st_arena_mode_spectator">
+		<text>Apuestas</text>
+	</string>
+
+	<!-- Categorias del Torneo -->
+	<string id="st_arena_cat_stalkers">
+		<text>STALKERS (HUMANOS)</text>
+	</string>
+	<string id="st_arena_cat_mutants">
+		<text>MUTANTES DE LA ZONA</text>
+	</string>
+
+	<!-- Estados de Rondas -->
+	<string id="st_arena_status_locked">
+		<text>[BLOQUEADO]</text>
+	</string>
+	<string id="st_arena_status_ready">
+		<text>[DISPONIBLE]</text>
+	</string>
+	<string id="st_arena_status_completed">
+		<text>[COMPLETADO]</text>
+	</string>
+	<string id="st_arena_btn_enter">
+		<text>ENTRAR A LA ARENA</text>
+	</string>
+	<string id="st_arena_btn_replay">
+		<text>REPETIR COMBATE</text>
+	</string>
+	<string id="st_arena_btn_locked">
+		<text>RONDA BLOQUEADA</text>
+	</string>
+
+	<!-- Rangos / Categorias -->
+	<string id="st_arena_tier_1_name">
+		<text>NIVEL 1: NOVATOS</text>
+	</string>
+	<string id="st_arena_tier_2_name">
+		<text>NIVEL 2: CAZADORES</text>
+	</string>
+	<string id="st_arena_tier_3_name">
+		<text>NIVEL 3: VETERANOS</text>
+	</string>
+	<string id="st_arena_tier_4_name">
+		<text>NIVEL 4: MAESTROS</text>
+	</string>
+	<string id="st_arena_tier_5_name">
+		<text>NIVEL 5: LEYENDAS</text>
+	</string>
+
+	<string id="st_arena_rank_label">
+		<text>Rango Actual:</text>
+	</string>
+	<string id="st_arena_record_label">
+		<text>Record: %s Victorias / %s Derrotas</text>
+	</string>
+	<string id="st_arena_reward_label">
+		<text>Bolsa de Premio:</text>
+	</string>
+	<string id="st_arena_enemies_label">
+		<text>Oponentes:</text>
+	</string>
+	<string id="st_arena_difficulty_label">
+		<text>Dificultad:</text>
+	</string>
+
+	<!-- Dificultades -->
+	<string id="st_arena_diff_very_easy">
+		<text>Muy Facil (*)</text>
+	</string>
+	<string id="st_arena_diff_easy">
+		<text>Facil (**)</text>
+	</string>
+	<string id="st_arena_diff_medium">
+		<text>Media (***)</text>
+	</string>
+	<string id="st_arena_diff_hard">
+		<text>Dificil (****)</text>
+	</string>
+	<string id="st_arena_diff_very_hard">
+		<text>Muy Dificil (*****)</text>
+	</string>
+	<string id="st_arena_diff_extreme">
+		<text>Extrema (******)</text>
+	</string>
+	<string id="st_arena_diff_legendary">
+		<text>Legendaria (CHAMPION)</text>
+	</string>
+
+	<!-- ============================================== -->
+	<!-- TORNEO DE STALKERS (HUMANOS) - 15 RONDAS -->
+	<!-- ============================================== -->
+
+	<!-- Nivel 1: Novatos -->
+	<string id="st_arena_s_round_1_name">
+		<text>Ronda 1: Novato Solitario</text>
+	</string>
+	<string id="st_arena_s_round_1_enemies">
+		<text>1x Bandido novato con pistola</text>
+	</string>
+	<string id="st_arena_s_round_1_desc">
+		<text>Un bandido novato buscando ganarse una reputacion en la arena. Su punteria y reflejos son pobres. Ideal para calentar.</text>
+	</string>
+	<string id="st_arena_s_round_1_reward">
+		<text>3,000 RU + Vendas y Botiquin basico</text>
+	</string>
+
+	<string id="st_arena_s_round_2_name">
+		<text>Ronda 2: Duo de Renegados</text>
+	</string>
+	<string id="st_arena_s_round_2_enemies">
+		<text>2x Renegados con escopetas recortadas</text>
+	</string>
+	<string id="st_arena_s_round_2_desc">
+		<text>Dos renegados de las cienagas coordinados para emboscarte a corta distancia con fuego de perdigon.</text>
+	</string>
+	<string id="st_arena_s_round_2_reward">
+		<text>4,500 RU + Cartuchos de perdigon</text>
+	</string>
+
+	<string id="st_arena_s_round_3_name">
+		<text>Ronda 3: Trio Callejero</text>
+	</string>
+	<string id="st_arena_s_round_3_enemies">
+		<text>3x Bandidos con pistolas y recortadas</text>
+	</string>
+	<string id="st_arena_s_round_3_desc">
+		<text>Tres novatos agresivos que intentaran rodear tus coberturas. Manten la distancia y cubre tus espaldas.</text>
+	</string>
+	<string id="st_arena_s_round_3_reward">
+		<text>6,000 RU + Kit basico de limpieza de armas</text>
+	</string>
+
+	<!-- Nivel 2: Cazadores -->
+	<string id="st_arena_s_round_4_name">
+		<text>Ronda 4: Emboscada en el Vertedero</text>
+	</string>
+	<string id="st_arena_s_round_4_enemies">
+		<text>3x Bandidos experimentados con subfusiles MP5</text>
+	</string>
+	<string id="st_arena_s_round_4_desc">
+		<text>Bandidos curtidos armados con armas automaticas ligeras. Utilizan rafagas cortas y se cubren tras las cajas.</text>
+	</string>
+	<string id="st_arena_s_round_4_reward">
+		<text>8,500 RU + Municion 9x19 + Estimulante</text>
+	</string>
+
+	<string id="st_arena_s_round_5_name">
+		<text>Ronda 5: Patrulla de Caza</text>
+	</string>
+	<string id="st_arena_s_round_5_enemies">
+		<text>3x Renegados con escopetas de bombeo y carabinas</text>
+	</string>
+	<string id="st_arena_s_round_5_enemies_bandit">
+		<text>3x Renegados con escopetas de bombeo y carabinas</text>
+	</string>
+	<string id="st_arena_s_round_5_desc">
+		<text>Cazadores renegados armados con escopetas de calibre 12 y carabinas. Enemigos jurados y sin tregua en la Zona.</text>
+	</string>
+	<string id="st_arena_s_round_5_desc_bandit">
+		<text>Una cuadrilla de bandidos armada con escopetas de calibre 12. La Arena los enfrenta a ti como tus enemigos jurados.</text>
+	</string>
+	<string id="st_arena_s_round_5_reward">
+		<text>11,000 RU + Botiquin militar + Municion</text>
+	</string>
+
+	<string id="st_arena_s_round_6_name">
+		<text>Ronda 6: Escuadron Mercenario Ligero</text>
+	</string>
+	<string id="st_arena_s_round_6_enemies">
+		<text>3x Mercenarios con LR-300 y chalecos tacticos</text>
+	</string>
+	<string id="st_arena_s_round_6_desc">
+		<text>Contratistas militares privados con disciplina de combate, granadas de mano y fusiles de asalto OTAN.</text>
+	</string>
+	<string id="st_arena_s_round_6_reward">
+		<text>14,000 RU + Materiales de reparacion intermedios</text>
+	</string>
+
+	<!-- Nivel 3: Veteranos -->
+	<string id="st_arena_s_round_7_name">
+		<text>Ronda 7: Choque con Deber</text>
+	</string>
+	<string id="st_arena_s_round_7_enemies">
+		<text>3x Soldados de asalto de Deber con AS Val y Groza</text>
+	</string>
+	<string id="st_arena_s_round_7_desc">
+		<text>Soldados de Deber endurecidos en combates contra mutantes. Pertrechados con armadura PSZ-9d y municion perforante 9x39.</text>
+	</string>
+	<string id="st_arena_s_round_7_reward">
+		<text>18,000 RU + Municion perforante + Botiquines</text>
+	</string>
+
+	<string id="st_arena_s_round_8_name">
+		<text>Ronda 8: Tiradores de Libertad</text>
+	</string>
+	<string id="st_arena_s_round_8_enemies">
+		<text>3x Combatientes de Libertad con G36 y francotiradores</text>
+	</string>
+	<string id="st_arena_s_round_8_desc">
+		<text>Tiradores de elite de Libertad con trajes Guardia y rifles de alta precision. Disparan certero desde el fondo de la fosa.</text>
+	</string>
+	<string id="st_arena_s_round_8_reward">
+		<text>23,000 RU + Kit de reparacion de trajes + Municion</text>
+	</string>
+
+	<string id="st_arena_s_round_9_name">
+		<text>Ronda 9: Comando Mercenario de Elite</text>
+	</string>
+	<string id="st_arena_s_round_9_enemies">
+		<text>4x Mercenarios veteranos con trajes SEVA y rifles tacticos</text>
+	</string>
+	<string id="st_arena_s_round_9_desc">
+		<text>Fuerza mercenaria de choque coordinada. Utilizan granadas y fuego cruzado continuo con municion perforante.</text>
+	</string>
+	<string id="st_arena_s_round_9_reward">
+		<text>28,000 RU + Kit de mantenimiento avanzado</text>
+	</string>
+
+	<!-- Nivel 4: Maestros -->
+	<string id="st_arena_s_round_10_name">
+		<text>Ronda 10: Infanteria Pesada Militar</text>
+	</string>
+	<string id="st_arena_s_round_10_enemies">
+		<text>4x Soldados Spetsnaz en blindaje Berill con PKM y Saiga</text>
+	</string>
+	<string id="st_arena_s_round_10_desc">
+		<text>Comandos de operaciones especiales del ejercito. Enorme resistencia a balas y fuego de supresion demoledor.</text>
+	</string>
+	<string id="st_arena_s_round_10_reward">
+		<text>36,000 RU + Cajas de municion pesada + Estimulantes</text>
+	</string>
+
+	<string id="st_arena_s_round_11_name">
+		<text>Ronda 11: Cruzada del Monolito</text>
+	</string>
+	<string id="st_arena_s_round_11_enemies">
+		<text>4x Fanaticos del Monolito con blindaje pesado y Vintorez</text>
+	</string>
+	<string id="st_arena_s_round_11_desc">
+		<text>Fanaticos religiosos capturados en el Centro de la Zona. No sienten miedo ni retroceden un solo milimetro.</text>
+	</string>
+	<string id="st_arena_s_round_11_reward">
+		<text>45,000 RU + Municion de francotirador + Suministros</text>
+	</string>
+
+	<string id="st_arena_s_round_12_name">
+		<text>Ronda 12: La Muralla de Exoesqueleto</text>
+	</string>
+	<string id="st_arena_s_round_12_enemies">
+		<text>4x Maestros en Exoesqueleto con ametralladoras pesadas</text>
+	</string>
+	<string id="st_arena_s_round_12_desc">
+		<text>Una escuadra de tanques humanos protegidos por servomotores de titanio. Requiere balas perforantes de alto calibre.</text>
+	</string>
+	<string id="st_arena_s_round_12_reward">
+		<text>55,000 RU + Set de herramientas expertas</text>
+	</string>
+
+	<!-- Nivel 5: Leyendas -->
+	<string id="st_arena_s_round_13_name">
+		<text>Ronda 13: Hermandad del Pecado</text>
+	</string>
+	<string id="st_arena_s_round_13_enemies">
+		<text>4x Fanaticos de Pecado (Greh) con armas de asalto pesadas</text>
+	</string>
+	<string id="st_arena_s_round_13_desc">
+		<text>Monjes oscuros de la Zona con una resistencia casi sobrenatural. Disparan sin descanso y lanzan granadas pesadas.</text>
+	</string>
+	<string id="st_arena_s_round_13_reward">
+		<text>70,000 RU + Suministros militares de elite</text>
+	</string>
+
+	<string id="st_arena_s_round_14_name">
+		<text>Ronda 14: Guardia del Monolito con Gauss</text>
+	</string>
+	<string id="st_arena_s_round_14_enemies">
+		<text>4x Monolito en Exoesqueleto con rifles Gauss y ametralladoras</text>
+	</string>
+	<string id="st_arena_s_round_14_desc">
+		<text>La guardia personal de los templos del Monolito. Un solo disparo electromagnetico de Gauss atravesara cualquier cobertura.</text>
+	</string>
+	<string id="st_arena_s_round_14_reward">
+		<text>90,000 RU + Baterias Gauss + Artefacto de alta categoria</text>
+	</string>
+
+	<string id="st_arena_s_round_15_name">
+		<text>Ronda 15: El Gran Campeon: El Verdugo</text>
+	</string>
+	<string id="st_arena_s_round_15_enemies">
+		<text>'El Verdugo' en Nosorog + 2 Escoltas de Elite en Exoesqueleto</text>
+	</string>
+	<string id="st_arena_s_round_15_desc">
+		<text>El combate definitivo de gladiadores. El Verdugo ostenta el trono invicto con su servoarmadura blindada Nosorog y su ametralladora pesada.</text>
+	</string>
+	<string id="st_arena_s_round_15_reward">
+		<text>130,000 RU + Titulo 'Gran Campeon' + Trofeo de la Arena</text>
+	</string>
+
+
+	<!-- ============================================== -->
+	<!-- CAZA DE MUTANTES - 15 RONDAS -->
+	<!-- ============================================== -->
+
+	<!-- Nivel 1: Alimanas -->
+	<string id="st_arena_m_round_1_name">
+		<text>Ronda 1: Plaga de Roedores</text>
+	</string>
+	<string id="st_arena_m_round_1_enemies">
+		<text>6x Roedores Tushkano veloces</text>
+	</string>
+	<string id="st_arena_m_round_1_desc">
+		<text>Una camada de roedores subterraneos hambrientos. Son pequenos, rapidos y atacan en enjambre.</text>
+	</string>
+	<string id="st_arena_m_round_1_reward">
+		<text>3,000 RU + Cartuchos de perdigon y vendas</text>
+	</string>
+
+	<string id="st_arena_m_round_2_name">
+		<text>Ronda 2: Jauria Callejera</text>
+	</string>
+	<string id="st_arena_m_round_2_enemies">
+		<text>4x Perros Ciegos mutantes</text>
+	</string>
+	<string id="st_arena_m_round_2_desc">
+		<text>Perros mutados que cazan por el olfato y el sonido. Intentaran rodearte mientras esquivan tus disparos.</text>
+	</string>
+	<string id="st_arena_m_round_2_reward">
+		<text>4,500 RU + Municion de escopeta + Botiquin</text>
+	</string>
+
+	<string id="st_arena_m_round_3_name">
+		<text>Ronda 3: Ataque Furioso</text>
+	</string>
+	<string id="st_arena_m_round_3_enemies">
+		<text>2x Perros Ciegos + 2x Pseudoperros rapidos</text>
+	</string>
+	<string id="st_arena_m_round_3_desc">
+		<text>Una jauria mixta liderada por pseudoperros salvajes, mucho mas resistentes y agresivos que los perros comunes.</text>
+	</string>
+	<string id="st_arena_m_round_3_reward">
+		<text>6,000 RU + Kit basico de mantenimiento</text>
+	</string>
+
+	<!-- Nivel 2: Bestias Salvajes -->
+	<string id="st_arena_m_round_4_name">
+		<text>Ronda 4: Estampida Porcina</text>
+	</string>
+	<string id="st_arena_m_round_4_enemies">
+		<text>2x Jabalies salvajes + 1x Carne</text>
+	</string>
+	<string id="st_arena_m_round_4_desc">
+		<text>Bestias pesadas capaces de embestir a gran velocidad. Su piel gruesa absorbe perdigones menores.</text>
+	</string>
+	<string id="st_arena_m_round_4_reward">
+		<text>8,500 RU + Cartuchos pesados de escopeta + Estimulante</text>
+	</string>
+
+	<string id="st_arena_m_round_5_name">
+		<text>Ronda 5: Gatos de la Niebla</text>
+	</string>
+	<string id="st_arena_m_round_5_enemies">
+		<text>4x Gatos salvajes mutantes</text>
+	</string>
+	<string id="st_arena_m_round_5_desc">
+		<text>Depredadores agiles que saltan a gran velocidad rasgando armaduras con sus garras afiladas.</text>
+	</string>
+	<string id="st_arena_m_round_5_reward">
+		<text>11,000 RU + Botiquin militar + Estimulantes</text>
+	</string>
+
+	<string id="st_arena_m_round_6_name">
+		<text>Ronda 6: Peste de Snorks</text>
+	</string>
+	<string id="st_arena_m_round_6_enemies">
+		<text>3x Snorks acrobaticos saltadores</text>
+	</string>
+	<string id="st_arena_m_round_6_desc">
+		<text>Criaturas mutadas con mascaras de gas que realizan saltos mortales de decenas de metros.</text>
+	</string>
+	<string id="st_arena_m_round_6_reward">
+		<text>14,000 RU + Materiales de reparacion de nivel medio</text>
+	</string>
+
+	<!-- Nivel 3: Depredadores -->
+	<string id="st_arena_m_round_7_name">
+		<text>Ronda 7: Acechadores Nocturnos</text>
+	</string>
+	<string id="st_arena_m_round_7_enemies">
+		<text>3x Lurkers rapidos del subsuelo</text>
+	</string>
+	<string id="st_arena_m_round_7_desc">
+		<text>Monstruos subterraneos con piel blindada y zarpazos veloces que desorientan al cazador.</text>
+	</string>
+	<string id="st_arena_m_round_7_reward">
+		<text>18,000 RU + Inyectores coagulantes + Municion</text>
+	</string>
+
+	<string id="st_arena_m_round_8_name">
+		<text>Ronda 8: Sombras Asesinas</text>
+	</string>
+	<string id="st_arena_m_round_8_enemies">
+		<text>2x Chupasangres con camuflaje invisible</text>
+	</string>
+	<string id="st_arena_m_round_8_desc">
+		<text>Depredadores que se vuelven completamente invisibles para flanquear y desgarrar tu cuello. Escucha con atencion.</text>
+	</string>
+	<string id="st_arena_m_round_8_reward">
+		<text>23,000 RU + Kit de reparacion + Estimulantes</text>
+	</string>
+
+	<string id="st_arena_m_round_9_name">
+		<text>Ronda 9: Grito Psiquico</text>
+	</string>
+	<string id="st_arena_m_round_9_enemies">
+		<text>1x Psysucker + 2x Fracturas gigantes</text>
+	</string>
+	<string id="st_arena_m_round_9_desc">
+		<text>Una combinacion peligrosa: el Psysucker aturde tus sentidos mientras las Fracturas asestan golpes demoledores.</text>
+	</string>
+	<string id="st_arena_m_round_9_reward">
+		<text>28,000 RU + Bloqueadores psiquicos + Kit de mantenimiento</text>
+	</string>
+
+	<!-- Nivel 4: Horrores Psiquicos y Titanes -->
+	<string id="st_arena_m_round_10_name">
+		<text>Ronda 10: Danza Fantasma</text>
+	</string>
+	<string id="st_arena_m_round_10_enemies">
+		<text>1x Perro Psiquico (con clones fantasma) + 1x Pseudoperro gigante</text>
+	</string>
+	<string id="st_arena_m_round_10_desc">
+		<text>El perro psiquico generara decenas de clones fantasmales para confundirte. Encuentra al lider original rapidamente.</text>
+	</string>
+	<string id="st_arena_m_round_10_reward">
+		<text>36,000 RU + Drogas psiquicas + Estimulantes de elite</text>
+	</string>
+
+	<string id="st_arena_m_round_11_name">
+		<text>Ronda 11: Escudo Telequinetico</text>
+	</string>
+	<string id="st_arena_m_round_11_enemies">
+		<text>2x Burers telequineticos con barreras de energia</text>
+	</string>
+	<string id="st_arena_m_round_11_desc">
+		<text>Enanos telequineticos capaces de arrancar tu arma de las manos y desviar proyectiles con campos de fuerza.</text>
+	</string>
+	<string id="st_arena_m_round_11_reward">
+		<text>45,000 RU + Kit de herramientas pesadas</text>
+	</string>
+
+	<string id="st_arena_m_round_12_name">
+		<text>Ronda 12: El Coloso de la Fosa</text>
+	</string>
+	<string id="st_arena_m_round_12_enemies">
+		<text>1x Pseudogigante enfurecido</text>
+	</string>
+	<string id="st_arena_m_round_12_desc">
+		<text>Una mole titanica de musculo que sacude el suelo derribando al combatiente con cada pisotón. Absorbe cientos de balas.</text>
+	</string>
+	<string id="st_arena_m_round_12_reward">
+		<text>55,000 RU + Set de herramientas expertas</text>
+	</string>
+
+	<!-- Nivel 5: Leyendas de la Zona -->
+	<string id="st_arena_m_round_13_name">
+		<text>Ronda 13: Pesadilla de Dos Cabezas</text>
+	</string>
+	<string id="st_arena_m_round_13_enemies">
+		<text>1x Quimera salvaje adulta</text>
+	</string>
+	<string id="st_arena_m_round_13_desc">
+		<text>El depredador apex definitivo de la Zona. Saltos de larga distancia, velocidad desenfrenada y garras mortales.</text>
+	</string>
+	<string id="st_arena_m_round_13_reward">
+		<text>70,000 RU + Partes raras de mutante + Estimulantes</text>
+	</string>
+
+	<string id="st_arena_m_round_14_name">
+		<text>Ronda 14: El Tirano Psiquico</text>
+	</string>
+	<string id="st_arena_m_round_14_enemies">
+		<text>1x Controlador cerebral + 3x Zombis armados</text>
+	</string>
+	<string id="st_arena_m_round_14_desc">
+		<text>Un Controlador que golpeara tu mente a distancia con ondas cerebrales mientras sus subditos zombis te disparan.</text>
+	</string>
+	<string id="st_arena_m_round_14_reward">
+		<text>90,000 RU + Artefacto de alta categoria + Botiquines cientificos</text>
+	</string>
+
+	<string id="st_arena_m_round_15_name">
+		<text>Ronda 15: El Duo del Apocalipsis</text>
+	</string>
+	<string id="st_arena_m_round_15_enemies">
+		<text>1x Quimera Negra + 1x Pseudogigante Titano</text>
+	</string>
+	<string id="st_arena_m_round_15_desc">
+		<text>La prueba final de supervivencia: las dos bestias mas poderosas y temidas de la Zona soltadas juntas en la arena.</text>
+	</string>
+	<string id="st_arena_m_round_15_reward">
+		<text>130,000 RU + Titulo 'Maestro Cazador' + Trofeo Supremo</text>
+	</string>
+
+	<!-- Avisos en combate (Megafonia de Arnie) -->
+	<string id="st_arena_fight_started">
+		<text>Comienza el combate! Mata o muere!</text>
+	</string>
+	<string id="st_arena_enemies_remaining">
+		<text>Atencion! Quedan %s enemigos en pie en la arena.</text>
+	</string>
+	<string id="st_arena_enemy_one_remaining">
+		<text>Ultimo enemigo restante! Terminalo para reclamar la victoria!</text>
+	</string>
+	<string id="st_arena_fight_won">
+		<text>VICTORIA! El publico ruge de emocion ante tu triunfo!</text>
+	</string>
+	<string id="st_arena_reward_money">
+		<text>Has recibido tu premio de %s RU.</text>
+	</string>
+	<string id="st_arena_reward_items">
+		<text>Se han transferido suministros y botiquines a tu mochila.</text>
+	</string>
+	<string id="st_arena_tier_unlocked">
+		<text>Ascenso de Rango en la Arena! Has desbloqueado una nueva categoria: %s.</text>
+	</string>
+	<string id="st_arena_champion_crowned">
+		<text>ATENCION A TODA LA ZONA! Tenemos un nuevo Gran Campeon de la Arena!</text>
+	</string>
+	<string id="st_arena_medic_rescue">
+		<text>Rescate Medico! Fuiste noqueado y evacuado de urgencia. El tratamiento de los cirujanos te costo %s RU.</text>
+	</string>
+	<string id="st_arena_gear_restored">
+		<text>Tu equipamiento original ha sido devuelto a tu inventario.</text>
+	</string>
+
+	<!-- Original Spectator Mode Strings -->
+	<string id="st_arena_team1">
+		<text>Equipo 1</text>
+	</string>
+	<string id="st_arena_team2">
+		<text>Equipo 2</text>
+	</string>
+	<string id="st_arena_bet">
+		<text>Apuesta</text>
+	</string>
+	<string id="st_arena_gain">
+		<text>Ganancia</text>
+	</string>
+	<string id="st_arena_start">
+		<text>Comenzar</text>
+	</string>
+	<string id="st_arena_kicked_out">
+		<text>Fuiste expulsado por disparar a los combatientes y perdiste tu apuesta.</text>
+	</string>
+	<string id="st_arena_team_1_won">
+		<text>El Equipo 1 ha ganado el combate!</text>
+	</string>
+	<string id="st_arena_team_2_won">
+		<text>El Equipo 2 ha ganado el combate!</text>
+	</string>
+	<string id="st_arena_your_reward">
+		<text>Has ganado %s RU en tu apuesta.</text>
+	</string>
+
+	<!-- MCM Config Strings -->
+	<string id="ui_mcm_xcvb_arena_title">
+		<text>Torneo de la Arena (GAMMA)</text>
+	</string>
+	<string id="ui_mcm_menu_xcvb_arena">
+		<text>Torneo de la Arena</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_random_equipment">
+		<text>Equipamiento aleatorio en la Arena</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_random_equipment_desc">
+		<text>Guarda tu equipamiento en un baul seguro y te entrega armas, armadura y municion aleatoria segun la categoria del combate.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_reward_mult">
+		<text>Multiplicador de dinero del premio</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_reward_mult_desc">
+		<text>Multiplica el dinero en RU recibido por cada victoria en el torneo.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_give_items">
+		<text>Entregar suministros medicos y kits de reparacion</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_give_items_desc">
+		<text>Si esta activado, ganaras items utiles para GAMMA (botiquines, municion, kits de mantenimiento de armas).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_medic_rescue">
+		<text>Rescate medico de Arnie al caer en combate</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_medic_rescue_desc">
+		<text>Si caes en combate mortal dentro de la arena, los medicos te rescatan con vida a cambio de una tasa medica, evitando la muerte definitiva o recargar partida.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay">
+		<text>Permitir repetir combates ya ganados</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_desc">
+		<text>Permite entrar de nuevo a cualquier ronda que ya hayas completado para entrenar o ganar dinero adicional.</text>
+	</string>
+
+	<!-- MCM Spectator Mode settings -->
+	<string id="ui_mcm_xcvb_arena_fight_chance">
+		<text>Probabilidad de combate de apuestas (por periodo)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_stalker_team1_chance">
+		<text>Probabilidad de stalkers en Equipo 1</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_stalker_team1_chance_desc">
+		<text>Probabilidad de que aparezcan stalkers en el equipo 1 del modo apuestas.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_stalker_team2_chance">
+		<text>Probabilidad de stalkers en Equipo 2</text>
+	</string>
+	<!-- Selectores de equipamiento de la arena -->
+	<string id="st_arena_loadout_class_title">
+		<text>CLASE DE ARMA PRINCIPAL:</text>
+	</string>
+	<string id="st_arena_loadout_tier_title">
+		<text>NIVEL DE EQUIPO (TRAJE / ARMA):</text>
+	</string>
+	<string id="st_arena_class_random">
+		<text>Aleatorio</text>
+	</string>
+	<string id="st_arena_class_shotgun">
+		<text>Escopeta</text>
+	</string>
+	<string id="st_arena_class_rifle">
+		<text>Rifle Asalto</text>
+	</string>
+	<string id="st_arena_class_smg">
+		<text>Subfusil</text>
+	</string>
+	<string id="st_arena_class_sniper">
+		<text>Francotirador</text>
+	</string>
+	<string id="st_arena_tier_auto">
+		<text>Auto (Ronda)</text>
+	</string>
+	<string id="st_arena_tier_1_btn">
+		<text>Tier 1</text>
+	</string>
+	<string id="st_arena_tier_2_btn">
+		<text>Tier 2</text>
+	</string>
+	<string id="st_arena_tier_3_btn">
+		<text>Tier 3</text>
+	</string>
+	<string id="st_arena_tier_4_btn">
+		<text>Tier 4</text>
+	</string>
+	<!-- Filtros y apuestas del modo espectador -->
+	<string id="st_arena_filter_all">
+		<text>Todos los Combates</text>
+	</string>
+	<string id="st_arena_filter_svsm">
+		<text>Stalkers vs Mutantes</text>
+	</string>
+	<string id="st_arena_filter_svss">
+		<text>Stalkers vs Stalkers</text>
+	</string>
+	<string id="st_arena_filter_mvsm">
+		<text>Mutantes vs Mutantes</text>
+	</string>
+	<string id="st_arena_btn_refresh">
+		<text>Nueva Cartelera</text>
+	</string>
+	<string id="st_arena_match_type_header">
+		<text>Duelo</text>
+	</string>
+	<string id="st_arena_label_svsm">
+		<text>S vs M</text>
+	</string>
+	<string id="st_arena_label_svss">
+		<text>S vs S</text>
+	</string>
+	<string id="st_arena_label_mvsm">
+		<text>M vs M</text>
+	</string>
+	<string id="st_arena_btn_spectate">
+		<text>Ir al Balcon</text>
+	</string>
+	<string id="st_arena_no_bet_selected">
+		<text>Debes seleccionar una apuesta en algun combate antes de ir al balcon.</text>
+	</string>
+
+</string_table>

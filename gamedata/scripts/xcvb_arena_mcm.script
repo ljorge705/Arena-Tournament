@@ -1,0 +1,44 @@
+-- MCM (Mod Configuration Menu) Settings for Arena Tournament
+local defaults = {
+	["random_equipment"] = true,
+	["reward_mult"] = 1.0,
+	["give_items"] = true,
+	["medic_rescue"] = true,
+	["allow_replay"] = true,
+	["fight_chance"] = 0.7,
+	["stalker_team1_chance"] = 0.25,
+	["stalker_team2_chance"] = 0.25,
+}
+
+function get_config(key)
+	if ui_mcm then
+		return ui_mcm.get("xcvb_arena/" .. key)
+	else
+		return defaults[key]
+	end
+end
+
+function on_mcm_load()
+	local op = {
+		id = "xcvb_arena",
+		sh = true,
+		gr = {
+			{ id = "title", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_xcvb_arena_title", size = {512, 50}, spacing = 20 },
+
+			-- Tournament Settings
+			{ id = "random_equipment", type = "check", val = 1, def = true },
+			{ id = "reward_mult", type = "track", val = 2, min = 0.5, max = 3.0, step = 0.1, def = 1.0 },
+			{ id = "give_items", type = "check", val = 1, def = true },
+			{ id = "medic_rescue", type = "check", val = 1, def = true },
+			{ id = "allow_replay", type = "check", val = 1, def = true },
+
+			{ id = "line", type = "line" },
+
+			-- Spectator Mode Settings
+			{ id = "fight_chance", type = "track", val = 2, min = 0, max = 1, step = 0.05, def = 0.7 },
+			{ id = "stalker_team1_chance", type = "track", val = 2, min = 0, max = 1, step = 0.05, def = 0.25 },
+			{ id = "stalker_team2_chance", type = "track", val = 2, min = 0, max = 1, step = 0.05, def = 0.25 },
+		}
+	}
+	return op
+end

@@ -1,0 +1,311 @@
+<w>
+
+	<!-- main background -->
+	<bg x="100" y="40" width="820" height="688" stretch="1">
+		<texture>xcvb_arena_gui_bg</texture>
+	</bg>
+
+	<!-- Title & Header -->
+	<title_main x="70" y="48" width="380" height="26">
+		<text r="240" g="210" b="120" font="graffiti22" align="l" vert_align="c">st_arena_title</text>
+	</title_main>
+
+	<player_rank x="70" y="74" width="380" height="20">
+		<text r="200" g="200" b="200" font="letterica18" align="l" vert_align="c"></text>
+	</player_rank>
+
+	<player_record x="70" y="94" width="380" height="20">
+		<text r="140" g="220" b="140" font="letterica16" align="l" vert_align="c"></text>
+	</player_record>
+
+	<!-- Mode Switch Button -->
+	<mode_btn x="560" y="52" width="190" height="34" check_mode="0">
+		<text font="letterica16">st_arena_mode_spectator</text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</mode_btn>
+
+	<!-- ============================================== -->
+	<!-- TOURNAMENT CONTAINER -->
+	<!-- ============================================== -->
+	<tournament_cont x="70" y="122" width="680" height="530">
+		
+		<!-- Category Selector Buttons (Stalkers vs Mutantes) -->
+		<cat_stalkers_btn x="0" y="0" width="335" height="32" check_mode="0">
+			<text font="letterica18">st_arena_cat_stalkers</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</cat_stalkers_btn>
+		<cat_mutants_btn x="345" y="0" width="335" height="32" check_mode="0">
+			<text font="letterica18">st_arena_cat_mutants</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</cat_mutants_btn>
+
+		<!-- Tier Tab Buttons -->
+		<tier_btn_1 x="0" y="38" width="132" height="28" check_mode="0">
+			<text font="letterica16">st_arena_tier_1_name</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tier_btn_1>
+		<tier_btn_2 x="137" y="38" width="132" height="28" check_mode="0">
+			<text font="letterica16">st_arena_tier_2_name</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tier_btn_2>
+		<tier_btn_3 x="274" y="38" width="132" height="28" check_mode="0">
+			<text font="letterica16">st_arena_tier_3_name</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tier_btn_3>
+		<tier_btn_4 x="411" y="38" width="132" height="28" check_mode="0">
+			<text font="letterica16">st_arena_tier_4_name</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tier_btn_4>
+		<tier_btn_5 x="548" y="38" width="132" height="28" check_mode="0">
+			<text font="letterica16">st_arena_tier_5_name</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tier_btn_5>
+
+		<!-- 3 Round Rows in selected Tier -->
+		<tourn_row_1 x="0" y="72" width="680" height="74" stretch="1">
+			<texture>xcvb_arena_gui_row_frame</texture>
+			<name x="15" y="5" width="360" height="20">
+				<text r="240" g="210" b="140" font="graffiti19" align="l" vert_align="c"></text>
+			</name>
+			<diff x="385" y="5" width="145" height="20">
+				<text r="200" g="160" b="100" font="letterica16" align="l" vert_align="c"></text>
+			</diff>
+			<enemies x="15" y="27" width="510" height="20">
+				<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
+			</enemies>
+			<reward x="15" y="47" width="510" height="20">
+				<text r="130" g="225" b="130" font="letterica16" align="l" vert_align="c"></text>
+			</reward>
+			<action_btn x="535" y="16" width="130" height="42" check_mode="0">
+				<text font="letterica16">st_arena_status_ready</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+			</action_btn>
+		</tourn_row_1>
+
+		<tourn_row_2 x="0" y="152" width="680" height="74" stretch="1">
+			<texture>xcvb_arena_gui_row_frame</texture>
+			<name x="15" y="5" width="360" height="20">
+				<text r="240" g="210" b="140" font="graffiti19" align="l" vert_align="c"></text>
+			</name>
+			<diff x="385" y="5" width="145" height="20">
+				<text r="200" g="160" b="100" font="letterica16" align="l" vert_align="c"></text>
+			</diff>
+			<enemies x="15" y="27" width="510" height="20">
+				<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
+			</enemies>
+			<reward x="15" y="47" width="510" height="20">
+				<text r="130" g="225" b="130" font="letterica16" align="l" vert_align="c"></text>
+			</reward>
+			<action_btn x="535" y="16" width="130" height="42" check_mode="0">
+				<text font="letterica16">st_arena_status_ready</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+			</action_btn>
+		</tourn_row_2>
+
+		<tourn_row_3 x="0" y="232" width="680" height="74" stretch="1">
+			<texture>xcvb_arena_gui_row_frame</texture>
+			<name x="15" y="5" width="360" height="20">
+				<text r="240" g="210" b="140" font="graffiti19" align="l" vert_align="c"></text>
+			</name>
+			<diff x="385" y="5" width="145" height="20">
+				<text r="200" g="160" b="100" font="letterica16" align="l" vert_align="c"></text>
+			</diff>
+			<enemies x="15" y="27" width="510" height="20">
+				<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
+			</enemies>
+			<reward x="15" y="47" width="510" height="20">
+				<text r="130" g="225" b="130" font="letterica16" align="l" vert_align="c"></text>
+			</reward>
+			<action_btn x="535" y="16" width="130" height="42" check_mode="0">
+				<text font="letterica16">st_arena_status_ready</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+			</action_btn>
+		</tourn_row_3>
+
+		<!-- Selected Round Info & Lore Box -->
+		<details_box x="0" y="310" width="680" height="66" stretch="1">
+			<texture>xcvb_arena_gui_row_frame</texture>
+			<detail_title x="15" y="4" width="650" height="18">
+				<text r="255" g="220" b="140" font="graffiti19" align="l" vert_align="c"></text>
+			</detail_title>
+			<detail_desc x="15" y="24" width="650" height="38" complex_mode="1">
+				<text r="195" g="195" b="195" font="letterica16" align="l" vert_align="t"></text>
+			</detail_desc>
+		</details_box>
+
+		<!-- Weapon Class Selection -->
+		<loadout_class_title x="0" y="380" width="680" height="16">
+			<text r="220" g="190" b="130" font="letterica16" align="l" vert_align="c">st_arena_loadout_class_title</text>
+		</loadout_class_title>
+
+		<loadout_btn_random x="0" y="398" width="132" height="24" check_mode="0">
+			<text font="letterica16">st_arena_class_random</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_btn_random>
+		<loadout_btn_shotgun x="137" y="398" width="132" height="24" check_mode="0">
+			<text font="letterica16">st_arena_class_shotgun</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_btn_shotgun>
+		<loadout_btn_rifle x="274" y="398" width="132" height="24" check_mode="0">
+			<text font="letterica16">st_arena_class_rifle</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_btn_rifle>
+		<loadout_btn_smg x="411" y="398" width="132" height="24" check_mode="0">
+			<text font="letterica16">st_arena_class_smg</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_btn_smg>
+		<loadout_btn_sniper x="548" y="398" width="132" height="24" check_mode="0">
+			<text font="letterica16">st_arena_class_sniper</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_btn_sniper>
+
+		<!-- Gear Tier Selection -->
+		<loadout_tier_title x="0" y="426" width="680" height="16">
+			<text r="220" g="190" b="130" font="letterica16" align="l" vert_align="c">st_arena_loadout_tier_title</text>
+		</loadout_tier_title>
+
+		<loadout_tier_btn_0 x="0" y="444" width="110" height="24" check_mode="0">
+			<text font="letterica16">st_arena_tier_auto</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_tier_btn_0>
+		<loadout_tier_btn_1 x="114" y="444" width="110" height="24" check_mode="0">
+			<text font="letterica16">st_arena_tier_1_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_tier_btn_1>
+		<loadout_tier_btn_2 x="228" y="444" width="110" height="24" check_mode="0">
+			<text font="letterica16">st_arena_tier_2_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_tier_btn_2>
+		<loadout_tier_btn_3 x="342" y="444" width="110" height="24" check_mode="0">
+			<text font="letterica16">st_arena_tier_3_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_tier_btn_3>
+		<loadout_tier_btn_4 x="456" y="444" width="110" height="24" check_mode="0">
+			<text font="letterica16">st_arena_tier_4_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_tier_btn_4>
+		<loadout_tier_btn_5 x="570" y="444" width="110" height="24" check_mode="0">
+			<text font="letterica16">st_arena_tier_5_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</loadout_tier_btn_5>
+
+		<!-- Enter Arena / Main Action Button -->
+		<tourn_start_btn x="230" y="478" width="220" height="38" check_mode="0">
+			<text font="letterica18">st_arena_btn_enter</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tourn_start_btn>
+
+	</tournament_cont>
+
+	<!-- ============================================== -->
+	<!-- SPECTATOR CONTAINER (Betting & Arena Bouts) -->
+	<!-- ============================================== -->
+	<spectator_cont x="0" y="0" width="820" height="688">
+		<!-- Match Type Filter Buttons -->
+		<filter_all x="70" y="78" width="160" height="28" check_mode="0">
+			<text font="letterica16">st_arena_filter_all</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</filter_all>
+		<filter_svsm x="240" y="78" width="165" height="28" check_mode="0">
+			<text font="letterica16">st_arena_filter_svsm</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</filter_svsm>
+		<filter_svss x="415" y="78" width="165" height="28" check_mode="0">
+			<text font="letterica16">st_arena_filter_svss</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</filter_svss>
+		<filter_mvsm x="590" y="78" width="160" height="28" check_mode="0">
+			<text font="letterica16">st_arena_filter_mvsm</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</filter_mvsm>
+
+		<!-- refresh bouts btn -->
+		<refresh_btn x="140" y="515" width="220" height="42" check_mode="0">
+			<text font="letterica18">st_arena_btn_refresh</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</refresh_btn>
+
+		<!-- start / go to balcony btn -->
+		<start_btn x="460" y="515" width="220" height="42" check_mode="0">
+			<text font="letterica18">st_arena_btn_spectate</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</start_btn>
+
+		<!-- titles -->
+		<title_cont x="70" y="114" width="680" height="25" stretch="1">
+			<title_time x="0" y="0" width="80" height="25" stretch="1">
+				<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="graffiti22">st_arena_match_type_header</text>
+			</title_time>
+			<title_team_1 x="80" y="0" width="180" height="25" stretch="1">
+				<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="graffiti22">st_arena_team1</text>
+			</title_team_1>
+			<title_team_2 x="260" y="0" width="180" height="25" stretch="1">
+				<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="graffiti22">st_arena_team2</text>
+			</title_team_2>
+			<title_bet x="440" y="0" width="180" height="25" stretch="1">
+				<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="graffiti22">st_arena_bet</text>
+			</title_bet>
+			<title_reward x="620" y="0" width="60" height="25" stretch="1">
+				<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="graffiti22">st_arena_gain</text>
+			</title_reward>
+		</title_cont>
+
+		<!-- row template for spectator -->
+		<row_cont x="70" y="145" width="680" height="58" stretch="1">
+			<texture>xcvb_arena_gui_row_frame</texture>
+			<time x="0" y="0" width="80" height="58" stretch="1">
+				<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="letterica18"></text>
+			</time>
+			<team_1 x="80" y="0" width="180" height="58" stretch="1">
+				<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="letterica18"></text>
+				<texture r="60" g="0" b="0" a="90">none.dds</texture>
+			</team_1>
+			<team_2 x="260" y="0" width="180" height="58" stretch="1">
+				<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="letterica18"></text>
+				<texture r="0" g="60" b="60" a="90">none.dds</texture>
+			</team_2>
+			<bet_cont x="440" y="0" width="180" height="58" stretch="1">
+				<bet_title1 x="0" y="0" width="90" height="15" stretch="1">
+					<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="letterica16">st_arena_team1</text>
+				</bet_title1>
+				<bet1 x="10" y="16" width="70" height="16" stretch="1">
+					<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="letterica18">0</text>
+				</bet1>
+				<bet_btn_min1 x="10" y="34" width="22" height="20" check_mode="0">
+					<texture>ui_beltbut_min</texture>
+				</bet_btn_min1>
+				<bet_btn_plus1 x="55" y="34" width="22" height="20" check_mode="0">
+					<texture>ui_beltbut_plus</texture>
+				</bet_btn_plus1>
+
+				<bet_title2 x="90" y="0" width="90" height="15" stretch="1">
+					<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="letterica16">st_arena_team2</text>
+				</bet_title2>
+				<bet2 x="100" y="16" width="70" height="16" stretch="1">
+					<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="letterica18">0</text>
+				</bet2>
+				<bet_btn_min2 x="100" y="34" width="22" height="20" check_mode="0">
+					<texture>ui_beltbut_min</texture>
+				</bet_btn_min2>
+				<bet_btn_plus2 x="145" y="34" width="22" height="20" check_mode="0">
+					<texture>ui_beltbut_plus</texture>
+				</bet_btn_plus2>
+			</bet_cont>
+			<reward x="620" y="0" width="60" height="58" stretch="1">
+				<text complex_mode="1" r="190" g="190" b="190" vert_align="c" align="c" font="letterica18">0</text>
+			</reward>
+		</row_cont>
+	</spectator_cont>
+
+	<!-- Row vertical lines (Direct children of <w> as expected by CUIXmlInit) -->
+	<vert_line1 x="80" y="0" width="1" height="58" stretch="1">
+		<texture>xcvb_arena_gui_row_vert_line</texture>
+	</vert_line1>
+	<vert_line2 x="440" y="0" width="1" height="58" stretch="1">
+		<texture>xcvb_arena_gui_row_vert_line</texture>
+	</vert_line2>
+	<vert_line3 x="620" y="0" width="1" height="58" stretch="1">
+		<texture>xcvb_arena_gui_row_vert_line</texture>
+	</vert_line3>
+
+</w>

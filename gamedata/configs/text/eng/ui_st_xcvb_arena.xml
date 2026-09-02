@@ -1,0 +1,705 @@
+<?xml version="1.0" encoding="windows-1251"?>
+
+<string_table>
+
+	<!-- Interaction and Base -->
+	<string id="st_arena_use">
+		<text>Tournament Board ($$ACTION_USE$$)</text>
+	</string>
+	<string id="st_arena_title">
+		<text>ARENA TOURNAMENT</text>
+	</string>
+	<string id="st_arena_spectator_title">
+		<text>BETTING</text>
+	</string>
+	<string id="st_arena_mode_tournament">
+		<text>Tournament (Combat)</text>
+	</string>
+	<string id="st_arena_mode_spectator">
+		<text>Betting</text>
+	</string>
+
+	<!-- Tournament Categories -->
+	<string id="st_arena_cat_stalkers">
+		<text>STALKERS (HUMANS)</text>
+	</string>
+	<string id="st_arena_cat_mutants">
+		<text>MUTANTS OF THE ZONE</text>
+	</string>
+
+	<!-- Round States -->
+	<string id="st_arena_status_locked">
+		<text>[LOCKED]</text>
+	</string>
+	<string id="st_arena_status_ready">
+		<text>[READY]</text>
+	</string>
+	<string id="st_arena_status_completed">
+		<text>[COMPLETED]</text>
+	</string>
+	<string id="st_arena_btn_enter">
+		<text>ENTER THE ARENA</text>
+	</string>
+	<string id="st_arena_btn_replay">
+		<text>REPLAY BOUT</text>
+	</string>
+	<string id="st_arena_btn_locked">
+		<text>ROUND LOCKED</text>
+	</string>
+
+	<!-- Ranks / Tiers -->
+	<string id="st_arena_tier_1_name">
+		<text>TIER 1: ROOKIES</text>
+	</string>
+	<string id="st_arena_tier_2_name">
+		<text>TIER 2: HUNTERS</text>
+	</string>
+	<string id="st_arena_tier_3_name">
+		<text>TIER 3: VETERANS</text>
+	</string>
+	<string id="st_arena_tier_4_name">
+		<text>TIER 4: MASTERS</text>
+	</string>
+	<string id="st_arena_tier_5_name">
+		<text>TIER 5: LEGENDS</text>
+	</string>
+
+	<string id="st_arena_rank_label">
+		<text>Current Rank:</text>
+	</string>
+	<string id="st_arena_record_label">
+		<text>Record: %s Wins / %s Losses</text>
+	</string>
+	<string id="st_arena_reward_label">
+		<text>Prize Purse:</text>
+	</string>
+	<string id="st_arena_enemies_label">
+		<text>Opponents:</text>
+	</string>
+	<string id="st_arena_difficulty_label">
+		<text>Difficulty:</text>
+	</string>
+
+	<!-- Difficulties -->
+	<string id="st_arena_diff_very_easy">
+		<text>Very Easy (*)</text>
+	</string>
+	<string id="st_arena_diff_easy">
+		<text>Easy (**)</text>
+	</string>
+	<string id="st_arena_diff_medium">
+		<text>Medium (***)</text>
+	</string>
+	<string id="st_arena_diff_hard">
+		<text>Hard (****)</text>
+	</string>
+	<string id="st_arena_diff_very_hard">
+		<text>Very Hard (*****)</text>
+	</string>
+	<string id="st_arena_diff_extreme">
+		<text>Extreme (******)</text>
+	</string>
+	<string id="st_arena_diff_legendary">
+		<text>Legendary (CHAMPION)</text>
+	</string>
+
+	<!-- ============================================== -->
+	<!-- STALKER TOURNAMENT (HUMANS) - 15 ROUNDS -->
+	<!-- ============================================== -->
+
+	<!-- Tier 1: Rookies -->
+	<string id="st_arena_s_round_1_name">
+		<text>Round 1: Lone Rookie</text>
+	</string>
+	<string id="st_arena_s_round_1_enemies">
+		<text>1x Novice Bandit armed with a pistol</text>
+	</string>
+	<string id="st_arena_s_round_1_desc">
+		<text>A rookie bandit trying to make a name in the arena. His aim and equipment are mediocre. An ideal match to warm up reflexes.</text>
+	</string>
+	<string id="st_arena_s_round_1_reward">
+		<text>3,000 RU + Bandages &amp; Basic Medkit</text>
+	</string>
+
+	<string id="st_arena_s_round_2_name">
+		<text>Round 2: Renegade Duo</text>
+	</string>
+	<string id="st_arena_s_round_2_enemies">
+		<text>2x Renegades with sawed-off shotguns</text>
+	</string>
+	<string id="st_arena_s_round_2_desc">
+		<text>Two swamp renegades coordinating crossfire at close quarters with buckshot.</text>
+	</string>
+	<string id="st_arena_s_round_2_reward">
+		<text>4,500 RU + Buckshot Ammo</text>
+	</string>
+
+	<string id="st_arena_s_round_3_name">
+		<text>Round 3: Street Trio</text>
+	</string>
+	<string id="st_arena_s_round_3_enemies">
+		<text>3x Bandits with pistols and shotguns</text>
+	</string>
+	<string id="st_arena_s_round_3_desc">
+		<text>Three aggressive rookies attempting to flank your cover. Keep distance and watch your back.</text>
+	</string>
+	<string id="st_arena_s_round_3_reward">
+		<text>6,000 RU + Basic Maintenance Kit</text>
+	</string>
+
+	<!-- Tier 2: Hunters -->
+	<string id="st_arena_s_round_4_name">
+		<text>Round 4: Garbage Ambush</text>
+	</string>
+	<string id="st_arena_s_round_4_enemies">
+		<text>3x Experienced Bandits with MP5 SMGs</text>
+	</string>
+	<string id="st_arena_s_round_4_desc">
+		<text>Hardened bandits equipped with light automatic weapons. Firing in bursts and using cover.</text>
+	</string>
+	<string id="st_arena_s_round_4_reward">
+		<text>8,500 RU + 9x19 Ammo + Stimpack</text>
+	</string>
+
+	<string id="st_arena_s_round_5_name">
+		<text>Round 5: Hunting Patrol</text>
+	</string>
+	<string id="st_arena_s_round_5_enemies">
+		<text>3x Renegades with shotguns and carbines</text>
+	</string>
+	<string id="st_arena_s_round_5_enemies_bandit">
+		<text>3x Renegades with shotguns and carbines</text>
+	</string>
+	<string id="st_arena_s_round_5_desc">
+		<text>Renegade hunters armed with 12-gauge shotguns and carbines. Sworn enemies with no quarter in the Zone.</text>
+	</string>
+	<string id="st_arena_s_round_5_desc_bandit">
+		<text>A hostile bandit crew armed with 12-gauge shotguns. The Arena pits them against you as your sworn enemies.</text>
+	</string>
+	<string id="st_arena_s_round_5_reward">
+		<text>11,000 RU + Army Medkit + Ammo</text>
+	</string>
+
+	<string id="st_arena_s_round_6_name">
+		<text>Round 6: Light Mercenary Recon</text>
+	</string>
+	<string id="st_arena_s_round_6_enemies">
+		<text>3x Mercenaries with LR-300 and tactical vests</text>
+	</string>
+	<string id="st_arena_s_round_6_desc">
+		<text>Private military contractors with tactical discipline, hand grenades, and NATO rifles.</text>
+	</string>
+	<string id="st_arena_s_round_6_reward">
+		<text>14,000 RU + Medium Repair Materials</text>
+	</string>
+
+	<!-- Tier 3: Veterans -->
+	<string id="st_arena_s_round_7_name">
+		<text>Round 7: Duty Clash</text>
+	</string>
+	<string id="st_arena_s_round_7_enemies">
+		<text>3x Duty Assault Shocktroops with AS Val and Groza</text>
+	</string>
+	<string id="st_arena_s_round_7_desc">
+		<text>Duty troopers hardened in mutant eradication. Clad in PSZ-9d armor with 9x39 AP rounds.</text>
+	</string>
+	<string id="st_arena_s_round_7_reward">
+		<text>18,000 RU + AP Ammo + Medkits</text>
+	</string>
+
+	<string id="st_arena_s_round_8_name">
+		<text>Round 8: Freedom Marksmen</text>
+	</string>
+	<string id="st_arena_s_round_8_enemies">
+		<text>3x Freedom Fighters with G36 and sniper rifles</text>
+	</string>
+	<string id="st_arena_s_round_8_desc">
+		<text>Elite Freedom snipers in Guardian suits firing with surgical accuracy across the pit.</text>
+	</string>
+	<string id="st_arena_s_round_8_reward">
+		<text>23,000 RU + Armor Repair Kit + Match Ammo</text>
+	</string>
+
+	<string id="st_arena_s_round_9_name">
+		<text>Round 9: Elite Mercenary Commando</text>
+	</string>
+	<string id="st_arena_s_round_9_enemies">
+		<text>4x Veteran Mercenaries in SEVA suits with assault rifles</text>
+	</string>
+	<string id="st_arena_s_round_9_desc">
+		<text>Coordinated strike squad utilizing grenades and continuous armor-piercing suppressive fire.</text>
+	</string>
+	<string id="st_arena_s_round_9_reward">
+		<text>28,000 RU + Advanced Maintenance Kit</text>
+	</string>
+
+	<!-- Tier 4: Masters -->
+	<string id="st_arena_s_round_10_name">
+		<text>Round 10: Heavy Military Infantry</text>
+	</string>
+	<string id="st_arena_s_round_10_enemies">
+		<text>4x Spetsnaz Soldiers in Berill armor with PKM and Saiga</text>
+	</string>
+	<string id="st_arena_s_round_10_desc">
+		<text>Army special operations commandos. Heavy bullet resistance and devastating firepower.</text>
+	</string>
+	<string id="st_arena_s_round_10_reward">
+		<text>36,000 RU + Heavy Ammo Boxes + Stimpacks</text>
+	</string>
+
+	<string id="st_arena_s_round_11_name">
+		<text>Round 11: Monolith Crusade</text>
+	</string>
+	<string id="st_arena_s_round_11_enemies">
+		<text>4x Monolith Fanatics in heavy armor with Vintorez</text>
+	</string>
+	<string id="st_arena_s_round_11_desc">
+		<text>Zealots captured in the Zone's center. They know no fear and will not yield an inch.</text>
+	</string>
+	<string id="st_arena_s_round_11_reward">
+		<text>45,000 RU + Sniper Ammo + Military Supplies</text>
+	</string>
+
+	<string id="st_arena_s_round_12_name">
+		<text>Round 12: Exoskeleton Wall</text>
+	</string>
+	<string id="st_arena_s_round_12_enemies">
+		<text>4x Exoskeleton Masters with heavy machine guns</text>
+	</string>
+	<string id="st_arena_s_round_12_desc">
+		<text>A fireteam of human tanks shielded by titanium servomotors. Demands high-caliber AP ammo.</text>
+	</string>
+	<string id="st_arena_s_round_12_reward">
+		<text>55,000 RU + Expert Toolset</text>
+	</string>
+
+	<!-- Tier 5: Legends -->
+	<string id="st_arena_s_round_13_name">
+		<text>Round 13: Brotherhood of Sin</text>
+	</string>
+	<string id="st_arena_s_round_13_enemies">
+		<text>4x Sin (Greh) Masters with heavy assault weaponry</text>
+	</string>
+	<string id="st_arena_s_round_13_desc">
+		<text>Dark monks with supernatural resilience. Relentless firing and heavy explosive grenades.</text>
+	</string>
+	<string id="st_arena_s_round_13_reward">
+		<text>70,000 RU + Elite Military Supplies</text>
+	</string>
+
+	<string id="st_arena_s_round_14_name">
+		<text>Round 14: Monolith Gauss Guard</text>
+	</string>
+	<string id="st_arena_s_round_14_enemies">
+		<text>4x Exoskeleton Monolith with Gauss Rifles and MGs</text>
+	</string>
+	<string id="st_arena_s_round_14_desc">
+		<text>Temple guardians of the Monolith. A single electromagnetic Gauss slug pierces any cover.</text>
+	</string>
+	<string id="st_arena_s_round_14_reward">
+		<text>90,000 RU + Gauss Batteries + High-Tier Artefact</text>
+	</string>
+
+	<string id="st_arena_s_round_15_name">
+		<text>Round 15: Grand Champion: The Executioner</text>
+	</string>
+	<string id="st_arena_s_round_15_enemies">
+		<text>'The Executioner' in Nosorog + 2 Elite Bodyguards in Exos</text>
+	</string>
+	<string id="st_arena_s_round_15_desc">
+		<text>The ultimate gladiatorial clash. The Executioner holds the undefeated Arena throne in reinforced Nosorog armor with a heavy machine gun.</text>
+	</string>
+	<string id="st_arena_s_round_15_reward">
+		<text>130,000 RU + 'Grand Champion' Title + Arena Trophy</text>
+	</string>
+
+
+	<!-- ============================================== -->
+	<!-- MUTANT HUNTING - 15 ROUNDS -->
+	<!-- ============================================== -->
+
+	<!-- Tier 1: Vermin -->
+	<string id="st_arena_m_round_1_name">
+		<text>Round 1: Rodent Infestation</text>
+	</string>
+	<string id="st_arena_m_round_1_enemies">
+		<text>6x Fast Tushkano Rodents</text>
+	</string>
+	<string id="st_arena_m_round_1_desc">
+		<text>A swarm of underground rodents released into the pit. Small, fast, and attacking in packs.</text>
+	</string>
+	<string id="st_arena_m_round_1_reward">
+		<text>3,000 RU + Buckshot Shells and Bandages</text>
+	</string>
+
+	<string id="st_arena_m_round_2_name">
+		<text>Round 2: Street Pack</text>
+	</string>
+	<string id="st_arena_m_round_2_enemies">
+		<text>4x Mutant Blind Dogs</text>
+	</string>
+	<string id="st_arena_m_round_2_desc">
+		<text>Hounds hunting by scent and sound. They will circle around you while dodging gunfire.</text>
+	</string>
+	<string id="st_arena_m_round_2_reward">
+		<text>4,500 RU + Shotgun Ammo + Medkit</text>
+	</string>
+
+	<string id="st_arena_m_round_3_name">
+		<text>Round 3: Furious Assault</text>
+	</string>
+	<string id="st_arena_m_round_3_enemies">
+		<text>2x Blind Dogs + 2x Fast Pseudodogs</text>
+	</string>
+	<string id="st_arena_m_round_3_desc">
+		<text>A mixed pack led by savage pseudodogs, far more resilient and ferocious than common dogs.</text>
+	</string>
+	<string id="st_arena_m_round_3_reward">
+		<text>6,000 RU + Basic Maintenance Kit</text>
+	</string>
+
+	<!-- Tier 2: Wild Beasts -->
+	<string id="st_arena_m_round_4_name">
+		<text>Round 4: Boar Stampede</text>
+	</string>
+	<string id="st_arena_m_round_4_enemies">
+		<text>2x Wild Boars + 1x Flesh</text>
+	</string>
+	<string id="st_arena_m_round_4_desc">
+		<text>Heavy beasts charging at high velocity. Their thick hides absorb small buckshot.</text>
+	</string>
+	<string id="st_arena_m_round_4_reward">
+		<text>8,500 RU + Heavy Buckshot Shells + Stimpack</text>
+	</string>
+
+	<string id="st_arena_m_round_5_name">
+		<text>Round 5: Fog Felines</text>
+	</string>
+	<string id="st_arena_m_round_5_enemies">
+		<text>4x Mutant Wild Cats</text>
+	</string>
+	<string id="st_arena_m_round_5_desc">
+		<text>Agile predators that pounce rapidly, shredding armor with razor claws.</text>
+	</string>
+	<string id="st_arena_m_round_5_reward">
+		<text>11,000 RU + Army Medkit + Stims</text>
+	</string>
+
+	<string id="st_arena_m_round_6_name">
+		<text>Round 6: Snork Plague</text>
+	</string>
+	<string id="st_arena_m_round_6_enemies">
+		<text>3x Acrobatic Mutant Snorks</text>
+	</string>
+	<string id="st_arena_m_round_6_desc">
+		<text>Gas-masked mutants leaping dozens of meters across the arena to strike from above.</text>
+	</string>
+	<string id="st_arena_m_round_6_reward">
+		<text>14,000 RU + Medium Repair Materials</text>
+	</string>
+
+	<!-- Tier 3: Predators -->
+	<string id="st_arena_m_round_7_name">
+		<text>Round 7: Night Lurkers</text>
+	</string>
+	<string id="st_arena_m_round_7_enemies">
+		<text>3x Underground Fast Lurkers</text>
+	</string>
+	<string id="st_arena_m_round_7_desc">
+		<text>Subterranean beasts with armored scales and disorienting rapid slashes.</text>
+	</string>
+	<string id="st_arena_m_round_7_reward">
+		<text>18,000 RU + Coagulant Injectors + Ammo</text>
+	</string>
+
+	<string id="st_arena_m_round_8_name">
+		<text>Round 8: Cloaked Killers</text>
+	</string>
+	<string id="st_arena_m_round_8_enemies">
+		<text>2x Cloaked Bloodsuckers</text>
+	</string>
+	<string id="st_arena_m_round_8_desc">
+		<text>Predators turning completely invisible to flank and tear your throat out. Listen carefully.</text>
+	</string>
+	<string id="st_arena_m_round_8_reward">
+		<text>23,000 RU + Repair Kit + Stimpacks</text>
+	</string>
+
+	<string id="st_arena_m_round_9_name">
+		<text>Round 9: Psychic Shriek</text>
+	</string>
+	<string id="st_arena_m_round_9_enemies">
+		<text>1x Psysucker + 2x Giant Fractures</text>
+	</string>
+	<string id="st_arena_m_round_9_desc">
+		<text>A lethal combo: the Psysucker dazes your senses while giant Fractures land bone-crushing blows.</text>
+	</string>
+	<string id="st_arena_m_round_9_reward">
+		<text>28,000 RU + Psy-Blockers + Maintenance Kit</text>
+	</string>
+
+	<!-- Tier 4: Psy Horrors and Titans -->
+	<string id="st_arena_m_round_10_name">
+		<text>Round 10: Phantom Dance</text>
+	</string>
+	<string id="st_arena_m_round_10_enemies">
+		<text>1x Psy-Dog (with phantoms) + 1x Giant Pseudodog</text>
+	</string>
+	<string id="st_arena_m_round_10_desc">
+		<text>The psy-dog spawns phantom clones to confuse you. Eliminate the original leader swiftly.</text>
+	</string>
+	<string id="st_arena_m_round_10_reward">
+		<text>36,000 RU + Psy-Drugs + Elite Stims</text>
+	</string>
+
+	<string id="st_arena_m_round_11_name">
+		<text>Round 11: Telekinetic Shield</text>
+	</string>
+	<string id="st_arena_m_round_11_enemies">
+		<text>2x Telekinetic Burers with energy barriers</text>
+	</string>
+	<string id="st_arena_m_round_11_desc">
+		<text>Telekinetic dwarfs capable of wrenching weapons from your hands and deflecting bullets.</text>
+	</string>
+	<string id="st_arena_m_round_11_reward">
+		<text>45,000 RU + Heavy Toolset</text>
+	</string>
+
+	<string id="st_arena_m_round_12_name">
+		<text>Round 12: Titan of the Pit</text>
+	</string>
+	<string id="st_arena_m_round_12_enemies">
+		<text>1x Enraged Pseudogiant</text>
+	</string>
+	<string id="st_arena_m_round_12_desc">
+		<text>A colossal mass of muscle whose ground slams knock you down. Absorbs hundreds of rounds.</text>
+	</string>
+	<string id="st_arena_m_round_12_reward">
+		<text>55,000 RU + Expert Toolset</text>
+	</string>
+
+	<!-- Tier 5: Zone Legends -->
+	<string id="st_arena_m_round_13_name">
+		<text>Round 13: Twin-Headed Nightmare</text>
+	</string>
+	<string id="st_arena_m_round_13_enemies">
+		<text>1x Wild Adult Chimera</text>
+	</string>
+	<string id="st_arena_m_round_13_desc">
+		<text>The ultimate apex predator of the Zone. Massive leaps, savage speed, and deadly claws.</text>
+	</string>
+	<string id="st_arena_m_round_13_reward">
+		<text>70,000 RU + Rare Mutant Trophies + Stims</text>
+	</string>
+
+	<string id="st_arena_m_round_14_name">
+		<text>Round 14: The Psychic Tyrant</text>
+	</string>
+	<string id="st_arena_m_round_14_enemies">
+		<text>1x Psy Controller + 3x Armed Zombies</text>
+	</string>
+	<string id="st_arena_m_round_14_desc">
+		<text>A Controller blasting your mind with psychic waves from afar while armed zombie thralls fire at you.</text>
+	</string>
+	<string id="st_arena_m_round_14_reward">
+		<text>90,000 RU + High-Tier Artefact + Scientific Medkits</text>
+	</string>
+
+	<string id="st_arena_m_round_15_name">
+		<text>Round 15: Duo of the Apocalypse</text>
+	</string>
+	<string id="st_arena_m_round_15_enemies">
+		<text>1x Black Chimera + 1x Titanic Pseudogiant</text>
+	</string>
+	<string id="st_arena_m_round_15_desc">
+		<text>The ultimate survival test: the two most dreaded apex monsters of the Zone unleashed together.</text>
+	</string>
+	<string id="st_arena_m_round_15_reward">
+		<text>130,000 RU + 'Master Hunter' Title + Supreme Trophy</text>
+	</string>
+
+	<!-- Combat Announcements (Arnie's Megaphone) -->
+	<string id="st_arena_fight_started">
+		<text>Combat has begun! Kill or be killed!</text>
+	</string>
+	<string id="st_arena_enemies_remaining">
+		<text>Attention! %s enemies remaining in the arena!</text>
+	</string>
+	<string id="st_arena_enemy_one_remaining">
+		<text>Last opponent standing! Finish him to claim victory!</text>
+	</string>
+	<string id="st_arena_fight_won">
+		<text>VICTORY! The crowd roars for your triumph!</text>
+	</string>
+	<string id="st_arena_reward_money">
+		<text>You have received your prize purse of %s RU.</text>
+	</string>
+	<string id="st_arena_reward_items">
+		<text>Medical supplies and repair parts transferred to your backpack.</text>
+	</string>
+	<string id="st_arena_tier_unlocked">
+		<text>Arena Rank Promotion! You unlocked a new tier: %s.</text>
+	</string>
+	<string id="st_arena_champion_crowned">
+		<text>ATTENTION ALL STALKERS! We have a new Grand Champion of the Arena!</text>
+	</string>
+	<string id="st_arena_medic_rescue">
+		<text>Emergency Medical Rescue! You were evacuated unconscious. Treatment cost %s RU.</text>
+	</string>
+	<string id="st_arena_gear_restored">
+		<text>Your original equipment has been restored to your inventory.</text>
+	</string>
+
+	<!-- Original Spectator Mode Strings -->
+	<string id="st_arena_team1">
+		<text>Team 1</text>
+	</string>
+	<string id="st_arena_team2">
+		<text>Team 2</text>
+	</string>
+	<string id="st_arena_bet">
+		<text>Bet</text>
+	</string>
+	<string id="st_arena_gain">
+		<text>Gain</text>
+	</string>
+	<string id="st_arena_start">
+		<text>Start</text>
+	</string>
+	<string id="st_arena_kicked_out">
+		<text>You were kicked out for attacking contestants and your bet is lost.</text>
+	</string>
+	<string id="st_arena_team_1_won">
+		<text>Team 1 won!</text>
+	</string>
+	<string id="st_arena_team_2_won">
+		<text>Team 2 won!</text>
+	</string>
+	<string id="st_arena_your_reward">
+		<text>You won %s RU.</text>
+	</string>
+
+	<!-- MCM Config Strings -->
+	<string id="ui_mcm_xcvb_arena_title">
+		<text>Arena Tournament (GAMMA)</text>
+	</string>
+	<string id="ui_mcm_menu_xcvb_arena">
+		<text>Arena Tournament</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_random_equipment">
+		<text>Random Arena Equipment</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_random_equipment_desc">
+		<text>Safely stores your current gear in a secure locker and equips you with random weapons, armor and ammunition tailored to the combat tier.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_reward_mult">
+		<text>Reward money multiplier</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_reward_mult_desc">
+		<text>Multiplier applied to rubles awarded for winning tournament bouts.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_give_items">
+		<text>Award medical supplies &amp; repair kits (GAMMA)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_give_items_desc">
+		<text>If enabled, you will receive medical items, ammo, and repair kits tailored for GAMMA progression.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_medic_rescue">
+		<text>Arnie's Emergency Medical Rescue</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_medic_rescue_desc">
+		<text>If you take fatal damage inside the arena, medics pull you out alive for a medical fee instead of permadeath/save reload.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay">
+		<text>Allow replaying completed bouts</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_desc">
+		<text>Allows entering already-cleared rounds for practice or extra rewards.</text>
+	</string>
+
+	<!-- MCM Spectator Mode settings -->
+	<string id="ui_mcm_xcvb_arena_fight_chance">
+		<text>Spectator fight chance (for each time period)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_stalker_team1_chance">
+		<text>Spectator Team 1 stalkers chance</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_stalker_team1_chance_desc">
+		<text>Chance for stalkers to appear in Team 1 of spectator mode.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_stalker_team2_chance">
+		<text>Spectator Team 2 stalkers chance</text>
+	</string>
+	<!-- Selectores de equipamiento de la arena -->
+	<string id="st_arena_loadout_class_title">
+		<text>PRIMARY WEAPON CLASS:</text>
+	</string>
+	<string id="st_arena_loadout_tier_title">
+		<text>GEAR TIER (SUIT / WEAPON):</text>
+	</string>
+	<string id="st_arena_class_random">
+		<text>Random</text>
+	</string>
+	<string id="st_arena_class_shotgun">
+		<text>Shotgun</text>
+	</string>
+	<string id="st_arena_class_rifle">
+		<text>Assault Rifle</text>
+	</string>
+	<string id="st_arena_class_smg">
+		<text>SMG</text>
+	</string>
+	<string id="st_arena_class_sniper">
+		<text>Sniper</text>
+	</string>
+	<string id="st_arena_tier_auto">
+		<text>Auto (Round)</text>
+	</string>
+	<string id="st_arena_tier_1_btn">
+		<text>Tier 1</text>
+	</string>
+	<string id="st_arena_tier_2_btn">
+		<text>Tier 2</text>
+	</string>
+	<string id="st_arena_tier_3_btn">
+		<text>Tier 3</text>
+	</string>
+	<string id="st_arena_tier_4_btn">
+		<text>Tier 4</text>
+	</string>
+	<!-- Filtros y apuestas del modo espectador -->
+	<string id="st_arena_filter_all">
+		<text>All Matches</text>
+	</string>
+	<string id="st_arena_filter_svsm">
+		<text>Stalkers vs Mutants</text>
+	</string>
+	<string id="st_arena_filter_svss">
+		<text>Stalkers vs Stalkers</text>
+	</string>
+	<string id="st_arena_filter_mvsm">
+		<text>Mutants vs Mutants</text>
+	</string>
+	<string id="st_arena_btn_refresh">
+		<text>New Bouts</text>
+	</string>
+	<string id="st_arena_match_type_header">
+		<text>Bout</text>
+	</string>
+	<string id="st_arena_label_svsm">
+		<text>S vs M</text>
+	</string>
+	<string id="st_arena_label_svss">
+		<text>S vs S</text>
+	</string>
+	<string id="st_arena_label_mvsm">
+		<text>M vs M</text>
+	</string>
+	<string id="st_arena_btn_spectate">
+		<text>Go to Balcony</text>
+	</string>
+	<string id="st_arena_no_bet_selected">
+		<text>You must select a bet on a match before going to the balcony.</text>
+	</string>
+
+</string_table>
