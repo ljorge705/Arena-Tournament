@@ -1,0 +1,638 @@
+-- Arena GUI Controller (Tournament & Spectator Mode)
+local gt = game.translate_string
+
+GUI = nil
+
+xr_effects.open_arena_gui = function(actor, npc)
+	if (not GUI) then
+		GUI = UIXcvbArena()
+	end
+
+	if (GUI) and (not GUI:IsShown()) then
+		GUI:ShowDialog(true)
+		Register_UI("UIXcvbArena", "xcvb_arena_gui")
+		GUI:reset_loadout_selection()
+		GUI:update_view_mode()
+	end
+end
+
+function open_gui()
+	xr_effects.open_arena_gui()
+end
+
+class "UIXcvbArena" (CUIScriptWnd)
+
+function UIXcvbArena:__init() super()
+	self.current_mode = "tournament" -- "tournament" or "spectator"
+	self.current_category = "stalker" -- "stalker" or "mutant"
+	self.current_tier = 1
+	self.selected_round_id = 1
+	self.selected_loadout_class = "random"
+	self.selected_loadout_tier = 0
+	self.rows = {}
+
+	self:InitControls()
+	self:InitCallbacks()
+	self:update_view_mode()
+end
+
+function UIXcvbArena:__finalize()
+end
+
+function UIXcvbArena:InitControls()
+	self:SetWndRect(Frect():set(0, 0, 1024, 768))
+	self:SetAutoDelete(true)
+	self:Enable(true)
+
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_xcvb_arena.xml")
+
+	-- Main background
+	self.bg = xml:InitStatic("bg", self)
+
+	-- Header
+	self.title_main = xml:InitTextWnd("title_main", self.bg)
+	self.player_rank = xml:InitTextWnd("player_rank", self.bg)
+	self.player_record = xml:InitTextWnd("player_record", self.bg)
+
+	-- Mode Switch Button
+	self.btn_mode = xml:Init3tButton("mode_btn", self.bg)
+	self:Register(self.btn_mode, "btn_mode")
+
+	-- ==============================================
+	-- TOURNAMENT CONTAINER
+	-- ==============================================
+	self.tournament_cont = xml:InitStatic("tournament_cont", self.bg)
+
+	-- Category Buttons (Stalkers vs Mutantes)
+	self.btn_cat_stalkers = xml:Init3tButton("tournament_cont:cat_stalkers_btn", self.tournament_cont)
+	self:Register(self.btn_cat_stalkers, "btn_cat_stalkers")
+
+	self.btn_cat_mutants = xml:Init3tButton("tournament_cont:cat_mutants_btn", self.tournament_cont)
+	self:Register(self.btn_cat_mutants, "btn_cat_mutants")
+
+	-- Tier Buttons
+	self.tier_btns = {}
+	for t = 1, 5 do
+		local btn = xml:Init3tButton("tournament_cont:tier_btn_" .. t, self.tournament_cont)
+		self.tier_btns[t] = btn
+		self:Register(btn, "btn_tier_" .. t)
+	end
+
+	-- 3 Tournament Bout Rows
+	self.tourn_rows = {}
+	for r = 1, 3 do
+		local row = {}
+		row.frame = xml:InitStatic("tournament_cont:tourn_row_" .. r, self.tournament_cont)
+		row.name = xml:InitTextWnd("tournament_cont:tourn_row_" .. r .. ":name", row.frame)
+		row.diff = xml:InitTextWnd("tournament_cont:tourn_row_" .. r .. ":diff", row.frame)
+		row.enemies = xml:InitTextWnd("tournament_cont:tourn_row_" .. r .. ":enemies", row.frame)
+		row.reward = xml:InitTextWnd("tournament_cont:tourn_row_" .. r .. ":reward", row.frame)
+		row.action_btn = xml:Init3tButton("tournament_cont:tourn_row_" .. r .. ":action_btn", row.frame)
+		self:Register(row.action_btn, "btn_action_" .. r)
+		self.tourn_rows[r] = row
+	end
+
+	-- Details Lore Box
+	self.details_box = xml:InitStatic("tournament_cont:details_box", self.tournament_cont)
+	self.detail_title = xml:InitTextWnd("tournament_cont:details_box:detail_title", self.details_box)
+	self.detail_desc = xml:InitTextWnd("tournament_cont:details_box:detail_desc", self.details_box)
+
+	-- Loadout Class Selection Controls
+	self.loadout_class_title = xml:InitTextWnd("tournament_cont:loadout_class_title", self.tournament_cont)
+	self.loadout_class_btns = {}
+	local classes = { "random", "shotgun", "rifle", "smg", "sniper" }
+	for _, cls in ipairs(classes) do
+		local btn = xml:Init3tButton("tournament_cont:loadout_btn_" .. cls, self.tournament_cont)
+		self.loadout_class_btns[cls] = btn
+		self:Register(btn, "btn_loadout_" .. cls)
+	end
+
+	-- Loadout Tier Selection Controls
+	self.loadout_tier_title = xml:InitTextWnd("tournament_cont:loadout_tier_title", self.tournament_cont)
+	self.loadout_tier_btns = {}
+	for t = 0, 5 do
+		local btn = xml:Init3tButton("tournament_cont:loadout_tier_btn_" .. t, self.tournament_cont)
+		self.loadout_tier_btns[t] = btn
+		self:Register(btn, "btn_loadout_tier_" .. t)
+	end
+
+	-- Main Action Button
+	self.btn_tourn_start = xml:Init3tButton("tournament_cont:tourn_start_btn", self.tournament_cont)
+	self:Register(self.btn_tourn_start, "btn_tourn_start")
+
+	-- ==============================================
+	-- SPECTATOR CONTAINER
+	-- ==============================================
+	self.spectator_cont = xml:InitStatic("spectator_cont", self.bg)
+
+	-- Filter Buttons (All, Stalker vs Mutant, Stalker vs Stalker, Mutant vs Mutant)
+	self.spec_filter_btns = {}
+	local spec_filters = { "all", "svsm", "svss", "mvsm" }
+	for _, f_name in ipairs(spec_filters) do
+		local btn = xml:Init3tButton("spectator_cont:filter_" .. f_name, self.spectator_cont)
+		self.spec_filter_btns[f_name] = btn
+		self:Register(btn, "btn_spec_filter_" .. f_name)
+	end
+
+	-- Refresh bouts button
+	self.btn_spec_refresh = xml:Init3tButton("spectator_cont:refresh_btn", self.spectator_cont)
+	self:Register(self.btn_spec_refresh, "btn_spec_refresh")
+
+	-- Start / Go to balcony button
+	self.start_btn = xml:Init3tButton("spectator_cont:start_btn", self.spectator_cont)
+	self:Register(self.start_btn, "start_btn")
+	self.title_cont = xml:InitStatic("spectator_cont:title_cont", self.spectator_cont)
+
+	-- Spectator table rows
+	for i = 1, 6 do
+		local row_cont = xml:InitStatic("spectator_cont:row_cont", self.spectator_cont)
+		row_cont:SetWndPos(vector2():set(70, 142 + (i - 1) * 60))
+
+		local row = {}
+		row.time = xml:InitTextWnd("spectator_cont:row_cont:time", row_cont)
+		row.team_1 = xml:InitStatic("spectator_cont:row_cont:team_1", row_cont)
+		row.team_2 = xml:InitStatic("spectator_cont:row_cont:team_2", row_cont)
+
+		row.bet_cont = xml:InitStatic("spectator_cont:row_cont:bet_cont", row_cont)
+
+		row.btn_min1 = xml:Init3tButton("spectator_cont:row_cont:bet_cont:bet_btn_min1", row.bet_cont)
+		self:Register(row.btn_min1, "btn_min1_" .. i)
+		row.btn_plus1 = xml:Init3tButton("spectator_cont:row_cont:bet_cont:bet_btn_plus1", row.bet_cont)
+		self:Register(row.btn_plus1, "btn_plus1_" .. i)
+		row.bet1 = xml:InitTextWnd("spectator_cont:row_cont:bet_cont:bet1", row.bet_cont)
+
+		row.btn_min2 = xml:Init3tButton("spectator_cont:row_cont:bet_cont:bet_btn_min2", row.bet_cont)
+		self:Register(row.btn_min2, "btn_min2_" .. i)
+		row.btn_plus2 = xml:Init3tButton("spectator_cont:row_cont:bet_cont:bet_btn_plus2", row.bet_cont)
+		self:Register(row.btn_plus2, "btn_plus2_" .. i)
+		row.bet2 = xml:InitTextWnd("spectator_cont:row_cont:bet_cont:bet2", row.bet_cont)
+
+		row.reward = xml:InitTextWnd("spectator_cont:row_cont:reward", row_cont)
+		self.rows[i] = row
+	end
+
+	xml:InitStatic("vert_line1", self.bg)
+	xml:InitStatic("vert_line2", self.bg)
+	xml:InitStatic("vert_line3", self.bg)
+end
+
+function UIXcvbArena:InitCallbacks()
+	self:AddCallback("btn_mode", ui_events.BUTTON_CLICKED, self.on_click_mode, self)
+
+	-- Category callbacks
+	self:AddCallback("btn_cat_stalkers", ui_events.BUTTON_CLICKED, self.on_click_cat_stalkers, self)
+	self:AddCallback("btn_cat_mutants", ui_events.BUTTON_CLICKED, self.on_click_cat_mutants, self)
+
+	-- Tier callbacks
+	for t = 1, 5 do
+		self:AddCallback("btn_tier_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_tier(t) end, self)
+	end
+
+	-- Row action callbacks
+	for r = 1, 3 do
+		self:AddCallback("btn_action_" .. r, ui_events.BUTTON_CLICKED, function() self:on_click_action(r) end, self)
+	end
+
+	-- Loadout Class Callbacks
+	local classes = { "random", "shotgun", "rifle", "smg", "sniper" }
+	for _, cls in ipairs(classes) do
+		self:AddCallback("btn_loadout_" .. cls, ui_events.BUTTON_CLICKED, function() self:on_click_loadout_class(cls) end, self)
+	end
+
+	-- Loadout Tier Callbacks
+	for t = 0, 5 do
+		self:AddCallback("btn_loadout_tier_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_loadout_tier(t) end, self)
+	end
+
+	-- Main enter button callback
+	self:AddCallback("btn_tourn_start", ui_events.BUTTON_CLICKED, self.on_click_tourn_start, self)
+
+	-- Spectator callbacks
+	local spec_filters = { "all", "svsm", "svss", "mvsm" }
+	for _, f_name in ipairs(spec_filters) do
+		self:AddCallback("btn_spec_filter_" .. f_name, ui_events.BUTTON_CLICKED, function() self:on_click_spec_filter(f_name) end, self)
+	end
+
+	self:AddCallback("btn_spec_refresh", ui_events.BUTTON_CLICKED, self.on_click_refresh_bouts, self)
+	self:AddCallback("start_btn", ui_events.BUTTON_CLICKED, self.on_click_spectator_start, self)
+
+	for i = 1, 6 do
+		self:AddCallback("btn_min1_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_bet(i, 1, -1) end, self)
+		self:AddCallback("btn_plus1_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_bet(i, 1, 1) end, self)
+		self:AddCallback("btn_min2_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_bet(i, 2, -1) end, self)
+		self:AddCallback("btn_plus2_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_bet(i, 2, 1) end, self)
+	end
+end
+
+--------------------------------------------------------------------------------
+-- MODE AND CATEGORY SWITCHING
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:on_click_mode()
+	if self.current_mode == "tournament" then
+		self.current_mode = "spectator"
+	else
+		self.current_mode = "tournament"
+	end
+	self:update_view_mode()
+end
+
+function UIXcvbArena:reset_loadout_selection()
+	self.selected_loadout_class = "random"
+	self.selected_loadout_tier = 0
+	if self.loadout_class_btns then
+		self:update_loadout_buttons()
+	end
+end
+
+function UIXcvbArena:on_click_cat_stalkers()
+	self.current_category = "stalker"
+	self.selected_round_id = (self.current_tier - 1) * 3 + 1
+	self:reset_loadout_selection()
+	self:update_tournament_display()
+end
+
+function UIXcvbArena:on_click_cat_mutants()
+	self.current_category = "mutant"
+	self.selected_round_id = (self.current_tier - 1) * 3 + 1
+	self:reset_loadout_selection()
+	self:update_tournament_display()
+end
+
+function UIXcvbArena:on_click_tier(tier)
+	self.current_tier = tier
+	self.selected_round_id = (tier - 1) * 3 + 1
+	self:reset_loadout_selection()
+	self:update_tournament_display()
+end
+
+function UIXcvbArena:on_click_action(row_idx)
+	local round_id = (self.current_tier - 1) * 3 + row_idx
+	local prev_selected = self.selected_round_id
+	self.selected_round_id = round_id
+
+	local unl = xcvb_arena_main.is_round_unlocked(self.current_category, round_id)
+	local comp = xcvb_arena_main.is_round_completed(self.current_category, round_id)
+	local replay = xcvb_arena_mcm.get_config("allow_replay")
+
+	if prev_selected ~= round_id then
+		-- Si cambia a otra ronda, reiniciar la selección de arma y mostrar los detalles
+		self:reset_loadout_selection()
+		self:update_tournament_display()
+	else
+		-- Si hace clic en la ronda que ya estaba seleccionada, iniciar combate
+		self:update_tournament_display()
+		if unl and (not comp or replay ~= false) then
+			self:on_click_tourn_start()
+		end
+	end
+end
+
+function UIXcvbArena:update_view_mode()
+	if self.current_mode == "tournament" then
+		self.tournament_cont:Show(true)
+		self.spectator_cont:Show(false)
+		self.title_main:SetText(gt("st_arena_title"))
+		self.btn_mode:TextControl():SetText(gt("st_arena_mode_spectator"))
+		self:update_tournament_display()
+	else
+		self.tournament_cont:Show(false)
+		self.spectator_cont:Show(true)
+		self.title_main:SetText(gt("st_arena_spectator_title"))
+		self.btn_mode:TextControl():SetText(gt("st_arena_mode_tournament"))
+		self:update_spectator_display()
+	end
+end
+
+--------------------------------------------------------------------------------
+-- TOURNAMENT DISPLAY REFRESH
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:update_tournament_display()
+	local cat = self.current_category
+	local p_tier = xcvb_arena_main.get_player_tier(cat)
+	local tiers_table = xcvb_arena_main.get_category_tiers(cat)
+	local tier_name = tiers_table[p_tier] and gt(tiers_table[p_tier].name) or ""
+	local cat_tag = (cat == "mutant") and " [MUTANTES]" or " [STALKERS]"
+
+	-- Header texts
+	self.player_rank:SetText(gt("st_arena_rank_label") .. " " .. tier_name .. cat_tag)
+	self.player_record:SetText(string.format(gt("st_arena_record_label"), xcvb_arena_main.tournament_wins, xcvb_arena_main.tournament_losses))
+
+	-- Highlight Category Buttons
+	if cat == "stalker" then
+		self.btn_cat_stalkers:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+		self.btn_cat_mutants:TextControl():SetTextColor(GetARGB(255, 170, 170, 170))
+	else
+		self.btn_cat_stalkers:TextControl():SetTextColor(GetARGB(255, 170, 170, 170))
+		self.btn_cat_mutants:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+	end
+
+	-- Tier tabs highlight
+	for t = 1, 5 do
+		local btn = self.tier_btns[t]
+		if t == self.current_tier then
+			btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+		else
+			btn:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		end
+	end
+
+	-- Populate 3 rows
+	local tier_data = tiers_table[self.current_tier]
+	if not tier_data then return end
+
+	local replay_allowed = xcvb_arena_mcm.get_config("allow_replay")
+
+	for r = 1, 3 do
+		local round_id = (self.current_tier - 1) * 3 + r
+		local r_data = tier_data.rounds[round_id]
+		local row = self.tourn_rows[r]
+
+		if r_data then
+			local is_unlocked = xcvb_arena_main.is_round_unlocked(cat, round_id)
+			local is_comp = xcvb_arena_main.is_round_completed(cat, round_id)
+
+			local enemy_label = gt(r_data.enemies_str)
+			if r_data.id == 5 and cat == "stalker" then
+				local a_fac = xcvb_arena_utils.get_actor_faction()
+				if a_fac == "stalker" or a_fac == "csky" or a_fac == "ecolog" then
+					enemy_label = gt("st_arena_s_round_5_enemies_bandit")
+				end
+			end
+
+			row.name:SetText(gt(r_data.name))
+			row.diff:SetText(gt("st_arena_difficulty_label") .. " " .. gt(r_data.diff_str))
+			row.enemies:SetText(gt("st_arena_enemies_label") .. " " .. enemy_label)
+			row.reward:SetText(gt("st_arena_reward_label") .. " " .. gt(r_data.reward_str))
+
+			if round_id == self.selected_round_id then
+				row.name:SetTextColor(GetARGB(255, 255, 230, 90))
+			else
+				row.name:SetTextColor(GetARGB(255, 210, 210, 210))
+			end
+
+			if is_comp then
+				row.action_btn:TextControl():SetText(gt("st_arena_status_completed"))
+				row.action_btn:TextControl():SetTextColor(GetARGB(255, 140, 220, 140))
+				row.action_btn:Enable(replay_allowed ~= false)
+			elseif is_unlocked then
+				row.action_btn:TextControl():SetText(gt("st_arena_status_ready"))
+				row.action_btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+				row.action_btn:Enable(true)
+			else
+				row.action_btn:TextControl():SetText(gt("st_arena_status_locked"))
+				row.action_btn:TextControl():SetTextColor(GetARGB(255, 160, 160, 160))
+				row.action_btn:Enable(false)
+			end
+		end
+	end
+
+	-- Details lore box
+	local sel_data = xcvb_arena_main.get_round_data(cat, self.selected_round_id)
+	if sel_data then
+		local sel_desc = gt(sel_data.desc)
+		if sel_data.id == 5 and cat == "stalker" then
+			local a_fac = xcvb_arena_utils.get_actor_faction()
+			if a_fac == "stalker" or a_fac == "csky" or a_fac == "ecolog" then
+				sel_desc = gt("st_arena_s_round_5_desc_bandit")
+			end
+		end
+
+		self.detail_title:SetText(gt(sel_data.name) .. " - " .. gt(sel_data.diff_str))
+		self.detail_desc:SetText(sel_desc)
+
+		local sel_unlocked = xcvb_arena_main.is_round_unlocked(cat, self.selected_round_id)
+		local sel_comp = xcvb_arena_main.is_round_completed(cat, self.selected_round_id)
+
+		if sel_comp then
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay"))
+			self.btn_tourn_start:Enable(replay_allowed ~= false)
+		elseif sel_unlocked then
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_enter"))
+			self.btn_tourn_start:Enable(true)
+		else
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_locked"))
+			self.btn_tourn_start:Enable(false)
+		end
+	end
+
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_loadout_class(cls)
+	self.selected_loadout_class = cls
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_loadout_tier(tier)
+	self.selected_loadout_tier = tier
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:update_loadout_buttons()
+	local classes = { "random", "shotgun", "rifle", "smg", "sniper" }
+	for _, cls in ipairs(classes) do
+		local btn = self.loadout_class_btns[cls]
+		if btn then
+			if cls == self.selected_loadout_class then
+				btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 80))
+			else
+				btn:TextControl():SetTextColor(GetARGB(255, 175, 175, 175))
+			end
+		end
+	end
+
+	for t = 0, 5 do
+		local btn = self.loadout_tier_btns[t]
+		if btn then
+			if t == self.selected_loadout_tier then
+				btn:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+			else
+				btn:TextControl():SetTextColor(GetARGB(255, 175, 175, 175))
+			end
+		end
+	end
+end
+
+function UIXcvbArena:on_click_tourn_start()
+	local cat = self.current_category
+	local unl = xcvb_arena_main.is_round_unlocked(cat, self.selected_round_id)
+	local comp = xcvb_arena_main.is_round_completed(cat, self.selected_round_id)
+	local replay = xcvb_arena_mcm.get_config("allow_replay")
+
+	if (not unl) or (comp and replay == false) then
+		return
+	end
+
+	local chosen_cls = self.selected_loadout_class
+	local chosen_tier = self.selected_loadout_tier
+
+	-- Reset loadout selection so it does not persist into future rounds
+	self:reset_loadout_selection()
+
+	self:Close()
+	xcvb_arena_fight.start_tournament_fight(cat, self.selected_round_id, chosen_cls, chosen_tier)
+end
+
+--------------------------------------------------------------------------------
+-- SPECTATOR MODE LOGIC (Betting & Arena Bouts)
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:on_click_spec_filter(filter_name)
+	xcvb_arena_main.current_spec_filter = filter_name
+	xcvb_arena_main.generate_spectator_fights(filter_name)
+	xcvb_arena_main.team_bet = 0
+	xcvb_arena_main.cur_reward = 0
+	self:update_spectator_display()
+end
+
+function UIXcvbArena:on_click_refresh_bouts()
+	xcvb_arena_main.generate_spectator_fights(xcvb_arena_main.current_spec_filter)
+	xcvb_arena_main.team_bet = 0
+	xcvb_arena_main.cur_reward = 0
+	self:update_spectator_display()
+end
+
+function UIXcvbArena:on_click_bet(row_idx, team_idx, dir)
+	local main_t = xcvb_arena_main.arena_main_t[row_idx]
+	if not main_t or not main_t.team1 or #main_t.team1 == 0 or not main_t.team2 or #main_t.team2 == 0 then
+		return
+	end
+
+	if xcvb_arena_main.selected_spec_bout ~= row_idx or xcvb_arena_main.team_bet ~= team_idx then
+		if dir > 0 and db.actor:money() < 1000 then return end
+		xcvb_arena_main.selected_spec_bout = row_idx
+		xcvb_arena_main.team_bet = team_idx
+		xcvb_arena_main.bet_amount = 1000
+	else
+		local cur_bet = xcvb_arena_main.bet_amount or 1000
+		local step = cur_bet >= 5000 and 2500 or 500
+		local new_bet = cur_bet + dir * step
+		if new_bet < 500 then
+			new_bet = 0
+			xcvb_arena_main.team_bet = 0
+		elseif new_bet > 50000 then
+			new_bet = 50000
+		end
+		if dir > 0 and db.actor:money() < new_bet then
+			return
+		end
+		xcvb_arena_main.bet_amount = new_bet
+	end
+
+	if xcvb_arena_main.team_bet > 0 and xcvb_arena_main.bet_amount > 0 then
+		local pwr1 = (main_t.pwrs and main_t.pwrs[1] and main_t.pwrs[1] > 0) and main_t.pwrs[1] or 1
+		local pwr2 = (main_t.pwrs and main_t.pwrs[2] and main_t.pwrs[2] > 0) and main_t.pwrs[2] or 1
+		local coef = (team_idx == 1) and (pwr2 / (pwr1 + pwr2)) or (pwr1 / (pwr1 + pwr2))
+		xcvb_arena_main.cur_reward = math.ceil(xcvb_arena_main.bet_amount + xcvb_arena_main.bet_amount * coef * 2)
+	else
+		xcvb_arena_main.cur_reward = 0
+	end
+
+	self:update_spectator_display()
+end
+
+function UIXcvbArena:update_spectator_display()
+	local cur_f = xcvb_arena_main.current_spec_filter or "all"
+	for f_name, btn in pairs(self.spec_filter_btns) do
+		if f_name == cur_f then
+			btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 80))
+		else
+			btn:TextControl():SetTextColor(GetARGB(255, 175, 175, 175))
+		end
+	end
+
+	local main_t = xcvb_arena_main.arena_main_t
+	if not main_t or not main_t[1] or not main_t[1].team1 or #main_t[1].team1 == 0 then
+		xcvb_arena_main.generate_spectator_fights()
+		main_t = xcvb_arena_main.arena_main_t
+	end
+	for i = 1, 6 do
+		local bout = main_t[i]
+		if bout and bout.team1 and #bout.team1 > 0 and bout.team2 and #bout.team2 > 0 then
+			local m_label = "st_arena_label_" .. (bout.match_type or "svsm")
+			self.rows[i].time:SetText(gt(m_label))
+
+			local team1_str = xcvb_arena_utils.get_team_str(bout.team1) or "st_arena_team1"
+			local team2_str = xcvb_arena_utils.get_team_str(bout.team2) or "st_arena_team2"
+			local count1 = #bout.team1
+			local count2 = #bout.team2
+			self.rows[i].team_1:TextControl():SetText(gt(team1_str) .. " (" .. count1 .. ")")
+			self.rows[i].team_2:TextControl():SetText(gt(team2_str) .. " (" .. count2 .. ")")
+
+			local is_sel_bout = (i == xcvb_arena_main.selected_spec_bout)
+			local bet1_val = (is_sel_bout and xcvb_arena_main.team_bet == 1) and xcvb_arena_main.bet_amount or 0
+			local bet2_val = (is_sel_bout and xcvb_arena_main.team_bet == 2) and xcvb_arena_main.bet_amount or 0
+			self.rows[i].bet1:SetText(tostring(bet1_val))
+			self.rows[i].bet2:SetText(tostring(bet2_val))
+
+			local rew = is_sel_bout and xcvb_arena_main.cur_reward or 0
+			self.rows[i].reward:SetText(tostring(rew))
+
+			if is_sel_bout and xcvb_arena_main.team_bet > 0 then
+				self.rows[i].reward:SetTextColor(GetARGB(255, 120, 240, 120))
+			else
+				self.rows[i].reward:SetTextColor(GetARGB(255, 190, 190, 190))
+			end
+		else
+			self.rows[i].time:SetText("")
+			self.rows[i].team_1:TextControl():SetText("")
+			self.rows[i].team_2:TextControl():SetText("")
+			self.rows[i].bet1:SetText("0")
+			self.rows[i].bet2:SetText("0")
+			self.rows[i].reward:SetText("0")
+		end
+	end
+
+	local has_bet = (xcvb_arena_main.team_bet > 0 and (xcvb_arena_main.bet_amount or 0) > 0)
+	self.start_btn:Enable(has_bet)
+end
+
+function UIXcvbArena:on_click_spectator_start()
+	local bet = xcvb_arena_main.bet_amount or 0
+	local team = xcvb_arena_main.team_bet or 0
+	local bout_idx = xcvb_arena_main.selected_spec_bout or 1
+
+	if team <= 0 or bet <= 0 then
+		news_manager.send_tip(db.actor, gt("st_arena_no_bet_selected"), 0, nil, 6000)
+		return
+	end
+
+	if db.actor:money() < bet then
+		return
+	end
+
+	db.actor:give_money(-bet)
+	self:Close()
+
+	xcvb_arena_utils.arena_fade_in_out(1)
+	CreateTimeEvent("xcvb_start_arena_fight_e", "xcvb_start_arena_fight_a", 2, function()
+		xcvb_arena_fight.start_arena_fight(bout_idx)
+		return true
+	end)
+end
+
+--------------------------------------------------------------------------------
+-- WINDOW LIFECYCLE
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:OnKeyboard(dik, keyboard_action)
+	local res = CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
+	if res == false then
+		local bind = dik_to_bind(dik)
+		if bind == key_bindings.kQUIT or dik == DIK_keys.DIK_ESCAPE then
+			self:Close()
+		end
+	end
+	return res
+end
+
+function UIXcvbArena:Close()
+	if self:IsShown() then
+		self:HideDialog()
+		Unregister_UI("UIXcvbArena")
+	end
+	GUI = nil
+end

@@ -1,0 +1,1339 @@
+local ini_rel = ini_file("creatures\\game_relations.ltx")
+
+temporary_arena_item_ids = {}
+arena_spawned_combatant_ids = {}
+xcvb_arena_storage_box_id = nil
+
+function get_new_period()
+	local hrs = level.get_time_hours()
+	for i, t in ipairs(xcvb_arena_main.arena_main_t) do
+		if hrs >= t.min and hrs < t.max then
+			return i
+		end
+	end
+end
+
+function spawn_board()
+	local pos = vector():set(149.2, 1.40, 70.81)
+	local lvid = 40590
+	local gvid = 1684
+	if level and level.name and level.name() == "l05_bar" and level.vertex_id then
+		local v = level.vertex_id(pos)
+		if v and v < 2^32 - 1 then
+			lvid = v
+		end
+	end
+
+	local se_obj = alife_create("xcvb_arena_board", pos, lvid, gvid)
+	if not se_obj then return end
+
+	local data = utils_stpk.get_physic_data(se_obj)
+	data.custom_data = [[
+[collide]
+ignore_static
+ignore_small_objects
+
+[logic]
+cfg = scripts\arena_board_logic.ltx
+]]
+	utils_stpk.set_physic_data(data, se_obj)
+
+	se_obj.angle = vector():set(0, -2.06, 0)
+	return se_obj
+end
+
+function spawn_balcony()
+	local pos = vector():set(140.1, -13.51, 102.2)
+	local lvid = 40551
+	local gvid = 1710
+	if level and level.name and level.name() == "l05_bar" and level.vertex_id then
+		local v = level.vertex_id(pos)
+		if v and v < 2^32 - 1 then
+			lvid = v
+		end
+	end
+
+	local se_obj = alife_create("xcvb_arena_balcony", pos, lvid, gvid)
+	if not se_obj then return end
+
+	local data = utils_stpk.get_physic_data(se_obj)
+	data.custom_data = [[
+[collide]
+ignore_static
+ignore_small_objects
+]]
+	utils_stpk.set_physic_data(data, se_obj)
+
+	se_obj.angle = vector():set(0, -1.5708, 0)
+	return se_obj
+end
+
+function check_and_spawn_board()
+	local sim = alife()
+	if not sim then return end
+
+	local board_found = false
+	local balcony_found = false
+
+	for i = 1, 65534 do
+		local se = sim:object(i)
+		if se then
+			local sec = se:section_name()
+			if sec == "xcvb_arena_board" then
+				board_found = true
+			elseif sec == "xcvb_arena_balcony" then
+				balcony_found = true
+			end
+			if board_found and balcony_found then
+				break
+			end
+		end
+	end
+
+	if not board_found then
+		spawn_board()
+	end
+	if not balcony_found then
+		spawn_balcony()
+	end
+end
+
+function handle_removed_teams()
+	for i, t in ipairs(xcvb_arena_main.arena_main_t) do
+		if #t.team1 > 0 then
+			local remove_teams = false
+			for j, sec in ipairs(t.team1) do
+				if string.find(sec, "zombied") then
+					remove_teams = true
+					break
+				end
+			end
+			for j, sec in ipairs(t.team2) do
+				if string.find(sec, "zombied") then
+					remove_teams = true
+					break
+				end
+			end
+			if remove_teams then
+				iempty_table(xcvb_arena_main.arena_main_t[i].team1)
+				iempty_table(xcvb_arena_main.arena_main_t[i].team2)
+				iempty_table(xcvb_arena_main.arena_main_t[i].pwrs)
+			end
+		end
+	end
+end
+
+local stalkers_t = {
+	stalker  = { 0, 1, 2, 3, 4 },		bandit   = { 0, 1, 2, 3, 4 },		killer   = { 0, 1, 2, 3, 4 },
+	duty     = { 0, 1, 2, 3, 4 },		dolg     = { 0, 1, 2, 3, 4 },		freedom  = { 0, 1, 2, 3, 4 },
+	army     = { 0, 1, 2, 3, 4 },		ecolog   = { 0, 1, 2, 3, 4 },		csky     = { 0, 1, 2, 3, 4 },
+	monolith = { 0, 1, 2, 3, 4 },		greh     = { 0, 1, 2, 3, 4 },		renegade = { 0, 1, 2 },
+}
+
+local stalkers_power_t = {
+	[0] = 1,	[1] = 3,	[2] = 5,	[3] = 8,	[4] = 10,
+}
+
+local faction_enemies_t = {
+	stalker  = { "bandit", "killer", "army", "monolith", "greh", "renegade" },
+	dolg     = { "freedom", "bandit", "killer", "monolith", "greh", "renegade" },
+	duty     = { "freedom", "bandit", "killer", "monolith", "greh", "renegade" },
+	freedom  = { "dolg", "army", "monolith", "greh", "renegade", "bandit" },
+	csky     = { "bandit", "army", "monolith", "greh", "renegade" },
+	ecolog   = { "bandit", "monolith", "greh", "renegade" },
+	killer   = { "stalker", "dolg", "army", "monolith", "greh", "renegade" },
+	army     = { "stalker", "freedom", "bandit", "killer", "monolith", "greh", "renegade", "csky" },
+	bandit   = { "stalker", "dolg", "freedom", "csky", "ecolog", "army", "monolith", "greh" },
+	monolith = { "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army", "bandit", "renegade" },
+	greh     = { "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army", "bandit", "renegade" },
+	renegade = { "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army", "monolith", "greh" },
+}
+
+function is_enemy_faction(fac1, fac2)
+	local f1 = fac1 == "duty" and "dolg" or fac1
+	local f2 = fac2 == "duty" and "dolg" or fac2
+	if not (f1 and f2 and faction_enemies_t[f1]) then return false end
+	for _, enemy in ipairs(faction_enemies_t[f1]) do
+		local e = enemy == "duty" and "dolg" or enemy
+		if e == f2 then return true end
+	end
+	return false
+end
+
+function get_stalker_team(amount, opponent_faction)
+	local ret_ar = {}
+	local pwr = 0
+	local k
+	local opp = opponent_faction == "duty" and "dolg" or opponent_faction
+	if opp and faction_enemies_t[opp] then
+		local enemies = faction_enemies_t[opp]
+		k = enemies[math.random(1, #enemies)]
+	else
+		k = random_key_table(stalkers_t)
+	end
+	if not (k and stalkers_t[k]) then
+		k = "stalker"
+	end
+	local ranks = stalkers_t[k] or stalkers_t["stalker"]
+	for i = 1, amount do
+		local rnd_idx = math.random(1, #ranks)
+		local rank_val = ranks[rnd_idx]
+		local new_k = k
+		if k == "army" then
+			new_k = "military"
+		elseif k == "dolg" then
+			new_k = "duty"
+		end
+		local sec = "sim_default_" .. new_k .. "_" .. rank_val
+		ret_ar[#ret_ar + 1] = sec
+		pwr = pwr + stalkers_power_t[rank_val]
+	end
+	return ret_ar, pwr, k
+end
+
+local mutants_t = {
+	zombie = {"_weak", "_normal", "_strong", "_blind"},
+	boar = {"_normal", "_strong", "_01a_weak", "_02a_weak", "_02a_strong", "_01a_hard", "_02a_hard"},
+	dog = {"_normal_red", "_normal_white", "_normal_brown", "_normal_bulterier", "_weak_red", "_weak_white",
+				"_weak_brown", "_weak_bulterier", "_strong_red", "_strong_white", "_strong_brown", "_strong_bulterier", "_strong_black"},
+	pseudodog = {"_grey_weak", "_normal", "_strong", "_grey_strong"},
+	cat = {"_weak_a", "_weak_b", "_weak_c", "_weak_d", "_weak_e", "_normal_a", "_normal_b", "_normal_c", "_normal_d", "_normal_e",
+				"_strong_a", "_strong_b", "_strong_c", "_strong_d", "_strong_e"},
+	fracture = {"_weak", "_normal", "_strong", "_2", "_3"},
+	snork = {"_weak", "_weak2", "_weak3", "_weak4", "_normal", "_normal2", "_normal3", "_normal4", "_strong", "_strong2", "_strong3", "_strong4"},
+	lurker = {"_1_weak", "_2_weak", "_3_weak", "_1_normal", "_2_normal", "_3_normal", "_1_strong", "_2_strong", "_3_strong" },
+	bloodsucker = {"_red_weak", "_green_weak", "_black_weak", "_red_normal", "_green_normal", "_black_normal",
+							"_red_strong", "_green_strong", "_black_strong"},
+	psysucker = {"_2_weak", "_3_weak", "_2_normal", "_3_normal", "_2_strong", "_3_strong"},
+	psy_dog = {"_normal"},
+	chimera = {"_weak", "_normal", "_strong", "_strong2", "_strong3", "_strong4"},
+}
+
+local mutants_power_t = {
+	zombie = 1, 		boar = 3, 		dog = 2, 		pseudodog = 4, 		cat = 4, 		fracture = 5,
+	snork = 5, 		lurker = 5, 		bloodsucker = 8, 		psysucker = 8, 		psy_dog = 8, 		chimera = 12
+}
+
+local mutant_relation_order = {
+	"actor","human","zoo_monstr","boar","bloodsucker","flesh","dog","pseudodog","cat","chimera","giant","zombie","burer","controller","poltergeist","snork","fracture","bird","rat","tushkano","corpse","trader","arena_monstr","komar","tark","medwed","rotan","fly","mwolf","psysucker","lurker","karlik"
+}
+
+local mutant_relations_t = {}
+
+function get_mutant_team(amount, team1_mutant_type)
+	local ret_ar = {}
+	local pwr = 0
+	local k
+
+	if is_empty(mutant_relations_t) then
+		fill_mutant_relations_table()
+	end
+
+	if team1_mutant_type then
+		local team1_enemies_t = mutant_relations_t[team1_mutant_type]
+		local t_size = team1_enemies_t and size_table(team1_enemies_t) or 0
+		if t_size <= 0 then
+			return ret_ar, pwr, k
+		end
+		k = random_key_table(team1_enemies_t)
+	else
+		k = random_key_table(mutants_t)
+	end
+
+	for i = 1, amount do
+		local rnd_idx = math.random(1, #mutants_t[k])
+		local sec = k .. mutants_t[k][rnd_idx]
+		ret_ar[#ret_ar + 1] = sec
+		pwr = pwr + mutants_power_t[k]
+	end
+	return ret_ar, pwr, k
+end
+
+function fill_mutant_relations_table()
+	local n = ini_rel:line_count("monster_relations")
+	for i = 0, n - 1 do
+		local _, mutant, values = ini_rel:r_line_ex("monster_relations", i, "", "")
+		if mutant and mutants_t[mutant] then
+			mutant_relations_t[mutant] = {}
+			local rel_ar = str_explode(values, ",")
+			for idx, val in ipairs(rel_ar) do
+				local enemy_mutant = mutant_relation_order[idx]
+				if tonumber(val) < 0 and enemy_mutant and mutants_t[enemy_mutant] then
+					mutant_relations_t[mutant][enemy_mutant] = true
+				end
+			end
+		end
+	end
+
+	for mutant1, t1 in pairs(mutant_relations_t) do
+		for mutant2, t2 in pairs(mutant_relations_t) do
+			if mutant1 ~= mutant2 and t2[mutant1] and (not t1[mutant2]) then
+				mutant_relations_t[mutant2][mutant1] = nil
+			end
+		end
+	end
+
+	mutant_relations_t["psy_dog"] = {}
+	mutant_relations_t["psy_dog"] = dup_table(mutant_relations_t["pseudodog"])
+end
+
+function get_team_str(ar)
+	for _, sec in ipairs(ar) do
+		for k, __ in pairs(stalkers_t) do
+			if string.find(sec, k) then
+				return k == "duty" and "dolg" or k
+			elseif string.find(sec, "military") then
+				return "army"
+			end
+		end
+		for k, __ in pairs(mutants_t) do
+			if string.find(sec, "^" .. k) then
+				if k == "dog" then
+					return "encyclopedia_mutants_blind_dog"
+				elseif k == "psy_dog" then
+					return "encyclopedia_mutants_psydog"
+				end
+				return "encyclopedia_mutants_" .. k
+			end
+		end
+	end
+end
+
+-- Positions
+function get_actor_arena_pos()
+	local pos = vector():set(141.6, -13.35, 102.1)
+	local lvid = 37386
+	local gvid = 1710
+	return pos, lvid, gvid
+end
+
+function get_actor_tournament_pos()
+	local pos = vector():set(152.6, -20.0598, 81.2)
+	local lvid = 40761
+	local gvid = 1684
+	return pos, lvid, gvid
+end
+
+function get_tournament_enemy_pos()
+	local pos = vector():set(151.2, -20.0543, 128.8)
+	local lvid = 40551
+	local gvid = 1796
+	return pos, lvid, gvid
+end
+
+function get_actor_bar_safe_pos()
+	local pos = vector():set(151.9, 0.421, 68.6)
+	local lvid = 40590
+	local gvid = 1684
+	return pos, lvid, gvid
+end
+
+function get_team_pos(n)
+	if n == 1 then
+		local pos = vector():set(151.2, -20.0543, 128.8)
+		local lvid = 40551
+		local gvid = 1796
+		return pos, lvid, gvid
+	elseif n == 2 then
+		local pos = vector():set(152.6, -20.0598, 81.2)
+		local lvid = 40761
+		local gvid = 1684
+		return pos, lvid, gvid
+	end
+end
+
+function arena_fade_in_out(in_dly)
+	local fade_in_delay = in_dly or 0
+	local fade_out_delay = fade_in_delay + 2
+
+	CreateTimeEvent("xcvb_arena_fade_in_e", "xcvb_arena_fade_in_a", fade_in_delay, function()
+		level.add_pp_effector("fade_in.ppe", 987123)
+		return true
+	end)
+	CreateTimeEvent("xcvb_arena_fade_out_e", "xcvb_arena_fade_out_a", fade_out_delay, function()
+		level.add_pp_effector("fade_out.ppe", 987124)
+		return true
+	end)
+end
+
+-- Faction Enemy Detection & Adaptation for Tournament Combatants
+local default_faction_enemies = {
+	["stalker"]  = { "bandit", "renegade", "killer", "military", "monolith", "greh" },
+	["bandit"]   = { "stalker", "dolg", "csky", "ecolog", "military", "monolith" },
+	["dolg"]     = { "freedom", "bandit", "killer", "monolith", "renegade", "greh" },
+	["freedom"]  = { "dolg", "military", "monolith", "renegade", "greh" },
+	["csky"]     = { "renegade", "bandit", "military", "monolith", "greh" },
+	["ecolog"]   = { "bandit", "killer", "monolith", "renegade", "greh" },
+	["killer"]   = { "stalker", "dolg", "military", "csky", "ecolog", "monolith" },
+	["army"]     = { "stalker", "bandit", "freedom", "killer", "monolith", "renegade" },
+	["military"] = { "stalker", "bandit", "freedom", "killer", "monolith", "renegade" },
+	["monolith"] = { "stalker", "dolg", "freedom", "csky", "killer", "military", "bandit" },
+	["greh"]     = { "stalker", "dolg", "freedom", "csky", "killer", "military", "bandit" },
+	["renegade"] = { "csky", "stalker", "dolg", "military", "monolith" },
+	["isg"]      = { "stalker", "dolg", "freedom", "csky", "killer", "military", "monolith" }
+}
+
+function get_actor_faction()
+	local comm = (db.actor and character_community and character_community(db.actor)) or "stalker"
+	if string.find(comm, "actor_") then
+		comm = string.gsub(comm, "actor_", "")
+	end
+	return comm
+end
+
+function is_enemy_to_actor(fac, actor_fac)
+	local a_fac = actor_fac or get_actor_faction()
+	if not (fac and a_fac) then return true end
+
+	-- Normalize names
+	local f1 = (fac == "duty") and "dolg" or ((fac == "military") and "army" or fac)
+	local f2 = (a_fac == "duty") and "dolg" or ((a_fac == "military") and "army" or a_fac)
+
+	-- If same faction, NEVER an enemy!
+	if f1 == f2 then return false end
+
+	-- Allies and neutral friendly blocs
+	local friend_bloc = { stalker = true, csky = true, ecolog = true }
+	if friend_bloc[f1] and friend_bloc[f2] then
+		return false
+	end
+	if (f1 == "dolg" or f1 == "army") and (f2 == "dolg" or f2 == "army") then
+		return false
+	end
+
+	-- Check explicit enemy table
+	local enemies = default_faction_enemies[f2] or default_faction_enemies["stalker"]
+	for _, e in ipairs(enemies) do
+		local ne = (e == "duty") and "dolg" or ((e == "military") and "army" or e)
+		if ne == f1 then return true end
+	end
+
+	return false
+end
+
+function get_safe_enemy_section(sec, actor_fac)
+	if not (sec and string.find(sec, "^sim_default_")) then
+		return sec
+	end
+
+	local fac, rank = string.match(sec, "^sim_default_([%a_]+)_(%d+)$")
+	if not (fac and rank) then
+		return sec
+	end
+
+	local a_fac = actor_fac or get_actor_faction()
+
+	-- If already a verified enemy to the player, use as is!
+	if is_enemy_to_actor(fac, a_fac) then
+		return sec
+	end
+
+	-- Otherwise, find a replacement section with equivalent rank from the player's enemy pool
+	local norm_actor = (a_fac == "duty") and "dolg" or ((a_fac == "military") and "army" or a_fac)
+	local pool = default_faction_enemies[norm_actor] or { "bandit", "renegade", "killer", "monolith" }
+
+	for _, enemy_fac in ipairs(pool) do
+		local cand_sec = "sim_default_" .. enemy_fac .. "_" .. rank
+		if ini_sys:section_exist(cand_sec) then
+			return cand_sec
+		end
+		if enemy_fac == "army" and ini_sys:section_exist("sim_default_military_" .. rank) then
+			return "sim_default_military_" .. rank
+		end
+		if enemy_fac == "dolg" and ini_sys:section_exist("sim_default_duty_" .. rank) then
+			return "sim_default_duty_" .. rank
+		end
+	end
+
+	-- Universal fallback
+	local fb = "sim_default_bandit_" .. rank
+	if ini_sys:section_exist(fb) then
+		return fb
+	end
+
+	return sec
+end
+
+-- Tournament Spawning and Setup
+function spawn_tournament_squad(round_data)
+	if not round_data then return nil end
+
+	local pos, lvid, gvid = get_tournament_enemy_pos()
+	local squad_sec = (round_data.squad_type == "mutant") and "arena_tournament_mutant_squad" or "arena_tournament_enemy_squad"
+
+	local squad = alife_create(squad_sec, pos, lvid, gvid)
+	if not squad then return nil end
+
+	local a_fac = get_actor_faction()
+	for _, sec in ipairs(round_data.sections) do
+		local safe_sec = (round_data.squad_type == "stalker") and get_safe_enemy_section(sec, a_fac) or sec
+		squad:add_squad_member(safe_sec, pos, lvid, gvid)
+	end
+
+	squad:set_squad_relation()
+	squad:refresh()
+
+	for m in squad:squad_members() do
+		arena_spawned_combatant_ids[m.id] = true
+	end
+
+	return squad
+end
+
+function setup_tournament_squad_aggro(squad_id)
+	local squad = squad_id and alife_object(squad_id)
+	if not (squad and squad.commander_id) then return end
+
+	for m in squad:squad_members() do
+		local npc = level.object_by_id(m.id)
+		if npc and npc:alive() then
+			pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
+			pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
+			pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
+			if IsMonster and IsMonster(npc) then
+				pcall(function() npc:berserk() end)
+				pcall(function() npc:set_custom_panic_threshold(0) end)
+			end
+		end
+	end
+
+	squad.scripted_target = 0
+	squad.rush_to_target = true
+end
+
+function give_tournament_rewards(round_data)
+	if not round_data then return end
+
+	local mult = xcvb_arena_mcm.get_config("reward_mult") or 1.0
+	local money = math.ceil(round_data.reward_money * mult)
+	db.actor:give_money(money)
+
+	local str = string.format(game.translate_string("st_arena_reward_money"), money)
+	news_manager.send_tip(db.actor, str, 0, nil, 10000)
+
+	local give_items = xcvb_arena_mcm.get_config("give_items")
+	if give_items ~= false and round_data.reward_items then
+		local items_given = false
+		for _, item_sec in ipairs(round_data.reward_items) do
+			if ini_sys:section_exist(item_sec) then
+				alife_create_item(item_sec, db.actor)
+				items_given = true
+			end
+		end
+		if items_given then
+			news_manager.send_tip(db.actor, game.translate_string("st_arena_reward_items"), 0, nil, 10000)
+		end
+	end
+end
+
+function clean_arena_corpses()
+	-- Funcion auxiliar para liberar un objeto de forma segura
+	local function safe_release_by_id(id)
+		pcall(function()
+			if safe_release_manager and safe_release_manager.release then
+				safe_release_manager.release({id = id})
+			else
+				alife_release_id(id)
+			end
+		end)
+	end
+
+	-- 1. Liberar todos los combatientes rastreados (vivos o muertos)
+	if arena_spawned_combatant_ids then
+		for id, _ in pairs(arena_spawned_combatant_ids) do
+			safe_release_by_id(id)
+		end
+		arena_spawned_combatant_ids = {}
+	end
+
+	-- 2. Barrido diferido de la fosa de la arena (3 pasadas con delay para asegurar limpieza total)
+	local pass_count = 0
+	local max_passes = 3
+
+	local function arena_sweep()
+		-- NUNCA limpiar mientras un combate esté en curso (evita borrar combatientes recién creados)
+		if has_alife_info("xcvb_tournament_started") or has_alife_info("xcvb_arena_started") then
+			return true
+		end
+
+		pass_count = pass_count + 1
+		local sim = alife()
+		if not sim then return true end
+
+		local found_anything = false
+
+		for id = 1, 65534 do
+			local se = sim:object(id)
+			if se then
+				local pos = se.position
+				if pos and pos.x >= 125 and pos.x <= 175 and pos.y <= -6 and pos.z >= 65 and pos.z <= 145 then
+					-- NUNCA borrar al actor (id 0) ni items cuyo parent sea el actor (parent_id 0)
+					local parent = se.parent_id
+					if id == 0 or parent == 0 then
+						-- Pertenece al actor, PROTEGER
+					else
+						local sec = se:section_name()
+						local is_safe = (sec == "inventory_box" or string.find(sec, "restrictor") or string.find(sec, "physic_object") or string.find(sec, "arena_board") or string.find(sec, "arena_balcony") or string.find(sec, "xcvb_"))
+
+						if not is_safe then
+							local cls = se:clsid()
+							local is_npc = IsStalker(nil, cls) or IsMonster(nil, cls)
+							local is_item = IsWeapon(nil, cls) or IsAmmo(nil, cls) or IsOutfit(nil, cls) or IsHeadgear(nil, cls)
+							if is_npc or is_item then
+								safe_release_by_id(id)
+								found_anything = true
+							end
+						end
+					end
+				end
+			end
+		end
+
+		-- Si encontramos algo y quedan pasadas, reprogramar
+		if found_anything and pass_count < max_passes then
+			return false -- no terminar el TimeEvent, volver a ejecutar
+		end
+
+		return true -- terminar el TimeEvent
+	end
+
+	-- Reemplazar cualquier timer previo
+	RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
+	CreateTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a", 2.0, arena_sweep)
+end
+
+function clean_tournament_squad(squad_id)
+	local squad = squad_id and alife_object(squad_id)
+	if squad and string.find(squad:section_name(), "arena_") then
+		-- Primero liberar miembros del squad, luego el squad
+		pcall(function()
+			for member in squad:squad_members() do
+				if safe_release_manager and safe_release_manager.release then
+					safe_release_manager.release({id = member.id})
+				else
+					alife_release_id(member.id)
+				end
+			end
+		end)
+		pcall(function()
+			if safe_release_manager and safe_release_manager.release then
+				safe_release_manager.release({id = squad_id})
+			else
+				alife_release_id(squad_id)
+			end
+		end)
+	end
+	clean_arena_corpses()
+end
+
+--------------------------------------------------------------------------------
+-- RANDOM ARENA LOADOUT SYSTEM
+--------------------------------------------------------------------------------
+
+local tournament_loadouts_t = {
+	[1] = {
+		outfits = { "novice_outfit", "bandit_novice_outfit", "trenchcoat_outfit", "cs_light_novice_outfit" },
+		helmets = { "helm_respirator", "helm_cloth_mask" },
+		weapons = { "wpn_pm", "wpn_fort", "wpn_tt33", "wpn_colt1911", "wpn_walther", "wpn_beretta", "wpn_bm16", "wpn_toz34_obrez" },
+		shotguns = { "wpn_bm16", "wpn_toz34_obrez", "wpn_toz34" },
+		rifles = { "wpn_ak74u", "wpn_mp5", "wpn_bizon" },
+		smgs = { "wpn_kiparis", "wpn_pp2000", "wpn_mp5", "wpn_bizon" },
+		snipers = { "wpn_toz34", "wpn_bm16", "wpn_sks" },
+		ammo_count = 5,
+		meds = { "bandage", "bandage", "medkit" },
+		knife = "wpn_knife",
+	},
+	[2] = {
+		outfits = { "stalker_outfit", "bandit_sun_outfit", "cs_light_outfit", "dolg_outfit" },
+		helmets = { "helm_ach7", "helm_respirator_half" },
+		weapons = { "wpn_wincheaster1300", "wpn_mossberg590", "wpn_spas12", "wpn_mp5", "wpn_bizon", "wpn_kiparis", "wpn_ak74u" },
+		shotguns = { "wpn_wincheaster1300", "wpn_mossberg590", "wpn_spas12" },
+		rifles = { "wpn_ak74u", "wpn_ak74", "wpn_lr300" },
+		smgs = { "wpn_mp5", "wpn_bizon", "wpn_kiparis" },
+		snipers = { "wpn_sks", "wpn_mosin" },
+		pistols = { "wpn_pm", "wpn_fort", "wpn_colt1911" },
+		ammo_count = 6,
+		meds = { "bandage", "bandage", "bandage", "medkit", "medkit", "stimpack" },
+		grenades = { "grenade_rgd5" },
+		knife = "wpn_knife",
+	},
+	[3] = {
+		outfits = { "specops_outfit", "dolg_specops_outfit", "svoboda_heavy_outfit", "cs_heavy_outfit" },
+		helmets = { "helm_ach7ex", "helm_protective" },
+		weapons = { "wpn_ak74", "wpn_akm", "wpn_l85", "wpn_g36", "wpn_val", "wpn_saiga12s", "wpn_abakan" },
+		shotguns = { "wpn_saiga12s", "wpn_protecta", "wpn_spas12" },
+		rifles = { "wpn_ak74", "wpn_akm", "wpn_l85", "wpn_g36", "wpn_abakan" },
+		smgs = { "wpn_val", "wpn_vityaz", "wpn_ump45", "wpn_mp5" },
+		snipers = { "wpn_svd", "wpn_sv98", "wpn_vintorez" },
+		pistols = { "wpn_glock", "wpn_usp", "wpn_aps", "wpn_beretta" },
+		ammo_count = 7,
+		meds = { "bandage", "bandage", "medkit_army", "medkit_army", "stimpack", "drug_antidot" },
+		grenades = { "grenade_rgd5", "grenade_f1" },
+		knife = "wpn_knife2",
+	},
+	[4] = {
+		outfits = { "dolg_heavy_outfit", "military_outfit", "monolith_outfit", "svoboda_exolight_outfit" },
+		helmets = { "helm_tactic", "helm_ach7ex", "helm_battle" },
+		weapons = { "wpn_vintorez", "wpn_svd", "wpn_m4", "wpn_fn2000", "wpn_groza", "wpn_saiga12s", "wpn_scar" },
+		shotguns = { "wpn_saiga12s", "wpn_usas12", "wpn_protecta" },
+		rifles = { "wpn_m4", "wpn_fn2000", "wpn_groza", "wpn_scar", "wpn_val" },
+		smgs = { "wpn_p90", "wpn_mp7", "wpn_val" },
+		snipers = { "wpn_svd", "wpn_vintorez", "wpn_g3sg1" },
+		pistols = { "wpn_glock", "wpn_fnx45", "wpn_usp" },
+		ammo_count = 8,
+		meds = { "medkit_scientic", "medkit_army", "stimpack_army", "stimpack", "drug_psy_blockade" },
+		grenades = { "grenade_f1", "grenade_f1" },
+		knife = "wpn_knife3",
+	},
+	[5] = {
+		outfits = { "exo_outfit", "dolg_exo_outfit", "monolith_exo_outfit", "military_exo_outfit", "merc_exo_outfit" },
+		helmets = { "helm_exo" },
+		weapons = { "wpn_pkm", "wpn_pkp", "wpn_gauss", "wpn_svu", "wpn_rpk74", "wpn_ash12", "wpn_usas12" },
+		shotguns = { "wpn_usas12", "wpn_saiga12s", "wpn_protecta" },
+		rifles = { "wpn_ash12", "wpn_pkm", "wpn_pkp", "wpn_rpk74" },
+		smgs = { "wpn_val", "wpn_p90", "wpn_mp7" },
+		snipers = { "wpn_gauss", "wpn_svu", "wpn_vintorez", "wpn_svd" },
+		pistols = { "wpn_fnx45", "wpn_glock", "wpn_usp" },
+		ammo_count = 10,
+		meds = { "medkit_scientic", "medkit_scientic", "stimpack_army", "stimpack_army", "drug_psy_blockade", "drug_psy_blockade" },
+		grenades = { "grenade_f1", "grenade_f1", "grenade_f1" },
+		knife = "wpn_knife5",
+	},
+}
+
+local last_spawned_weapon_sec = nil
+
+local function pick_valid_section(list, exclude_sec)
+	if not list then return nil end
+	local valid = {}
+	for _, sec in ipairs(list) do
+		if ini_sys:section_exist(sec) then
+			table.insert(valid, sec)
+		end
+	end
+	if #valid == 0 then return nil end
+
+	-- Reseed RNG for high variability
+	math.randomseed(os.time() + (time_global() or 0) + #valid)
+
+	-- If an exclude section was provided and alternatives exist, filter it out
+	if exclude_sec and #valid > 1 then
+		local filtered = {}
+		for _, sec in ipairs(valid) do
+			if sec ~= exclude_sec then
+				table.insert(filtered, sec)
+			end
+		end
+		if #filtered > 0 then
+			valid = filtered
+		end
+	end
+
+	return valid[math.random(#valid)]
+end
+
+local function get_weapon_ammo(weapon_sec)
+	if not weapon_sec then return nil end
+	local ammo_class_str = ini_sys:r_string_ex(weapon_sec, "ammo_class")
+	if ammo_class_str then
+		local ammo_list = str_explode(ammo_class_str, ",")
+		for _, a_sec in ipairs(ammo_list) do
+			local clean_sec = trim(a_sec)
+			if ini_sys:section_exist(clean_sec) then
+				return clean_sec
+			end
+		end
+	end
+	return nil
+end
+
+local function get_or_create_arena_box()
+	-- 1. Check story object
+	local box = get_story_object("bar_arena_inventory_box")
+	if box then return box end
+
+	-- 2. Check alife by name (spawns as bar_arena_inventory_box in Rostok)
+	local sim = alife()
+	if sim then
+		local se = sim:object("bar_arena_inventory_box")
+		if se then
+			local b = level.object_by_id(se.id)
+			if b then return b end
+		end
+	end
+
+	-- 3. Check cached ID
+	if xcvb_arena_storage_box_id then
+		local b = level.object_by_id(xcvb_arena_storage_box_id)
+		if b then return b end
+	end
+
+	-- 4. Fallback persistent box
+	local pos = vector():set(151.9, -5.0, 68.6)
+	local se = alife_create("inventory_box", pos, 40590, 1684)
+	if se then
+		xcvb_arena_storage_box_id = se.id
+		return level.object_by_id(se.id)
+	end
+	return nil
+end
+
+function store_actor_inventory()
+	local box = get_or_create_arena_box()
+	if not box then
+		printe("! xcvb arena: Could not find or create inventory storage box")
+		return
+	end
+
+	-- Step 1: Collect all non-exempt items from actor into a temporary table (safe against iterator mutation)
+	local items_to_store = {}
+	db.actor:iterate_inventory(function(owner, item)
+		if not item then return end
+		local sec = item:section()
+		if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+			return
+		end
+		table.insert(items_to_store, item)
+	end, db.actor)
+
+	-- Step 2: Transfer each item EXACTLY ONCE to the box, moving equipped items to ruck first
+	for _, item in ipairs(items_to_store) do
+		if db.actor.move_to_ruck then
+			db.actor:move_to_ruck(item)
+		end
+		db.actor:transfer_item(item, box)
+	end
+end
+
+local function fill_arena_magazine(mag_id, mag_sec, ammo_sec)
+	if not (mag_id and mag_sec and ammo_sec) then return end
+
+	local cap = SYS_GetParam(2, mag_sec, "max_mag_size") or 30
+
+	-- Method 1: Using mags_patches.fill_mag (Standard GAMMA Mags interface)
+	if mags_patches and mags_patches.fill_mag then
+		mags_patches.fill_mag(mag_id, mag_sec, cap, ammo_sec)
+	elseif magazine_binder then
+		local mag_data = magazine_binder.get_mag_loaded and magazine_binder.get_mag_loaded(mag_id)
+		if not mag_data and magazine_binder.create_mag_data then
+			mag_data = magazine_binder.create_mag_data(mag_id, mag_sec)
+		end
+		if mag_data then
+			mag_data.loaded = mag_data.loaded or {}
+			for j = 1, cap do
+				table.insert(mag_data.loaded, ammo_sec)
+			end
+			if magazine_binder.set_data then
+				magazine_binder.set_data(mag_id, mag_data)
+			end
+		end
+	end
+
+	-- Garantizar que el cargador esté registrado en carried_mags (bolsillos/chaleco) para permitir recargar
+	if magazine_binder then
+		if magazine_binder.update_loadout_slots then
+			pcall(magazine_binder.update_loadout_slots)
+		end
+		if magazine_binder.carried_mags then
+			local m_data = (magazine_binder.get_mag_data and magazine_binder.get_mag_data(mag_id)) or (magazine_binder.get_data and magazine_binder.get_data(mag_id))
+			if not m_data then
+				local loaded_ammo = {}
+				for j = 1, cap do table.insert(loaded_ammo, ammo_sec) end
+				m_data = { section = mag_sec, loaded = loaded_ammo }
+			end
+			magazine_binder.carried_mags[mag_id] = m_data
+		end
+	end
+end
+
+local function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id)
+	if not (wpn_sec and ammo_sec) then return end
+	if not (magazine_binder and magazine_binder.is_supported_weapon and magazine_binder.is_supported_weapon(wpn_sec)) then
+		return
+	end
+
+	local mag_sec = nil
+	if magazine_binder.weapon_default_magazine then
+		mag_sec = magazine_binder.weapon_default_magazine(wpn_sec)
+	end
+	if (not mag_sec) and magazine_binder.get_mags_for_weapon then
+		local mags = magazine_binder.get_mags_for_weapon(wpn_sec)
+		if mags and #mags > 0 then
+			mag_sec = mags[1]
+		end
+	end
+
+	if not (mag_sec and ini_sys:section_exist(mag_sec)) then
+		return
+	end
+
+	local cap = SYS_GetParam(2, mag_sec, "max_mag_size") or 30
+
+	-- Precargar el arma con cargador insertado y munición al 100%
+	if wpn_id then
+		CreateTimeEvent("arena_mags_e", "precharge_gun_" .. wpn_id, 0.4, function()
+			if magazine_binder and magazine_binder.set_data then
+				local loaded_rounds = {}
+				for r = 1, cap do table.insert(loaded_rounds, ammo_sec) end
+				magazine_binder.set_data(wpn_id, {
+					section = mag_sec,
+					loaded = loaded_rounds
+				})
+			end
+			local w_obj = level.object_by_id(wpn_id)
+			if w_obj then
+				w_obj:set_ammo_elapsed(cap)
+				if magazines and magazines.prep_weapon then
+					pcall(magazines.prep_weapon, w_obj)
+				elseif magazine_binder and magazine_binder.prep_weapon then
+					pcall(magazine_binder.prep_weapon, w_obj)
+				end
+			end
+			return true
+		end)
+	end
+
+	local num_mags = count or 3
+	for i = 1, num_mags do
+		local se_mag = alife_create(mag_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+		if se_mag then
+			temporary_arena_item_ids[se_mag.id] = true
+			if se_save_var then
+				se_save_var(se_mag.id, se_mag:name(), "unpatched", true)
+			end
+
+			local m_id = se_mag.id
+			local m_sec = mag_sec
+			local a_sec = ammo_sec
+
+			CreateTimeEvent("arena_mags_e", "fill_mag_" .. m_id, 0.6, function()
+				fill_arena_magazine(m_id, m_sec, a_sec)
+				return true
+			end)
+		end
+	end
+end
+
+local function is_helmet_item(item)
+	if not item then return false end
+	local sec = item:section()
+	if item.is_helmet and item:is_helmet() then return true end
+	if IsItem and IsItem("helmet", sec) then return true end
+	if SYS_GetParam(0, sec, "kind") == "o_helmet" then return true end
+	if string.find(sec, "^helm_") then return true end
+	return false
+end
+
+local function is_outfit_item(item)
+	if not item then return false end
+	local sec = item:section()
+	if item.is_outfit and item:is_outfit() then return true end
+	if IsItem and IsItem("outfit", sec) then return true end
+	local kind = SYS_GetParam(0, sec, "kind")
+	if kind == "o_light" or kind == "o_medium" or kind == "o_heavy" or kind == "o_sci" then return true end
+	if string.find(sec, "_outfit") or string.find(sec, "_exo_") then return true end
+	return false
+end
+
+local function power_up_exoskeleton(spawned_outfit_id, outfit_sec)
+	if not outfit_sec then return end
+
+	local is_an_exo = false
+	if item_exo_device and item_exo_device.is_exo then
+		local dummy = { section = function() return outfit_sec end }
+		is_an_exo = item_exo_device.is_exo(dummy)
+	end
+	if not is_an_exo then
+		is_an_exo = string.find(outfit_sec, "exo") ~= nil or string.find(outfit_sec, "nosorog") ~= nil
+	end
+
+	if not is_an_exo then return end
+
+	-- Select best available Power Supply Unit
+	local psu_candidates = {
+		"exo_power_supply_military",
+		"exo_power_supply_proto",
+		"exo_power_supply_tank",
+		"exo_power_supply_sprint",
+		"exo_power_supply"
+	}
+	local psu_sec = nil
+	for _, sec in ipairs(psu_candidates) do
+		if ini_sys:section_exist(sec) then
+			psu_sec = sec
+			break
+		end
+	end
+
+	local spawned_psu_id = nil
+	if psu_sec then
+		local se_psu = alife_create(psu_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+		if se_psu then
+			temporary_arena_item_ids[se_psu.id] = true
+			spawned_psu_id = se_psu.id
+		end
+	end
+
+	-- Spawn 2x batteries_exo as backup if mod item exists
+	if ini_sys:section_exist("batteries_exo") then
+		for i = 1, 2 do
+			local se_batt = alife_create("batteries_exo", db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+			if se_batt then
+				temporary_arena_item_ids[se_batt.id] = true
+			end
+		end
+	end
+
+	-- Configure PSU & Exo Energy once client objects are initialized
+	CreateTimeEvent("arena_exo_power_e", "arena_exo_power_a", 0.4, function()
+		-- 1. Equip PSU into backpack slot 13 (EQ_BAKPK / slot 12 engine)
+		if spawned_psu_id then
+			local psu_obj = level.object_by_id(spawned_psu_id)
+			if psu_obj then
+				psu_obj:set_condition(1.0)
+				if db.actor.move_to_slot then
+					db.actor:move_to_slot(psu_obj, 13)
+				end
+			end
+		end
+
+		-- 2. Fully charge all spawned batteries to 100%
+		db.actor:iterate_inventory(function(_, itm)
+			if itm and itm:section() == "batteries_exo" and temporary_arena_item_ids[itm:id()] then
+				itm:set_condition(1.0)
+			end
+		end, db.actor)
+
+		-- 3. Register full charge in item_exo_device mod if active
+		if item_exo_device then
+			-- Gameplay ExoSuit Powerd Mod (slot 13 condition mapping)
+			if spawned_psu_id and item_exo_device.exo_device_cond then
+				item_exo_device.exo_device_cond[spawned_psu_id] = 1.0
+			end
+
+			-- Arti / GAMMA Powered Exos data table (outfit id mapping)
+			local o_id = spawned_outfit_id
+			if not o_id then
+				local cur_suit = db.actor:item_in_slot(7)
+				o_id = cur_suit and cur_suit:id()
+			end
+
+			if o_id and item_exo_device.set_data then
+				local exo_data = (item_exo_device.get_data and item_exo_device.get_data(o_id)) or {}
+				exo_data.power = 300
+				if psu_sec then
+					exo_data.supply = {
+						name = psu_sec,
+						drain = 0.7,
+						max = 300
+					}
+				end
+				item_exo_device.set_data(o_id, exo_data)
+			end
+
+			-- Restore normal movement speed
+			if item_exo_device.reset_speed then
+				pcall(item_exo_device.reset_speed)
+			end
+		end
+
+		if speed and speed.remove_speed then
+			pcall(speed.remove_speed, "exo_speed")
+		end
+
+		return true
+	end)
+end
+
+function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
+	local effective_tier = (forced_tier and tonumber(forced_tier) and tonumber(forced_tier) > 0) and tonumber(forced_tier) or round_tier
+	local t_data = tournament_loadouts_t[effective_tier] or tournament_loadouts_t[1]
+
+	local spawned_outfit_id = nil
+	local spawned_helm_id = nil
+	local spawned_wpn_id = nil
+	local spawned_pistol_id = nil
+
+	-- Outfit
+	local outfit_sec = pick_valid_section(t_data.outfits)
+	if outfit_sec then
+		local se = alife_create(outfit_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+		if se then
+			temporary_arena_item_ids[se.id] = true
+			spawned_outfit_id = se.id
+			power_up_exoskeleton(se.id, outfit_sec)
+		end
+	end
+
+	-- Helmet
+	local helm_sec = pick_valid_section(t_data.helmets)
+	if helm_sec then
+		local se = alife_create(helm_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+		if se then
+			temporary_arena_item_ids[se.id] = true
+			spawned_helm_id = se.id
+		end
+	end
+
+	-- Primary Weapon (by chosen weapon class)
+	local wpn_list = t_data.weapons
+	if loadout_class == "shotgun" and t_data.shotguns then
+		wpn_list = t_data.shotguns
+	elseif loadout_class == "rifle" and t_data.rifles then
+		wpn_list = t_data.rifles
+	elseif loadout_class == "smg" and t_data.smgs then
+		wpn_list = t_data.smgs
+	elseif loadout_class == "sniper" and t_data.snipers then
+		wpn_list = t_data.snipers
+	end
+
+	local wpn_sec = pick_valid_section(wpn_list, last_spawned_weapon_sec) or pick_valid_section(t_data.weapons, last_spawned_weapon_sec)
+	if wpn_sec then
+		last_spawned_weapon_sec = wpn_sec
+		local se = alife_create(wpn_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+		if se then
+			temporary_arena_item_ids[se.id] = true
+			spawned_wpn_id = se.id
+		end
+
+		local ammo_sec = get_weapon_ammo(wpn_sec)
+		if ammo_sec then
+			-- Spawn 3 loaded magazines if GAMMA Mags is active and weapon uses magazines
+			spawn_and_fill_mags(wpn_sec, ammo_sec, 3, spawned_wpn_id)
+
+			local count = t_data.ammo_count or 5
+			for i = 1, count do
+				local se_ammo = alife_create(ammo_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+				if se_ammo then temporary_arena_item_ids[se_ammo.id] = true end
+			end
+		end
+	end
+
+	-- Secondary Pistol
+	if t_data.pistols then
+		local pistol_sec = pick_valid_section(t_data.pistols)
+		if pistol_sec then
+			local se = alife_create(pistol_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+			if se then
+				temporary_arena_item_ids[se.id] = true
+				spawned_pistol_id = se.id
+			end
+
+			local p_ammo = get_weapon_ammo(pistol_sec)
+			if p_ammo then
+				-- Spawn 3 loaded magazines for pistol if weapon uses magazines
+				spawn_and_fill_mags(pistol_sec, p_ammo, 3, spawned_pistol_id)
+
+				for i = 1, 3 do
+					local se_ammo = alife_create(p_ammo, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+					if se_ammo then temporary_arena_item_ids[se_ammo.id] = true end
+				end
+			end
+		end
+	end
+
+	-- Knife
+	local knife_sec = t_data.knife or "wpn_knife"
+	if ini_sys:section_exist(knife_sec) then
+		local se = alife_create(knife_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+		if se then temporary_arena_item_ids[se.id] = true end
+	end
+
+	-- Medical Items
+	if t_data.meds then
+		for _, med_sec in ipairs(t_data.meds) do
+			if ini_sys:section_exist(med_sec) then
+				local se = alife_create(med_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+				if se then temporary_arena_item_ids[se.id] = true end
+			end
+		end
+	end
+
+	-- Grenades
+	if t_data.grenades then
+		for _, gr_sec in ipairs(t_data.grenades) do
+			if ini_sys:section_exist(gr_sec) then
+				local se = alife_create(gr_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+				if se then temporary_arena_item_ids[se.id] = true end
+			end
+		end
+	end
+
+	-- Step 1: Equip Outfit & Weapons (at t = 0.3s)
+	CreateTimeEvent("arena_equip_e1", "arena_equip_outfit_wpn", 0.3, function()
+		local outfit_obj = spawned_outfit_id and level.object_by_id(spawned_outfit_id)
+		if not outfit_obj then
+			db.actor:iterate_inventory(function(_, itm)
+				if is_outfit_item(itm) and temporary_arena_item_ids[itm:id()] then
+					outfit_obj = itm
+					return true
+				end
+			end, db.actor)
+		end
+		if outfit_obj then
+			db.actor:move_to_slot(outfit_obj, 7)
+		end
+
+		-- Arma principal (Subfusil, Fusil, Escopeta, Francotirador): SIEMPRE al slot 2 (INV_SLOT_3)
+		if spawned_wpn_id then
+			local wpn_obj = level.object_by_id(spawned_wpn_id)
+			if wpn_obj then
+				db.actor:move_to_slot(wpn_obj, 2)
+				db.actor:activate_slot(2)
+			end
+		end
+		-- Pistola secundaria: SIEMPRE al slot 1 (INV_SLOT_2)
+		if spawned_pistol_id then
+			local p_obj = level.object_by_id(spawned_pistol_id)
+			if p_obj then
+				db.actor:move_to_slot(p_obj, 1)
+			end
+		end
+		return true
+	end)
+
+	-- Step 2: Equip Helmet (at t = 0.5s, when outfit is equipped)
+	CreateTimeEvent("arena_equip_e2", "arena_equip_helmet", 0.5, function()
+		local helm_obj = spawned_helm_id and level.object_by_id(spawned_helm_id)
+		if not helm_obj then
+			db.actor:iterate_inventory(function(_, itm)
+				if is_helmet_item(itm) and temporary_arena_item_ids[itm:id()] then
+					helm_obj = itm
+					return true
+				end
+			end, db.actor)
+		end
+		if helm_obj then
+			db.actor:move_to_slot(helm_obj, 12)
+		end
+		return true
+	end)
+
+	-- Step 3: Safety check at t = 0.8s
+	CreateTimeEvent("arena_equip_e3", "arena_equip_verify", 0.8, function()
+		if not db.actor:item_in_slot(12) then
+			local helm_obj = spawned_helm_id and level.object_by_id(spawned_helm_id)
+			if not helm_obj then
+				db.actor:iterate_inventory(function(_, itm)
+					if is_helmet_item(itm) and temporary_arena_item_ids[itm:id()] then
+						helm_obj = itm
+						return true
+					end
+				end, db.actor)
+			end
+			if helm_obj then
+				db.actor:move_to_slot(helm_obj, 12)
+			end
+		end
+		return true
+	end)
+end
+
+function restore_actor_inventory()
+	-- 1. Release temporary arena items
+	for item_id, _ in pairs(temporary_arena_item_ids) do
+		local se_item = alife_object(item_id)
+		if se_item then
+			alife_release(se_item)
+		end
+	end
+	temporary_arena_item_ids = {}
+
+	if item_exo_device and item_exo_device.reset_speed then
+		pcall(item_exo_device.reset_speed)
+	end
+	if speed and speed.remove_speed then
+		pcall(speed.remove_speed, "exo_speed")
+	end
+
+	-- 2. Restore all original items from box back to actor
+	local box = get_or_create_arena_box()
+	if box then
+		local items_to_restore = {}
+		box:iterate_inventory_box(function(b_obj, item)
+			if item then
+				table.insert(items_to_restore, item)
+			end
+		end, box)
+
+		for _, item in ipairs(items_to_restore) do
+			box:transfer_item(item, db.actor)
+		end
+		news_manager.send_tip(db.actor, game.translate_string("st_arena_gear_restored"), 0, nil, 8000)
+	end
+end
+
+-- Spectator Relations and Restrictors
+function set_teams_relation(squad_id1, squad_id2)
+	local squad1 = squad_id1 and alife_object(squad_id1)
+	local squad2 = squad_id2 and alife_object(squad_id2)
+	if not (squad1 and squad1.commander_id and squad2 and squad2.commander_id) then return end
+
+	pcall(function() squad1:set_relation(squad2, "enemy") end)
+	pcall(function() squad2:set_relation(squad1, "enemy") end)
+
+	for m1 in squad1:squad_members() do
+		local npc1 = level.object_by_id(m1.id)
+		for m2 in squad2:squad_members() do
+			local npc2 = level.object_by_id(m2.id)
+			if npc1 and npc1:alive() and npc2 and npc2:alive() then
+				pcall(function()
+					npc1:force_set_goodwill(-9999, npc2)
+					npc2:force_set_goodwill(-9999, npc1)
+				end)
+				pcall(function()
+					npc1:set_relation(game_object.enemy, npc2)
+					npc2:set_relation(game_object.enemy, npc1)
+				end)
+			end
+		end
+	end
+end
+
+function set_out_restrictors(squad_id1, squad_id2)
+	local squad1 = squad_id1 and alife_object(squad_id1)
+	local squad2 = squad_id2 and alife_object(squad_id2)
+	if not (squad1 and squad1.commander_id and squad2 and squad2.commander_id) then return end
+
+	for m1 in squad1:squad_members() do
+		local npc1 = level.object_by_id(m1.id)
+		if npc1 and npc1:alive() then
+			pcall(function() npc1:add_restrictions("bar_arena_restrictor", "") end)
+		end
+	end
+
+	for m2 in squad2:squad_members() do
+		local npc2 = level.object_by_id(m2.id)
+		if npc2 and npc2:alive() then
+			pcall(function() npc2:add_restrictions("bar_arena_restrictor", "") end)
+		end
+	end
+end
+
+function hit_npcs(squad_id1, squad_id2)
+	-- No-op: relations and on_enemy_eval establish natural aggro safely without damaging combatants
+end
+
+function scr_hit(npc, who)
+	-- No-op: do not deal artificial scripted damage to avoid triggering fatal damage hooks
+end
+
+-- Hook sim_squad_scripted to ensure arena squads target actor or anchor inside the arena
+local orig_get_script_target = sim_squad_scripted.sim_squad_scripted.get_script_target
+function sim_squad_scripted.sim_squad_scripted.get_script_target(self)
+	if self.scripted_target then
+		if self.scripted_target == "actor" or self.scripted_target == 0 then
+			return 0
+		end
+		local new_id = tonumber(self.scripted_target)
+		if new_id then return new_id end
+	end
+	-- If it is an arena squad, ensure it stays anchored to itself instead of roaming the Zone
+	local sec = self:section_name()
+	if sec and string.find(sec, "arena_") then
+		return self.id
+	end
+	if orig_get_script_target then
+		return orig_get_script_target(self)
+	end
+end
