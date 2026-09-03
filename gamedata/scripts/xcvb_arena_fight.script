@@ -165,13 +165,15 @@ function start_arena_fight(bout_idx)
     local squad2 = alife_create(sec2, pos2, lvid2, gvid2)
     squad_team_2_id = squad2.id
 
-    squad1.scripted_target = squad1.id
-    squad1.rush_to_target = false
-    squad2.scripted_target = squad2.id
-    squad2.rush_to_target = false
+    -- Fix: Forzar a los escuadrones a embestirse mutuamente desde el spawn
+    squad1.scripted_target = squad2.id
+    squad1.rush_to_target = true
+    squad2.scripted_target = squad1.id
+    squad2.rush_to_target = true
 
     for i, sec in ipairs(main_t.team1) do
-        squad1:add_squad_member(sec, pos1, lvid1, gvid1)
+        local offset_pos = vector():set(pos1.x + math.random(-5, 5), pos1.y, pos1.z + math.random(-3, 3))
+        squad1:add_squad_member(sec, offset_pos, lvid1, gvid1)
     end
     squad1:set_squad_relation()
     squad1:refresh()
@@ -180,7 +182,8 @@ function start_arena_fight(bout_idx)
     end
 
     for i, sec in ipairs(main_t.team2) do
-        squad2:add_squad_member(sec, pos2, lvid2, gvid2)
+        local offset_pos = vector():set(pos2.x + math.random(-5, 5), pos2.y, pos2.z + math.random(-3, 3))
+        squad2:add_squad_member(sec, offset_pos, lvid2, gvid2)
     end
     squad2:set_squad_relation()
     squad2:refresh()
@@ -198,38 +201,58 @@ end
 
 function setup_teams()
     if not HI("xcvb_arena_started") then return end
+
     xcvb_arena_utils.set_out_restrictors(squad_team_1_id, squad_team_2_id)
-    
+    xcvb_arena_utils.set_teams_relation(squad_team_1_id, squad_team_2_id)
+
     local sq1 = squad_team_1_id and alife_object(squad_team_1_id)
     local sq2 = squad_team_2_id and alife_object(squad_team_2_id)
-    
-    if sq1 and sq2 then
-        sq1.scripted_target = sq1.id
-        sq1.rush_to_target = false
-        sq2.scripted_target = sq2.id
-        sq2.rush_to_target = false
+    if not (sq1 and sq2) then return end
 
-        for m1 in sq1:squad_members() do
-            local n1 = level.object_by_id(m1.id)
-            if n1 and n1:alive() then
-                pcall(function() n1:set_desired_direction(vector():set(0, 0, -1)) end)
-                if IsMonster and IsMonster(n1) then
-                    pcall(function() n1:berserk() end)
-                    pcall(function() n1:set_custom_panic_threshold(0) end)
-                end
-            end
-        end
+    sq1.scripted_target = squad_team_2_id
+    sq1.rush_to_target = true
+    sq2.scripted_target = squad_team_1_id
+    sq2.rush_to_target = true
 
-        for m2 in sq2:squad_members() do
-            local n2 = level.object_by_id(m2.id)
-            if n2 and n2:alive() then
-                pcall(function() n2:set_desired_direction(vector():set(0, 0, 1)) end)
-                if IsMonster and IsMonster(n2) then
-                    pcall(function() n2:berserk() end)
-                    pcall(function() n2:set_custom_panic_threshold(0) end)
-                end
-            end
+    local function activate_npc(npc, dir_z)
+        if not (npc and npc:alive()) then return end
+        pcall(function() npc:set_desired_direction(vector():set(0, 0, dir_z)) end)
+        if IsMonster and IsMonster(npc) then
+            pcall(function() npc:berserk() end)
+            pcall(function() npc:set_custom_panic_threshold(0) end)
+        elseif IsStalker and IsStalker(npc) then
+            pcall(function() npc:set_mental_state(anim.danger) end)
+            pcall(function() npc:set_movement_type(move.run) end)
         end
+    end
+
+    local all_loaded = true
+    for m1 in sq1:squad_members() do
+        local n1 = level.object_by_id(m1.id)
+        if n1 then
+            activate_npc(n1, -1)
+        else
+            all_loaded = false
+        end
+    end
+    for m2 in sq2:squad_members() do
+        local n2 = level.object_by_id(m2.id)
+        if n2 then
+            activate_npc(n2, 1)
+        else
+            all_loaded = false
+        end
+    end
+
+    xcvb_arena_utils.hit_npcs(squad_team_1_id, squad_team_2_id)
+
+    if not all_loaded then
+        CreateTimeEvent("setup_teams_retry_e", "setup_teams_retry_a", 1, function()
+            if HI("xcvb_arena_started") then
+                setup_teams()
+            end
+            return true
+        end)
     end
 end
 
@@ -330,30 +353,29 @@ function actor_on_update()
         local tg = time_global()
         if tg > hit_timer then
             hit_timer = tg + 2000
-            -- Mover set_teams_relation a este timer alivia masivamente el motor de físicas
             xcvb_arena_utils.set_teams_relation(squad_team_1_id, squad_team_2_id)
             xcvb_arena_utils.hit_npcs(squad_team_1_id, squad_team_2_id)
             
             local sq1 = squad_team_1_id and alife_object(squad_team_1_id)
             local sq2 = squad_team_2_id and alife_object(squad_team_2_id)
-            if sq1 then
-                for m1 in sq1:squad_members() do
-                    local n1 = level.object_by_id(m1.id)
-                    if n1 and n1:alive() then
-                        pcall(function() n1:berserk() end)
-                        pcall(function() n1:set_custom_panic_threshold(0) end)
+            
+            local function maintain_aggro(sq)
+                if not sq then return end
+                for m in sq:squad_members() do
+                    local n = level.object_by_id(m.id)
+                    if n and n:alive() then
+                        if IsMonster and IsMonster(n) then
+                            pcall(function() n:berserk() end)
+                            pcall(function() n:set_custom_panic_threshold(0) end)
+                        elseif IsStalker and IsStalker(n) then
+                            pcall(function() n:set_mental_state(anim.danger) end)
+                            pcall(function() n:set_movement_type(move.run) end)
+                        end
                     end
                 end
             end
-            if sq2 then
-                for m2 in sq2:squad_members() do
-                    local n2 = level.object_by_id(m2.id)
-                    if n2 and n2:alive() then
-                        pcall(function() n2:berserk() end)
-                        pcall(function() n2:set_custom_panic_threshold(0) end)
-                    end
-                end
-            end
+            maintain_aggro(sq1)
+            maintain_aggro(sq2)
         end
     end
     

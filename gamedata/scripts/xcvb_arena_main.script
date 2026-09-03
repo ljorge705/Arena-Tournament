@@ -184,7 +184,7 @@ tournament_stalker_tiers_t = {
 				reward_money = 55000,
 				reward_items = { "toolkit_r_3", "drug_antidot" },
 				squad_type = "stalker",
-				sections = { "sim_default_duty_4", "sim_default_freedom_4", "sim_default_killer_4", "sim_default_military_4" },
+				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
 			},
 		}
 	},
@@ -225,7 +225,7 @@ tournament_stalker_tiers_t = {
 				reward_money = 130000,
 				reward_items = { "af_fireball", "medkit_scientic", "stimpack_army" },
 				squad_type = "stalker",
-				sections = { "sim_default_military_4", "sim_default_killer_4", "sim_default_duty_4" },
+				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
 			},
 		}
 	}

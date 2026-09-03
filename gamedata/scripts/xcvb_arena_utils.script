@@ -204,15 +204,14 @@ local mutants_t = {
     psy_dog = {"_normal"},
     -- Asegúrate de incluir las variantes fuertes y extremas de quimeras y gigantes:
     chimera = {"_weak", "_normal", "_strong", "_strong2", "_strong3", "_strong4"},
-    gigant = {"_normal", "_strong", "_weak"}, -- Si el juego usa "gigant" o "pseudogigant" según tu versión de GAMMA
-    controller = {"_normal", "_old", "_strong"},
+    gigant = {"_normal", "_strong", "_weak"},
     burer = {"_normal", "_strong"}
 }
 
 local mutants_power_t = {
     zombie = 1,  boar = 3,  dog = 2,  pseudodog = 4,  cat = 4,  fracture = 5,
-    snork = 5,  lurker = 5,  bloodsucker = 8,  psysucker = 8,  psy_dog = 8,  
-    chimera = 15, gigant = 18, controller = 14, burer = 10
+    snork = 5,  lurker = 5,  psysucker = 8,  psy_dog = 8,
+    chimera = 15, gigant = 18, burer = 10
 }
 
 local mutant_relation_order = {
@@ -220,6 +219,8 @@ local mutant_relation_order = {
 }
 
 local mutant_relations_t = {}
+
+local giant_types = { gigant = true }
 
 function get_mutant_team(amount, team1_mutant_type)
     local ret_ar = {}
@@ -241,7 +242,10 @@ function get_mutant_team(amount, team1_mutant_type)
         k = random_key_table(mutants_t)
     end
     
-    for i = 1, amount do
+    -- Giants (gigant/chimera) are capped at 1 per team to avoid unfair domination
+    local effective_amount = (giant_types[k]) and 1 or amount
+    
+    for i = 1, effective_amount do
         local rnd_idx = math.random(1, #mutants_t[k])
         local sec = k .. mutants_t[k][rnd_idx]
         ret_ar[#ret_ar + 1] = sec
@@ -431,14 +435,14 @@ function spawn_tournament_squad(round_data)
     local squad = alife_create(squad_sec, pos, lvid, gvid)
     if not squad then return nil end
     
-    squad.scripted_target = squad.id
-    squad.assigned_target_id = squad.id
-    squad.rush_to_target = false
+	squad.scripted_target = "actor"
+    squad.assigned_target_id = 0
+    squad.rush_to_target = true
 
     local a_fac = get_actor_faction()
     for _, sec in ipairs(round_data.sections) do
         local safe_sec = (round_data.squad_type == "stalker") and get_safe_enemy_section(sec, a_fac) or sec
-        local offset_pos = vector():set(pos.x + math.random(-6, 6), pos.y, pos.z + math.random(-2, 2))
+        local offset_pos = vector():set(pos.x + math.random(-5, 5), pos.y, pos.z + math.random(-5, 5))
         squad:add_squad_member(safe_sec, offset_pos, lvid, gvid)
     end
     squad:set_squad_relation()
@@ -466,6 +470,11 @@ function setup_tournament_squad_aggro(squad_id)
             if IsMonster and IsMonster(npc) then
                 pcall(function() npc:berserk() end)
                 pcall(function() npc:set_custom_panic_threshold(0) end)
+            end
+			-- Añade este bloque debajo:
+            if IsStalker and IsStalker(npc) then
+                pcall(function() npc:set_mental_state(anim.danger) end)
+                pcall(function() npc:set_movement_type(move.run) end)
             end
         end
     end
@@ -1184,24 +1193,34 @@ function set_teams_relation(squad_id1, squad_id2)
     local squad2 = squad_id2 and alife_object(squad_id2)
     if not (squad1 and squad1.commander_id and squad2 and squad2.commander_id) then return end
     
-    if string.find(squad1:section_name(), "mutant") or string.find(squad2:section_name(), "mutant") then return end
-    
+    -- Set squad-level relation (works for stalker squads)
     pcall(function() squad1:set_relation(squad2, "enemy") end)
     pcall(function() squad2:set_relation(squad1, "enemy") end)
     
+    -- Force individual goodwill and enemy relation on every member pair
     for m1 in squad1:squad_members() do
         local npc1 = level.object_by_id(m1.id)
-        for m2 in squad2:squad_members() do
-            local npc2 = level.object_by_id(m2.id)
-            if npc1 and npc1:alive() and npc2 and npc2:alive() then
-                pcall(function()
-                    npc1:force_set_goodwill(-9999, npc2)
-                    npc2:force_set_goodwill(-9999, npc1)
-                end)
-                pcall(function()
-                    npc1:set_relation(game_object.enemy, npc2)
-                    npc2:set_relation(game_object.enemy, npc1)
-                end)
+        if npc1 and npc1:alive() then
+            for m2 in squad2:squad_members() do
+                local npc2 = level.object_by_id(m2.id)
+                if npc2 and npc2:alive() then
+                    -- stalker <-> stalker
+                    if IsStalker and IsStalker(npc1) and IsStalker(npc2) then
+                        pcall(function() npc1:force_set_goodwill(-9999, npc2) end)
+                        pcall(function() npc2:force_set_goodwill(-9999, npc1) end)
+                        pcall(function() npc1:set_relation(game_object.enemy, npc2) end)
+                        pcall(function() npc2:set_relation(game_object.enemy, npc1) end)
+                    end
+                    -- stalker vs monster: goodwill is one-way (monsters don't have goodwill)
+                    if IsStalker and IsStalker(npc1) and IsMonster and IsMonster(npc2) then
+                        pcall(function() npc1:force_set_goodwill(-9999, npc2) end)
+                        pcall(function() npc1:set_relation(game_object.enemy, npc2) end)
+                    end
+                    if IsStalker and IsStalker(npc2) and IsMonster and IsMonster(npc1) then
+                        pcall(function() npc2:force_set_goodwill(-9999, npc1) end)
+                        pcall(function() npc2:set_relation(game_object.enemy, npc1) end)
+                    end
+                end
             end
         end
     end
@@ -1253,8 +1272,9 @@ end
 function scr_hit(npc, who)
     if not (npc and who) then return end
     local h = hit()
-    h.type = hit.telepatic 
-    h.power = 0.0
+    -- hit.wound at 0.001 power wakes up AI without triggering damage SFX
+    h.type = hit.wound
+    h.power = 0.001
     h.impulse = 0
     h.direction = vector():set(0, 0, 1)
     h.draftsman = npc
