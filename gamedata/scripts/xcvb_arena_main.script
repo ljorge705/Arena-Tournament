@@ -172,7 +172,7 @@ tournament_stalker_tiers_t = {
 				reward_money = 45000,
 				reward_items = { "ammo_9x39_ap", "stimpack_army" },
 				squad_type = "stalker",
-				sections = { "sim_default_monolith_3", "sim_default_monolith_3", "sim_default_monolith_4", "sim_default_monolith_4" },
+				sections = { "sim_default_killer_3", "sim_default_killer_3", "sim_default_killer_4", "sim_default_killer_4" },
 			},
 			[12] = {
 				id = 12, tier = 4, category = "stalker",
@@ -201,7 +201,7 @@ tournament_stalker_tiers_t = {
 				reward_money = 70000,
 				reward_items = { "medkit_scientic", "stimpack_army", "grenade_f1" },
 				squad_type = "stalker",
-				sections = { "sim_default_greh_3", "sim_default_greh_4", "sim_default_greh_4", "sim_default_greh_4" },
+				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
 			},
 			[14] = {
 				id = 14, tier = 5, category = "stalker",
@@ -213,7 +213,7 @@ tournament_stalker_tiers_t = {
 				reward_money = 90000,
 				reward_items = { "ammo_gauss", "af_medusa", "medkit_scientic" },
 				squad_type = "stalker",
-				sections = { "sim_default_monolith_4", "sim_default_monolith_4", "sim_default_monolith_4", "sim_default_monolith_4" },
+				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
 			},
 			[15] = {
 				id = 15, tier = 5, category = "stalker",
@@ -225,7 +225,7 @@ tournament_stalker_tiers_t = {
 				reward_money = 130000,
 				reward_items = { "af_fireball", "medkit_scientic", "stimpack_army" },
 				squad_type = "stalker",
-				sections = { "sim_default_military_4", "sim_default_monolith_4", "sim_default_duty_4" },
+				sections = { "sim_default_military_4", "sim_default_killer_4", "sim_default_duty_4" },
 			},
 		}
 	}
@@ -343,7 +343,7 @@ tournament_mutant_tiers_t = {
 				reward_money = 23000,
 				reward_items = { "toolkit_r_2", "medkit_army" },
 				squad_type = "mutant",
-				sections = { "bloodsucker_red_normal", "bloodsucker_black_strong" },
+				sections = { "psysucker_2_normal", "psysucker_3_strong", "psysucker_3_normal" },
 			},
 			[9] = {
 				id = 9, tier = 3, category = "mutant",
@@ -355,7 +355,7 @@ tournament_mutant_tiers_t = {
 				reward_money = 28000,
 				reward_items = { "drug_psy_blockade", "stimpack_army" },
 				squad_type = "mutant",
-				sections = { "psysucker_2_normal", "fracture_strong", "fracture_3" },
+				sections = { "psysucker_3_strong", "psysucker_3_strong", "fracture_strong", "fracture_3" },
 			},
 		}
 	},
@@ -372,7 +372,7 @@ tournament_mutant_tiers_t = {
 				reward_money = 36000,
 				reward_items = { "drug_psy_blockade", "stimpack_army" },
 				squad_type = "mutant",
-				sections = { "psy_dog_normal", "pseudodog_grey_strong" },
+				sections = { "psy_dog_normal", "psy_dog_normal", "pseudodog_grey_strong" },
 			},
 			[11] = {
 				id = 11, tier = 4, category = "mutant",
@@ -413,7 +413,7 @@ tournament_mutant_tiers_t = {
 				reward_money = 70000,
 				reward_items = { "mutant_part_chimera_claw", "medkit_scientic" },
 				squad_type = "mutant",
-				sections = { "chimera_strong" },
+				sections = { "chimera_strong", "chimera_normal" },
 			},
 			[14] = {
 				id = 14, tier = 5, category = "mutant",
@@ -437,7 +437,7 @@ tournament_mutant_tiers_t = {
 				reward_money = 130000,
 				reward_items = { "af_soul", "medkit_scientic", "stimpack_army" },
 				squad_type = "mutant",
-				sections = { "chimera_strong3", "gigant_strong" },
+				sections = { "chimera_strong3", "chimera_strong2", "gigant_strong" },
 			},
 		}
 	}
@@ -579,7 +579,7 @@ function generate_spectator_fights(filter_type)
 				amt1 = math.random(4, 5)
 				t1 = {}
 				p1 = 0
-				local facs = {"stalker", "bandit", "killer", "duty", "freedom", "army", "monolith", "greh"}
+				local facs = {"stalker", "bandit", "killer", "duty", "freedom", "army"}
 				local s_fac = facs[math.random(#facs)]
 				for _ = 1, amt1 do
 					local fac_sec = s_fac

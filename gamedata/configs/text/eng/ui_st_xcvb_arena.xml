@@ -248,13 +248,13 @@
 	</string>
 
 	<string id="st_arena_s_round_11_name">
-		<text>Round 11: Monolith Crusade</text>
+		<text>Round 11: Mercenary Hit Squad</text>
 	</string>
 	<string id="st_arena_s_round_11_enemies">
-		<text>4x Monolith Fanatics in heavy armor with Vintorez</text>
+		<text>4x Mercenaries in heavy armor with Vintorez</text>
 	</string>
 	<string id="st_arena_s_round_11_desc">
-		<text>Zealots captured in the Zone's center. They know no fear and will not yield an inch.</text>
+		<text>Elite mercenaries hired for a heavy assault. They fight with calculated precision.</text>
 	</string>
 	<string id="st_arena_s_round_11_reward">
 		<text>45,000 RU + Sniper Ammo + Military Supplies</text>
@@ -275,26 +275,26 @@
 
 	<!-- Tier 5: Legends -->
 	<string id="st_arena_s_round_13_name">
-		<text>Round 13: Brotherhood of Sin</text>
+		<text>Round 13: Elite Mercenary Vanguard</text>
 	</string>
 	<string id="st_arena_s_round_13_enemies">
-		<text>4x Sin (Greh) Masters with heavy assault weaponry</text>
+		<text>4x Mercenary Masters with heavy assault weaponry</text>
 	</string>
 	<string id="st_arena_s_round_13_desc">
-		<text>Dark monks with supernatural resilience. Relentless firing and heavy explosive grenades.</text>
+		<text>The most experienced guns for hire. Relentless firing and tactical coordination.</text>
 	</string>
 	<string id="st_arena_s_round_13_reward">
 		<text>70,000 RU + Elite Military Supplies</text>
 	</string>
 
 	<string id="st_arena_s_round_14_name">
-		<text>Round 14: Monolith Gauss Guard</text>
+		<text>Round 14: Mercenary Gauss Guard</text>
 	</string>
 	<string id="st_arena_s_round_14_enemies">
-		<text>4x Exoskeleton Monolith with Gauss Rifles and MGs</text>
+		<text>4x Exoskeleton Mercenaries with Gauss Rifles and MGs</text>
 	</string>
 	<string id="st_arena_s_round_14_desc">
-		<text>Temple guardians of the Monolith. A single electromagnetic Gauss slug pierces any cover.</text>
+		<text>Top tier mercenaries holding the line. A single electromagnetic Gauss slug pierces any cover.</text>
 	</string>
 	<string id="st_arena_s_round_14_reward">
 		<text>90,000 RU + Gauss Batteries + High-Tier Artefact</text>
@@ -413,13 +413,13 @@
 	</string>
 
 	<string id="st_arena_m_round_8_name">
-		<text>Round 8: Cloaked Killers</text>
+		<text>Round 8: Mind Flayers</text>
 	</string>
 	<string id="st_arena_m_round_8_enemies">
-		<text>2x Cloaked Bloodsuckers</text>
+		<text>3x Psysuckers</text>
 	</string>
 	<string id="st_arena_m_round_8_desc">
-		<text>Predators turning completely invisible to flank and tear your throat out. Listen carefully.</text>
+		<text>Telepathic mutants that cloud your vision and ambush you. Keep your distance.</text>
 	</string>
 	<string id="st_arena_m_round_8_reward">
 		<text>23,000 RU + Repair Kit + Stimpacks</text>
@@ -429,10 +429,10 @@
 		<text>Round 9: Psychic Shriek</text>
 	</string>
 	<string id="st_arena_m_round_9_enemies">
-		<text>1x Psysucker + 2x Giant Fractures</text>
+		<text>2x Psysuckers + 2x Giant Fractures</text>
 	</string>
 	<string id="st_arena_m_round_9_desc">
-		<text>A lethal combo: the Psysucker dazes your senses while giant Fractures land bone-crushing blows.</text>
+		<text>A lethal combo: the Psysuckers daze your senses while giant Fractures land bone-crushing blows.</text>
 	</string>
 	<string id="st_arena_m_round_9_reward">
 		<text>28,000 RU + Psy-Blockers + Maintenance Kit</text>
@@ -443,10 +443,10 @@
 		<text>Round 10: Phantom Dance</text>
 	</string>
 	<string id="st_arena_m_round_10_enemies">
-		<text>1x Psy-Dog (with phantoms) + 1x Giant Pseudodog</text>
+		<text>2x Psy-Dogs (with phantoms) + 1x Giant Pseudodog</text>
 	</string>
 	<string id="st_arena_m_round_10_desc">
-		<text>The psy-dog spawns phantom clones to confuse you. Eliminate the original leader swiftly.</text>
+		<text>Two psy-dogs will spawn dozens of phantom clones to confuse you. Eliminate the original leaders swiftly.</text>
 	</string>
 	<string id="st_arena_m_round_10_reward">
 		<text>36,000 RU + Psy-Drugs + Elite Stims</text>
@@ -483,10 +483,10 @@
 		<text>Round 13: Twin-Headed Nightmare</text>
 	</string>
 	<string id="st_arena_m_round_13_enemies">
-		<text>1x Wild Adult Chimera</text>
+		<text>2x Wild Adult Chimeras</text>
 	</string>
 	<string id="st_arena_m_round_13_desc">
-		<text>The ultimate apex predator of the Zone. Massive leaps, savage speed, and deadly claws.</text>
+		<text>The ultimate apex predators of the Zone. Massive leaps, savage speed, and deadly claws.</text>
 	</string>
 	<string id="st_arena_m_round_13_reward">
 		<text>70,000 RU + Rare Mutant Trophies + Stims</text>
@@ -509,10 +509,10 @@
 		<text>Round 15: Duo of the Apocalypse</text>
 	</string>
 	<string id="st_arena_m_round_15_enemies">
-		<text>1x Black Chimera + 1x Titanic Pseudogiant</text>
+		<text>2x Black Chimeras + 1x Titanic Pseudogiant</text>
 	</string>
 	<string id="st_arena_m_round_15_desc">
-		<text>The ultimate survival test: the two most dreaded apex monsters of the Zone unleashed together.</text>
+		<text>The ultimate survival test: the most dreaded apex monsters of the Zone unleashed together.</text>
 	</string>
 	<string id="st_arena_m_round_15_reward">
 		<text>130,000 RU + 'Master Hunter' Title + Supreme Trophy</text>

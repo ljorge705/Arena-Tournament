@@ -248,13 +248,13 @@
 	</string>
 
 	<string id="st_arena_s_round_11_name">
-		<text>Ronda 11: Cruzada del Monolito</text>
+		<text>Ronda 11: Escuadron de Choque Mercenario</text>
 	</string>
 	<string id="st_arena_s_round_11_enemies">
-		<text>4x Fanaticos del Monolito con blindaje pesado y Vintorez</text>
+		<text>4x Mercenarios veteranos con blindaje pesado y Vintorez</text>
 	</string>
 	<string id="st_arena_s_round_11_desc">
-		<text>Fanaticos religiosos capturados en el Centro de la Zona. No sienten miedo ni retroceden un solo milimetro.</text>
+		<text>Mercenarios de elite contratados para un asalto pesado. Combaten con calculada precision.</text>
 	</string>
 	<string id="st_arena_s_round_11_reward">
 		<text>45,000 RU + Municion de francotirador + Suministros</text>
@@ -275,26 +275,26 @@
 
 	<!-- Nivel 5: Leyendas -->
 	<string id="st_arena_s_round_13_name">
-		<text>Ronda 13: Hermandad del Pecado</text>
+		<text>Ronda 13: Vanguardia Mercenaria de Elite</text>
 	</string>
 	<string id="st_arena_s_round_13_enemies">
-		<text>4x Fanaticos de Pecado (Greh) con armas de asalto pesadas</text>
+		<text>4x Maestros Mercenarios con armas de asalto pesadas</text>
 	</string>
 	<string id="st_arena_s_round_13_desc">
-		<text>Monjes oscuros de la Zona con una resistencia casi sobrenatural. Disparan sin descanso y lanzan granadas pesadas.</text>
+		<text>Los mercenarios mas experimentados de la Zona. Disparan sin descanso y con gran coordinacion tactica.</text>
 	</string>
 	<string id="st_arena_s_round_13_reward">
 		<text>70,000 RU + Suministros militares de elite</text>
 	</string>
 
 	<string id="st_arena_s_round_14_name">
-		<text>Ronda 14: Guardia del Monolito con Gauss</text>
+		<text>Ronda 14: Guardia Mercenaria con Gauss</text>
 	</string>
 	<string id="st_arena_s_round_14_enemies">
-		<text>4x Monolito en Exoesqueleto con rifles Gauss y ametralladoras</text>
+		<text>4x Mercenarios en Exoesqueleto con rifles Gauss y ametralladoras</text>
 	</string>
 	<string id="st_arena_s_round_14_desc">
-		<text>La guardia personal de los templos del Monolito. Un solo disparo electromagnetico de Gauss atravesara cualquier cobertura.</text>
+		<text>Mercenarios de primer nivel manteniendo la linea. Un solo disparo electromagnetico de Gauss atravesara cualquier cobertura.</text>
 	</string>
 	<string id="st_arena_s_round_14_reward">
 		<text>90,000 RU + Baterias Gauss + Artefacto de alta categoria</text>
@@ -413,13 +413,13 @@
 	</string>
 
 	<string id="st_arena_m_round_8_name">
-		<text>Ronda 8: Sombras Asesinas</text>
+		<text>Ronda 8: Depredadores Mentales</text>
 	</string>
 	<string id="st_arena_m_round_8_enemies">
-		<text>2x Chupasangres con camuflaje invisible</text>
+		<text>3x Psicovampiros (Psysuckers)</text>
 	</string>
 	<string id="st_arena_m_round_8_desc">
-		<text>Depredadores que se vuelven completamente invisibles para flanquear y desgarrar tu cuello. Escucha con atencion.</text>
+		<text>Mutantes telepaticos que nublaran tu vision para emboscarte. Manten la distancia y dispara rapido.</text>
 	</string>
 	<string id="st_arena_m_round_8_reward">
 		<text>23,000 RU + Kit de reparacion + Estimulantes</text>
@@ -429,10 +429,10 @@
 		<text>Ronda 9: Grito Psiquico</text>
 	</string>
 	<string id="st_arena_m_round_9_enemies">
-		<text>1x Psysucker + 2x Fracturas gigantes</text>
+		<text>2x Psicovampiros + 2x Fracturas gigantes</text>
 	</string>
 	<string id="st_arena_m_round_9_desc">
-		<text>Una combinacion peligrosa: el Psysucker aturde tus sentidos mientras las Fracturas asestan golpes demoledores.</text>
+		<text>Una combinacion peligrosa: los Psicovampiros aturden tus sentidos mientras las Fracturas asestan golpes demoledores.</text>
 	</string>
 	<string id="st_arena_m_round_9_reward">
 		<text>28,000 RU + Bloqueadores psiquicos + Kit de mantenimiento</text>
@@ -443,10 +443,10 @@
 		<text>Ronda 10: Danza Fantasma</text>
 	</string>
 	<string id="st_arena_m_round_10_enemies">
-		<text>1x Perro Psiquico (con clones fantasma) + 1x Pseudoperro gigante</text>
+		<text>2x Perros Psiquicos (con clones fantasma) + 1x Pseudoperro gigante</text>
 	</string>
 	<string id="st_arena_m_round_10_desc">
-		<text>El perro psiquico generara decenas de clones fantasmales para confundirte. Encuentra al lider original rapidamente.</text>
+		<text>Dos perros psiquicos generaran decenas de clones fantasmales para confundirte. Encuentra a los lideres originales rapidamente.</text>
 	</string>
 	<string id="st_arena_m_round_10_reward">
 		<text>36,000 RU + Drogas psiquicas + Estimulantes de elite</text>
@@ -483,10 +483,10 @@
 		<text>Ronda 13: Pesadilla de Dos Cabezas</text>
 	</string>
 	<string id="st_arena_m_round_13_enemies">
-		<text>1x Quimera salvaje adulta</text>
+		<text>2x Quimeras salvajes adultas</text>
 	</string>
 	<string id="st_arena_m_round_13_desc">
-		<text>El depredador apex definitivo de la Zona. Saltos de larga distancia, velocidad desenfrenada y garras mortales.</text>
+		<text>Los depredadores apex definitivos de la Zona. Saltos de larga distancia, velocidad desenfrenada y garras mortales.</text>
 	</string>
 	<string id="st_arena_m_round_13_reward">
 		<text>70,000 RU + Partes raras de mutante + Estimulantes</text>
@@ -509,10 +509,10 @@
 		<text>Ronda 15: El Duo del Apocalipsis</text>
 	</string>
 	<string id="st_arena_m_round_15_enemies">
-		<text>1x Quimera Negra + 1x Pseudogigante Titano</text>
+		<text>2x Quimeras Negras + 1x Pseudogigante Titano</text>
 	</string>
 	<string id="st_arena_m_round_15_desc">
-		<text>La prueba final de supervivencia: las dos bestias mas poderosas y temidas de la Zona soltadas juntas en la arena.</text>
+		<text>La prueba final de supervivencia: las bestias mas poderosas y temidas de la Zona soltadas juntas en la arena.</text>
 	</string>
 	<string id="st_arena_m_round_15_reward">
 		<text>130,000 RU + Titulo 'Maestro Cazador' + Trofeo Supremo</text>

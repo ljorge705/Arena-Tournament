@@ -128,8 +128,6 @@ local stalkers_t = {
     army     = { 0, 1, 2, 3, 4 },
     ecolog   = { 0, 1, 2, 3, 4 },
     csky     = { 0, 1, 2, 3, 4 },
-    monolith = { 0, 1, 2, 3, 4 },
-    greh     = { 0, 1, 2, 3, 4 },
     renegade = { 0, 1, 2 },
 }
 
@@ -142,18 +140,16 @@ local stalkers_power_t = {
 }
 
 local faction_enemies_t = {
-    stalker  = { "bandit", "killer", "army", "monolith", "greh", "renegade" },
-    dolg     = { "freedom", "bandit", "killer", "monolith", "greh", "renegade" },
-    duty     = { "freedom", "bandit", "killer", "monolith", "greh", "renegade" },
-    freedom  = { "dolg", "army", "monolith", "greh", "renegade", "bandit" },
-    csky     = { "bandit", "army", "monolith", "greh", "renegade" },
-    ecolog   = { "bandit", "monolith", "greh", "renegade" },
-    killer   = { "stalker", "dolg", "army", "monolith", "greh", "renegade" },
-    army     = { "stalker", "freedom", "bandit", "killer", "monolith", "greh", "renegade", "csky" },
-    bandit   = { "stalker", "dolg", "freedom", "csky", "ecolog", "army", "monolith", "greh" },
-    monolith = { "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army", "bandit", "renegade" },
-    greh     = { "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army", "bandit", "renegade" },
-    renegade = { "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army", "monolith", "greh" },
+    stalker  = { "bandit", "killer", "army", "renegade" },
+    dolg     = { "freedom", "bandit", "killer", "renegade" },
+    duty     = { "freedom", "bandit", "killer", "renegade" },
+    freedom  = { "dolg", "army", "renegade", "bandit" },
+    csky     = { "bandit", "army", "renegade" },
+    ecolog   = { "bandit", "renegade" },
+    killer   = { "stalker", "dolg", "army", "renegade" },
+    army     = { "stalker", "freedom", "bandit", "killer", "renegade", "csky" },
+    bandit   = { "stalker", "dolg", "freedom", "csky", "ecolog", "army" },
+    renegade = { "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army" },
 }
 
 function is_enemy_faction(fac1, fac2)
@@ -204,7 +200,6 @@ local mutants_t = {
     fracture = {"_weak", "_normal", "_strong", "_2", "_3"},
     snork = {"_weak", "_weak2", "_weak3", "_weak4", "_normal", "_normal2", "_normal3", "_normal4", "_strong", "_strong2", "_strong3", "_strong4"},
     lurker = {"_1_weak", "_2_weak", "_3_weak", "_1_normal", "_2_normal", "_3_normal", "_1_strong", "_2_strong", "_3_strong" },
-    bloodsucker = {"_red_weak", "_green_weak", "_black_weak", "_red_normal", "_green_normal", "_black_normal", "_red_strong", "_green_strong", "_black_strong"},
     psysucker = {"_2_weak", "_3_weak", "_2_normal", "_3_normal", "_2_strong", "_3_strong"},
     psy_dog = {"_normal"},
     -- Asegúrate de incluir las variantes fuertes y extremas de quimeras y gigantes:
@@ -357,19 +352,17 @@ function arena_fade_in_out(in_dly)
 end
 
 local default_faction_enemies = {
-    ["stalker"]  = { "bandit", "renegade", "killer", "military", "monolith", "greh" },
-    ["bandit"]   = { "stalker", "dolg", "csky", "ecolog", "military", "monolith" },
-    ["dolg"]     = { "freedom", "bandit", "killer", "monolith", "renegade", "greh" },
-    ["freedom"]  = { "dolg", "military", "monolith", "renegade", "greh" },
-    ["csky"]     = { "renegade", "bandit", "military", "monolith", "greh" },
-    ["ecolog"]   = { "bandit", "killer", "monolith", "renegade", "greh" },
-    ["killer"]   = { "stalker", "dolg", "military", "csky", "ecolog", "monolith" },
-    ["army"]     = { "stalker", "freedom", "bandit", "killer", "monolith", "renegade", "csky" },
-    ["military"] = { "stalker", "bandit", "freedom", "killer", "monolith", "renegade" },
-    ["monolith"] = { "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army", "bandit", "renegade" },
-    ["greh"]     = { "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army", "bandit", "renegade" },
-    ["renegade"] = { "csky", "stalker", "dolg", "military", "monolith" },
-    ["isg"]      = { "stalker", "dolg", "freedom", "csky", "killer", "military", "monolith" }
+    ["stalker"]  = { "bandit", "renegade", "killer", "military" },
+    ["bandit"]   = { "stalker", "dolg", "csky", "ecolog", "military" },
+    ["dolg"]     = { "freedom", "bandit", "killer", "renegade" },
+    ["freedom"]  = { "dolg", "military", "renegade" },
+    ["csky"]     = { "renegade", "bandit", "military" },
+    ["ecolog"]   = { "bandit", "killer", "renegade" },
+    ["killer"]   = { "stalker", "dolg", "military", "csky", "ecolog" },
+    ["army"]     = { "stalker", "freedom", "bandit", "killer", "renegade", "csky" },
+    ["military"] = { "stalker", "bandit", "freedom", "killer", "renegade" },
+    ["renegade"] = { "csky", "stalker", "dolg", "military" },
+    ["isg"]      = { "stalker", "dolg", "freedom", "csky", "killer", "military" }
 }
 
 function get_actor_faction()
@@ -412,7 +405,7 @@ function get_safe_enemy_section(sec, actor_fac)
     if is_enemy_to_actor(fac, a_fac) then return sec end
     
     local norm_actor = (a_fac == "duty") and "dolg" or ((a_fac == "military") and "army" or a_fac)
-    local pool = default_faction_enemies[norm_actor] or { "bandit", "renegade", "killer", "monolith" }
+    local pool = default_faction_enemies[norm_actor] or { "bandit", "renegade", "killer" }
     
     for _, enemy_fac in ipairs(pool) do
         local cand_sec = "sim_default_" .. enemy_fac .. "_" .. rank
