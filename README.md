@@ -91,7 +91,7 @@ Full multilingual text support:
 
 ## TODO
 
-- Fix a bug where a team sometimes wins automatically immediately after a bet is placed.
+~~- Fix a bug where a team sometimes wins automatically immediately after a bet is placed.~~
 - Fix AI behavior so mutants properly attack each other during Mutant vs Mutant (MvM) matches.
 
 ---
