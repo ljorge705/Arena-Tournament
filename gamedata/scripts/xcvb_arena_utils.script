@@ -207,12 +207,17 @@ local mutants_t = {
     bloodsucker = {"_red_weak", "_green_weak", "_black_weak", "_red_normal", "_green_normal", "_black_normal", "_red_strong", "_green_strong", "_black_strong"},
     psysucker = {"_2_weak", "_3_weak", "_2_normal", "_3_normal", "_2_strong", "_3_strong"},
     psy_dog = {"_normal"},
+    -- Asegúrate de incluir las variantes fuertes y extremas de quimeras y gigantes:
     chimera = {"_weak", "_normal", "_strong", "_strong2", "_strong3", "_strong4"},
+    gigant = {"_normal", "_strong", "_weak"}, -- Si el juego usa "gigant" o "pseudogigant" según tu versión de GAMMA
+    controller = {"_normal", "_old", "_strong"},
+    burer = {"_normal", "_strong"}
 }
 
 local mutants_power_t = {
     zombie = 1,  boar = 3,  dog = 2,  pseudodog = 4,  cat = 4,  fracture = 5,
-    snork = 5,  lurker = 5,  bloodsucker = 8,  psysucker = 8,  psy_dog = 8,  chimera = 12
+    snork = 5,  lurker = 5,  bloodsucker = 8,  psysucker = 8,  psy_dog = 8,  
+    chimera = 15, gigant = 18, controller = 14, burer = 10
 }
 
 local mutant_relation_order = {
@@ -433,13 +438,15 @@ function spawn_tournament_squad(round_data)
     local squad = alife_create(squad_sec, pos, lvid, gvid)
     if not squad then return nil end
     
-    squad.scripted_target = 0
-    squad.rush_to_target = true
+    squad.scripted_target = squad.id
+    squad.assigned_target_id = squad.id
+    squad.rush_to_target = false
 
     local a_fac = get_actor_faction()
     for _, sec in ipairs(round_data.sections) do
         local safe_sec = (round_data.squad_type == "stalker") and get_safe_enemy_section(sec, a_fac) or sec
-        squad:add_squad_member(safe_sec, pos, lvid, gvid)
+        local offset_pos = vector():set(pos.x + math.random(-6, 6), pos.y, pos.z + math.random(-2, 2))
+        squad:add_squad_member(safe_sec, offset_pos, lvid, gvid)
     end
     squad:set_squad_relation()
     squad:refresh()
@@ -459,14 +466,16 @@ function setup_tournament_squad_aggro(squad_id)
             pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
             pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
             pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
+            
+            -- NUEVO: Simular un golpe del jugador al NPC para despertar su IA inmediatamente
+            xcvb_arena_utils.scr_hit(db.actor, npc)
+            
             if IsMonster and IsMonster(npc) then
                 pcall(function() npc:berserk() end)
                 pcall(function() npc:set_custom_panic_threshold(0) end)
             end
         end
     end
-    squad.scripted_target = 0
-    squad.rush_to_target = true
 end
 
 function give_tournament_rewards(round_data)
@@ -802,7 +811,6 @@ local function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id)
     
     if not (mag_sec and ini_sys:section_exist(mag_sec)) then return ammo_sec end
     
-    -- FIX PARA MP7 y similares: Validar que la bala encaje en el cargador
     local mag_ammo_str = ini_sys:r_string_ex(mag_sec, "ammo_class")
     if mag_ammo_str then
         local found = false
@@ -813,7 +821,6 @@ local function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id)
                 break
             end
         end
-        -- Si la bala no entra en el cargador, forzamos la munición correcta del cargador
         if not found and #mag_ammos > 0 then
             ammo_sec = trim(mag_ammos[1]) 
         end
@@ -857,7 +864,6 @@ local function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id)
         end
     end
     
-    -- Retornamos el tipo de bala para sincronizar las cajas de munición sueltas
     return ammo_sec 
 end
 
@@ -1012,7 +1018,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
             spawned_wpn_id = se.id
             local ammo_sec = get_weapon_ammo(wpn_sec)
             if ammo_sec then
-                spawn_and_fill_mags(wpn_sec, ammo_sec, 3, spawned_wpn_id)
+                ammo_sec = spawn_and_fill_mags(wpn_sec, ammo_sec, 3, spawned_wpn_id) or ammo_sec
                 local count = t_data.ammo_count or 5
                 for i = 1, count do
                     local se_ammo = alife_create(ammo_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
@@ -1031,7 +1037,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
                 spawned_pistol_id = se.id
                 local p_ammo = get_weapon_ammo(pistol_sec)
                 if p_ammo then
-                    spawn_and_fill_mags(pistol_sec, p_ammo, 3, spawned_pistol_id)
+                    p_ammo = spawn_and_fill_mags(pistol_sec, p_ammo, 3, spawned_pistol_id) or p_ammo
                     for i = 1, 3 do
                         local se_ammo = alife_create(p_ammo, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
                         if se_ammo then temporary_arena_item_ids[se_ammo.id] = true end
@@ -1130,7 +1136,6 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
 end
 
 function restore_actor_inventory()
-    -- 1. Eliminar el equipo temporal prestado por la Arena
     for item_id, _ in pairs(temporary_arena_item_ids) do
         local se_item = alife_object(item_id)
         if se_item then
@@ -1143,13 +1148,10 @@ function restore_actor_inventory()
     end
     temporary_arena_item_ids = {}
     
-    -- 2. PREVENCIÓN DE EXPLOITS: Barrido de contrabando looteado
-    -- Detecta cualquier objeto en el inventario del jugador que no sea de misión/vital y lo vaporiza.
     local contraband_to_delete = {}
     db.actor:iterate_inventory(function(owner, item)
         if not item then return end
         local sec = item:section()
-        -- Ignoramos la PDA, la linterna, los tornillos y objetos de misión (mismas reglas que al guardar)
         if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
             return
         end
@@ -1167,11 +1169,9 @@ function restore_actor_inventory()
         end
     end
 
-    -- 3. Resetear físicas del exoesqueleto (por si el jugador usaba uno en la arena)
     if item_exo_device and item_exo_device.reset_speed then pcall(item_exo_device.reset_speed) end
     if speed and speed.remove_speed then pcall(speed.remove_speed, "exo_speed") end
     
-    -- 4. Devolver el equipo original legítimo desde el baúl de almacenamiento
     local box = get_or_create_arena_box()
     if box then
         local items_to_restore = {}
@@ -1241,13 +1241,12 @@ function hit_npcs(squad_id1, squad_id2)
     local function wake_up_squad(sq_a, sq_b)
         for m_a in sq_a:squad_members() do
             local npc_a = level.object_by_id(m_a.id)
-            -- Solo forzar el hit si el NPC está vivo y NO tiene un enemigo asignado
             if npc_a and npc_a:alive() and npc_a:best_enemy() == nil then
                 for m_b in sq_b:squad_members() do
                     local npc_b = level.object_by_id(m_b.id)
                     if npc_b and npc_b:alive() then
                         xcvb_arena_utils.scr_hit(npc_a, npc_b)
-                        break -- Solo necesitamos que el NPC reaccione a un enemigo para despertar su IA
+                        break 
                     end
                 end
             end
@@ -1261,7 +1260,7 @@ end
 function scr_hit(npc, who)
     if not (npc and who) then return end
     local h = hit()
-    h.type = hit.telepatic -- Daño mental/telepático no causa sangrado ni retroceso físico
+    h.type = hit.telepatic 
     h.power = 0.0
     h.impulse = 0
     h.direction = vector():set(0, 0, 1)

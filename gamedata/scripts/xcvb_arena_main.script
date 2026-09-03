@@ -568,8 +568,29 @@ function generate_spectator_fights(filter_type)
 		local amt2 = math.random(2, 4)
 
 		if m_type == "svsm" then
-			local t1, p1 = xcvb_arena_utils.get_stalker_team(amt1)
-			local t2, p2 = xcvb_arena_utils.get_mutant_team(amt2)
+			local t2, p2, m_k = xcvb_arena_utils.get_mutant_team(amt2)
+			local single_pwr = p2 / amt2
+			
+			local t1, p1
+			if single_pwr >= 8 then
+				t2 = { t2[1] }
+				p2 = single_pwr
+				
+				amt1 = math.random(4, 5)
+				t1 = {}
+				p1 = 0
+				local facs = {"stalker", "bandit", "killer", "duty", "freedom", "army", "monolith", "greh"}
+				local s_fac = facs[math.random(#facs)]
+				for _ = 1, amt1 do
+					local fac_sec = s_fac
+					if fac_sec == "army" then fac_sec = "military" elseif fac_sec == "dolg" then fac_sec = "duty" end
+					t1[#t1 + 1] = "sim_default_" .. fac_sec .. "_4"
+					p1 = p1 + 10
+				end
+			else
+				t1, p1 = xcvb_arena_utils.get_stalker_team(amt1)
+			end
+			
 			arena_main_t[i].team1 = t1
 			arena_main_t[i].team2 = t2
 			arena_main_t[i].pwrs = { p1, p2 }
