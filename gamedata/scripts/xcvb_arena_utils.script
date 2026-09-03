@@ -1187,23 +1187,31 @@ function hit_npcs(squad_id1, squad_id2)
     local squad2 = squad_id2 and alife_object(squad_id2)
     if not (squad1 and squad1.commander_id and squad2 and squad2.commander_id) then return end
 
-    for m1 in squad1:squad_members() do
-        local npc1 = level.object_by_id(m1.id)
-        for m2 in squad2:squad_members() do
-            local npc2 = level.object_by_id(m2.id)
-            if npc1 and npc1:alive() and npc2 and npc2:alive() then
-                xcvb_arena_utils.scr_hit(npc1, npc2)
-                xcvb_arena_utils.scr_hit(npc2, npc1)
+    local function wake_up_squad(sq_a, sq_b)
+        for m_a in sq_a:squad_members() do
+            local npc_a = level.object_by_id(m_a.id)
+            -- Solo forzar el hit si el NPC está vivo y NO tiene un enemigo asignado
+            if npc_a and npc_a:alive() and npc_a:best_enemy() == nil then
+                for m_b in sq_b:squad_members() do
+                    local npc_b = level.object_by_id(m_b.id)
+                    if npc_b and npc_b:alive() then
+                        xcvb_arena_utils.scr_hit(npc_a, npc_b)
+                        break -- Solo necesitamos que el NPC reaccione a un enemigo para despertar su IA
+                    end
+                end
             end
         end
     end
+
+    wake_up_squad(squad1, squad2)
+    wake_up_squad(squad2, squad1)
 end
 
 function scr_hit(npc, who)
     if not (npc and who) then return end
     local h = hit()
-    h.type = hit.wound
-    h.power = 0.01
+    h.type = hit.telepatic -- Daño mental/telepático no causa sangrado ni retroceso físico
+    h.power = 0.0
     h.impulse = 0
     h.direction = vector():set(0, 0, 1)
     h.draftsman = npc

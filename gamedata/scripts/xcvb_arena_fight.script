@@ -413,13 +413,18 @@ local function trigger_medic_rescue()
     if tourn_ending then return end
     tourn_ending = true
 
+    if db.actor then
+        db.actor:hide_weapon()
+    end
     pcall(level.disable_input)
+    pcall(level.hide_indicators_safe)
 
     if db.actor then
         db.actor.health = 1.0
         db.actor.bleeding = 0
         db.actor.radiation = 0
         db.actor.psy_health = 1.0
+        db.actor.power = -1.0
     end
 
     if zzz_player_injuries then
@@ -488,6 +493,10 @@ local function trigger_medic_rescue()
             level.add_pp_effector("fade_out.ppe", 987124, false)
         end)
 
+        if db.actor then
+            db.actor:restore_weapon()
+        end
+        pcall(level.show_indicators)
         pcall(level.enable_input)
 
         local fee = 2500
@@ -527,6 +536,7 @@ function actor_on_before_death(whoID, flags)
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false then
             if flags then flags.ret_value = false end
+            if db.actor then db.actor.health = 1.0 end
             trigger_medic_rescue()
         end
     end
