@@ -786,9 +786,9 @@ local function fill_arena_magazine(mag_id, mag_sec, ammo_sec)
 end
 
 local function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id)
-    if not (wpn_sec and ammo_sec) then return end
+    if not (wpn_sec and ammo_sec) then return ammo_sec end
     if not (magazine_binder and magazine_binder.is_supported_weapon and magazine_binder.is_supported_weapon(wpn_sec)) then
-        return
+        return ammo_sec
     end
     
     local mag_sec = nil
@@ -800,7 +800,24 @@ local function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id)
         if mags and #mags > 0 then mag_sec = mags[1] end
     end
     
-    if not (mag_sec and ini_sys:section_exist(mag_sec)) then return end
+    if not (mag_sec and ini_sys:section_exist(mag_sec)) then return ammo_sec end
+    
+    -- FIX PARA MP7 y similares: Validar que la bala encaje en el cargador
+    local mag_ammo_str = ini_sys:r_string_ex(mag_sec, "ammo_class")
+    if mag_ammo_str then
+        local found = false
+        local mag_ammos = str_explode(mag_ammo_str, ",")
+        for _, a in ipairs(mag_ammos) do
+            if trim(a) == ammo_sec then
+                found = true
+                break
+            end
+        end
+        -- Si la bala no entra en el cargador, forzamos la munición correcta del cargador
+        if not found and #mag_ammos > 0 then
+            ammo_sec = trim(mag_ammos[1]) 
+        end
+    end
     
     local cap = SYS_GetParam(2, mag_sec, "max_mag_size") or 30
     
@@ -839,6 +856,9 @@ local function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id)
             end)
         end
     end
+    
+    -- Retornamos el tipo de bala para sincronizar las cajas de munición sueltas
+    return ammo_sec 
 end
 
 local function is_helmet_item(item)
@@ -1110,17 +1130,48 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
 end
 
 function restore_actor_inventory()
+    -- 1. Eliminar el equipo temporal prestado por la Arena
     for item_id, _ in pairs(temporary_arena_item_ids) do
         local se_item = alife_object(item_id)
         if se_item then
-            alife_release(se_item)
+            if safe_release_manager and safe_release_manager.release then
+                safe_release_manager.release({id = item_id})
+            else
+                alife_release(se_item)
+            end
         end
     end
     temporary_arena_item_ids = {}
     
+    -- 2. PREVENCIÓN DE EXPLOITS: Barrido de contrabando looteado
+    -- Detecta cualquier objeto en el inventario del jugador que no sea de misión/vital y lo vaporiza.
+    local contraband_to_delete = {}
+    db.actor:iterate_inventory(function(owner, item)
+        if not item then return end
+        local sec = item:section()
+        -- Ignoramos la PDA, la linterna, los tornillos y objetos de misión (mismas reglas que al guardar)
+        if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+            return
+        end
+        table.insert(contraband_to_delete, item:id())
+    end, db.actor)
+
+    for _, id in ipairs(contraband_to_delete) do
+        local se_item = alife_object(id)
+        if se_item then
+            if safe_release_manager and safe_release_manager.release then
+                safe_release_manager.release({id = id})
+            else
+                alife_release(se_item)
+            end
+        end
+    end
+
+    -- 3. Resetear físicas del exoesqueleto (por si el jugador usaba uno en la arena)
     if item_exo_device and item_exo_device.reset_speed then pcall(item_exo_device.reset_speed) end
     if speed and speed.remove_speed then pcall(speed.remove_speed, "exo_speed") end
     
+    -- 4. Devolver el equipo original legítimo desde el baúl de almacenamiento
     local box = get_or_create_arena_box()
     if box then
         local items_to_restore = {}
