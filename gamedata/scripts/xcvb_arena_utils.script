@@ -300,6 +300,45 @@ function get_team_str(ar)
     end
 end
 
+function get_team_rank_string(ar)
+    local stalker_rank = 0
+    local stalker_count = 0
+    local mutant_rank = 0
+    local mutant_count = 0
+    
+    for _, sec in ipairs(ar) do
+        if string.find(sec, "sim_default") then
+            local rank = tonumber(string.sub(sec, -1))
+            if rank then
+                stalker_rank = stalker_rank + rank
+                stalker_count = stalker_count + 1
+            end
+        else
+            if string.find(sec, "weak") then mutant_rank = mutant_rank + 0
+            elseif string.find(sec, "normal") then mutant_rank = mutant_rank + 1
+            elseif string.find(sec, "strong") or string.find(sec, "hard") then mutant_rank = mutant_rank + 2
+            else mutant_rank = mutant_rank + 1 end
+            mutant_count = mutant_count + 1
+        end
+    end
+    
+    if stalker_count > 0 then
+        local avg = math.floor((stalker_rank / stalker_count) + 0.5)
+        if avg == 0 then return "Grupo de novatos"
+        elseif avg == 1 then return "Grupo de entrenados"
+        elseif avg == 2 then return "Grupo experimentado"
+        elseif avg == 3 then return "Grupo avanzado"
+        elseif avg >= 4 then return "Grupo de expertos"
+        end
+    elseif mutant_count > 0 then
+        local avg = math.floor((mutant_rank / mutant_count) + 0.5)
+        if avg == 0 then return "Grupo de debiles"
+        elseif avg == 1 then return "Grupo normal"
+        elseif avg >= 2 then return "Grupo fuerte"
+        end
+    end
+    return nil
+end
 function get_actor_arena_pos()
     local pos = vector():set(141.6, -13.35, 102.1)
     local lvid = 37386

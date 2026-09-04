@@ -559,8 +559,16 @@ function UIXcvbArena:update_spectator_display()
 			local team2_str = xcvb_arena_utils.get_team_str(bout.team2) or "st_arena_team2"
 			local count1 = #bout.team1
 			local count2 = #bout.team2
-			self.rows[i].team_1:TextControl():SetText(gt(team1_str) .. " (" .. count1 .. ")")
-			self.rows[i].team_2:TextControl():SetText(gt(team2_str) .. " (" .. count2 .. ")")
+			
+			local team1_rank = xcvb_arena_utils.get_team_rank_string(bout.team1)
+			local team2_rank = xcvb_arena_utils.get_team_rank_string(bout.team2)
+			local text1 = gt(team1_str) .. " [" .. count1 .. "]"
+			if team1_rank then text1 = text1 .. "\\n" .. team1_rank end
+			local text2 = gt(team2_str) .. " [" .. count2 .. "]"
+			if team2_rank then text2 = text2 .. "\\n" .. team2_rank end
+			
+			self.rows[i].team_1:TextControl():SetText(text1)
+			self.rows[i].team_2:TextControl():SetText(text2)
 
 			local is_sel_bout = (i == xcvb_arena_main.selected_spec_bout)
 			local bet1_val = (is_sel_bout and xcvb_arena_main.team_bet == 1) and xcvb_arena_main.bet_amount or 0

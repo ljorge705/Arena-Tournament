@@ -153,6 +153,8 @@ function start_arena_fight(bout_idx)
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     db.actor:set_actor_direction(device().cam_dir:getH())
 
+    db.actor:hide_weapon()
+
     local type1 = string.find(main_t.team1[1], "sim_default") and "stalker" or "mutant"
     local sec1 = "arena_" .. type1 .. "_team_1"
     local pos1, lvid1, gvid1 = xcvb_arena_utils.get_team_pos(1)
@@ -165,11 +167,20 @@ function start_arena_fight(bout_idx)
     local squad2 = alife_create(sec2, pos2, lvid2, gvid2)
     squad_team_2_id = squad2.id
 
-    -- Fix: Forzar a los escuadrones a embestirse mutuamente desde el spawn
+    -- Fix: Forzar a los escuadrones a embestirse mutuamente desde el spawn, a menos que sean stalkers contra mutantes
     squad1.scripted_target = squad2.id
-    squad1.rush_to_target = true
+    if type1 == "stalker" then
+        squad1.rush_to_target = false
+    else
+        squad1.rush_to_target = true
+    end
+
     squad2.scripted_target = squad1.id
-    squad2.rush_to_target = true
+    if type2 == "stalker" then
+        squad2.rush_to_target = false
+    else
+        squad2.rush_to_target = true
+    end
 
     for i, sec in ipairs(main_t.team1) do
         local offset_pos = vector():set(pos1.x + math.random(-5, 5), pos1.y, pos1.z + math.random(-3, 3))
@@ -209,10 +220,22 @@ function setup_teams()
     local sq2 = squad_team_2_id and alife_object(squad_team_2_id)
     if not (sq1 and sq2) then return end
 
+    local is_mutant1 = string.find(sq1:section_name(), "mutant")
+    local is_mutant2 = string.find(sq2:section_name(), "mutant")
+
     sq1.scripted_target = squad_team_2_id
-    sq1.rush_to_target = true
+    if not is_mutant1 then
+        sq1.rush_to_target = false
+    else
+        sq1.rush_to_target = true
+    end
+
     sq2.scripted_target = squad_team_1_id
-    sq2.rush_to_target = true
+    if not is_mutant2 then
+        sq2.rush_to_target = false
+    else
+        sq2.rush_to_target = true
+    end
 
     local function activate_npc(npc, dir_z)
         if not (npc and npc:alive()) then return end
@@ -222,7 +245,7 @@ function setup_teams()
             pcall(function() npc:set_custom_panic_threshold(0) end)
         elseif IsStalker and IsStalker(npc) then
             pcall(function() npc:set_mental_state(anim.danger) end)
-            pcall(function() npc:set_movement_type(move.run) end)
+            -- Do not force run for stalkers, let AI handle distance
         end
     end
 
@@ -260,6 +283,7 @@ function end_arena_fight(winner_team)
     spec_fight_ending = false
     local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
     db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
+    db.actor:restore_weapon()
     
     local bet_team = xcvb_arena_main.team_bet
     local reward = xcvb_arena_main.cur_reward
@@ -359,6 +383,9 @@ function actor_on_update()
             local sq1 = squad_team_1_id and alife_object(squad_team_1_id)
             local sq2 = squad_team_2_id and alife_object(squad_team_2_id)
             
+            local sq1_is_mutant = sq1 and string.find(sq1:section_name(), "mutant")
+            local sq2_is_mutant = sq2 and string.find(sq2:section_name(), "mutant")
+            
             local function maintain_aggro(sq)
                 if not sq then return end
                 for m in sq:squad_members() do
@@ -369,7 +396,7 @@ function actor_on_update()
                             pcall(function() n:set_custom_panic_threshold(0) end)
                         elseif IsStalker and IsStalker(n) then
                             pcall(function() n:set_mental_state(anim.danger) end)
-                            pcall(function() n:set_movement_type(move.run) end)
+                            -- Let stalkers fight tactically
                         end
                     end
                 end
@@ -388,28 +415,19 @@ function actor_on_update()
 end
 
 function on_before_key_press(key, bind, dis, flags)
-    if not HI("xcvb_arena_started") then return end
-    
-    local bind = dik_to_bind(key)
-    
-    if bind == key_bindings.kFWD or 
-       bind == key_bindings.kL_STRAFE or 
-       bind == key_bindings.kR_STRAFE or 
-       bind == key_bindings.kBACK or 
-       bind == key_bindings.kCROUCH or        
-       bind == key_bindings.kACCEL or         
-       bind == key_bindings.kWPN_5 or         
-       bind == key_bindings.kWPN_ZOOM or      
-       bind == key_bindings.kWPN_ZOOM_INC or  
-       bind == key_bindings.kWPN_ZOOM_DEC or  
-       bind == key_bindings.kNIGHT_VISION or  
-       bind == key_bindings.kTORCH or         
-       bind == key_bindings.kCONSOLE or 
-       bind == key_bindings.kQUIT then
-        return
-    end
-    
-    flags.ret_value = false
+	if not HI("xcvb_arena_started") then return end
+	local bind = dik_to_bind(key)
+	if bind == key_bindings.kFWD
+	or bind == key_bindings.kL_STRAFE
+	or bind == key_bindings.kR_STRAFE
+	or bind == key_bindings.kBACK
+	or bind == key_bindings.kACCEL
+	or bind == key_bindings.kCROUCH
+	or bind == key_bindings.kCONSOLE		-- console
+	or bind == key_bindings.kQUIT then		-- esc
+		return
+	end
+	flags.ret_value = false
 end
 
 function on_enemy_eval(npc, enemy, flags)
