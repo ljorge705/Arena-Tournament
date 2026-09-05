@@ -5,7 +5,10 @@ tournament_enemy_squad_id = nil
 current_tournament_category = nil
 current_tournament_round_id = nil
 local tourn_ending = false
+local tournament_fight_closed = false
 local spec_fight_ending = false
+local spectator_fight_closed = false
+local next_spectator_hint = 0
 local HI = has_alife_info
 local gt = game.translate_string
 
@@ -14,6 +17,10 @@ local gt = game.translate_string
 --------------------------------------------------------------------------------
 function start_tournament_fight(category, round_id, loadout_class, loadout_tier)
     tourn_ending = false
+    tournament_fight_closed = false
+    xcvb_arena_main.selected_modifier = "none"
+    xcvb_arena_main.selected_modifier_team1 = "none"
+    xcvb_arena_main.selected_modifier_team2 = "none"
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
     current_tournament_category = category or "stalker"
     current_tournament_round_id = round_id
@@ -39,6 +46,11 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier)
     local enemy_squad = xcvb_arena_utils.spawn_tournament_squad(round_data)
     if not enemy_squad then
         printe("! xcvb arena: Failed to spawn tournament squad for %s round %s", current_tournament_category, round_id)
+        if random_eq ~= false then
+            xcvb_arena_utils.restore_actor_inventory()
+        end
+        current_tournament_category = nil
+        current_tournament_round_id = nil
         return
     end
     tournament_enemy_squad_id = enemy_squad.id
@@ -52,6 +64,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier)
 end
 
 function on_tournament_victory(round_id)
+    if tournament_fight_closed then return end
     news_manager.send_tip(db.actor, gt("st_arena_fight_won"), 0, nil, 8000)
     xcvb_arena_utils.arena_fade_in_out(2)
     CreateTimeEvent("xcvb_arena_end_tourn_e", "xcvb_arena_end_tourn_a", 3, function()
@@ -61,18 +74,19 @@ function on_tournament_victory(round_id)
 end
 
 function end_tournament_fight(is_victory)
+    if tournament_fight_closed then return end
+    tournament_fight_closed = true
     tourn_ending = false
-    if not (db.actor and db.actor:alive()) then
-        disable_info("xcvb_tournament_started")
-        tournament_enemy_squad_id = nil
-        current_tournament_category = nil
-        current_tournament_round_id = nil
-        return
+
+    local actor_alive = db.actor and db.actor:alive()
+    if actor_alive then
+        local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
+        db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
+        pcall(level.enable_input)
     end
 
-    local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
-    db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
-    pcall(level.enable_input)
+    RemoveTimeEvent("allow_tournament_aggro_e", "allow_tournament_aggro_a")
+    RemoveTimeEvent("xcvb_arena_end_tourn_e", "xcvb_arena_end_tourn_a")
 
     if tournament_enemy_squad_id then
         xcvb_arena_utils.clean_tournament_squad(tournament_enemy_squad_id)
@@ -86,6 +100,7 @@ function end_tournament_fight(is_victory)
     end
 
     local cat = current_tournament_category or "stalker"
+    is_victory = is_victory and actor_alive
     if is_victory and current_tournament_round_id then
         xcvb_arena_main.tournament_wins = xcvb_arena_main.tournament_wins + 1
         if cat == "mutant" then
@@ -124,7 +139,7 @@ function end_tournament_fight(is_victory)
         xcvb_arena_main.tournament_losses = xcvb_arena_main.tournament_losses + 1
     end
 
-    if tourn_saved_actor_reputation then
+    if tourn_saved_actor_reputation and db.actor then
         local cur_rep = db.actor:character_reputation()
         if cur_rep < tourn_saved_actor_reputation then
             db.actor:change_character_reputation(tourn_saved_actor_reputation - cur_rep)
@@ -133,6 +148,7 @@ function end_tournament_fight(is_victory)
     end
 
     disable_info("xcvb_tournament_started")
+    tourn_saved_actor_reputation = nil
     tournament_enemy_squad_id = nil
     current_tournament_category = nil
     current_tournament_round_id = nil
@@ -144,6 +160,7 @@ end
 --------------------------------------------------------------------------------
 function start_arena_fight(bout_idx)
     spec_fight_ending = false
+    spectator_fight_closed = false
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
     local b_idx = bout_idx or xcvb_arena_main.selected_spec_bout or 1
     local main_t = xcvb_arena_main.arena_main_t[b_idx]
@@ -159,28 +176,32 @@ function start_arena_fight(bout_idx)
     local sec1 = "arena_" .. type1 .. "_team_1"
     local pos1, lvid1, gvid1 = xcvb_arena_utils.get_team_pos(1)
     local squad1 = alife_create(sec1, pos1, lvid1, gvid1)
+    if not squad1 then
+        printe("! xcvb arena: Failed to spawn spectator team 1")
+        return
+    end
     squad_team_1_id = squad1.id
 
     local type2 = string.find(main_t.team2[1], "sim_default") and "stalker" or "mutant"
     local sec2 = "arena_" .. type2 .. "_team_2"
     local pos2, lvid2, gvid2 = xcvb_arena_utils.get_team_pos(2)
     local squad2 = alife_create(sec2, pos2, lvid2, gvid2)
+    if not squad2 then
+        printe("! xcvb arena: Failed to spawn spectator team 2")
+        pcall(alife_release_id, squad_team_1_id)
+        squad_team_1_id = nil
+        return
+    end
     squad_team_2_id = squad2.id
 
-    -- Fix: Forzar a los escuadrones a embestirse mutuamente desde el spawn, a menos que sean stalkers contra mutantes
+    -- Ambos escuadrones reciben una orden inicial de avance para evitar que un bando espere pasivamente.
     squad1.scripted_target = squad2.id
-    if type1 == "stalker" then
-        squad1.rush_to_target = false
-    else
-        squad1.rush_to_target = true
-    end
+    squad1.assigned_target_id = squad2.id
+    squad1.rush_to_target = true
 
     squad2.scripted_target = squad1.id
-    if type2 == "stalker" then
-        squad2.rush_to_target = false
-    else
-        squad2.rush_to_target = true
-    end
+    squad2.assigned_target_id = squad1.id
+    squad2.rush_to_target = true
 
     for i, sec in ipairs(main_t.team1) do
         local offset_pos = vector():set(pos1.x + math.random(-5, 5), pos1.y, pos1.z + math.random(-3, 3))
@@ -206,6 +227,7 @@ function start_arena_fight(bout_idx)
     CreateTimeEvent("allow_relation_update_e", "allow_relation_update_a", 1, function()
         give_info("xcvb_arena_started")
         setup_teams()
+        news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 12000)
         return true
     end)
 end
@@ -220,40 +242,49 @@ function setup_teams()
     local sq2 = squad_team_2_id and alife_object(squad_team_2_id)
     if not (sq1 and sq2) then return end
 
-    local is_mutant1 = string.find(sq1:section_name(), "mutant")
-    local is_mutant2 = string.find(sq2:section_name(), "mutant")
-
     sq1.scripted_target = squad_team_2_id
-    if not is_mutant1 then
-        sq1.rush_to_target = false
-    else
-        sq1.rush_to_target = true
-    end
+    sq1.assigned_target_id = squad_team_2_id
 
     sq2.scripted_target = squad_team_1_id
-    if not is_mutant2 then
-        sq2.rush_to_target = false
-    else
-        sq2.rush_to_target = true
-    end
+    sq2.assigned_target_id = squad_team_1_id
 
-    local function activate_npc(npc, dir_z)
+    local sq1_is_stalker = string.find(sq1:section_name(), "stalker")
+    local sq2_is_stalker = string.find(sq2:section_name(), "stalker")
+    local is_stalker_vs_stalker = sq1_is_stalker and sq2_is_stalker
+    -- Stalkers with firearms should retain the engine's cover and movement logic.
+    local rush = not is_stalker_vs_stalker
+    sq1.rush_to_target = rush
+    sq2.rush_to_target = rush
+
+    local function activate_npc(npc, dir_z, team_idx)
         if not (npc and npc:alive()) then return end
+        pcall(function() npc:change_team(team_idx, team_idx, team_idx) end)
         pcall(function() npc:set_desired_direction(vector():set(0, 0, dir_z)) end)
         if IsMonster and IsMonster(npc) then
             pcall(function() npc:berserk() end)
             pcall(function() npc:set_custom_panic_threshold(0) end)
+            if npc.skip_transfer_enemy then
+                pcall(function() npc:skip_transfer_enemy(false) end)
+            end
+            if db.actor then
+                pcall(function() npc:set_relation(game_object.neutral, db.actor) end)
+                pcall(function() npc:force_set_goodwill(5000, db.actor) end)
+            end
         elseif IsStalker and IsStalker(npc) then
             pcall(function() npc:set_mental_state(anim.danger) end)
-            -- Do not force run for stalkers, let AI handle distance
+            if npc.register_in_combat then
+                pcall(function() npc:register_in_combat() end)
+            end
+            pcall(function() npc:set_custom_panic_threshold(0.05) end)
         end
+        xcvb_arena_utils.apply_combat_modifier_inventory(npc, team_idx)
     end
 
     local all_loaded = true
     for m1 in sq1:squad_members() do
         local n1 = level.object_by_id(m1.id)
         if n1 then
-            activate_npc(n1, -1)
+            activate_npc(n1, -1, 1)
         else
             all_loaded = false
         end
@@ -261,13 +292,14 @@ function setup_teams()
     for m2 in sq2:squad_members() do
         local n2 = level.object_by_id(m2.id)
         if n2 then
-            activate_npc(n2, 1)
+            activate_npc(n2, 1, 2)
         else
             all_loaded = false
         end
     end
 
-    xcvb_arena_utils.hit_npcs(squad_team_1_id, squad_team_2_id)
+    xcvb_arena_utils.force_mutant_aggro(squad_team_1_id, squad_team_2_id, true)
+    xcvb_arena_utils.force_stalker_aggro(squad_team_1_id, squad_team_2_id, true)
 
     if not all_loaded then
         CreateTimeEvent("setup_teams_retry_e", "setup_teams_retry_a", 1, function()
@@ -280,7 +312,15 @@ function setup_teams()
 end
 
 function end_arena_fight(winner_team)
+    if spectator_fight_closed then return end
+    spectator_fight_closed = true
     spec_fight_ending = false
+
+    RemoveTimeEvent("allow_relation_update_e", "allow_relation_update_a")
+    RemoveTimeEvent("setup_teams_retry_e", "setup_teams_retry_a")
+    RemoveTimeEvent("xcvb_arena_end_fight_e", "xcvb_arena_end_fight_a")
+    RemoveTimeEvent("xcvb_arena_exit_f_e", "xcvb_arena_exit_f_a")
+
     local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
     db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
     db.actor:restore_weapon()
@@ -307,8 +347,12 @@ function end_arena_fight(winner_team)
     local squad1 = alife_object(squad_team_1_id)
     if squad1 and string.find(squad1:section_name(), "arena_") then
         pcall(function()
+            local member_ids = {}
             for member in squad1:squad_members() do
-                arena_safe_release_id(member.id)
+                member_ids[#member_ids + 1] = member.id
+            end
+            for _, member_id in ipairs(member_ids) do
+                arena_safe_release_id(member_id)
             end
             arena_safe_release_id(squad_team_1_id)
         end)
@@ -317,8 +361,12 @@ function end_arena_fight(winner_team)
     local squad2 = alife_object(squad_team_2_id)
     if squad2 and string.find(squad2:section_name(), "arena_") then
         pcall(function()
+            local member_ids = {}
             for member in squad2:squad_members() do
-                arena_safe_release_id(member.id)
+                member_ids[#member_ids + 1] = member.id
+            end
+            for _, member_id in ipairs(member_ids) do
+                arena_safe_release_id(member_id)
             end
             arena_safe_release_id(squad_team_2_id)
         end)
@@ -339,6 +387,16 @@ end
 -- ENGINE CALLBACKS
 --------------------------------------------------------------------------------
 local hit_timer = 0
+local function has_live_enemy(npc)
+    local enemy = nil
+    local is_alive = false
+    pcall(function()
+        enemy = npc:best_enemy()
+        is_alive = enemy and enemy:alive() or false
+    end)
+    return is_alive
+end
+
 function actor_on_update()
     if tourn_ending then
         if db.actor then
@@ -364,7 +422,7 @@ function actor_on_update()
                 if squad then
                     for m in squad:squad_members() do
                         local npc = level.object_by_id(m.id)
-                        if npc and npc:alive() and npc:best_enemy() == nil then
+                        if npc and npc:alive() and not has_live_enemy(npc) then
                             xcvb_arena_utils.scr_hit(db.actor, npc)
                         end
                     end
@@ -374,17 +432,26 @@ function actor_on_update()
     end
 
     if HI("xcvb_arena_started") then
+        if not spec_fight_ending and not spectator_fight_closed then
+            local tg = time_global()
+            if next_spectator_hint == 0 then
+                next_spectator_hint = tg + 45000
+            elseif tg > next_spectator_hint then
+                next_spectator_hint = tg + 45000
+                news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 10000)
+            end
+        else
+            next_spectator_hint = 0
+        end
+
         local tg = time_global()
         if tg > hit_timer then
             hit_timer = tg + 2000
-            xcvb_arena_utils.set_teams_relation(squad_team_1_id, squad_team_2_id)
-            xcvb_arena_utils.hit_npcs(squad_team_1_id, squad_team_2_id)
+            xcvb_arena_utils.force_mutant_aggro(squad_team_1_id, squad_team_2_id)
+            xcvb_arena_utils.force_stalker_aggro(squad_team_1_id, squad_team_2_id)
             
             local sq1 = squad_team_1_id and alife_object(squad_team_1_id)
             local sq2 = squad_team_2_id and alife_object(squad_team_2_id)
-            
-            local sq1_is_mutant = sq1 and string.find(sq1:section_name(), "mutant")
-            local sq2_is_mutant = sq2 and string.find(sq2:section_name(), "mutant")
             
             local function maintain_aggro(sq)
                 if not sq then return end
@@ -394,9 +461,13 @@ function actor_on_update()
                         if IsMonster and IsMonster(n) then
                             pcall(function() n:berserk() end)
                             pcall(function() n:set_custom_panic_threshold(0) end)
+                            if db.actor then
+                                pcall(function() n:set_relation(game_object.neutral, db.actor) end)
+                                pcall(function() n:force_set_goodwill(5000, db.actor) end)
+                            end
                         elseif IsStalker and IsStalker(n) then
                             pcall(function() n:set_mental_state(anim.danger) end)
-                            -- Let stalkers fight tactically
+                            pcall(function() n:set_custom_panic_threshold(0.05) end)
                         end
                     end
                 end
@@ -404,6 +475,8 @@ function actor_on_update()
             maintain_aggro(sq1)
             maintain_aggro(sq2)
         end
+    else
+        next_spectator_hint = 0
     end
     
     if HI("xcvb_tournament_started") and tourn_saved_actor_reputation then
@@ -417,6 +490,20 @@ end
 function on_before_key_press(key, bind, dis, flags)
 	if not HI("xcvb_arena_started") then return end
 	local bind = dik_to_bind(key)
+
+	if key == DIK_keys.DIK_F or bind == key_bindings.kUSE then
+		if not spec_fight_ending and not spectator_fight_closed then
+			spec_fight_ending = true
+			xcvb_arena_utils.arena_fade_in_out(1)
+			CreateTimeEvent("xcvb_arena_exit_f_e", "xcvb_arena_exit_f_a", 1.5, function()
+				end_arena_fight(0)
+				return true
+			end)
+		end
+		flags.ret_value = false
+		return
+	end
+
 	if bind == key_bindings.kFWD
 	or bind == key_bindings.kL_STRAFE
 	or bind == key_bindings.kR_STRAFE
@@ -431,18 +518,27 @@ function on_before_key_press(key, bind, dis, flags)
 end
 
 function on_enemy_eval(npc, enemy, flags)
+    if not (npc and enemy and flags) then
+        if flags then
+            flags.override = true
+            flags.result = false
+        end
+        return
+    end
+
+    local enemy_id = enemy:id()
     if HI("xcvb_tournament_started") then
         local npc_squad = get_object_squad(npc)
         local enemy_squad = enemy and get_object_squad(enemy)
         local npc_is_tourn = npc_squad and string.find(npc_squad:section_name(), "arena_")
         local enemy_is_tourn = enemy_squad and string.find(enemy_squad:section_name(), "arena_")
         
-        if npc_is_tourn and enemy:id() == 0 then
+        if npc_is_tourn and enemy_id == 0 then
             flags.override = true
             flags.result = true
             return
         end
-        if (npc_is_tourn and not enemy_is_tourn and enemy:id() ~= 0) or
+        if (npc_is_tourn and not enemy_is_tourn and enemy_id ~= 0) or
            (not npc_is_tourn and enemy_is_tourn) then
             flags.override = true
             flags.result = false
@@ -452,7 +548,7 @@ function on_enemy_eval(npc, enemy, flags)
     end
 
     if HI("xcvb_arena_started") then
-        if enemy:id() == 0 then
+        if enemy_id == 0 then
             flags.override = true
             flags.result = false
             return
@@ -679,6 +775,10 @@ function save_state(m_data)
     m_data.xcvb_current_tournament_round_id = current_tournament_round_id
     m_data.xcvb_temporary_arena_item_ids = xcvb_arena_utils.temporary_arena_item_ids
     m_data.xcvb_arena_storage_box_id = xcvb_arena_utils.xcvb_arena_storage_box_id
+    m_data.xcvb_saved_equipped_slots = xcvb_arena_utils.saved_equipped_slots
+    m_data.xcvb_saved_belt_items = xcvb_arena_utils.saved_belt_items
+    m_data.xcvb_saved_actor_item_ids = xcvb_arena_utils.saved_actor_item_ids
+    m_data.xcvb_saved_active_slot = xcvb_arena_utils.saved_active_slot
 end
 
 function load_state(m_data)
@@ -689,12 +789,20 @@ function load_state(m_data)
     current_tournament_round_id = m_data.xcvb_current_tournament_round_id or current_tournament_round_id
     xcvb_arena_utils.temporary_arena_item_ids = m_data.xcvb_temporary_arena_item_ids or {}
     xcvb_arena_utils.xcvb_arena_storage_box_id = m_data.xcvb_arena_storage_box_id or nil
+    xcvb_arena_utils.saved_equipped_slots = m_data.xcvb_saved_equipped_slots or {}
+    xcvb_arena_utils.saved_belt_items = m_data.xcvb_saved_belt_items or {}
+    xcvb_arena_utils.saved_actor_item_ids = m_data.xcvb_saved_actor_item_ids or {}
+    xcvb_arena_utils.saved_active_slot = m_data.xcvb_saved_active_slot or nil
 end
 
 function actor_on_first_update()
     setup_teams()
+    xcvb_arena_utils.init_arena_box()
     if HI("xcvb_tournament_started") and tournament_enemy_squad_id then
         xcvb_arena_utils.setup_tournament_squad_aggro(tournament_enemy_squad_id)
+    end
+    if HI("xcvb_arena_started") and not spec_fight_ending and not spectator_fight_closed then
+        news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 12000)
     end
 end
 

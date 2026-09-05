@@ -18,6 +18,14 @@ team_bet = 0
 bet_amount = 1000
 cur_reward = 0
 current_period = 0
+selected_modifier_team1 = "none"
+selected_modifier_tier_team1 = 3
+selected_modifier_team2 = "none"
+selected_modifier_tier_team2 = 3
+
+-- Legacy fallback aliases
+selected_modifier = "none"
+selected_modifier_tier = 3
 
 --------------------------------------------------------------------------------
 -- TOURNAMENT DATA: STALKERS (HUMAN COMBATANTS) - 15 BOUTS
@@ -502,6 +510,10 @@ function save_state(m_data)
 	m_data.xcvb_arena_team_bet = team_bet
 	m_data.xcvb_arena_bet_amount = bet_amount
 	m_data.xcvb_arena_cur_reward = cur_reward
+	m_data.xcvb_arena_mod_t1 = selected_modifier_team1
+	m_data.xcvb_arena_mod_tier_t1 = selected_modifier_tier_team1
+	m_data.xcvb_arena_mod_t2 = selected_modifier_team2
+	m_data.xcvb_arena_mod_tier_t2 = selected_modifier_tier_team2
 
 	m_data.xcvb_tournament_stalker_unlocked = tournament_stalker_unlocked_round
 	m_data.xcvb_tournament_stalker_completed = tournament_stalker_completed
@@ -521,6 +533,13 @@ function load_state(m_data)
 	team_bet = m_data.xcvb_arena_team_bet or 0
 	bet_amount = m_data.xcvb_arena_bet_amount or 1000
 	cur_reward = m_data.xcvb_arena_cur_reward or 0
+
+	selected_modifier_team1 = m_data.xcvb_arena_mod_t1 or "none"
+	selected_modifier_tier_team1 = m_data.xcvb_arena_mod_tier_t1 or 3
+	selected_modifier_team2 = m_data.xcvb_arena_mod_t2 or "none"
+	selected_modifier_tier_team2 = m_data.xcvb_arena_mod_tier_t2 or 3
+	selected_modifier = selected_modifier_team1
+	selected_modifier_tier = selected_modifier_tier_team1
 
 	tournament_stalker_unlocked_round = m_data.xcvb_tournament_stalker_unlocked or 1
 	tournament_stalker_completed = m_data.xcvb_tournament_stalker_completed or {}
@@ -569,7 +588,11 @@ function generate_spectator_fights(filter_type)
 
 		if m_type == "svsm" then
 			local t2, p2, m_k = xcvb_arena_utils.get_mutant_team(amt2)
-			local single_pwr = p2 / amt2
+			if not t2 or #t2 == 0 then
+				t2, p2, m_k = xcvb_arena_utils.get_mutant_team(1)
+				amt2 = #t2
+			end
+			local single_pwr = amt2 > 0 and p2 / amt2 or 0
 			
 			local t1, p1
 			if single_pwr >= 8 then
@@ -615,9 +638,22 @@ end
 
 local function has_invalid_matchups()
 	if not arena_main_t or #arena_main_t < 6 then return true end
+
+	local function has_invalid_sections(team)
+		for _, section in ipairs(team) do
+			if not section or not ini_sys:section_exist(section) then
+				return true
+			end
+		end
+		return false
+	end
+
 	for i = 1, 6 do
 		local bout = arena_main_t[i]
 		if not (bout and bout.team1 and bout.team2 and #bout.team1 > 0 and #bout.team2 > 0) then
+			return true
+		end
+		if has_invalid_sections(bout.team1) or has_invalid_sections(bout.team2) then
 			return true
 		end
 		if bout.match_type == "svss" then
@@ -653,16 +689,48 @@ function actor_on_first_update()
 	xcvb_arena_utils.handle_removed_teams()
 end
 
+local function apply_arena_combat_ai()
+	if not get_console then return end
+
+	local console = get_console()
+	if not console then return end
+
+	-- The bodycam fork exposes these cvars. They improve target acquisition and
+	-- cover selection while preserving the engine's normal tactical movement.
+	local commands = {
+		"ai_vision_speed_boost 1.35",
+		"ai_aim_fire_angle 0.30",
+		"ai_enemy_inertia_time_to_somebody 2500",
+		"ai_search_inertia_time 10000",
+		"ai_aim_inertia_time 350",
+		"ai_aim_queue_inertia_time 200",
+		"ai_fire_make_sense_interval 7000",
+		"ai_cover_search_near_radius 12",
+		"ai_cover_search_far_radius 38",
+		"ai_cover_default_max_dist 24",
+		"ai_close_move_distance 2.0",
+		"ai_wait_in_smart_cover_time 18000",
+		"ai_move_to_cover_run 1",
+	}
+
+	for _, command in ipairs(commands) do
+		console:execute(command)
+	end
+end
+
 function on_game_start()
 	RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
 	RegisterScriptCallback("actor_on_update", actor_on_update)
 	RegisterScriptCallback("save_state", save_state)
 	RegisterScriptCallback("load_state", load_state)
+	apply_arena_combat_ai()
 	init_arena_main_t()
 
 	if xr_effects and not xr_effects.open_arena_gui then
 		xr_effects.open_arena_gui = function(actor, npc)
-			xcvb_arena_gui.open_gui()
+			if xcvb_arena_gui and xcvb_arena_gui.open_gui then
+				xcvb_arena_gui.open_gui()
+			end
 		end
 	end
 end

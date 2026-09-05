@@ -3,148 +3,658 @@
 <string_table>
 
 	<string id="st_arena_use">
-		<text>Открыть ($$ACTION_USE$$)</text>
+		<text>Доска турнира Арены ($$ACTION_USE$$)</text>
 	</string>
-
+	<string id="st_arena_title">
+		<text>ТУРНИР АРЕНЫ</text>
+	</string>
+	<string id="st_arena_spectator_title">
+		<text>СТАВКИ</text>
+	</string>
+	<string id="st_arena_mode_tournament">
+		<text>Турнир (Бой)</text>
+	</string>
+	<string id="st_arena_mode_spectator">
+		<text>Ставки</text>
+	</string>
+	<string id="st_arena_cat_stalkers">
+		<text>СТАЛКЕРЫ (ЛЮДИ)</text>
+	</string>
+	<string id="st_arena_cat_mutants">
+		<text>МУТАНТЫ ЗОНЫ</text>
+	</string>
+	<string id="st_arena_status_locked">
+		<text>[ЗАБЛОКИРОВАНО]</text>
+	</string>
+	<string id="st_arena_status_ready">
+		<text>[ДОСТУПНО]</text>
+	</string>
+	<string id="st_arena_status_completed">
+		<text>[ПРОЙДЕНО]</text>
+	</string>
+	<string id="st_arena_btn_enter">
+		<text>ВЫЙТИ НА АРЕНУ</text>
+	</string>
+	<string id="st_arena_btn_replay">
+		<text>ПОВТОРИТЬ БОЙ</text>
+	</string>
+	<string id="st_arena_btn_locked">
+		<text>РАУНД ЗАБЛОКИРОВАН</text>
+	</string>
+	<string id="st_arena_tier_1_name">
+		<text>ТИР 1: НОВИЧКИ</text>
+	</string>
+	<string id="st_arena_tier_2_name">
+		<text>ТИР 2: ОХОТНИКИ</text>
+	</string>
+	<string id="st_arena_tier_3_name">
+		<text>ТИР 3: ВЕТЕРАНЫ</text>
+	</string>
+	<string id="st_arena_tier_4_name">
+		<text>ТИР 4: МАСТЕРА</text>
+	</string>
+	<string id="st_arena_tier_5_name">
+		<text>ТИР 5: ЛЕГЕНДЫ</text>
+	</string>
+	<string id="st_arena_rank_label">
+		<text>Текущий ранг:</text>
+	</string>
+	<string id="st_arena_record_label">
+		<text>Счет: %s Побед / %s Поражений</text>
+	</string>
+	<string id="st_arena_reward_label">
+		<text>Призовой фонд:</text>
+	</string>
+	<string id="st_arena_enemies_label">
+		<text>Противники:</text>
+	</string>
+	<string id="st_arena_difficulty_label">
+		<text>Сложность:</text>
+	</string>
+	<string id="st_arena_diff_very_easy">
+		<text>Очень легко (*)</text>
+	</string>
+	<string id="st_arena_diff_easy">
+		<text>Легко (**)</text>
+	</string>
+	<string id="st_arena_diff_medium">
+		<text>Средне (***)</text>
+	</string>
+	<string id="st_arena_diff_hard">
+		<text>Сложно (****)</text>
+	</string>
+	<string id="st_arena_diff_very_hard">
+		<text>Очень сложно (*****)</text>
+	</string>
+	<string id="st_arena_diff_extreme">
+		<text>Экстремально (******)</text>
+	</string>
+	<string id="st_arena_diff_legendary">
+		<text>Легендарно (ЧЕМПИОН)</text>
+	</string>
+	<string id="st_arena_s_round_1_name">
+		<text>Раунд 1: Одинокий новичок</text>
+	</string>
+	<string id="st_arena_s_round_1_enemies">
+		<text>1x Бандит-новичок с пистолетом</text>
+	</string>
+	<string id="st_arena_s_round_1_desc">
+		<text>Бандит-новичок, пытающийся заработать себе имя на Арене. Его реакция и меткость оставляют желать лучшего. Отличная разминка.</text>
+	</string>
+	<string id="st_arena_s_round_1_reward">
+		<text>3,000 RU + Бинты и аптечка</text>
+	</string>
+	<string id="st_arena_s_round_2_name">
+		<text>Раунд 2: Дуэт ренегатов</text>
+	</string>
+	<string id="st_arena_s_round_2_enemies">
+		<text>2x Ренегата с обрезами</text>
+	</string>
+	<string id="st_arena_s_round_2_desc">
+		<text>Два болотных ренегата, пытающиеся зажать тебя в клещи на короткой дистанции картечью.</text>
+	</string>
+	<string id="st_arena_s_round_2_reward">
+		<text>4,500 RU + Патроны с картечью</text>
+	</string>
+	<string id="st_arena_s_round_3_name">
+		<text>Раунд 3: Уличная тройка</text>
+	</string>
+	<string id="st_arena_s_round_3_enemies">
+		<text>3x Бандита с пистолетами и обрезами</text>
+	</string>
+	<string id="st_arena_s_round_3_desc">
+		<text>Трое агрессивных новичков попытаются обойти твои укрытия с флангов. Держи дистанцию и прикрывай тыл.</text>
+	</string>
+	<string id="st_arena_s_round_3_reward">
+		<text>6,000 RU + Набор для чистки пистолетов</text>
+	</string>
+	<string id="st_arena_s_round_4_name">
+		<text>Раунд 4: Засада на Свалке</text>
+	</string>
+	<string id="st_arena_s_round_4_enemies">
+		<text>3x Опытных бандита с ПП и ружьями</text>
+	</string>
+	<string id="st_arena_s_round_4_desc">
+		<text>Опытные бандиты со Свалки, вооруженные автоматическим оружием и ружьями. Используют перекрестный огонь.</text>
+	</string>
+	<string id="st_arena_s_round_4_reward">
+		<text>8,500 RU + Патроны 9x19 и стимулятор</text>
+	</string>
+	<string id="st_arena_s_round_5_name">
+		<text>Раунд 5: Охотничий патруль</text>
+	</string>
+	<string id="st_arena_s_round_5_enemies">
+		<text>3x Ренегата-охотника в укрепленных комбинезонах</text>
+	</string>
+	<string id="st_arena_s_round_5_enemies_bandit">
+		<text>3x Бандита-налетчика с дробовиками</text>
+	</string>
+	<string id="st_arena_s_round_5_desc">
+		<text>Патруль в плотных костюмах с помповыми ружьями. Быстро сближаются и стреляют на подавление.</text>
+	</string>
+	<string id="st_arena_s_round_5_desc_bandit">
+		<text>Бандиты-налетчики с полуавтоматическими ружьями. Не подпускай их близко.</text>
+	</string>
+	<string id="st_arena_s_round_5_reward">
+		<text>11,000 RU + Армейская аптечка и патроны 12x70</text>
+	</string>
+	<string id="st_arena_s_round_6_name">
+		<text>Раунд 6: Легкий отряд наемников</text>
+	</string>
+	<string id="st_arena_s_round_6_enemies">
+		<text>3x Наемника в легком снаряжении</text>
+	</string>
+	<string id="st_arena_s_round_6_desc">
+		<text>Западные оперативники с хорошей выучкой. Стреляют короткими очередями из укрытий и быстро меняют позиции.</text>
+	</string>
+	<string id="st_arena_s_round_6_reward">
+		<text>14,000 RU + Набор инструментов для грубой работы</text>
+	</string>
+	<string id="st_arena_s_round_7_name">
+		<text>Раунд 7: Столкновение с «Долгом»</text>
+	</string>
+	<string id="st_arena_s_round_7_enemies">
+		<text>3x Штурмовика «Долга» в «Бериллах»</text>
+	</string>
+	<string id="st_arena_s_round_7_desc">
+		<text>Дисциплинированные долговцы с автоматами Калашникова под патрон 5.45. Отличная меткость и железная стойкость.</text>
+	</string>
+	<string id="st_arena_s_round_7_reward">
+		<text>18,000 RU + Бронебойные патроны 9x39 и армейская аптечка</text>
+	</string>
+	<string id="st_arena_s_round_8_name">
+		<text>Раунд 8: Стрелки «Свободы»</text>
+	</string>
+	<string id="st_arena_s_round_8_enemies">
+		<text>3x Снайпера «Свободы» с натовским оружием</text>
+	</string>
+	<string id="st_arena_s_round_8_desc">
+		<text>Свободовцы с оптикой и патронами 5.56. Любая ошибка при выходе из укрытия будет стоить жизни.</text>
+	</string>
+	<string id="st_arena_s_round_8_reward">
+		<text>23,000 RU + Швейный набор и патроны 5.56 AP</text>
+	</string>
+	<string id="st_arena_s_round_9_name">
+		<text>Раунд 9: Элитные синдикатчики</text>
+	</string>
+	<string id="st_arena_s_round_9_enemies">
+		<text>4x Наемника-ветерана в тяжелых комбинезонах</text>
+	</string>
+	<string id="st_arena_s_round_9_desc">
+		<text>Ударный отряд синдиката наемников. Координируют огонь и засыпают укрытия гранатами.</text>
+	</string>
+	<string id="st_arena_s_round_9_reward">
+		<text>28,000 RU + Набор инструментов для тонкой работы + стимулятор</text>
+	</string>
+	<string id="st_arena_s_round_10_name">
+		<text>Раунд 10: Тяжелый спецназ военных</text>
+	</string>
+	<string id="st_arena_s_round_10_enemies">
+		<text>4x Бойца армейского спецназа в «СКАТах»</text>
+	</string>
+	<string id="st_arena_s_round_10_desc">
+		<text>Опытные военные сталкеры в бронекостюмах «СКАТ-9». Вооружены винтовками под винтовочный патрон и подствольниками.</text>
+	</string>
+	<string id="st_arena_s_round_10_reward">
+		<text>36,000 RU + Патроны 7.62x54 AP и научная аптечка</text>
+	</string>
+	<string id="st_arena_s_round_11_name">
+		<text>Раунд 11: Ударная группа Синдиката</text>
+	</string>
+	<string id="st_arena_s_round_11_enemies">
+		<text>4x Элитных наемника в экзоскелетах</text>
+	</string>
+	<string id="st_arena_s_round_11_desc">
+		<text>Самые опасные наемники Севера. Мощнейшая броня и скорострельные штурмовые винтовки.</text>
+	</string>
+	<string id="st_arena_s_round_11_reward">
+		<text>45,000 RU + Патроны 9x39 СП-6 и армейский стимулятор</text>
+	</string>
+	<string id="st_arena_s_round_12_name">
+		<text>Раунд 12: Стена из экзоскелетов</text>
+	</string>
+	<string id="st_arena_s_round_12_enemies">
+		<text>4x Мастера в усиленных экзоскелетах</text>
+	</string>
+	<string id="st_arena_s_round_12_desc">
+		<text>Четыре бронированных джаггернаута с тяжелыми пулеметами и автоматическими дробовиками Saiga.</text>
+	</string>
+	<string id="st_arena_s_round_12_reward">
+		<text>55,000 RU + Набор инструментов для калибровки</text>
+	</string>
+	<string id="st_arena_s_round_13_name">
+		<text>Раунд 13: Авангард Синдиката</text>
+	</string>
+	<string id="st_arena_s_round_13_enemies">
+		<text>4x Топ-оперативника наемников в «Носорогах»</text>
+	</string>
+	<string id="st_arena_s_round_13_desc">
+		<text>Лучшие бойцы синдиката. Невероятная меткость, передовая защита и тяжелое вооружение.</text>
+	</string>
+	<string id="st_arena_s_round_13_reward">
+		<text>70,000 RU + Научная аптечка и гранаты Ф-1</text>
+	</string>
+	<string id="st_arena_s_round_14_name">
+		<text>Раунд 14: Гвардия с Гаусс-пушками</text>
+	</string>
+	<string id="st_arena_s_round_14_enemies">
+		<text>4x Ветерана высшего ранга с оружием Гаусса</text>
+	</string>
+	<string id="st_arena_s_round_14_desc">
+		<text>Снайперы с электромагнитными пушками Гаусса. Одно попадание способно пробить любое укрытие и уничтожить цель.</text>
+	</string>
+	<string id="st_arena_s_round_14_reward">
+		<text>90,000 RU + Аккумуляторы Гаусса и артефакт «Медуза»</text>
+	</string>
+	<string id="st_arena_s_round_15_name">
+		<text>Раунд 15: Великий Чемпион: Палач</text>
+	</string>
+	<string id="st_arena_s_round_15_enemies">
+		<text>3x Легенды Арены во главе с Палачом</text>
+	</string>
+	<string id="st_arena_s_round_15_desc">
+		<text>Финальный поединок века. Палач и его несокрушимая свита в прототипах брони с крупнокалиберными пулеметами. Победитель станет абсолютной легендой.</text>
+	</string>
+	<string id="st_arena_s_round_15_reward">
+		<text>130,000 RU + Артефакт «Огненный шар» + Научные стимуляторы</text>
+	</string>
+	<string id="st_arena_m_round_1_name">
+		<text>Раунд 1: Нашествие грызунов</text>
+	</string>
+	<string id="st_arena_m_round_1_enemies">
+		<text>6x Быстрых тушканчиков</text>
+	</string>
+	<string id="st_arena_m_round_1_desc">
+		<text>Стая голодных тушканчиков. Маленькие и юркие мишени, окружающие со всех сторон.</text>
+	</string>
+	<string id="st_arena_m_round_1_reward">
+		<text>3,000 RU + Картечь и бинты</text>
+	</string>
+	<string id="st_arena_m_round_2_name">
+		<text>Раунд 2: Дворовая свора</text>
+	</string>
+	<string id="st_arena_m_round_2_enemies">
+		<text>4x Слепых пса</text>
+	</string>
+	<string id="st_arena_m_round_2_desc">
+		<text>Стая слепых псов. Нападают слаженно, пытаясь сбить с ног постоянными выпадами.</text>
+	</string>
+	<string id="st_arena_m_round_2_reward">
+		<text>4,500 RU + Патроны 12 калибра и аптечка</text>
+	</string>
+	<string id="st_arena_m_round_3_name">
+		<text>Раунд 3: Яростный натиск</text>
+	</string>
+	<string id="st_arena_m_round_3_enemies">
+		<text>2x Псевдособаки и 2x матерых пса</text>
+	</string>
+	<string id="st_arena_m_round_3_desc">
+		<text>Опасные хищники с молниеносной реакцией. Не давай им зайти за спину.</text>
+	</string>
+	<string id="st_arena_m_round_3_reward">
+		<text>6,000 RU + Оружейный набор и бинты</text>
+	</string>
+	<string id="st_arena_m_round_4_name">
+		<text>Раунд 4: Кабаний прорыв</text>
+	</string>
+	<string id="st_arena_m_round_4_enemies">
+		<text>2x Свирепых кабана и 1x матерая плоть</text>
+	</string>
+	<string id="st_arena_m_round_4_desc">
+		<text>Массивные мутанты, идущие на таран. Уклоняйся от прямого разгона и стреляй по уязвимым местам.</text>
+	</string>
+	<string id="st_arena_m_round_4_reward">
+		<text>8,500 RU + Пулевые патроны 12x76 и стимулятор</text>
+	</string>
+	<string id="st_arena_m_round_5_name">
+		<text>Раунд 5: Туманные коты</text>
+	</string>
+	<string id="st_arena_m_round_5_enemies">
+		<text>4x Кота-баюна</text>
+	</string>
+	<string id="st_arena_m_round_5_desc">
+		<text>Бесшумные и смертоносные хищники. Прыгают с огромной дистанции и разрывают плоть когтями.</text>
+	</string>
+	<string id="st_arena_m_round_5_reward">
+		<text>11,000 RU + Армейская аптечка и стимулятор</text>
+	</string>
+	<string id="st_arena_m_round_6_name">
+		<text>Раунд 6: Чумные снорки</text>
+	</string>
+	<string id="st_arena_m_round_6_enemies">
+		<text>3x Прыгучих снорка</text>
+	</string>
+	<string id="st_arena_m_round_6_desc">
+		<text>Одичавшие остатки солдат в противогазах. Сверхакробатические прыжки через половину арены.</text>
+	</string>
+	<string id="st_arena_m_round_6_reward">
+		<text>14,000 RU + Инструменты для грубой работы</text>
+	</string>
+	<string id="st_arena_m_round_7_name">
+		<text>Раунд 7: Ночные скрытни</text>
+	</string>
+	<string id="st_arena_m_round_7_enemies">
+		<text>3x Быстрых люркера</text>
+	</string>
+	<string id="st_arena_m_round_7_desc">
+		<text>Пещерные твари, развивающие безумную скорость. Мгновенно сокращают дистанцию.</text>
+	</string>
+	<string id="st_arena_m_round_7_reward">
+		<text>18,000 RU + Коагулянт и патроны 5.45 AP</text>
+	</string>
+	<string id="st_arena_m_round_8_name">
+		<text>Раунд 8: Ментальные хищники</text>
+	</string>
+	<string id="st_arena_m_round_8_enemies">
+		<text>3x Пси-кровососа</text>
+	</string>
+	<string id="st_arena_m_round_8_desc">
+		<text>Невидимые твари с щупальцами, способные дезориентировать разум мощным пси-полем.</text>
+	</string>
+	<string id="st_arena_m_round_8_reward">
+		<text>23,000 RU + Инструменты для тонкой работы</text>
+	</string>
+	<string id="st_arena_m_round_9_name">
+		<text>Раунд 9: Психический крик</text>
+	</string>
+	<string id="st_arena_m_round_9_enemies">
+		<text>2x Пси-кровососа и 2x излома</text>
+	</string>
+	<string id="st_arena_m_round_9_desc">
+		<text>Убийственная комбинация невидимых охотников и свирепых изломов с длинными лапами-молотами.</text>
+	</string>
+	<string id="st_arena_m_round_9_reward">
+		<text>28,000 RU + Пси-блокада и армейский стимулятор</text>
+	</string>
+	<string id="st_arena_m_round_10_name">
+		<text>Раунд 10: Призрачный танец</text>
+	</string>
+	<string id="st_arena_m_round_10_enemies">
+		<text>2x Пси-собаки и 1x серая псевдособака</text>
+	</string>
+	<string id="st_arena_m_round_10_desc">
+		<text>Пси-собака создает десятки опасных фантомов. Найди настоящий оригинал, пока фантомы не разорвали тебя.</text>
+	</string>
+	<string id="st_arena_m_round_10_reward">
+		<text>36,000 RU + Пси-блокада и стимулятор</text>
+	</string>
+	<string id="st_arena_m_round_11_name">
+		<text>Раунд 11: Телекинетический щит</text>
+	</string>
+	<string id="st_arena_m_round_11_enemies">
+		<text>2x Матерых бюрера</text>
+	</string>
+	<string id="st_arena_m_round_11_desc">
+		<text>Гномы-телекинетики. Вырывают оружие из рук, бросают тяжелые предметы и ставят непробиваемые щиты.</text>
+	</string>
+	<string id="st_arena_m_round_11_reward">
+		<text>45,000 RU + Инструменты для калибровки</text>
+	</string>
+	<string id="st_arena_m_round_12_name">
+		<text>Раунд 12: Колосс ямы</text>
+	</string>
+	<string id="st_arena_m_round_12_enemies">
+		<text>1x Огромный псевдогигант</text>
+	</string>
+	<string id="st_arena_m_round_12_desc">
+		<text>Двухтонная гора мышц. Топотом вызывает ударные сейсмические волны. Требуется колоссальный урон для ликвидации.</text>
+	</string>
+	<string id="st_arena_m_round_12_reward">
+		<text>55,000 RU + Набор инструментов и тяжелые патроны</text>
+	</string>
+	<string id="st_arena_m_round_13_name">
+		<text>Раунд 13: Двуглавый кошмар</text>
+	</string>
+	<string id="st_arena_m_round_13_enemies">
+		<text>2x Свирепых химеры</text>
+	</string>
+	<string id="st_arena_m_round_13_desc">
+		<text>Вершина эволюции хищников Зоны. Безумная скорость, колоссальные прыжки и два мозга.</text>
+	</string>
+	<string id="st_arena_m_round_13_reward">
+		<text>70,000 RU + Коготь химеры и научная аптечка</text>
+	</string>
+	<string id="st_arena_m_round_14_name">
+		<text>Раунд 14: Психический тиран</text>
+	</string>
+	<string id="st_arena_m_round_14_enemies">
+		<text>1x Контролер и свита из зомбированных</text>
+	</string>
+	<string id="st_arena_m_round_14_desc">
+		<text>Хозяин разума. Наносит сокрушительные пси-удары на расстоянии, прикрываясь толпой зомби.</text>
+	</string>
+	<string id="st_arena_m_round_14_reward">
+		<text>90,000 RU + Артефакт «Вспышка» и научная аптечка</text>
+	</string>
+	<string id="st_arena_m_round_15_name">
+		<text>Раунд 15: Дуэт Апокалипсиса</text>
+	</string>
+	<string id="st_arena_m_round_15_enemies">
+		<text>2x Черных химеры и 1x свирепый гигант</text>
+	</string>
+	<string id="st_arena_m_round_15_desc">
+		<text>Финальное испытание на выживание. Самые ужасные кошмары Зоны на одной закрытой арене.</text>
+	</string>
+	<string id="st_arena_m_round_15_reward">
+		<text>130,000 RU + Артефакт «Душа» + Элитные медикаменты</text>
+	</string>
+	<string id="st_arena_fight_started">
+		<text>Бой начался! Выживи и уничтожь всех врагов!</text>
+	</string>
+	<string id="st_arena_enemies_remaining">
+		<text>Внимание! На арене осталось врагов: %s!</text>
+	</string>
+	<string id="st_arena_enemy_one_remaining">
+		<text>Остался последний противник! Добей его для победы!</text>
+	</string>
+	<string id="st_arena_fight_won">
+		<text>ПОБЕДА! Трибуны рукоплещут твоему триумфу!</text>
+	</string>
+	<string id="st_arena_reward_money">
+		<text>Вы получили призовую награду: %s RU.</text>
+	</string>
+	<string id="st_arena_reward_items">
+		<text>Медикаменты и ремнаборы перемещены в ваш рюкзак.</text>
+	</string>
+	<string id="st_arena_tier_unlocked">
+		<text>Повышение ранга! Разблокирован новый тир: %s.</text>
+	</string>
+	<string id="st_arena_champion_crowned">
+		<text>ВНИМАНИЕ ВСЕМ СТАЛКЕРАМ! У нас новый Великий Чемпион Арены!</text>
+	</string>
+	<string id="st_arena_medic_rescue">
+		<text>Срочная эвакуация медиков! Вас вытащили без сознания. Стоимость лечения: %s RU.</text>
+	</string>
+	<string id="st_arena_gear_restored">
+		<text>Ваше исходное снаряжение возвращено в инвентарь.</text>
+	</string>
 	<string id="st_arena_team1">
 		<text>Команда 1</text>
 	</string>
-
 	<string id="st_arena_team2">
 		<text>Команда 2</text>
 	</string>
-
 	<string id="st_arena_bet">
 		<text>Ставка</text>
 	</string>
-
 	<string id="st_arena_gain">
 		<text>Выигрыш</text>
 	</string>
-
 	<string id="st_arena_start">
-		<text>На арену</text>
+		<text>На балкон</text>
 	</string>
-
 	<string id="st_arena_kicked_out">
-		<text>Вас выгнали за нападение на участников и ваша ставка потеряна.</text>
+		<text>Вы вышли с балкона Арены.</text>
 	</string>
-
 	<string id="st_arena_team_1_won">
-		<text>Команда 1 выиграла!</text>
+		<text>Команда 1 победила!</text>
 	</string>
-
 	<string id="st_arena_team_2_won">
-		<text>Команда 2 выиграла!</text>
+		<text>Команда 2 победила!</text>
 	</string>
-
 	<string id="st_arena_your_reward">
-		<text>Вы выиграли %s руб.</text>
+		<text>Вы выиграли %s RU.</text>
 	</string>
-
-
-	<!-- MCM -->
 	<string id="ui_mcm_xcvb_arena_title">
-		<text>Арена DLC</text>
+		<text>Турнир Арены (GAMMA)</text>
 	</string>
 	<string id="ui_mcm_menu_xcvb_arena">
-		<text>Арена DLC</text>
+		<text>Турнир Арены</text>
 	</string>
-
+	<string id="ui_mcm_xcvb_arena_random_equipment">
+		<text>Случайное снаряжение Арены</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_random_equipment_desc">
+		<text>Надежно сохраняет текущую экипировку в шкафчик и выдает случайное оружие, броню и патроны под тир боя.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_reward_mult">
+		<text>Множитель денежных наград</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_reward_mult_desc">
+		<text>Коэффициент умножения рублей за победу в турнирных боях.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_give_items">
+		<text>Выдавать медицину и ремнаборы (GAMMA)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_give_items_desc">
+		<text>Если включено, выдаются медикаменты, боеприпасы и ремкомплекты под прогрессию GAMMA.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_medic_rescue">
+		<text>Спасение медиками Арни</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_medic_rescue_desc">
+		<text>При смертельном уроне на арене медики эвакуируют вас живым за плату вместо смерти/перезагрузки.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay">
+		<text>Разрешить повтор пройденных боев</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_desc">
+		<text>Позволяет повторно проходить уже завершенные раунды ради тренировки или наград.</text>
+	</string>
 	<string id="ui_mcm_xcvb_arena_fight_chance">
-		<text>Шанс боя (на каждый времен. промежуток)</text>
+		<text>Шанс боев зрителей (для каждого периода)</text>
 	</string>
-
 	<string id="ui_mcm_xcvb_arena_stalker_team1_chance">
-		<text>Команда 1 сталкеры шанс</text>
+		<text>Шанс сталкеров в Команде 1</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_stalker_team1_chance_desc">
-		<text>Шанс на появление сталкеров в команде 1. Если бросок провалиться - появятся мутанты.</text>
+		<text>Вероятность появления сталкеров в первой команде режима ставок.</text>
 	</string>
-
 	<string id="ui_mcm_xcvb_arena_stalker_team2_chance">
-		<text>Команда 2 сталкеры шанс</text>
+		<text>Шанс сталкеров в Команде 2</text>
 	</string>
-	<string id="ui_mcm_xcvb_arena_stalker_team2_chance_desc">
-		<text>Шанс на появление сталкеров в команде 2. Если бросок провалиться - появятся мутанты.</text>
-	</string>
-
-<!-- Selectores de equipamiento de la arena -->
 	<string id="st_arena_loadout_class_title">
-		<text>PRIMARY WEAPON CLASS:</text>
+		<text>КЛАСС ОСНОВНОГО ОРУЖИЯ:</text>
 	</string>
 	<string id="st_arena_loadout_tier_title">
-		<text>GEAR TIER (SUIT / WEAPON):</text>
+		<text>ТИР ОРУЖИЯ:</text>
+	</string>
+	<string id="st_arena_mod_none">
+		<text>Нет</text>
 	</string>
 	<string id="st_arena_class_random">
-		<text>Random</text>
+		<text>Случайное</text>
+	</string>
+	<string id="st_arena_class_pistol">
+		<text>Пистолет</text>
 	</string>
 	<string id="st_arena_class_shotgun">
-		<text>Shotgun</text>
+		<text>Дробовик</text>
 	</string>
 	<string id="st_arena_class_rifle">
-		<text>Assault Rifle</text>
+		<text>Автомат</text>
 	</string>
 	<string id="st_arena_class_smg">
-		<text>SMG</text>
+		<text>ПП</text>
 	</string>
 	<string id="st_arena_class_sniper">
-		<text>Sniper</text>
+		<text>Снайперское</text>
 	</string>
 	<string id="st_arena_tier_auto">
-		<text>Auto (Round)</text>
+		<text>Авто</text>
 	</string>
 	<string id="st_arena_tier_1_btn">
-		<text>Tier 1</text>
+		<text>Тир 1</text>
 	</string>
 	<string id="st_arena_tier_2_btn">
-		<text>Tier 2</text>
+		<text>Тир 2</text>
 	</string>
 	<string id="st_arena_tier_3_btn">
-		<text>Tier 3</text>
+		<text>Тир 3</text>
 	</string>
 	<string id="st_arena_tier_4_btn">
-		<text>Tier 4</text>
+		<text>Тир 4</text>
 	</string>
 	<string id="st_arena_tier_5_btn">
-		<text>Tier 5</text>
+		<text>Тир 5</text>
 	</string>
-
-
-<!-- Filtros y apuestas del modo espectador -->
 	<string id="st_arena_filter_all">
-		<text>All Matches</text>
+		<text>Все бои</text>
 	</string>
 	<string id="st_arena_filter_svsm">
-		<text>Stalkers vs Mutants</text>
+		<text>Сталкеры против Мутантов</text>
 	</string>
 	<string id="st_arena_filter_svss">
-		<text>Stalkers vs Stalkers</text>
+		<text>Сталкеры против Сталкеров</text>
 	</string>
 	<string id="st_arena_filter_mvsm">
-		<text>Mutants vs Mutants</text>
+		<text>Мутанты против Мутантов</text>
 	</string>
 	<string id="st_arena_btn_refresh">
-		<text>New Bouts</text>
+		<text>Новые бои</text>
 	</string>
 	<string id="st_arena_match_type_header">
-		<text>Bout</text>
+		<text>Поединок</text>
 	</string>
 	<string id="st_arena_label_svsm">
-		<text>S vs M</text>
+		<text>С против М</text>
 	</string>
 	<string id="st_arena_label_svss">
-		<text>S vs S</text>
+		<text>С против С</text>
 	</string>
 	<string id="st_arena_label_mvsm">
-		<text>M vs M</text>
+		<text>М против М</text>
+	</string>
+	<string id="st_arena_team1_build_title">
+		<text>КРАСНАЯ КОМАНДА - ОРУЖИЕ:</text>
+	</string>
+	<string id="st_arena_team1_tier_title">
+		<text>КРАСНАЯ КОМАНДА - УРОВЕНЬ:</text>
+	</string>
+	<string id="st_arena_team2_build_title">
+		<text>СИНЯЯ КОМАНДА - ОРУЖИЕ:</text>
+	</string>
+	<string id="st_arena_team2_tier_title">
+		<text>СИНЯЯ КОМАНДА - УРОВЕНЬ:</text>
 	</string>
 	<string id="st_arena_btn_spectate">
-		<text>Go to Balcony</text>
+		<text>Начать</text>
 	</string>
 	<string id="st_arena_no_bet_selected">
-		<text>You must select a bet on a match before going to the balcony.</text>
+		<text>Выберите ставку на бой перед началом.</text>
 	</string>
-
+	<string id="st_arena_spectator_press_f">
+		<text>Нажмите F, чтобы покинуть Арену</text>
+	</string>
 
 </string_table>

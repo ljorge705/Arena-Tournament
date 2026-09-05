@@ -3,12 +3,12 @@ local gt = game.translate_string
 
 GUI = nil
 
-xr_effects.open_arena_gui = function(actor, npc)
-	if (not GUI) then
+function open_gui()
+	if not GUI then
 		GUI = UIXcvbArena()
 	end
 
-	if (GUI) and (not GUI:IsShown()) then
+	if GUI and not GUI:IsShown() then
 		GUI:ShowDialog(true)
 		Register_UI("UIXcvbArena", "xcvb_arena_gui")
 		GUI:reset_loadout_selection()
@@ -16,8 +16,12 @@ xr_effects.open_arena_gui = function(actor, npc)
 	end
 end
 
-function open_gui()
-	xr_effects.open_arena_gui()
+function on_game_start()
+	if xr_effects then
+		xr_effects.open_arena_gui = function(actor, npc)
+			open_gui()
+		end
+	end
 end
 
 class "UIXcvbArena" (CUIScriptWnd)
@@ -34,6 +38,7 @@ function UIXcvbArena:__init() super()
 	self:InitControls()
 	self:InitCallbacks()
 	self:update_view_mode()
+	self:update_modifier_buttons()
 end
 
 function UIXcvbArena:__finalize()
@@ -101,7 +106,7 @@ function UIXcvbArena:InitControls()
 	-- Loadout Class Selection Controls
 	self.loadout_class_title = xml:InitTextWnd("tournament_cont:loadout_class_title", self.tournament_cont)
 	self.loadout_class_btns = {}
-	local classes = { "random", "shotgun", "rifle", "smg", "sniper" }
+	local classes = { "random", "pistol", "shotgun", "rifle", "smg", "sniper" }
 	for _, cls in ipairs(classes) do
 		local btn = xml:Init3tButton("tournament_cont:loadout_btn_" .. cls, self.tournament_cont)
 		self.loadout_class_btns[cls] = btn
@@ -126,6 +131,42 @@ function UIXcvbArena:InitControls()
 	-- ==============================================
 	self.spectator_cont = xml:InitStatic("spectator_cont", self.bg)
 
+	-- Combat Modifiers Team 1 (Red / Left)
+	self.mod_title_t1 = xml:InitTextWnd("spectator_cont:mod_title_t1", self.spectator_cont)
+	self.mod_btns_t1 = {}
+	local modifiers = { "none", "pistols", "shotguns", "ar", "smg", "sniper" }
+	for _, m in ipairs(modifiers) do
+		local btn = xml:Init3tButton("spectator_cont:mod_btn_t1_" .. m, self.spectator_cont)
+		self.mod_btns_t1[m] = btn
+		self:Register(btn, "btn_mod_t1_" .. m)
+	end
+	self.mod_tier_title_t1 = xml:InitTextWnd("spectator_cont:mod_tier_title_t1", self.spectator_cont)
+	self.mod_tier_btns_t1 = {}
+	for t = 1, 5 do
+		local btn = xml:Init3tButton("spectator_cont:mod_tier_t1_" .. t, self.spectator_cont)
+		self.mod_tier_btns_t1[t] = btn
+		self:Register(btn, "btn_mod_tier_t1_" .. t)
+	end
+
+	-- Center Separator Line
+	self.mod_separator = xml:InitStatic("spectator_cont:mod_separator", self.spectator_cont)
+
+	-- Combat Modifiers Team 2 (Blue / Right)
+	self.mod_title_t2 = xml:InitTextWnd("spectator_cont:mod_title_t2", self.spectator_cont)
+	self.mod_btns_t2 = {}
+	for _, m in ipairs(modifiers) do
+		local btn = xml:Init3tButton("spectator_cont:mod_btn_t2_" .. m, self.spectator_cont)
+		self.mod_btns_t2[m] = btn
+		self:Register(btn, "btn_mod_t2_" .. m)
+	end
+	self.mod_tier_title_t2 = xml:InitTextWnd("spectator_cont:mod_tier_title_t2", self.spectator_cont)
+	self.mod_tier_btns_t2 = {}
+	for t = 1, 5 do
+		local btn = xml:Init3tButton("spectator_cont:mod_tier_t2_" .. t, self.spectator_cont)
+		self.mod_tier_btns_t2[t] = btn
+		self:Register(btn, "btn_mod_tier_t2_" .. t)
+	end
+
 	-- Filter Buttons (All, Stalker vs Mutant, Stalker vs Stalker, Mutant vs Mutant)
 	self.spec_filter_btns = {}
 	local spec_filters = { "all", "svsm", "svss", "mvsm" }
@@ -147,7 +188,7 @@ function UIXcvbArena:InitControls()
 	-- Spectator table rows
 	for i = 1, 6 do
 		local row_cont = xml:InitStatic("spectator_cont:row_cont", self.spectator_cont)
-		row_cont:SetWndPos(vector2():set(70, 142 + (i - 1) * 60))
+		row_cont:SetWndPos(vector2():set(70, 172 + (i - 1) * 49))
 
 		local row = {}
 		row.time = xml:InitTextWnd("spectator_cont:row_cont:time", row_cont)
@@ -195,7 +236,7 @@ function UIXcvbArena:InitCallbacks()
 	end
 
 	-- Loadout Class Callbacks
-	local classes = { "random", "shotgun", "rifle", "smg", "sniper" }
+	local classes = { "random", "pistol", "shotgun", "rifle", "smg", "sniper" }
 	for _, cls in ipairs(classes) do
 		self:AddCallback("btn_loadout_" .. cls, ui_events.BUTTON_CLICKED, function() self:on_click_loadout_class(cls) end, self)
 	end
@@ -223,6 +264,174 @@ function UIXcvbArena:InitCallbacks()
 		self:AddCallback("btn_min2_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_bet(i, 2, -1) end, self)
 		self:AddCallback("btn_plus2_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_bet(i, 2, 1) end, self)
 	end
+	
+	local modifiers = { "none", "pistols", "shotguns", "ar", "smg", "sniper" }
+	for _, m in ipairs(modifiers) do
+		self:AddCallback("btn_mod_t1_" .. m, ui_events.BUTTON_CLICKED, function() self:on_click_mod(1, m) end, self)
+		self:AddCallback("btn_mod_t2_" .. m, ui_events.BUTTON_CLICKED, function() self:on_click_mod(2, m) end, self)
+	end
+	for t = 1, 5 do
+		self:AddCallback("btn_mod_tier_t1_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_mod_tier(1, t) end, self)
+		self:AddCallback("btn_mod_tier_t2_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_mod_tier(2, t) end, self)
+	end
+end
+
+function UIXcvbArena:on_click_mod(team_idx, mod_name)
+	if team_idx == 1 then
+		if xcvb_arena_main.selected_modifier_team1 == mod_name and mod_name ~= "none" then
+			xcvb_arena_main.selected_modifier_team1 = "none"
+		else
+			xcvb_arena_main.selected_modifier_team1 = mod_name
+		end
+		xcvb_arena_main.selected_modifier = xcvb_arena_main.selected_modifier_team1
+	else
+		if xcvb_arena_main.selected_modifier_team2 == mod_name and mod_name ~= "none" then
+			xcvb_arena_main.selected_modifier_team2 = "none"
+		else
+			xcvb_arena_main.selected_modifier_team2 = mod_name
+		end
+	end
+	self:update_modifier_buttons()
+end
+
+function UIXcvbArena:on_click_mod_tier(team_idx, tier)
+	if team_idx == 1 then
+		xcvb_arena_main.selected_modifier_tier_team1 = tier
+		xcvb_arena_main.selected_modifier_tier = tier
+	else
+		xcvb_arena_main.selected_modifier_tier_team2 = tier
+	end
+	self:update_modifier_buttons()
+end
+
+function UIXcvbArena:update_modifier_buttons()
+	local cur_f = xcvb_arena_main.current_spec_filter or "all"
+
+	local show_t1 = false
+	local show_t2 = false
+	local show_sep = false
+
+	if cur_f == "svsm" then
+		show_t1 = true
+		show_t2 = false
+		show_sep = false
+	elseif cur_f == "svss" then
+		show_t1 = true
+		show_t2 = true
+		show_sep = true
+	end
+
+	local mod_names = {
+		none = gt("st_arena_mod_none"),
+		pistols = gt("st_arena_class_pistol"),
+		shotguns = gt("st_arena_class_shotgun"),
+		ar = gt("st_arena_class_rifle"),
+		smg = gt("st_arena_class_smg"),
+		sniper = gt("st_arena_class_sniper")
+	}
+
+	-- ==================== Team 1 (Red / Left) ====================
+	local cur_mod1 = xcvb_arena_main.selected_modifier_team1 or "none"
+	local sel_tier1 = xcvb_arena_main.selected_modifier_tier_team1 or 3
+
+	if self.mod_title_t1 then
+		self.mod_title_t1:Show(show_t1)
+		if cur_mod1 == "none" then
+			self.mod_title_t1:SetText(gt("st_arena_team1_build_title") .. " " .. gt("st_arena_mod_none"):upper() .. " [OFF]")
+			self.mod_title_t1:SetTextColor(GetARGB(255, 200, 160, 160))
+		else
+			local m_name = mod_names[cur_mod1] or cur_mod1
+			self.mod_title_t1:SetText(gt("st_arena_team1_build_title") .. " " .. m_name:upper() .. " [ON]")
+			self.mod_title_t1:SetTextColor(GetARGB(255, 255, 120, 120))
+		end
+	end
+
+	for m, btn in pairs(self.mod_btns_t1) do
+		btn:Show(show_t1)
+		local base_name = mod_names[m] or m
+		if m == cur_mod1 then
+			btn:TextControl():SetText(base_name .. " [ON]")
+			btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+		else
+			btn:TextControl():SetText(base_name .. " [OFF]")
+			btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+		end
+	end
+
+	if self.mod_tier_title_t1 then
+		self.mod_tier_title_t1:Show(show_t1)
+		self.mod_tier_title_t1:SetText(gt("st_arena_team1_tier_title") .. " TIER " .. sel_tier1 .. " [ON]")
+		self.mod_tier_title_t1:SetTextColor(GetARGB(255, 255, 180, 180))
+	end
+
+	for tier = 1, 5 do
+		local btn = self.mod_tier_btns_t1[tier]
+		if btn then
+			btn:Show(show_t1)
+			local t_label = "T" .. tier
+			if tier == sel_tier1 then
+				btn:TextControl():SetText(t_label .. " [ON]")
+				btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+			else
+				btn:TextControl():SetText(t_label .. " [OFF]")
+				btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+			end
+		end
+	end
+
+	-- Center Separator
+	if self.mod_separator then
+		self.mod_separator:Show(show_sep)
+	end
+
+	-- ==================== Team 2 (Blue / Right) ====================
+	local cur_mod2 = xcvb_arena_main.selected_modifier_team2 or "none"
+	local sel_tier2 = xcvb_arena_main.selected_modifier_tier_team2 or 3
+
+	if self.mod_title_t2 then
+		self.mod_title_t2:Show(show_t2)
+		if cur_mod2 == "none" then
+			self.mod_title_t2:SetText(gt("st_arena_team2_build_title") .. " " .. gt("st_arena_mod_none"):upper() .. " [OFF]")
+			self.mod_title_t2:SetTextColor(GetARGB(255, 160, 190, 200))
+		else
+			local m_name = mod_names[cur_mod2] or cur_mod2
+			self.mod_title_t2:SetText(gt("st_arena_team2_build_title") .. " " .. m_name:upper() .. " [ON]")
+			self.mod_title_t2:SetTextColor(GetARGB(255, 100, 220, 255))
+		end
+	end
+
+	for m, btn in pairs(self.mod_btns_t2) do
+		btn:Show(show_t2)
+		local base_name = mod_names[m] or m
+		if m == cur_mod2 then
+			btn:TextControl():SetText(base_name .. " [ON]")
+			btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+		else
+			btn:TextControl():SetText(base_name .. " [OFF]")
+			btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+		end
+	end
+
+	if self.mod_tier_title_t2 then
+		self.mod_tier_title_t2:Show(show_t2)
+		self.mod_tier_title_t2:SetText(gt("st_arena_team2_tier_title") .. " TIER " .. sel_tier2 .. " [ON]")
+		self.mod_tier_title_t2:SetTextColor(GetARGB(255, 160, 220, 255))
+	end
+
+	for tier = 1, 5 do
+		local btn = self.mod_tier_btns_t2[tier]
+		if btn then
+			btn:Show(show_t2)
+			local t_label = "T" .. tier
+			if tier == sel_tier2 then
+				btn:TextControl():SetText(t_label .. " [ON]")
+				btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+			else
+				btn:TextControl():SetText(t_label .. " [OFF]")
+				btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+			end
+		end
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -234,6 +443,9 @@ function UIXcvbArena:on_click_mode()
 		self.current_mode = "spectator"
 	else
 		self.current_mode = "tournament"
+		xcvb_arena_main.selected_modifier = "none"
+		xcvb_arena_main.selected_modifier_team1 = "none"
+		xcvb_arena_main.selected_modifier_team2 = "none"
 	end
 	self:update_view_mode()
 end
@@ -303,6 +515,7 @@ function UIXcvbArena:update_view_mode()
 		self.btn_mode:TextControl():SetText(gt("st_arena_mode_tournament"))
 		self:update_spectator_display()
 	end
+	self:update_modifier_buttons()
 end
 
 --------------------------------------------------------------------------------
@@ -422,37 +635,78 @@ function UIXcvbArena:update_tournament_display()
 end
 
 function UIXcvbArena:on_click_loadout_class(cls)
-	self.selected_loadout_class = cls
+	if self.selected_loadout_class == cls and cls ~= "random" then
+		self.selected_loadout_class = "random"
+	else
+		self.selected_loadout_class = cls
+	end
 	self:update_loadout_buttons()
 end
 
 function UIXcvbArena:on_click_loadout_tier(tier)
-	self.selected_loadout_tier = tier
+	if self.selected_loadout_tier == tier and tier ~= 0 then
+		self.selected_loadout_tier = 0
+	else
+		self.selected_loadout_tier = tier
+	end
 	self:update_loadout_buttons()
 end
 
 function UIXcvbArena:update_loadout_buttons()
-	local classes = { "random", "shotgun", "rifle", "smg", "sniper" }
-	for _, cls in ipairs(classes) do
+	local class_names = {
+		random = gt("st_arena_class_random"),
+		pistol = gt("st_arena_class_pistol"),
+		shotgun = gt("st_arena_class_shotgun"),
+		rifle = gt("st_arena_class_rifle"),
+		smg = gt("st_arena_class_smg"),
+		sniper = gt("st_arena_class_sniper")
+	}
+	for _, cls in ipairs({ "random", "pistol", "shotgun", "rifle", "smg", "sniper" }) do
 		local btn = self.loadout_class_btns[cls]
 		if btn then
+			local c_name = class_names[cls] or cls
 			if cls == self.selected_loadout_class then
-				btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 80))
+				btn:TextControl():SetText(c_name .. " [ON]")
+				btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
 			else
-				btn:TextControl():SetTextColor(GetARGB(255, 175, 175, 175))
+				btn:TextControl():SetText(c_name .. " [OFF]")
+				btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
 			end
 		end
 	end
 
+	local tier_names = {
+		[0] = gt("st_arena_tier_auto"),
+		[1] = gt("st_arena_tier_1_btn"),
+		[2] = gt("st_arena_tier_2_btn"),
+		[3] = gt("st_arena_tier_3_btn"),
+		[4] = gt("st_arena_tier_4_btn"),
+		[5] = gt("st_arena_tier_5_btn")
+	}
 	for t = 0, 5 do
 		local btn = self.loadout_tier_btns[t]
 		if btn then
+			local t_name = tier_names[t] or ("Tier " .. t)
 			if t == self.selected_loadout_tier then
-				btn:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+				btn:TextControl():SetText(t_name .. " [ON]")
+				btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
 			else
-				btn:TextControl():SetTextColor(GetARGB(255, 175, 175, 175))
+				btn:TextControl():SetText(t_name .. " [OFF]")
+				btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
 			end
 		end
+	end
+
+	if self.loadout_class_title then
+		local active_cls = class_names[self.selected_loadout_class] or gt("st_arena_class_random")
+		self.loadout_class_title:SetText(gt("st_arena_loadout_class_title") .. " " .. active_cls:upper() .. " [ON]")
+		self.loadout_class_title:SetTextColor(GetARGB(255, 255, 220, 80))
+	end
+
+	if self.loadout_tier_title then
+		local active_tier = tier_names[self.selected_loadout_tier] or gt("st_arena_tier_auto")
+		self.loadout_tier_title:SetText(gt("st_arena_loadout_tier_title") .. " " .. active_tier:upper() .. " [ON]")
+		self.loadout_tier_title:SetTextColor(GetARGB(255, 255, 220, 80))
 	end
 end
 
@@ -471,6 +725,9 @@ function UIXcvbArena:on_click_tourn_start()
 
 	-- Reset loadout selection so it does not persist into future rounds
 	self:reset_loadout_selection()
+	xcvb_arena_main.selected_modifier = "none"
+	xcvb_arena_main.selected_modifier_team1 = "none"
+	xcvb_arena_main.selected_modifier_team2 = "none"
 
 	self:Close()
 	xcvb_arena_fight.start_tournament_fight(cat, self.selected_round_id, chosen_cls, chosen_tier)
@@ -486,6 +743,7 @@ function UIXcvbArena:on_click_spec_filter(filter_name)
 	xcvb_arena_main.team_bet = 0
 	xcvb_arena_main.cur_reward = 0
 	self:update_spectator_display()
+	self:update_modifier_buttons()
 end
 
 function UIXcvbArena:on_click_refresh_bouts()
@@ -532,6 +790,7 @@ function UIXcvbArena:on_click_bet(row_idx, team_idx, dir)
 	end
 
 	self:update_spectator_display()
+	self:update_modifier_buttons()
 end
 
 function UIXcvbArena:update_spectator_display()

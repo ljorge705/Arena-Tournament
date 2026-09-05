@@ -2,6 +2,24 @@ local ini_rel = ini_file("creatures\\game_relations.ltx")
 temporary_arena_item_ids = {}
 arena_spawned_combatant_ids = {}
 xcvb_arena_storage_box_id = nil
+saved_equipped_slots = {}
+saved_belt_items = {}
+saved_actor_item_ids = {}
+saved_active_slot = nil
+function get_weapon_ammo(weapon_sec)
+    if not weapon_sec then return nil end
+    local ammo_class_str = ini_sys:r_string_ex(weapon_sec, "ammo_class")
+    if ammo_class_str then
+        local ammo_list = str_explode(ammo_class_str, ",")
+        for _, a_sec in ipairs(ammo_list) do
+            local clean_sec = trim(a_sec)
+            if ini_sys:section_exist(clean_sec) then
+                return clean_sec
+            end
+        end
+    end
+    return nil
+end
 
 function get_new_period()
     local hrs = level.get_time_hours()
@@ -40,7 +58,7 @@ cfg = scripts\arena_board_logic.ltx
 end
 
 function spawn_balcony()
-    local pos = vector():set(140.1, -13.51, 102.2)
+    local pos = vector():set(140.1, -13.01, 102.2)
     local lvid = 40551
     local gvid = 1710
     if level and level.name and level.name() == "l05_bar" and level.vertex_id then
@@ -340,7 +358,7 @@ function get_team_rank_string(ar)
     return nil
 end
 function get_actor_arena_pos()
-    local pos = vector():set(141.6, -13.35, 102.1)
+    local pos = vector():set(142.6, -12.70, 102.1)
     local lvid = 37386
     local gvid = 1710
     return pos, lvid, gvid
@@ -492,6 +510,95 @@ function spawn_tournament_squad(round_data)
     return squad
 end
 
+function apply_combat_modifier_inventory(npc, team_idx)
+    if not npc or npc:id() == 0 then return end
+    local cur_f = xcvb_arena_main.current_spec_filter or "all"
+    if cur_f == "all" or cur_f == "mvsm" then return end
+    if cur_f == "svsm" and team_idx == 2 then return end
+
+    local mod, tier
+    if team_idx == 2 then
+        mod = xcvb_arena_main.selected_modifier_team2
+        tier = tonumber(xcvb_arena_main.selected_modifier_tier_team2) or 3
+    else
+        mod = xcvb_arena_main.selected_modifier_team1 or xcvb_arena_main.selected_modifier
+        tier = tonumber(xcvb_arena_main.selected_modifier_tier_team1 or xcvb_arena_main.selected_modifier_tier) or 3
+    end
+    if not mod or mod == "none" then return end
+    if not IsStalker(nil, npc:clsid()) then return end
+
+    local items_to_remove = {}
+    npc:iterate_inventory(function(owner, item)
+        if item and IsWeapon(nil, item:clsid()) then
+            table.insert(items_to_remove, item:id())
+        end
+    end, npc)
+    for _, id in ipairs(items_to_remove) do
+        alife_release_id(id)
+    end
+
+    tier = math.max(1, math.min(5, tier))
+    local loadout = {
+        pistols = {
+            { "wpn_pm", "ammo_9x18_fmj" }, { "wpn_colt1911", "ammo_11.43x23_fmj" },
+            { "wpn_usp", "ammo_11.43x23_fmj" }, { "wpn_fnx45", "ammo_11.43x23_fmj" },
+            { "wpn_beretta", "ammo_9x19_fmj" },
+        },
+        shotguns = {
+            { "wpn_bm16", "ammo_12x70_buck" }, { "wpn_toz34", "ammo_12x70_buck" },
+            { "wpn_wincheaster1300", "ammo_12x70_buck" }, { "wpn_spas12", "ammo_12x70_buck" },
+            { "wpn_saiga12s", "ammo_12x70_buck" },
+        },
+        ar = {
+            { "wpn_ak74u", "ammo_5.45x39_fmj" }, { "wpn_ak74", "ammo_5.45x39_fmj" },
+            { "wpn_lr300", "ammo_5.56x45_fmj" }, { "wpn_m4", "ammo_5.56x45_fmj" },
+            { "wpn_fn2000", "ammo_5.56x45_fmj" },
+        },
+        smg = {
+            { "wpn_mp5", "ammo_9x19_fmj" }, { "wpn_vityaz", "ammo_9x19_fmj" },
+            { "wpn_pp2000", "ammo_9x19_fmj" }, { "wpn_p90", "ammo_5.7x28_fmj" },
+            { "wpn_mp7", "ammo_5.7x28_fmj" },
+        },
+        sniper = {
+            { "wpn_sks", "ammo_7.62x39_fmj" }, { "wpn_svd", "ammo_7.62x54_7h1" },
+            { "wpn_vintorez", "ammo_9x39_pab9" }, { "wpn_sv98", "ammo_7.62x54_7h1" },
+            { "wpn_gauss", "ammo_gauss" },
+        },
+    }
+
+    local choices = loadout[mod]
+    if not choices then return end
+    local min_index = math.max(1, math.min(#choices, tier))
+    local weapon, ammo
+    for i = min_index, #choices do
+        if ini_sys:section_exist(choices[i][1]) then
+            weapon, ammo = choices[i][1], choices[i][2]
+            break
+        end
+    end
+    if not weapon then
+        for i = 1, min_index - 1 do
+            if ini_sys:section_exist(choices[i][1]) then
+                weapon, ammo = choices[i][1], choices[i][2]
+                break
+            end
+        end
+    end
+    if weapon then
+        alife_create_item(weapon, npc)
+        local dyn_ammo = get_weapon_ammo(weapon) or ammo
+        if dyn_ammo and ini_sys:section_exist(dyn_ammo) then
+            for i = 1, 5 + tier do
+                alife_create_item(dyn_ammo, npc)
+            end
+        end
+    end
+end
+
+function toggle_arena_lights(turn_on)
+    -- Disabled for now
+end
+
 function setup_tournament_squad_aggro(squad_id)
     local squad = squad_id and alife_object(squad_id)
     if not (squad and squad.commander_id) then return end
@@ -503,17 +610,21 @@ function setup_tournament_squad_aggro(squad_id)
             pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
             pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
             
-            -- NUEVO: Simular un golpe del jugador al NPC para despertar su IA inmediatamente
+            if npc.make_enemy_visible then
+                pcall(function() npc:make_enemy_visible(db.actor) end)
+            end
+            if npc.register_in_combat then
+                pcall(function() npc:register_in_combat() end)
+            end
+            
             xcvb_arena_utils.scr_hit(db.actor, npc)
             
             if IsMonster and IsMonster(npc) then
                 pcall(function() npc:berserk() end)
                 pcall(function() npc:set_custom_panic_threshold(0) end)
-            end
-			-- Añade este bloque debajo:
-            if IsStalker and IsStalker(npc) then
+            elseif IsStalker and IsStalker(npc) then
                 pcall(function() npc:set_mental_state(anim.danger) end)
-                pcall(function() npc:set_movement_type(move.run) end)
+                pcall(function() npc:set_custom_panic_threshold(0.05) end)
             end
         end
     end
@@ -640,6 +751,7 @@ local tournament_loadouts_t = {
         rifles = { "wpn_ak74u", "wpn_mp5", "wpn_bizon" },
         smgs = { "wpn_kiparis", "wpn_pp2000", "wpn_mp5", "wpn_bizon" },
         snipers = { "wpn_toz34", "wpn_bm16", "wpn_sks" },
+        pistols = { "wpn_pm", "wpn_fort", "wpn_tt33", "wpn_colt1911", "wpn_walther", "wpn_beretta" },
         ammo_count = 5,
         meds = { "bandage", "bandage", "medkit" },
         knife = "wpn_knife",
@@ -731,19 +843,15 @@ local function pick_valid_section(list, exclude_sec)
     return valid[math.random(#valid)]
 end
 
-local function get_weapon_ammo(weapon_sec)
-    if not weapon_sec then return nil end
-    local ammo_class_str = ini_sys:r_string_ex(weapon_sec, "ammo_class")
-    if ammo_class_str then
-        local ammo_list = str_explode(ammo_class_str, ",")
-        for _, a_sec in ipairs(ammo_list) do
-            local clean_sec = trim(a_sec)
-            if ini_sys:section_exist(clean_sec) then
-                return clean_sec
-            end
-        end
+
+function init_arena_box()
+    if get_story_object("bar_arena_inventory_box") then return end
+    if xcvb_arena_storage_box_id and alife_object(xcvb_arena_storage_box_id) then return end
+    local pos = vector():set(151.9, -5.0, 68.6)
+    local se = alife_create("inventory_box", pos, 40590, 1684)
+    if se then
+        xcvb_arena_storage_box_id = se.id
     end
-    return nil
 end
 
 local function get_or_create_arena_box()
@@ -774,12 +882,40 @@ local function get_or_create_arena_box()
 end
 
 function store_actor_inventory()
+    RemoveTimeEvent("arena_restore_equip_e1", "arena_restore_equip_a1")
+    RemoveTimeEvent("arena_restore_equip_e2", "arena_restore_equip_a2")
+    RemoveTimeEvent("arena_restore_equip_e3", "arena_restore_equip_a3")
+    RemoveTimeEvent("arena_restore_equip_e4", "arena_restore_equip_a4")
+
     local box = get_or_create_arena_box()
     if not box then
         printe("! xcvb arena: Could not find or create inventory storage box")
         return
     end
     
+    saved_equipped_slots = {}
+    saved_belt_items = {}
+    saved_actor_item_ids = {}
+    saved_active_slot = db.actor and db.actor:active_slot()
+
+    -- 1. Record original equipped item slots (0 to 15)
+    for slot = 0, 15 do
+        local itm = db.actor:item_in_slot(slot)
+        if itm then
+            saved_equipped_slots[itm:id()] = slot
+        end
+    end
+
+    -- 2. Record items currently on belt
+    if db.actor and db.actor.is_on_belt then
+        db.actor:iterate_inventory(function(owner, item)
+            if item and db.actor:is_on_belt(item) then
+                saved_belt_items[item:id()] = true
+            end
+        end, db.actor)
+    end
+
+    -- 3. Gather items to store (excluding PDA, torch, bolt, quest items)
     local items_to_store = {}
     db.actor:iterate_inventory(function(owner, item)
         if not item then return end
@@ -787,9 +923,11 @@ function store_actor_inventory()
         if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
             return
         end
+        saved_actor_item_ids[item:id()] = true
         table.insert(items_to_store, item)
     end, db.actor)
     
+    -- 4. Move items to ruck first, then transfer to the arena storage box
     for _, item in ipairs(items_to_store) do
         if db.actor.move_to_ruck then
             db.actor:move_to_ruck(item)
@@ -1040,7 +1178,9 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
     end
     
     local wpn_list = t_data.weapons
-    if loadout_class == "shotgun" and t_data.shotguns then
+    if loadout_class == "pistol" and t_data.pistols then
+        wpn_list = t_data.pistols
+    elseif loadout_class == "shotgun" and t_data.shotguns then
         wpn_list = t_data.shotguns
     elseif loadout_class == "rifle" and t_data.rifles then
         wpn_list = t_data.rifles
@@ -1069,7 +1209,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
         end
     end
     
-    if t_data.pistols then
+    if t_data.pistols and loadout_class ~= "pistol" then
         local pistol_sec = pick_valid_section(t_data.pistols)
         if pistol_sec then
             local se = alife_create(pistol_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
@@ -1140,6 +1280,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
                 db.actor:move_to_slot(p_obj, 1)
             end
         end
+        
         return true
     end)
     
@@ -1196,6 +1337,9 @@ function restore_actor_inventory()
         if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
             return
         end
+        if saved_actor_item_ids and saved_actor_item_ids[item:id()] then
+            return
+        end
         table.insert(contraband_to_delete, item:id())
     end, db.actor)
 
@@ -1223,8 +1367,87 @@ function restore_actor_inventory()
         for _, item in ipairs(items_to_restore) do
             box:transfer_item(item, db.actor)
         end
-        news_manager.send_tip(db.actor, game.translate_string("st_arena_gear_restored"), 0, nil, 8000)
     end
+
+    -- Stage 1 (0.4s): Outfit (slot 7) and Backpack (slot 13)
+    CreateTimeEvent("arena_restore_equip_e1", "arena_restore_equip_a1", 0.4, function()
+        if not db.actor then return true end
+        for id, slot in pairs(saved_equipped_slots) do
+            if slot == 7 or slot == 13 then
+                local itm = level.object_by_id(id)
+                if itm then
+                    pcall(function() db.actor:move_to_slot(itm, slot) end)
+                end
+            end
+        end
+        return true
+    end)
+
+    -- Stage 2 (0.8s): Helmet (12), Patch (14), Devices (9, 10, 5, 11, 8, 4), and Belt items
+    CreateTimeEvent("arena_restore_equip_e2", "arena_restore_equip_a2", 0.8, function()
+        if not db.actor then return true end
+        for id, slot in pairs(saved_equipped_slots) do
+            if slot == 12 or slot == 14 or slot == 10 or slot == 9 or slot == 5 or slot == 11 or slot == 8 or slot == 4 then
+                local itm = level.object_by_id(id)
+                if itm then
+                    pcall(function() db.actor:move_to_slot(itm, slot) end)
+                end
+            end
+        end
+        
+        if db.actor.move_to_belt then
+            for id, _ in pairs(saved_belt_items) do
+                local itm = level.object_by_id(id)
+                if itm then
+                    pcall(function() db.actor:move_to_belt(itm) end)
+                end
+            end
+        end
+        return true
+    end)
+
+    -- Stage 3 (1.2s): Weapons (Knife 0, Pistol 1, Primary 2, Secondary 3) and activate active slot
+    CreateTimeEvent("arena_restore_equip_e3", "arena_restore_equip_a3", 1.2, function()
+        if not db.actor then return true end
+        for id, slot in pairs(saved_equipped_slots) do
+            if slot == 0 or slot == 1 or slot == 2 or slot == 3 or slot == 6 then
+                local itm = level.object_by_id(id)
+                if itm then
+                    pcall(function() db.actor:move_to_slot(itm, slot) end)
+                end
+            end
+        end
+        
+        if saved_active_slot then
+            pcall(function() db.actor:activate_slot(saved_active_slot) end)
+        end
+        return true
+    end)
+
+    -- Stage 4 (1.6s): Verification check and notification
+    CreateTimeEvent("arena_restore_equip_e4", "arena_restore_equip_a4", 1.6, function()
+        if not db.actor then return true end
+        for id, slot in pairs(saved_equipped_slots) do
+            if not db.actor:item_in_slot(slot) then
+                local itm = level.object_by_id(id)
+                if itm then
+                    pcall(function() db.actor:move_to_slot(itm, slot) end)
+                end
+            end
+        end
+        
+        if saved_active_slot and db.actor:active_slot() ~= saved_active_slot then
+            pcall(function() db.actor:activate_slot(saved_active_slot) end)
+        end
+
+        saved_equipped_slots = {}
+        saved_belt_items = {}
+        saved_actor_item_ids = {}
+        saved_active_slot = nil
+
+        news_manager.send_tip(db.actor, game.translate_string("st_arena_gear_restored"), 0, nil, 8000)
+        return true
+    end)
 end
 
 function set_teams_relation(squad_id1, squad_id2)
@@ -1232,32 +1455,111 @@ function set_teams_relation(squad_id1, squad_id2)
     local squad2 = squad_id2 and alife_object(squad_id2)
     if not (squad1 and squad1.commander_id and squad2 and squad2.commander_id) then return end
     
-    -- Set squad-level relation (works for stalker squads)
+    -- Set squad-level relation
     pcall(function() squad1:set_relation(squad2, "enemy") end)
     pcall(function() squad2:set_relation(squad1, "enemy") end)
     
-    -- Force individual goodwill and enemy relation on every member pair
+    -- Force individual goodwill, relations, team separation, and combat memory
     for m1 in squad1:squad_members() do
         local npc1 = level.object_by_id(m1.id)
         if npc1 and npc1:alive() then
+            pcall(function() npc1:change_team(1, 1, 1) end)
             for m2 in squad2:squad_members() do
                 local npc2 = level.object_by_id(m2.id)
                 if npc2 and npc2:alive() then
+                    pcall(function() npc2:change_team(2, 2, 2) end)
                     -- stalker <-> stalker
                     if IsStalker and IsStalker(npc1) and IsStalker(npc2) then
                         pcall(function() npc1:force_set_goodwill(-9999, npc2) end)
                         pcall(function() npc2:force_set_goodwill(-9999, npc1) end)
                         pcall(function() npc1:set_relation(game_object.enemy, npc2) end)
                         pcall(function() npc2:set_relation(game_object.enemy, npc1) end)
+                        if npc1.make_enemy_visible then
+                            pcall(function() npc1:make_enemy_visible(npc2) end)
+                        end
+                        if npc2.make_enemy_visible then
+                            pcall(function() npc2:make_enemy_visible(npc1) end)
+                        end
+                        if npc1.register_in_combat then
+                            pcall(function() npc1:register_in_combat() end)
+                        end
+                        if npc2.register_in_combat then
+                            pcall(function() npc2:register_in_combat() end)
+                        end
                     end
-                    -- stalker vs monster: goodwill is one-way (monsters don't have goodwill)
+                    -- stalker vs monster
                     if IsStalker and IsStalker(npc1) and IsMonster and IsMonster(npc2) then
                         pcall(function() npc1:force_set_goodwill(-9999, npc2) end)
                         pcall(function() npc1:set_relation(game_object.enemy, npc2) end)
+                        pcall(function() npc2:set_relation(game_object.enemy, npc1) end)
+                        if npc1.make_enemy_visible then
+                            pcall(function() npc1:make_enemy_visible(npc2) end)
+                        end
+                        if npc1.register_in_combat then
+                            pcall(function() npc1:register_in_combat() end)
+                        end
+                        pcall(function() npc2:berserk() end)
+                        pcall(function() npc2:set_custom_panic_threshold(0) end)
+                        if npc2.set_enemy then
+                            pcall(function() npc2:set_enemy(npc1) end)
+                        end
                     end
                     if IsStalker and IsStalker(npc2) and IsMonster and IsMonster(npc1) then
                         pcall(function() npc2:force_set_goodwill(-9999, npc1) end)
                         pcall(function() npc2:set_relation(game_object.enemy, npc1) end)
+                        pcall(function() npc1:set_relation(game_object.enemy, npc2) end)
+                        if npc2.make_enemy_visible then
+                            pcall(function() npc2:make_enemy_visible(npc1) end)
+                        end
+                        if npc2.register_in_combat then
+                            pcall(function() npc2:register_in_combat() end)
+                        end
+                        pcall(function() npc1:berserk() end)
+                        pcall(function() npc1:set_custom_panic_threshold(0) end)
+                        if npc1.set_enemy then
+                            pcall(function() npc1:set_enemy(npc2) end)
+                        end
+                    end
+                    -- Mutant <-> mutant
+                    if IsMonster and IsMonster(npc1) and IsMonster and IsMonster(npc2) then
+                        pcall(function() npc1:set_relation(game_object.enemy, npc2) end)
+                        pcall(function() npc2:set_relation(game_object.enemy, npc1) end)
+                        pcall(function() npc1:force_set_goodwill(-9999, npc2) end)
+                        pcall(function() npc2:force_set_goodwill(-9999, npc1) end)
+                        if npc1.make_enemy_visible then
+                            pcall(function() npc1:make_enemy_visible(npc2) end)
+                        end
+                        if npc2.make_enemy_visible then
+                            pcall(function() npc2:make_enemy_visible(npc1) end)
+                        end
+                        if npc1.register_in_combat then
+                            pcall(function() npc1:register_in_combat() end)
+                        end
+                        if npc2.register_in_combat then
+                            pcall(function() npc2:register_in_combat() end)
+                        end
+                        pcall(function() npc1:berserk() end)
+                        pcall(function() npc2:berserk() end)
+                        pcall(function() npc1:set_custom_panic_threshold(0) end)
+                        pcall(function() npc2:set_custom_panic_threshold(0) end)
+                        if npc1.skip_transfer_enemy then
+                            pcall(function() npc1:skip_transfer_enemy(false) end)
+                        end
+                        if npc2.skip_transfer_enemy then
+                            pcall(function() npc2:skip_transfer_enemy(false) end)
+                        end
+                        if npc1.set_enemy then
+                            pcall(function() npc1:set_enemy(npc2) end)
+                        end
+                        if npc2.set_enemy then
+                            pcall(function() npc2:set_enemy(npc1) end)
+                        end
+                        if db.actor then
+                            pcall(function() npc1:set_relation(game_object.neutral, db.actor) end)
+                            pcall(function() npc1:force_set_goodwill(5000, db.actor) end)
+                            pcall(function() npc2:set_relation(game_object.neutral, db.actor) end)
+                            pcall(function() npc2:force_set_goodwill(5000, db.actor) end)
+                        end
                     end
                 end
             end
@@ -1284,21 +1586,53 @@ function set_out_restrictors(squad_id1, squad_id2)
     end
 end
 
-function hit_npcs(squad_id1, squad_id2)
+function hit_npcs(squad_id1, squad_id2, force_wake)
     local squad1 = squad_id1 and alife_object(squad_id1)
     local squad2 = squad_id2 and alife_object(squad_id2)
     if not (squad1 and squad1.commander_id and squad2 and squad2.commander_id) then return end
 
+    local function has_live_enemy(npc)
+        local enemy = nil
+        local is_alive = false
+        pcall(function()
+            enemy = npc:best_enemy()
+            is_alive = enemy and enemy:alive() or false
+        end)
+        return is_alive
+    end
+
+    local function get_nearest_target(npc, enemy_squad)
+        local nearest_target = nil
+        local nearest_distance = nil
+
+        for member in enemy_squad:squad_members() do
+            local candidate = level.object_by_id(member.id)
+            if candidate and candidate:alive() then
+                if not nearest_target then
+                    nearest_target = candidate
+                end
+
+                local distance = nil
+                pcall(function()
+                    distance = npc:position():distance_to(candidate:position())
+                end)
+                if distance and (not nearest_distance or distance < nearest_distance) then
+                    nearest_target = candidate
+                    nearest_distance = distance
+                end
+            end
+        end
+
+        return nearest_target
+    end
+
     local function wake_up_squad(sq_a, sq_b)
         for m_a in sq_a:squad_members() do
             local npc_a = level.object_by_id(m_a.id)
-            if npc_a and npc_a:alive() and npc_a:best_enemy() == nil then
-                for m_b in sq_b:squad_members() do
-                    local npc_b = level.object_by_id(m_b.id)
-                    if npc_b and npc_b:alive() then
-                        xcvb_arena_utils.scr_hit(npc_a, npc_b)
-                        break 
-                    end
+            if npc_a and npc_a:alive() and (force_wake or not has_live_enemy(npc_a)) then
+                local target = get_nearest_target(npc_a, sq_b)
+                if target then
+                    xcvb_arena_utils.scr_hit(target, npc_a)
                 end
             end
         end
@@ -1308,14 +1642,216 @@ function hit_npcs(squad_id1, squad_id2)
     wake_up_squad(squad2, squad1)
 end
 
-function scr_hit(npc, who)
+function force_mutant_aggro(squad_id1, squad_id2, initial_wake)
+    local squad1 = squad_id1 and alife_object(squad_id1)
+    local squad2 = squad_id2 and alife_object(squad_id2)
+    if not (squad1 and squad1.commander_id and squad2 and squad2.commander_id) then return end
+
+    local function has_live_enemy_in_squad(mutant, enemy_squad)
+        local enemy = nil
+        local is_alive = false
+        pcall(function()
+            enemy = mutant:best_enemy()
+            if enemy and enemy:alive() and enemy:id() ~= 0 then
+                if enemy_squad then
+                    for member in enemy_squad:squad_members() do
+                        if member.id == enemy:id() then
+                            is_alive = true
+                            break
+                        end
+                    end
+                else
+                    is_alive = true
+                end
+            end
+        end)
+        return is_alive
+    end
+
+    local function get_nearest_target(mutant, enemy_squad)
+        local nearest = nil
+        local nearest_distance = nil
+        for member in enemy_squad:squad_members() do
+            local candidate = level.object_by_id(member.id)
+            if candidate and candidate:alive() then
+                local distance = nil
+                pcall(function()
+                    distance = mutant:position():distance_to(candidate:position())
+                end)
+                if not nearest or (distance and (not nearest_distance or distance < nearest_distance)) then
+                    nearest = candidate
+                    nearest_distance = distance
+                end
+            end
+        end
+        return nearest
+    end
+
+    local function update_mutant(mutant, enemy_squad, team_idx)
+        if not (mutant and mutant:alive() and IsMonster and IsMonster(mutant)) then return end
+
+        pcall(function() mutant:change_team(team_idx, team_idx, team_idx) end)
+        pcall(function() mutant:berserk() end)
+        pcall(function() mutant:set_custom_panic_threshold(0) end)
+        if mutant.skip_transfer_enemy then
+            pcall(function() mutant:skip_transfer_enemy(false) end)
+        end
+        if db.actor then
+            pcall(function() mutant:set_relation(game_object.neutral, db.actor) end)
+            pcall(function() mutant:force_set_goodwill(5000, db.actor) end)
+        end
+
+        if has_live_enemy_in_squad(mutant, enemy_squad) and not initial_wake then
+            return
+        end
+
+        local target = get_nearest_target(mutant, enemy_squad)
+        if target then
+            pcall(function() mutant:set_relation(game_object.enemy, target) end)
+            pcall(function() target:set_relation(game_object.enemy, mutant) end)
+            pcall(function() mutant:force_set_goodwill(-9999, target) end)
+            pcall(function() target:force_set_goodwill(-9999, mutant) end)
+            if mutant.make_enemy_visible then
+                pcall(function() mutant:make_enemy_visible(target) end)
+            end
+            if target.make_enemy_visible then
+                pcall(function() target:make_enemy_visible(mutant) end)
+            end
+            if mutant.set_enemy then
+                pcall(function() mutant:set_enemy(target) end)
+            end
+            if target.set_enemy then
+                pcall(function() target:set_enemy(mutant) end)
+            end
+            xcvb_arena_utils.scr_hit(target, mutant, initial_wake and 0.05 or 0.01)
+            xcvb_arena_utils.scr_hit(mutant, target, initial_wake and 0.05 or 0.01)
+        end
+    end
+
+    for member1 in squad1:squad_members() do
+        local mutant1 = level.object_by_id(member1.id)
+        if mutant1 and mutant1:alive() and IsMonster and IsMonster(mutant1) then
+            update_mutant(mutant1, squad2, 1)
+        end
+    end
+
+    for member2 in squad2:squad_members() do
+        local mutant2 = level.object_by_id(member2.id)
+        if mutant2 and mutant2:alive() and IsMonster and IsMonster(mutant2) then
+            update_mutant(mutant2, squad1, 2)
+        end
+    end
+end
+
+function force_stalker_aggro(squad_id1, squad_id2, initial_wake)
+    local squad1 = squad_id1 and alife_object(squad_id1)
+    local squad2 = squad_id2 and alife_object(squad_id2)
+    if not (squad1 and squad1.commander_id and squad2 and squad2.commander_id) then return end
+    if not (string.find(squad1:section_name(), "stalker") and string.find(squad2:section_name(), "stalker")) then return end
+
+    local function get_distance(first, second)
+        local distance = nil
+        pcall(function()
+            distance = first:position():distance_to(second:position())
+        end)
+        return distance
+    end
+
+    local function get_nearest_stalker(stalker, enemy_squad)
+        local nearest = nil
+        local nearest_distance = nil
+        for member in enemy_squad:squad_members() do
+            local candidate = level.object_by_id(member.id)
+            if candidate and candidate:alive() and IsStalker and IsStalker(candidate) then
+                local distance = get_distance(stalker, candidate)
+                if not nearest or (distance and (not nearest_distance or distance < nearest_distance)) then
+                    nearest = candidate
+                    nearest_distance = distance
+                end
+            end
+        end
+        return nearest, nearest_distance
+    end
+
+    local function update_stalker(stalker, enemy_squad, team_idx)
+        if not (stalker and stalker:alive() and IsStalker and IsStalker(stalker)) then return end
+
+        pcall(function() stalker:change_team(team_idx, team_idx, team_idx) end)
+        pcall(function() stalker:set_mental_state(anim.danger) end)
+
+        pcall(function() stalker:set_custom_panic_threshold(0.05) end)
+
+        local current_enemy = nil
+        pcall(function()
+            current_enemy = stalker:best_enemy()
+        end)
+
+        local target, target_distance = get_nearest_stalker(stalker, enemy_squad)
+        if not target then return end
+        local current_distance = current_enemy and current_enemy:alive() and get_distance(stalker, current_enemy) or nil
+        local current_is_valid = current_enemy and current_enemy:alive() and current_enemy:id() ~= stalker:id()
+        local target_changed = not current_is_valid
+
+        -- Do not interrupt aiming every update. Switch only when the current
+        -- target is gone or another enemy is clearly closer.
+        if current_is_valid and current_enemy:id() ~= target:id() then
+            target_changed = target_distance and current_distance and target_distance < current_distance * 0.65
+            if not target_changed then
+                target = current_enemy
+            end
+        end
+
+        if not target_changed and not initial_wake then
+            return
+        end
+
+        if stalker.make_enemy_visible then
+            pcall(function() stalker:make_enemy_visible(target) end)
+        end
+        pcall(function() stalker:force_set_goodwill(-9999, target) end)
+        pcall(function() stalker:set_relation(game_object.enemy, target) end)
+        if stalker.set_enemy then
+            pcall(function() stalker:set_enemy(target) end)
+        end
+        if target_changed and stalker.register_in_combat then
+            pcall(function() stalker:register_in_combat() end)
+        end
+        if target_changed then
+            pcall(function() stalker:set_sight(look.fire_point, target:position()) end)
+        end
+
+        if initial_wake or target_changed then
+            xcvb_arena_utils.scr_hit(target, stalker, initial_wake and 0.01 or 0.001)
+        end
+    end
+
+    for member1 in squad1:squad_members() do
+        local stalker1 = level.object_by_id(member1.id)
+        if stalker1 and stalker1:alive() and IsStalker and IsStalker(stalker1) then
+            update_stalker(stalker1, squad2, 1)
+        end
+    end
+
+    for member2 in squad2:squad_members() do
+        local stalker2 = level.object_by_id(member2.id)
+        if stalker2 and stalker2:alive() and IsStalker and IsStalker(stalker2) then
+            update_stalker(stalker2, squad1, 2)
+        end
+    end
+end
+
+function scr_hit(npc, who, power)
     if not (npc and who) then return end
     local h = hit()
-    -- hit.wound at 0.001 power wakes up AI without triggering damage SFX
+    -- hit.wound despierta la IA
     h.type = hit.wound
-    h.power = 0.001
+    h.power = power or 0.001
     h.impulse = 0
-    h.direction = vector():set(0, 0, 1)
+    local dir = vector():set(0, 0, 1)
+    pcall(function()
+        dir = vector():sub(who:position(), npc:position()):normalize()
+    end)
+    h.direction = dir
     h.draftsman = npc
     who:hit(h)
 end

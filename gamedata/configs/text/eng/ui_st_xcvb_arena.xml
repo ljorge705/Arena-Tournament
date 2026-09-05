@@ -635,10 +635,16 @@
 		<text>PRIMARY WEAPON CLASS:</text>
 	</string>
 	<string id="st_arena_loadout_tier_title">
-		<text>GEAR TIER (SUIT / WEAPON):</text>
+		<text>WEAPON TIER:</text>
+	</string>
+	<string id="st_arena_mod_none">
+		<text>None</text>
 	</string>
 	<string id="st_arena_class_random">
 		<text>Random</text>
+	</string>
+	<string id="st_arena_class_pistol">
+		<text>Pistol</text>
 	</string>
 	<string id="st_arena_class_shotgun">
 		<text>Shotgun</text>
@@ -653,7 +659,7 @@
 		<text>Sniper</text>
 	</string>
 	<string id="st_arena_tier_auto">
-		<text>Auto (Round)</text>
+		<text>Auto</text>
 	</string>
 	<string id="st_arena_tier_1_btn">
 		<text>Tier 1</text>
@@ -666,6 +672,9 @@
 	</string>
 	<string id="st_arena_tier_4_btn">
 		<text>Tier 4</text>
+	</string>
+	<string id="st_arena_tier_5_btn">
+		<text>Tier 5</text>
 	</string>
 	<!-- Filtros y apuestas del modo espectador -->
 	<string id="st_arena_filter_all">
@@ -695,11 +704,26 @@
 	<string id="st_arena_label_mvsm">
 		<text>M vs M</text>
 	</string>
+	<string id="st_arena_team1_build_title">
+		<text>RED TEAM - WEAPON:</text>
+	</string>
+	<string id="st_arena_team1_tier_title">
+		<text>RED TEAM - TIER:</text>
+	</string>
+	<string id="st_arena_team2_build_title">
+		<text>BLUE TEAM - WEAPON:</text>
+	</string>
+	<string id="st_arena_team2_tier_title">
+		<text>BLUE TEAM - TIER:</text>
+	</string>
 	<string id="st_arena_btn_spectate">
-		<text>Go to Balcony</text>
+		<text>Start</text>
 	</string>
 	<string id="st_arena_no_bet_selected">
-		<text>You must select a bet on a match before going to the balcony.</text>
+		<text>You must select a bet on a match before starting.</text>
+	</string>
+	<string id="st_arena_spectator_press_f">
+		<text>Press F to leave the Arena</text>
 	</string>
 
 </string_table>
