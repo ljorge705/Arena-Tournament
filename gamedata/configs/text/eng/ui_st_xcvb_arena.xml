@@ -725,5 +725,29 @@
 	<string id="st_arena_spectator_press_f">
 		<text>Press F to leave the Arena</text>
 	</string>
+	<string id="st_arena_group_novice">
+		<text>Novice group</text>
+	</string>
+	<string id="st_arena_group_trainee">
+		<text>Trainee group</text>
+	</string>
+	<string id="st_arena_group_experienced">
+		<text>Experienced group</text>
+	</string>
+	<string id="st_arena_group_advanced">
+		<text>Advanced group</text>
+	</string>
+	<string id="st_arena_group_expert">
+		<text>Expert group</text>
+	</string>
+	<string id="st_arena_group_weak">
+		<text>Weak group</text>
+	</string>
+	<string id="st_arena_group_normal">
+		<text>Normal group</text>
+	</string>
+	<string id="st_arena_group_strong">
+		<text>Strong group</text>
+	</string>
 
 </string_table>

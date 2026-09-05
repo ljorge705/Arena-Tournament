@@ -725,5 +725,29 @@
 	<string id="st_arena_spectator_press_f">
 		<text>Presione F para salir de la Arena</text>
 	</string>
+	<string id="st_arena_group_novice">
+		<text>Grupo de novatos</text>
+	</string>
+	<string id="st_arena_group_trainee">
+		<text>Grupo de entrenados</text>
+	</string>
+	<string id="st_arena_group_experienced">
+		<text>Grupo experimentado</text>
+	</string>
+	<string id="st_arena_group_advanced">
+		<text>Grupo avanzado</text>
+	</string>
+	<string id="st_arena_group_expert">
+		<text>Grupo de expertos</text>
+	</string>
+	<string id="st_arena_group_weak">
+		<text>Grupo de debiles</text>
+	</string>
+	<string id="st_arena_group_normal">
+		<text>Grupo normal</text>
+	</string>
+	<string id="st_arena_group_strong">
+		<text>Grupo fuerte</text>
+	</string>
 
 </string_table>

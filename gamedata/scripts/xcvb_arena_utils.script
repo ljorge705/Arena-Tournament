@@ -340,19 +340,20 @@ function get_team_rank_string(ar)
         end
     end
     
+    local gt = game.translate_string
     if stalker_count > 0 then
         local avg = math.floor((stalker_rank / stalker_count) + 0.5)
-        if avg == 0 then return "Grupo de novatos"
-        elseif avg == 1 then return "Grupo de entrenados"
-        elseif avg == 2 then return "Grupo experimentado"
-        elseif avg == 3 then return "Grupo avanzado"
-        elseif avg >= 4 then return "Grupo de expertos"
+        if avg == 0 then return gt("st_arena_group_novice")
+        elseif avg == 1 then return gt("st_arena_group_trainee")
+        elseif avg == 2 then return gt("st_arena_group_experienced")
+        elseif avg == 3 then return gt("st_arena_group_advanced")
+        elseif avg >= 4 then return gt("st_arena_group_expert")
         end
     elseif mutant_count > 0 then
         local avg = math.floor((mutant_rank / mutant_count) + 0.5)
-        if avg == 0 then return "Grupo de debiles"
-        elseif avg == 1 then return "Grupo normal"
-        elseif avg >= 2 then return "Grupo fuerte"
+        if avg == 0 then return gt("st_arena_group_weak")
+        elseif avg == 1 then return gt("st_arena_group_normal")
+        elseif avg >= 2 then return gt("st_arena_group_strong")
         end
     end
     return nil

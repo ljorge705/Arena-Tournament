@@ -657,4 +657,28 @@
 		<text>Нажмите F, чтобы покинуть Арену</text>
 	</string>
 
+	<string id="st_arena_group_novice">
+		<text>Группа новичков</text>
+	</string>
+	<string id="st_arena_group_trainee">
+		<text>Группа опытных</text>
+	</string>
+	<string id="st_arena_group_experienced">
+		<text>Группа ветеранов</text>
+	</string>
+	<string id="st_arena_group_advanced">
+		<text>Продвинутая группа</text>
+	</string>
+	<string id="st_arena_group_expert">
+		<text>Группа мастеров</text>
+	</string>
+	<string id="st_arena_group_weak">
+		<text>Слабая группа</text>
+	</string>
+	<string id="st_arena_group_normal">
+		<text>Обычная группа</text>
+	</string>
+	<string id="st_arena_group_strong">
+		<text>Сильная группа</text>
+	</string>
 </string_table>
