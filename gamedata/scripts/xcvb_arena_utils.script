@@ -6,19 +6,233 @@ saved_equipped_slots = {}
 saved_belt_items = {}
 saved_actor_item_ids = {}
 saved_active_slot = nil
-function get_weapon_ammo(weapon_sec)
+local excluded_ammo_keywords = {
+    "acid", "shock", "burn", "lightn", "grav", "chaos", "reaper", "flinch", 
+    "varma", "volcano", "dragon", "explos", "ratshot", "hunter", "sucker", 
+    "tri-shot", "trishot", "linked", "frag", "plus", "+", "graze", "ambush", 
+    "vmax", "v-max", "soul", "flechette", "napalm", "shrapnel", "barricada", 
+    "barrikada", "shatter", "38k", "quad", "bad", "verybad", "federal"
+}
+
+local function is_excluded_special_ammo(sec)
+    if not sec then return true end
+    local low = string.lower(sec)
+    for _, kw in ipairs(excluded_ammo_keywords) do
+        if string.find(low, kw, 1, true) then
+            return true
+        end
+    end
+    if string.find(low, "+", 1, true) then
+        return true
+    end
+    return false
+end
+
+function is_artigrok_active()
+    local enabled_in_mcm = xcvb_arena_mcm.get_config("special_ammo_support")
+    if enabled_in_mcm == false then return false end
+    
+    if rawget(_G, "ballistics_utils") ~= nil or rawget(_G, "arti_ammo_utils") ~= nil or rawget(_G, "cxv_artigrok_bo") ~= nil or rawget(_G, "cxv_ammo_stats_tbl") ~= nil then
+        return true
+    end
+    
+    local ok, res = pcall(function()
+        local f = ini_file("ammo\\importer.ltx")
+        return f and f:section_exist("ammo_5.45x39_fmj_bad")
+    end)
+    if ok and res then return true end
+    
+    return false
+end
+
+function get_weapon_ammo(weapon_sec, ammo_type)
     if not weapon_sec then return nil end
     local ammo_class_str = ini_sys:r_string_ex(weapon_sec, "ammo_class")
-    if ammo_class_str then
-        local ammo_list = str_explode(ammo_class_str, ",")
+    if not ammo_class_str then return nil end
+    
+    local ammo_list = str_explode(ammo_class_str, ",")
+    local at = ammo_type or "auto"
+    
+    -- Special handling for ArtiGrok Ballistics
+    if at == "special" and is_artigrok_active() then
+        local special_candidates = {}
         for _, a_sec in ipairs(ammo_list) do
             local clean_sec = trim(a_sec)
             if ini_sys:section_exist(clean_sec) then
-                return clean_sec
+                local low = string.lower(clean_sec)
+                if string.find(low, "bad", 1, true)
+                or string.find(low, "devastator", 1, true)
+                or string.find(low, "star", 1, true)
+                or string.find(low, "mono", 1, true)
+                or string.find(low, "+", 1, true)
+                or string.find(low, "special", 1, true) then
+                    table.insert(special_candidates, clean_sec)
+                end
+            end
+        end
+        if #special_candidates > 0 then
+            return special_candidates[math.random(#special_candidates)]
+        end
+        -- Fallback if this specific weapon has no special ammo
+        at = "ap"
+    end
+    
+    local valid_ammos = {}
+    for _, a_sec in ipairs(ammo_list) do
+        local clean_sec = trim(a_sec)
+        if ini_sys:section_exist(clean_sec) and not is_excluded_special_ammo(clean_sec) then
+            table.insert(valid_ammos, clean_sec)
+        end
+    end
+    
+    -- If all ammos were excluded by filter, fall back to first non-special section
+    if #valid_ammos == 0 then
+        for _, a_sec in ipairs(ammo_list) do
+            local clean_sec = trim(a_sec)
+            if ini_sys:section_exist(clean_sec) and not is_excluded_special_ammo(clean_sec) then
+                table.insert(valid_ammos, clean_sec)
             end
         end
     end
-    return nil
+    
+    if #valid_ammos == 0 then
+        local clean_sec = trim(ammo_list[1])
+        if ini_sys:section_exist(clean_sec) then
+            table.insert(valid_ammos, clean_sec)
+        else
+            return nil
+        end
+    end
+    
+    if at == "auto" or at == "special" then
+        return valid_ammos[1]
+    end
+    
+    local patterns = {}
+    if at == "ap" then
+        patterns = { "_ap", "7h14", "dart", "_ps", "ap_slug", "sp10" }
+    elseif at == "hp" then
+        patterns = { "_hp", "_pmm", "_pbp", "_hydro", "_ep", "zhekan", "slug", "sp12", "ss195" }
+    elseif at == "fmj" then
+        patterns = { "_fmj", "_buck", "pab9", "7h1", "7.62x25_p", "sp11", "ss190" }
+    end
+    
+    for _, pat in ipairs(patterns) do
+        for _, a_sec in ipairs(valid_ammos) do
+            if string.find(string.lower(a_sec), pat, 1, true) and not is_excluded_special_ammo(a_sec) then
+                return a_sec
+            end
+        end
+    end
+    
+    -- Fallback for requested type
+    if (at == "ap" or at == "hp") and #valid_ammos > 1 then
+        for i = 2, #valid_ammos do
+            if not is_excluded_special_ammo(valid_ammos[i]) then
+                return valid_ammos[i]
+            end
+        end
+    end
+    
+    return valid_ammos[1]
+end
+
+function get_item_name(sec)
+    if not sec then return "" end
+    if ui_item and ui_item.get_sec_name then
+        local name = ui_item.get_sec_name(sec)
+        if name and name ~= "" then return name end
+    end
+    local inv_name = ini_sys:r_string_ex(sec, "inv_name")
+    if inv_name and game and game.translate_string then
+        local trans = game.translate_string(inv_name)
+        if trans and trans ~= "" and trans ~= inv_name then
+            return trans
+        end
+    end
+    return sec
+end
+
+function get_item_short_name(sec)
+    if not sec then return "" end
+    local inv_short = ini_sys:r_string_ex(sec, "inv_name_short")
+    if inv_short and game and game.translate_string then
+        local trans = game.translate_string(inv_short)
+        if trans and trans ~= "" and trans ~= inv_short then
+            return trans
+        end
+    end
+    return get_item_name(sec)
+end
+
+function get_weapon_special_ammos(weapon_sec)
+    if not weapon_sec then return {} end
+    local ammo_class_str = ini_sys:r_string_ex(weapon_sec, "ammo_class")
+    if not ammo_class_str then return {} end
+    
+    local special_list = {}
+    local seen = {}
+    local ammo_list = str_explode(ammo_class_str, ",")
+    for _, a_sec in ipairs(ammo_list) do
+        local clean_sec = trim(a_sec)
+        if ini_sys:section_exist(clean_sec) and not seen[clean_sec] then
+            local low_sec = string.lower(clean_sec)
+            -- Exclude old, verybad, damaged variants
+            local is_old = string.find(low_sec, "verybad", 1, true) or string.find(low_sec, "_old", 1, true)
+            if not is_old then
+                local full_name = get_item_name(clean_sec) or ""
+                local short_name = get_item_short_name(clean_sec) or ""
+                local low_name = string.lower(full_name .. " " .. short_name)
+                
+                local name_is_old = string.find(low_name, "old ", 1, true)
+                    or string.find(low_name, "damaged ", 1, true)
+                    or string.find(low_name, "viejo", 1, true)
+                    or string.find(low_name, "dañado", 1, true)
+                    or string.find(low_name, "старый", 1, true)
+                    or string.find(low_name, "поврежден", 1, true)
+                    
+                if not name_is_old then
+                    local is_spec = false
+                    
+                    -- Check if it contains "+" in section or display name
+                    if string.find(clean_sec, "+", 1, true)
+                    or string.find(full_name, "+", 1, true)
+                    or string.find(short_name, "+", 1, true) then
+                        is_spec = true
+                    end
+                    
+                    -- Check special keywords
+                    if not is_spec then
+                        local spec_kws = {
+                            "flechette", "dragon", "devastator", "star", "grav",
+                            "shock", "acid", "cor", "varma", "cluster", "firebomb",
+                            "chaos", "mono", "special"
+                        }
+                        for _, kw in ipairs(spec_kws) do
+                            if string.find(low_sec, kw, 1, true) or string.find(low_name, kw, 1, true) then
+                                is_spec = true
+                                break
+                            end
+                        end
+                    end
+                    
+                    -- In ArtiGrok, modified _bad sections that aren't verybad
+                    if not is_spec and is_artigrok_active() and string.find(low_sec, "_bad", 1, true) then
+                        local inv_name = ini_sys:r_string_ex(clean_sec, "inv_name") or ""
+                        if string.find(inv_name, "ammo_new_", 1, true) then
+                            is_spec = true
+                        end
+                    end
+                    
+                    if is_spec then
+                        seen[clean_sec] = true
+                        table.insert(special_list, clean_sec)
+                    end
+                end
+            end
+        end
+    end
+    return special_list
 end
 
 function get_new_period()
@@ -147,6 +361,7 @@ local stalkers_t = {
     ecolog   = { 0, 1, 2, 3, 4 },
     csky     = { 0, 1, 2, 3, 4 },
     renegade = { 0, 1, 2 },
+    zombied  = { 1, 2, 3, 4 },
 }
 
 local stalkers_power_t = {
@@ -168,6 +383,7 @@ local faction_enemies_t = {
     army     = { "stalker", "freedom", "bandit", "killer", "renegade", "csky" },
     bandit   = { "stalker", "dolg", "freedom", "csky", "ecolog", "army" },
     renegade = { "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army" },
+    zombied  = { "stalker", "dolg", "freedom", "csky", "killer", "army", "bandit", "renegade", "ecolog" },
 }
 
 function is_enemy_faction(fac1, fac2)
@@ -424,7 +640,7 @@ local default_faction_enemies = {
     ["army"]     = { "stalker", "freedom", "bandit", "killer", "renegade", "csky" },
     ["military"] = { "stalker", "bandit", "freedom", "killer", "renegade" },
     ["renegade"] = { "csky", "stalker", "dolg", "military" },
-    ["isg"]      = { "stalker", "dolg", "freedom", "csky", "killer", "military" }
+    ["zombied"]  = { "stalker", "dolg", "freedom", "csky", "killer", "military", "bandit", "renegade", "ecolog" }
 }
 
 function get_actor_faction()
@@ -601,24 +817,38 @@ function toggle_arena_lights(turn_on)
 end
 
 function setup_tournament_squad_aggro(squad_id)
+    if type(squad_id) == "table" then
+        return setup_endless_squads_aggro(squad_id)
+    end
     local squad = squad_id and alife_object(squad_id)
     if not (squad and squad.commander_id) then return end
     
     for m in squad:squad_members() do
         local npc = level.object_by_id(m.id)
         if npc and npc:alive() then
+            local n_pos = npc:position()
+            if n_pos and (n_pos.y > -19.0 or n_pos.y < -21.5) then
+                local fixed_pos = vector():set(n_pos.x, -20.0543, n_pos.z)
+                pcall(function() npc:set_npc_position(fixed_pos) end)
+            end
             pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
             pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
             pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
             
-            if npc.make_enemy_visible then
+            if npc.set_enemy then
+                pcall(function() npc:set_enemy(db.actor) end)
+            end
+            if npc.set_sight and db.actor then
+                pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+            end
+            if npc.make_enemy_visible and db.actor then
                 pcall(function() npc:make_enemy_visible(db.actor) end)
             end
             if npc.register_in_combat then
                 pcall(function() npc:register_in_combat() end)
             end
             
-            xcvb_arena_utils.scr_hit(db.actor, npc)
+            xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
             
             if IsMonster and IsMonster(npc) then
                 pcall(function() npc:berserk() end)
@@ -626,6 +856,72 @@ function setup_tournament_squad_aggro(squad_id)
             elseif IsStalker and IsStalker(npc) then
                 pcall(function() npc:set_mental_state(anim.danger) end)
                 pcall(function() npc:set_custom_panic_threshold(0.05) end)
+            end
+        end
+    end
+end
+
+function setup_endless_squads_aggro(squad_ids)
+    if not squad_ids then return end
+    if type(squad_ids) == "number" then
+        squad_ids = { squad_ids }
+    end
+    local all_npcs = {}
+    for _, s_id in ipairs(squad_ids) do
+        local squad = s_id and alife_object(s_id)
+        if squad then
+            for m in squad:squad_members() do
+                local npc = level.object_by_id(m.id)
+                if npc and npc:alive() then
+                    table.insert(all_npcs, npc)
+                    
+                    local n_pos = npc:position()
+                    if n_pos and (n_pos.y > -19.0 or n_pos.y < -21.5) then
+                        local fixed_pos = vector():set(n_pos.x, -20.0543, n_pos.z)
+                        pcall(function() npc:set_npc_position(fixed_pos) end)
+                    end
+                    pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
+                    pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
+                    pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
+                    
+                    if npc.set_enemy then
+                        pcall(function() npc:set_enemy(db.actor) end)
+                    end
+                    if npc.set_sight and db.actor then
+                        pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                    end
+                    if npc.make_enemy_visible and db.actor then
+                        pcall(function() npc:make_enemy_visible(db.actor) end)
+                    end
+                    if npc.register_in_combat then
+                        pcall(function() npc:register_in_combat() end)
+                    end
+                    
+                    xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
+                    
+                    if IsMonster and IsMonster(npc) then
+                        pcall(function() npc:berserk() end)
+                        pcall(function() npc:set_custom_panic_threshold(0) end)
+                    elseif IsStalker and IsStalker(npc) then
+                        pcall(function() npc:set_mental_state(anim.danger) end)
+                        pcall(function() npc:set_custom_panic_threshold(0.05) end)
+                    end
+                end
+            end
+        end
+    end
+    
+    if #all_npcs > 1 then
+        for i = 1, #all_npcs do
+            for j = i + 1, #all_npcs do
+                local n1 = all_npcs[i]
+                local n2 = all_npcs[j]
+                pcall(function()
+                    n1:force_set_goodwill(5000, n2)
+                    n2:force_set_goodwill(5000, n1)
+                    n1:set_relation(game_object.friend, n2)
+                    n2:set_relation(game_object.friend, n1)
+                end)
             end
         end
     end
@@ -844,6 +1140,42 @@ local function pick_valid_section(list, exclude_sec)
     return valid[math.random(#valid)]
 end
 
+function get_available_weapons(effective_tier, loadout_class)
+    local t = effective_tier or 1
+    local t_data = tournament_loadouts_t[t] or tournament_loadouts_t[1]
+    if not t_data then return {} end
+    
+    local wpn_list = t_data.weapons
+    if loadout_class == "pistol" and t_data.pistols then
+        wpn_list = t_data.pistols
+    elseif loadout_class == "shotgun" and t_data.shotguns then
+        wpn_list = t_data.shotguns
+    elseif loadout_class == "rifle" and t_data.rifles then
+        wpn_list = t_data.rifles
+    elseif loadout_class == "smg" and t_data.smgs then
+        wpn_list = t_data.smgs
+    elseif loadout_class == "sniper" and t_data.snipers then
+        wpn_list = t_data.snipers
+    end
+    
+    local valid = {}
+    if wpn_list then
+        for _, sec in ipairs(wpn_list) do
+            if ini_sys:section_exist(sec) then
+                table.insert(valid, sec)
+            end
+        end
+    end
+    return valid
+end
+
+function get_tier_preview_gear(effective_tier)
+    local t = effective_tier or 1
+    local t_data = tournament_loadouts_t[t] or tournament_loadouts_t[1]
+    local outfit = t_data and t_data.outfits and t_data.outfits[1]
+    local helmet = t_data and t_data.helmets and t_data.helmets[1]
+    return outfit, helmet
+end
 
 function init_arena_box()
     if get_story_object("bar_arena_inventory_box") then return end
@@ -996,13 +1328,24 @@ local function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id)
         local found = false
         local mag_ammos = str_explode(mag_ammo_str, ",")
         for _, a in ipairs(mag_ammos) do
-            if trim(a) == ammo_sec then
+            local clean_a = trim(a)
+            if clean_a == ammo_sec then
                 found = true
                 break
             end
         end
         if not found and #mag_ammos > 0 then
-            ammo_sec = trim(mag_ammos[1]) 
+            for _, a in ipairs(mag_ammos) do
+                local clean_a = trim(a)
+                if not is_excluded_special_ammo(clean_a) then
+                    ammo_sec = clean_a
+                    found = true
+                    break
+                end
+            end
+            if not found then
+                ammo_sec = trim(mag_ammos[1])
+            end
         end
     end
     
@@ -1150,7 +1493,7 @@ local function power_up_exoskeleton(spawned_outfit_id, outfit_sec)
     end)
 end
 
-function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
+function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier, chosen_ammo_type, forced_weapon_sec, forced_ammo_sec)
     local effective_tier = (forced_tier and tonumber(forced_tier) and tonumber(forced_tier) > 0) and tonumber(forced_tier) or round_tier
     local t_data = tournament_loadouts_t[effective_tier] or tournament_loadouts_t[1]
     
@@ -1191,14 +1534,24 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
         wpn_list = t_data.snipers
     end
     
-    local wpn_sec = pick_valid_section(wpn_list, last_spawned_weapon_sec) or pick_valid_section(t_data.weapons, last_spawned_weapon_sec)
+    local wpn_sec = nil
+    if forced_weapon_sec and ini_sys:section_exist(forced_weapon_sec) then
+        wpn_sec = forced_weapon_sec
+    else
+        wpn_sec = pick_valid_section(wpn_list, last_spawned_weapon_sec) or pick_valid_section(t_data.weapons, last_spawned_weapon_sec)
+    end
     if wpn_sec then
         last_spawned_weapon_sec = wpn_sec
         local se = alife_create(wpn_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
         if se then
             temporary_arena_item_ids[se.id] = true
             spawned_wpn_id = se.id
-            local ammo_sec = get_weapon_ammo(wpn_sec)
+            local ammo_sec = nil
+            if forced_ammo_sec and ini_sys:section_exist(forced_ammo_sec) then
+                ammo_sec = forced_ammo_sec
+            else
+                ammo_sec = get_weapon_ammo(wpn_sec, chosen_ammo_type)
+            end
             if ammo_sec then
                 ammo_sec = spawn_and_fill_mags(wpn_sec, ammo_sec, 3, spawned_wpn_id) or ammo_sec
                 local count = t_data.ammo_count or 5
@@ -1210,14 +1563,15 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
         end
     end
     
-    if t_data.pistols and loadout_class ~= "pistol" then
+    local is_no_pistol_class = (loadout_class == "shotgun" or loadout_class == "rifle" or loadout_class == "smg" or loadout_class == "sniper" or loadout_class == "pistol")
+    if t_data.pistols and not is_no_pistol_class then
         local pistol_sec = pick_valid_section(t_data.pistols)
         if pistol_sec then
             local se = alife_create(pistol_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
             if se then
                 temporary_arena_item_ids[se.id] = true
                 spawned_pistol_id = se.id
-                local p_ammo = get_weapon_ammo(pistol_sec)
+                local p_ammo = get_weapon_ammo(pistol_sec, chosen_ammo_type)
                 if p_ammo then
                     p_ammo = spawn_and_fill_mags(pistol_sec, p_ammo, 3, spawned_pistol_id) or p_ammo
                     for i = 1, 3 do
@@ -1270,8 +1624,13 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier)
         if spawned_wpn_id then
             local wpn_obj = level.object_by_id(spawned_wpn_id)
             if wpn_obj then
-                db.actor:move_to_slot(wpn_obj, 2)
-                db.actor:activate_slot(2)
+                if loadout_class == "pistol" then
+                    db.actor:move_to_slot(wpn_obj, 1)
+                    db.actor:activate_slot(1)
+                else
+                    db.actor:move_to_slot(wpn_obj, 2)
+                    db.actor:activate_slot(2)
+                end
             end
         end
         
@@ -1875,4 +2234,719 @@ function sim_squad_scripted.sim_squad_scripted.get_script_target(self)
     if orig_get_script_target then
         return orig_get_script_target(self)
     end
+end
+
+--------------------------------------------------------------------------------
+-- BATALLA CAMPAL (MULTIBANDO) HELPERS
+--------------------------------------------------------------------------------
+
+function get_safe_arena_lvid(pos, fallback_lvid)
+    local def_lvid = fallback_lvid or 40551
+    if not (level and level.vertex_id) then
+        return def_lvid
+    end
+    
+    local ok, v = pcall(level.vertex_id, pos)
+    if not (ok and v and v > 0 and v < 4294967295) then
+        return def_lvid
+    end
+    
+    if level.vertex_position then
+        local ok2, v_pos = pcall(level.vertex_position, v)
+        if ok2 and v_pos then
+            -- Arena pit floor is at Y ~ -20.05.
+            -- Spectator balcony is at Y ~ -13, Catwalks / roof are at Y >= -5.
+            -- If Y is outside [-21.5, -19.0], this node is on the ceiling/balcony! Reject it!
+            if v_pos.y > -19.0 or v_pos.y < -21.5 then
+                return def_lvid
+            end
+            
+            -- Horizontal sanity check: node must be reasonably close (< 3.5m)
+            local dx = v_pos.x - pos.x
+            local dz = v_pos.z - pos.z
+            if (dx * dx + dz * dz) > 12.25 then
+                return def_lvid
+            end
+            
+            -- Valid arena floor node! Snap position Y to exact floor height
+            pos.y = v_pos.y
+            return v
+        end
+    end
+    
+    return def_lvid
+end
+
+function get_battle_royale_pos(team_idx, total_teams)
+    local pos
+    if total_teams == 3 then
+        if team_idx == 1 then
+            pos = vector():set(151.2, -20.0543, 126.0)
+        elseif team_idx == 2 then
+            pos = vector():set(144.0, -20.0598, 88.0)
+        else
+            pos = vector():set(160.0, -20.0598, 88.0)
+        end
+    else
+        if team_idx == 1 then
+            pos = vector():set(144.0, -20.0543, 122.0)
+        elseif team_idx == 2 then
+            pos = vector():set(160.0, -20.0543, 122.0)
+        elseif team_idx == 3 then
+            pos = vector():set(144.0, -20.0598, 88.0)
+        else
+            pos = vector():set(160.0, -20.0598, 88.0)
+        end
+    end
+    local lvid = (team_idx <= 2) and 40551 or 40761
+    local gvid = (team_idx <= 2) and 1796 or 1684
+    lvid = get_safe_arena_lvid(pos, lvid)
+    return pos, lvid, gvid
+end
+
+local mutant_species_defs = {
+    chimera = {
+        sections = { "chimera_normal", "chimera_strong", "chimera_weak" },
+        base_count = 1,
+        power = 16,
+    },
+    gigant = {
+        sections = { "gigant_normal", "gigant_strong", "gigant_weak" },
+        base_count = 1,
+        power = 18,
+    },
+    bloodsucker = {
+        sections = { "bloodsucker_normal", "bloodsucker_strong", "bloodsucker_weak" },
+        base_count = 2,
+        power = 9,
+    },
+    burer = {
+        sections = { "burer_normal", "burer_strong" },
+        base_count = 2,
+        power = 12,
+    },
+    psysucker = {
+        sections = { "psysucker_2_normal", "psysucker_3_strong", "psysucker_3_normal" },
+        base_count = 2,
+        power = 10,
+    },
+    psy_dog = {
+        sections = { "psy_dog_normal" },
+        support_sections = { "pseudodog_normal", "pseudodog_strong" },
+        base_count = 1,
+        support_count = 2,
+        power = 9,
+    },
+    snork = {
+        sections = { "snork_normal", "snork_normal2", "snork_strong", "snork_weak" },
+        base_count = 3,
+        power = 7,
+    },
+    lurker = {
+        sections = { "lurker_1_normal", "lurker_2_normal", "lurker_3_strong" },
+        base_count = 3,
+        power = 7,
+    },
+    pseudodog = {
+        sections = { "pseudodog_normal", "pseudodog_strong", "pseudodog_grey_strong" },
+        base_count = 3,
+        power = 6,
+    },
+    boar = {
+        sections = { "boar_normal", "boar_strong" },
+        base_count = 3,
+        power = 5,
+    },
+    cat = {
+        sections = { "cat_normal_a", "cat_normal_b", "cat_strong_a" },
+        base_count = 4,
+        power = 5,
+    },
+    fracture = {
+        sections = { "fracture_normal", "fracture_strong", "fracture_3" },
+        base_count = 3,
+        power = 5,
+    },
+    flesh = {
+        sections = { "flesh_normal", "flesh_strong" },
+        base_count = 3,
+        power = 4,
+    },
+    dog = {
+        sections = { "dog_normal_red", "dog_normal_white", "dog_normal_brown", "dog_strong_black" },
+        base_count = 5,
+        power = 3,
+    },
+    zombie = {
+        sections = { "zombie_normal", "zombie_strong", "zombie_blind" },
+        base_count = 4,
+        power = 3,
+    },
+    tushkano = {
+        sections = { "tushkano_normal" },
+        base_count = 6,
+        power = 2,
+    },
+}
+
+local function pick_valid_mutant_sec(sec_list, fallback_sec)
+    if sec_list then
+        for _, s in ipairs(sec_list) do
+            if ini_sys and ini_sys:section_exist(s) then
+                return s
+            end
+        end
+    end
+    if fallback_sec and ini_sys and ini_sys:section_exist(fallback_sec) then
+        return fallback_sec
+    end
+    return (sec_list and sec_list[1]) or fallback_sec or "snork_normal"
+end
+
+function get_squad_for_mutant(mut_key)
+    local key = mut_key or "snork"
+    local def = mutant_species_defs[key]
+    if not def then
+        def = mutant_species_defs["snork"]
+        key = "snork"
+    end
+
+    local secs = {}
+    local pwr = def.power or 6
+    local base_cnt = def.base_count or 3
+
+    for i = 1, base_cnt do
+        local rand_sec = def.sections[math.random(1, #def.sections)]
+        local chosen = pick_valid_mutant_sec({ rand_sec }, def.sections[1])
+        secs[#secs + 1] = chosen
+    end
+
+    if def.support_sections and def.support_count then
+        for i = 1, def.support_count do
+            local rand_sec = def.support_sections[math.random(1, #def.support_sections)]
+            local chosen = pick_valid_mutant_sec({ rand_sec }, def.support_sections[1])
+            secs[#secs + 1] = chosen
+        end
+    end
+
+    return secs, pwr, key
+end
+
+function get_squad_for_faction(fac_key, amount)
+    local amt = amount or 3
+    if mutant_species_defs[fac_key] then
+        return get_squad_for_mutant(fac_key)
+    end
+    if fac_key == "mutant" then
+        local t, p = get_mutant_team(amt)
+        if not t or #t == 0 then
+            t = { "snork_normal", "snork_normal", "boar_normal" }
+            p = 10
+        end
+        return t, p, "mutant"
+    end
+    
+    local k = fac_key or "stalker"
+    if k == "duty" then k = "dolg" end
+    if k == "military" then k = "army" end
+    
+    local ranks = stalkers_t[k] or stalkers_t["stalker"]
+    local ret_ar = {}
+    local pwr = 0
+    for i = 1, amt do
+        local rank_val = ranks[math.random(1, #ranks)]
+        local sec_fac = k
+        if k == "army" then sec_fac = "military" elseif k == "dolg" then sec_fac = "duty" end
+        local sec = "sim_default_" .. sec_fac .. "_" .. rank_val
+        ret_ar[#ret_ar + 1] = sec
+        pwr = pwr + (stalkers_power_t[rank_val] or 3)
+    end
+    return ret_ar, pwr, k
+end
+
+function setup_battle_royale_relations(squad_ids)
+    if not squad_ids then return end
+    local squads = {}
+    for idx, sq_id in ipairs(squad_ids) do
+        local sq = sq_id and alife_object(sq_id)
+        if sq then
+            squads[idx] = sq
+        end
+    end
+
+    local total = #squad_ids
+    for idx, sq in pairs(squads) do
+        local next_idx = (idx % total) + 1
+        local next_target = squads[next_idx]
+        if next_target then
+            sq.scripted_target = next_target.id
+            sq.assigned_target_id = next_target.id
+        end
+        sq.rush_to_target = true
+    end
+
+    for i = 1, total do
+        local sq_i = squads[i]
+        if sq_i then
+            for j = 1, total do
+                if i ~= j then
+                    local sq_j = squads[j]
+                    if sq_j then
+                        pcall(function() sq_i:set_relation(sq_j, "enemy") end)
+                    end
+                end
+            end
+        end
+    end
+
+    for i = 1, total do
+        local sq_i = squads[i]
+        if sq_i then
+            for m_i in sq_i:squad_members() do
+                local npc_i = level.object_by_id(m_i.id)
+                if npc_i and npc_i:alive() then
+                    pcall(function() npc_i:change_team(i, i, i) end)
+                    pcall(function() npc_i:add_restrictions("bar_arena_restrictor", "") end)
+                    if db.actor then
+                        pcall(function() npc_i:force_set_goodwill(5000, db.actor) end)
+                        pcall(function() npc_i:set_relation(game_object.neutral, db.actor) end)
+                    end
+                    if IsMonster and IsMonster(npc_i) then
+                        pcall(function() npc_i:berserk() end)
+                        pcall(function() npc_i:set_custom_panic_threshold(0) end)
+                    elseif IsStalker and IsStalker(npc_i) then
+                        pcall(function() npc_i:set_mental_state(anim.danger) end)
+                        pcall(function() npc_i:set_custom_panic_threshold(0.05) end)
+                        if npc_i.register_in_combat then
+                            pcall(function() npc_i:register_in_combat() end)
+                        end
+                    end
+
+                    for j = 1, total do
+                        if i ~= j then
+                            local sq_j = squads[j]
+                            if sq_j then
+                                for m_j in sq_j:squad_members() do
+                                    local npc_j = level.object_by_id(m_j.id)
+                                    if npc_j and npc_j:alive() then
+                                        pcall(function() npc_i:force_set_goodwill(-9999, npc_j) end)
+                                        pcall(function() npc_i:set_relation(game_object.enemy, npc_j) end)
+                                        if npc_i.make_enemy_visible then
+                                            pcall(function() npc_i:make_enemy_visible(npc_j) end)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+local faction_names_t = {
+    stalker = "st_arena_bc_fac_stalker",
+    bandit = "st_arena_bc_fac_bandit",
+    dolg = "st_arena_bc_fac_dolg",
+    duty = "st_arena_bc_fac_dolg",
+    freedom = "st_arena_bc_fac_freedom",
+    killer = "st_arena_bc_fac_killer",
+    army = "st_arena_bc_fac_army",
+    military = "st_arena_bc_fac_army",
+    csky = "st_arena_bc_fac_csky",
+    ecolog = "st_arena_bc_fac_ecolog",
+    renegade = "st_arena_bc_fac_renegade",
+    zombied = "st_arena_bc_fac_zombied",
+    mutant = "st_arena_bc_fac_mutant",
+}
+
+local faction_names_fallback = {
+    stalker = "Solitarios",
+    bandit = "Bandidos",
+    dolg = "Deber",
+    duty = "Deber",
+    freedom = "Libertad",
+    killer = "Mercenarios",
+    army = "Militares",
+    military = "Militares",
+    csky = "Cielo Limpio",
+    ecolog = "Ecologistas",
+    renegade = "Renegados",
+    zombied = "Zombificados",
+    mutant = "Mutantes",
+}
+
+function get_faction_name(fac_key)
+    local key = fac_key or "stalker"
+    local str_id = faction_names_t[key]
+    if str_id and game and game.translate_string then
+        local trans = game.translate_string(str_id)
+        if trans and trans ~= "" and trans ~= str_id then
+            return trans
+        end
+    end
+    return faction_names_fallback[key] or key:upper()
+end
+
+local mutant_names_t = {
+    chimera = "st_arena_mut_chimera",
+    gigant = "st_arena_mut_gigant",
+    bloodsucker = "st_arena_mut_bloodsucker",
+    burer = "st_arena_mut_burer",
+    psysucker = "st_arena_mut_psysucker",
+    psy_dog = "st_arena_mut_psy_dog",
+    snork = "st_arena_mut_snork",
+    lurker = "st_arena_mut_lurker",
+    pseudodog = "st_arena_mut_pseudodog",
+    boar = "st_arena_mut_boar",
+    cat = "st_arena_mut_cat",
+    fracture = "st_arena_mut_fracture",
+    flesh = "st_arena_mut_flesh",
+    dog = "st_arena_mut_dog",
+    zombie = "st_arena_mut_zombie",
+    tushkano = "st_arena_mut_tushkano",
+}
+
+local mutant_names_fallback = {
+    chimera = "Quimera",
+    gigant = "Pseudogigante",
+    bloodsucker = "Sanguijuela",
+    burer = "Burer",
+    psysucker = "Psysucker",
+    psy_dog = "Perro Psiquico",
+    snork = "Snork",
+    lurker = "Acechador",
+    pseudodog = "Pseudoperro",
+    boar = "Jabali",
+    cat = "Gato de la Zona",
+    fracture = "Izlom",
+    flesh = "Cerdo Mutante",
+    dog = "Perros Ciegos",
+    zombie = "Zombis",
+    tushkano = "Roedores",
+}
+
+function get_mutant_name(mut_key)
+    local key = mut_key or "snork"
+    local str_id = mutant_names_t[key]
+    if str_id and game and game.translate_string then
+        local trans = game.translate_string(str_id)
+        if trans and trans ~= "" and trans ~= str_id then
+            return trans
+        end
+    end
+    return mutant_names_fallback[key] or key:upper()
+end
+
+--------------------------------------------------------------------------------
+-- ENDLESS MODE (MODO INFINITO) UTILITIES
+--------------------------------------------------------------------------------
+
+local endless_mutant_sections_by_tier = {
+    [1] = { "tushkano_normal", "dog_weak_red", "dog_normal_white", "flesh_weak", "cat_weak" },
+    [2] = { "dog_strong_black", "pseudodog_normal", "boar_normal", "snork_weak", "flesh_normal" },
+    [3] = { "snork_normal", "bloodsucker_normal", "psysucker_weak", "boar_strong", "fracture_normal" },
+    [4] = { "bloodsucker_strong", "burer_normal", "psysucker_normal", "snork_strong", "chimera_weak" },
+    [5] = { "chimera_normal", "gigant_normal", "burer_strong", "bloodsucker_strong" },
+}
+
+local endless_enemy_factions = { "bandit", "renegade", "killer", "army", "dolg", "freedom", "zombied" }
+
+local endless_spawn_zones = {
+    -- 6 verified, open floor zones spanning the North and Mid-North arena sectors
+    { pos = vector():set(151.2, -20.0543, 128.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Gate
+    { pos = vector():set(145.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 }, -- North West Flank
+    { pos = vector():set(158.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 }, -- North East Flank
+    { pos = vector():set(147.0, -20.0550, 115.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North West
+    { pos = vector():set(157.0, -20.0550, 115.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North East
+    { pos = vector():set(151.2, -20.0550, 119.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Approach
+}
+
+local function get_random_endless_spawn_pos(prefer_idx)
+    local z_idx = prefer_idx
+    if not z_idx or z_idx < 1 or z_idx > #endless_spawn_zones then
+        z_idx = math.random(1, #endless_spawn_zones)
+    end
+    local zone = endless_spawn_zones[z_idx]
+    -- Safe micro-jitter of +/- 0.5m so squad members do not overlap, keeping away from obstacles
+    local ox = (math.random() * 1.0) - 0.5
+    local oz = (math.random() * 1.0) - 0.5
+    local p = vector():set(zone.pos.x + ox, zone.pos.y, zone.pos.z + oz)
+    local lvid = get_safe_arena_lvid(p, zone.fallback_lvid)
+    local gvid = zone.gvid
+    return p, lvid, gvid
+end
+
+function spawn_endless_squad(wave, enemy_type)
+    local cur_wave = wave or 1
+    local e_type = enemy_type or "stalkers"
+    
+    local tier = 1
+    if cur_wave >= 9 then
+        tier = 5
+    elseif cur_wave >= 7 then
+        tier = 4
+    elseif cur_wave >= 5 then
+        tier = 3
+    elseif cur_wave >= 3 then
+        tier = 2
+    end
+    
+    local num_enemies = cur_wave
+    if num_enemies > 6 then
+        num_enemies = 6
+    end
+    
+    local a_fac = get_actor_faction()
+    local rank = math.max(0, math.min(4, tier - 1))
+    
+    local zone_order = {}
+    for z = 1, #endless_spawn_zones do
+        table.insert(zone_order, z)
+    end
+    for i = #zone_order, 2, -1 do
+        local j = math.random(i)
+        zone_order[i], zone_order[j] = zone_order[j], zone_order[i]
+    end
+
+    local wave_fac = nil
+    if e_type == "stalkers" then
+        local fac_candidates = {}
+        for _, f in ipairs(endless_enemy_factions) do
+            if is_enemy_to_actor(f, a_fac) then
+                table.insert(fac_candidates, f)
+            end
+        end
+        wave_fac = (#fac_candidates > 0) and fac_candidates[math.random(#fac_candidates)] or "bandit"
+    end
+
+    local spawned_squads = {}
+
+    for i = 1, num_enemies do
+        local sec = nil
+        local choose_mutant = (e_type == "mutants") or (e_type == "chaos" and (math.random(1, 2) == 1))
+        
+        if choose_mutant then
+            local m_list = endless_mutant_sections_by_tier[tier] or endless_mutant_sections_by_tier[1]
+            sec = pick_valid_section(m_list)
+        else
+            local chosen_fac = wave_fac
+            if not chosen_fac then
+                local fac_candidates = {}
+                for _, f in ipairs(endless_enemy_factions) do
+                    if is_enemy_to_actor(f, a_fac) then
+                        table.insert(fac_candidates, f)
+                    end
+                end
+                chosen_fac = (#fac_candidates > 0) and fac_candidates[math.random(#fac_candidates)] or "bandit"
+            end
+            local cand_sec = "sim_default_" .. chosen_fac .. "_" .. rank
+            if chosen_fac == "army" and ini_sys:section_exist("sim_default_military_" .. rank) then
+                cand_sec = "sim_default_military_" .. rank
+            elseif chosen_fac == "dolg" and ini_sys:section_exist("sim_default_duty_" .. rank) then
+                cand_sec = "sim_default_duty_" .. rank
+            end
+            if ini_sys:section_exist(cand_sec) then
+                sec = cand_sec
+            else
+                sec = "sim_default_bandit_" .. rank
+            end
+        end
+        
+        if sec and ini_sys:section_exist(sec) then
+            local z_idx = zone_order[((i - 1) % #zone_order) + 1]
+            local m_pos, m_lvid, m_gvid = get_random_endless_spawn_pos(z_idx)
+            
+            local is_m = choose_mutant or (sec and not string.find(sec, "^sim_default_"))
+            local squad_sec = is_m and "arena_tournament_mutant_squad" or "arena_tournament_enemy_squad"
+            
+            -- Cada combatiente se crea en su propio escuadron independiente para que no corran a reagruparse hacia un lado
+            local sq = alife_create(squad_sec, m_pos, m_lvid, m_gvid)
+            if sq then
+                sq.scripted_target = "actor"
+                sq.assigned_target_id = 0
+                sq.rush_to_target = true
+                sq:add_squad_member(sec, m_pos, m_lvid, m_gvid)
+                sq:set_squad_relation()
+                sq:refresh()
+                for m in sq:squad_members() do
+                    arena_spawned_combatant_ids[m.id] = true
+                    if db.spawned_vertex_by_id and db.spawned_vertex_by_id[m.id] then
+                        local sv = db.spawned_vertex_by_id[m.id]
+                        if level.vertex_position then
+                            local sv_pos = level.vertex_position(sv)
+                            if sv_pos and (sv_pos.y > -19.0 or sv_pos.y < -21.5) then
+                                db.spawned_vertex_by_id[m.id] = 40551
+                            end
+                        end
+                    end
+                    local se_obj = alife_object(m.id)
+                    if se_obj and se_obj.position and (se_obj.position.y > -19.0 or se_obj.position.y < -21.5) then
+                        se_obj.position.y = -20.0543
+                    end
+                end
+                table.insert(spawned_squads, sq)
+            end
+        end
+    end
+    
+    return spawned_squads
+end
+
+function equip_endless_random_loadout(wave)
+    local cur_wave = wave or 1
+    
+    for item_id, _ in pairs(temporary_arena_item_ids) do
+        local se_item = alife_object(item_id)
+        if se_item then
+            if safe_release_manager and safe_release_manager.release then
+                safe_release_manager.release({ id = item_id })
+            else
+                alife_release(se_item)
+            end
+        end
+    end
+    temporary_arena_item_ids = {}
+    
+    local tier = 1
+    if cur_wave >= 8 then
+        tier = 5
+    elseif cur_wave >= 6 then
+        tier = 4
+    elseif cur_wave >= 4 then
+        tier = 3
+    elseif cur_wave >= 2 then
+        tier = 2
+    end
+    
+    local t_data = tournament_loadouts_t[tier] or tournament_loadouts_t[1]
+    
+    local spawned_outfit_id = nil
+    local spawned_helm_id = nil
+    local outfit_sec = pick_valid_section(t_data.outfits)
+    if outfit_sec then
+        local se = alife_create(outfit_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+        if se then
+            temporary_arena_item_ids[se.id] = true
+            spawned_outfit_id = se.id
+            power_up_exoskeleton(se.id, outfit_sec)
+        end
+    end
+    
+    local helm_sec = pick_valid_section(t_data.helmets)
+    if helm_sec then
+        local se = alife_create(helm_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+        if se then
+            temporary_arena_item_ids[se.id] = true
+            spawned_helm_id = se.id
+        end
+    end
+    
+    local classes = { "shotgun", "rifle", "smg", "sniper" }
+    if tier == 1 then table.insert(classes, "pistol") end
+    local chosen_cls = classes[math.random(#classes)]
+    
+    local wpn_list = t_data.weapons
+    if chosen_cls == "pistol" and t_data.pistols then
+        wpn_list = t_data.pistols
+    elseif chosen_cls == "shotgun" and t_data.shotguns then
+        wpn_list = t_data.shotguns
+    elseif chosen_cls == "rifle" and t_data.rifles then
+        wpn_list = t_data.rifles
+    elseif chosen_cls == "smg" and t_data.smgs then
+        wpn_list = t_data.smgs
+    elseif chosen_cls == "sniper" and t_data.snipers then
+        wpn_list = t_data.snipers
+    end
+    
+    local spawned_wpn_id = nil
+    local wpn_sec = pick_valid_section(wpn_list, last_spawned_weapon_sec) or pick_valid_section(t_data.weapons, last_spawned_weapon_sec)
+    if wpn_sec then
+        last_spawned_weapon_sec = wpn_sec
+        local se = alife_create(wpn_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+        if se then
+            temporary_arena_item_ids[se.id] = true
+            spawned_wpn_id = se.id
+            
+            local ammo_types = { "fmj", "ap", "hp" }
+            local chosen_ammo = ammo_types[math.random(#ammo_types)]
+            if is_artigrok_active() and cur_wave >= 3 and math.random(1, 4) == 1 then
+                chosen_ammo = "special"
+            end
+            local ammo_sec = get_weapon_ammo(wpn_sec, chosen_ammo)
+            if ammo_sec then
+                ammo_sec = spawn_and_fill_mags(wpn_sec, ammo_sec, 4, spawned_wpn_id) or ammo_sec
+                local count = (t_data.ammo_count or 5) + 1
+                for i = 1, count do
+                    local se_ammo = alife_create(ammo_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+                    if se_ammo then temporary_arena_item_ids[se_ammo.id] = true end
+                end
+            end
+        end
+    end
+    
+    local knife_sec = t_data.knife or "wpn_knife"
+    if ini_sys:section_exist(knife_sec) then
+        local se = alife_create(knife_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+        if se then temporary_arena_item_ids[se.id] = true end
+    end
+    
+    if t_data.meds then
+        for _, med_sec in ipairs(t_data.meds) do
+            if ini_sys:section_exist(med_sec) then
+                local se = alife_create(med_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+                if se then temporary_arena_item_ids[se.id] = true end
+            end
+        end
+    end
+    
+    if db.actor then
+        db.actor.health = math.min(1.0, db.actor.health + 0.40)
+    end
+    
+    CreateTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1", 0.3, function()
+        local outfit_obj = spawned_outfit_id and level.object_by_id(spawned_outfit_id)
+        if not outfit_obj then
+            db.actor:iterate_inventory(function(_, itm)
+                if is_outfit_item(itm) and temporary_arena_item_ids[itm:id()] then
+                    outfit_obj = itm
+                    return true
+                end
+            end, db.actor)
+        end
+        if outfit_obj then
+            db.actor:move_to_slot(outfit_obj, 7)
+        end
+        
+        if spawned_wpn_id then
+            local wpn_obj = level.object_by_id(spawned_wpn_id)
+            if wpn_obj then
+                if chosen_cls == "pistol" then
+                    db.actor:move_to_slot(wpn_obj, 1)
+                    db.actor:activate_slot(1)
+                else
+                    db.actor:move_to_slot(wpn_obj, 2)
+                    db.actor:activate_slot(2)
+                end
+            end
+        end
+        return true
+    end)
+    
+    CreateTimeEvent("arena_equip_endless_e2", "arena_equip_endless_a2", 0.5, function()
+        local helm_obj = spawned_helm_id and level.object_by_id(spawned_helm_id)
+        if not helm_obj then
+            db.actor:iterate_inventory(function(_, itm)
+                if is_helmet_item(itm) and temporary_arena_item_ids[itm:id()] then
+                    helm_obj = itm
+                    return true
+                end
+            end, db.actor)
+        end
+        if helm_obj then
+            db.actor:move_to_slot(helm_obj, 12)
+        end
+        return true
+    end)
 end

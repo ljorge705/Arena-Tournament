@@ -5,6 +5,7 @@ local defaults = {
 	["give_items"] = true,
 	["medic_rescue"] = true,
 	["allow_replay"] = true,
+	["special_ammo_support"] = true,
 	["fight_chance"] = 0.7,
 	["stalker_team1_chance"] = 0.25,
 	["stalker_team2_chance"] = 0.25,
@@ -31,6 +32,7 @@ function on_mcm_load()
 			{ id = "give_items", type = "check", val = 1, def = true },
 			{ id = "medic_rescue", type = "check", val = 1, def = true },
 			{ id = "allow_replay", type = "check", val = 1, def = true },
+			{ id = "special_ammo_support", type = "check", val = 1, def = true },
 
 			{ id = "line", type = "line" },
 

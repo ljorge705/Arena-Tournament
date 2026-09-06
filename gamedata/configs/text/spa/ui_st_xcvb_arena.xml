@@ -472,7 +472,7 @@
 		<text>1x Pseudogigante enfurecido</text>
 	</string>
 	<string id="st_arena_m_round_12_desc">
-		<text>Una mole titanica de musculo que sacude el suelo derribando al combatiente con cada pisotón. Absorbe cientos de balas.</text>
+		<text>Una mole titanica de musculo que sacude el suelo derribando al combatiente con cada pisoton. Absorbe cientos de balas.</text>
 	</string>
 	<string id="st_arena_m_round_12_reward">
 		<text>55,000 RU + Set de herramientas expertas</text>
@@ -723,7 +723,7 @@
 		<text>Debes seleccionar una apuesta en algun combate antes de comenzar.</text>
 	</string>
 	<string id="st_arena_spectator_press_f">
-		<text>Presione F para salir de la Arena</text>
+		<text>Presiona F para salir de la arena</text>
 	</string>
 	<string id="st_arena_group_novice">
 		<text>Grupo de novatos</text>
@@ -748,6 +748,321 @@
 	</string>
 	<string id="st_arena_group_strong">
 		<text>Grupo fuerte</text>
+	</string>
+	<string id="st_arena_btn_beta">
+		<text>Beta Modes</text>
+	</string>
+	<string id="st_arena_bc_title">
+		<text>Batalla Campal</text>
+	</string>
+	<string id="st_arena_bc_3teams">
+		<text>3 Facciones</text>
+	</string>
+	<string id="st_arena_bc_4teams">
+		<text>4 Facciones</text>
+	</string>
+	<string id="st_arena_bc_randomize">
+		<text>Barajar Facciones</text>
+	</string>
+	<string id="st_arena_bc_desc">
+		<text>Combate simultaneo de facciones en la Arena. Guerra total de todos contra todos.</text>
+	</string>
+	<string id="st_arena_bc_team1_header">
+		<text>Equipo 1 (Noroeste)</text>
+	</string>
+	<string id="st_arena_bc_team2_header">
+		<text>Equipo 2 (Noreste)</text>
+	</string>
+	<string id="st_arena_bc_team3_header">
+		<text>Equipo 3 (Suroeste)</text>
+	</string>
+	<string id="st_arena_bc_team4_header">
+		<text>Equipo 4 (Sureste)</text>
+	</string>
+	<string id="st_arena_bc_members_label">
+		<text>Multiplicador:</text>
+	</string>
+	<string id="st_arena_bc_bet_btn">
+		<text>Apostar</text>
+	</string>
+	<string id="st_arena_bc_bet_selected">
+		<text>Apuesta: %s (%s RU)</text>
+	</string>
+	<string id="st_arena_bc_no_bet">
+		<text>Debes seleccionar un equipo para apostar</text>
+	</string>
+	<string id="st_arena_bc_reward_gain">
+		<text>Premio: %s RU</text>
+	</string>
+	<string id="st_arena_bc_start_btn">
+		<text>Comenzar Batalla Campal</text>
+	</string>
+	<string id="st_arena_bc_started_tip">
+		<text>Batalla Campal iniciada: %s facciones combaten a muerte.</text>
+	</string>
+	<string id="st_arena_bc_winner_tip">
+		<text>Batalla Campal finalizada. Vencedor: %s</text>
+	</string>
+	<string id="st_arena_bc_reward_tip">
+		<text>Acertaste tu apuesta en la Batalla Campal. Cobras: %s RU</text>
+	</string>
+	<string id="st_arena_bc_team1_3_header">
+		<text>Equipo 1 (Norte)</text>
+	</string>
+	<string id="st_arena_bc_team2_3_header">
+		<text>Equipo 2 (Suroeste)</text>
+	</string>
+	<string id="st_arena_bc_team3_3_header">
+		<text>Equipo 3 (Sureste)</text>
+	</string>
+	<string id="st_arena_bc_no_winner">
+		<text>Todos los combatientes han caido. No hay vencedor.</text>
+	</string>
+	<string id="st_arena_bc_fac_stalker">
+		<text>Solitarios</text>
+	</string>
+	<string id="st_arena_bc_fac_bandit">
+		<text>Bandidos</text>
+	</string>
+	<string id="st_arena_bc_fac_dolg">
+		<text>Deber</text>
+	</string>
+	<string id="st_arena_bc_fac_freedom">
+		<text>Libertad</text>
+	</string>
+	<string id="st_arena_bc_fac_killer">
+		<text>Mercenarios</text>
+	</string>
+	<string id="st_arena_bc_fac_army">
+		<text>Militares</text>
+	</string>
+	<string id="st_arena_bc_fac_csky">
+		<text>Cielo Limpio</text>
+	</string>
+	<string id="st_arena_bc_fac_ecolog">
+		<text>Ecologistas</text>
+	</string>
+	<string id="st_arena_bc_fac_renegade">
+		<text>Renegados</text>
+	</string>
+	<string id="st_arena_bc_fac_zombied">
+		<text>Zombificados</text>
+	</string>
+	<string id="st_arena_bc_fac_mutant">
+		<text>Mutantes</text>
+	</string>
+	<string id="st_arena_btn_mvm">
+		<text>Monster vs Monster</text>
+	</string>
+	<string id="st_arena_mvm_title">
+		<text>Monster vs Monster</text>
+	</string>
+	<string id="st_arena_mvm_desc">
+		<text>Combate simultaneo de mutantes en la Arena. Guerra total de bestias de la Zona.</text>
+	</string>
+	<string id="st_arena_mvm_3teams">
+		<text>3 Especies</text>
+	</string>
+	<string id="st_arena_mvm_4teams">
+		<text>4 Especies</text>
+	</string>
+	<string id="st_arena_mvm_randomize">
+		<text>Barajar Mutantes</text>
+	</string>
+	<string id="st_arena_mvm_start_btn">
+		<text>Comenzar Monster vs Monster</text>
+	</string>
+	<string id="st_arena_mvm_started_tip">
+		<text>Monster vs Monster iniciado: %s especies de mutantes combaten a muerte.</text>
+	</string>
+	<string id="st_arena_mvm_winner_tip">
+		<text>Monster vs Monster finalizado. Especie vencedora: %s</text>
+	</string>
+	<string id="st_arena_mvm_reward_tip">
+		<text>Acertaste tu apuesta en Monster vs Monster. Cobras: %s RU</text>
+	</string>
+	<string id="st_arena_mut_chimera">
+		<text>Quimera</text>
+	</string>
+	<string id="st_arena_mut_gigant">
+		<text>Pseudogigante</text>
+	</string>
+	<string id="st_arena_mut_bloodsucker">
+		<text>Sanguijuela</text>
+	</string>
+	<string id="st_arena_mut_burer">
+		<text>Burer</text>
+	</string>
+	<string id="st_arena_mut_psysucker">
+		<text>Psysucker</text>
+	</string>
+	<string id="st_arena_mut_psy_dog">
+		<text>Perro Psiquico</text>
+	</string>
+	<string id="st_arena_mut_snork">
+		<text>Snork</text>
+	</string>
+	<string id="st_arena_mut_lurker">
+		<text>Acechador</text>
+	</string>
+	<string id="st_arena_mut_pseudodog">
+		<text>Pseudoperro</text>
+	</string>
+	<string id="st_arena_mut_boar">
+		<text>Jabali</text>
+	</string>
+	<string id="st_arena_mut_cat">
+		<text>Gato de la Zona</text>
+	</string>
+	<string id="st_arena_mut_fracture">
+		<text>Izlom</text>
+	</string>
+	<string id="st_arena_mut_flesh">
+		<text>Cerdo Mutante</text>
+	</string>
+	<string id="st_arena_mut_dog">
+		<text>Perros Ciegos</text>
+	</string>
+	<string id="st_arena_mut_zombie">
+		<text>Zombis</text>
+	</string>
+	<string id="st_arena_mut_tushkano">
+		<text>Roedores</text>
+	</string>
+	<string id="st_arena_loadout_ammo_title">
+		<text>TIPO DE MUNICION:</text>
+	</string>
+	<string id="st_arena_ammo_auto">
+		<text>Auto</text>
+	</string>
+	<string id="st_arena_ammo_fmj">
+		<text>FMJ</text>
+	</string>
+	<string id="st_arena_ammo_ap">
+		<text>AP (Perforante)</text>
+	</string>
+	<string id="st_arena_ammo_hp">
+		<text>HP (Punta Hueca)</text>
+	</string>
+	<string id="st_arena_ammo_buck">
+		<text>BUCK (Postas)</text>
+	</string>
+	<string id="st_arena_ammo_dart">
+		<text>DART (Dardo AP)</text>
+	</string>
+	<string id="st_arena_ammo_slug">
+		<text>SLUG (Bala Zhekan)</text>
+	</string>
+	<string id="st_arena_beta_tab_br">
+		<text>Battle Royale</text>
+	</string>
+	<string id="st_arena_beta_tab_endless">
+		<text>Modo Infinito</text>
+	</string>
+	<string id="st_arena_endless_title">
+		<text>MODO INFINITO (SUPERVIVENCIA)</text>
+	</string>
+	<string id="st_arena_endless_desc">
+		<text>Supera oleadas continuas que aumentan de dificultad (1v1, 1v2, 1v3...). Tras cada victoria tu arma, equipamiento y municion cambiaran al azar. Presiona F para retirarte con tu botin.</text>
+	</string>
+	<string id="st_arena_endless_stats_record">
+		<text>Mejor Record: Oleada %s</text>
+	</string>
+	<string id="st_arena_endless_stats_reward">
+		<text>Recompensa base: 2,000 RU (+1,000 RU por oleada superada)</text>
+	</string>
+	<string id="st_arena_endless_type_title">
+		<text>TIPO DE ENEMIGOS:</text>
+	</string>
+	<string id="st_arena_endless_type_stalkers">
+		<text>Stalkers</text>
+	</string>
+	<string id="st_arena_endless_type_mutants">
+		<text>Mutantes</text>
+	</string>
+	<string id="st_arena_endless_type_chaos">
+		<text>Caos Mixto</text>
+	</string>
+	<string id="st_arena_endless_start_btn">
+		<text>Comenzar Modo Infinito</text>
+	</string>
+	<string id="st_arena_endless_wave_started">
+		<text>OLEADA %s: 1v%s - Sobrevive! (Presiona F para salir con tu botin)</text>
+	</string>
+	<string id="st_arena_endless_wave_cleared">
+		<text>OLEADA %s SUPERADA! Recompensa acumulada: %s RU. Preparando siguiente oleada...</text>
+	</string>
+	<string id="st_arena_endless_exit_tip">
+		<text>Has salido de la Arena. Oleadas superadas: %s. Recompensa cobrada: %s RU.</text>
+	</string>
+	<string id="st_arena_loadout_ammo_special">
+		<text>ESP</text>
+	</string>
+	<string id="st_arena_endless_header_title">
+		<text>MODO INFINITO: SUPERVIVENCIA</text>
+	</string>
+	<string id="st_arena_endless_header_subtitle">
+		<text>Arena de Supervivencia: Combate en solitario contra oleadas crecientes.</text>
+	</string>
+	<string id="st_arena_endless_stats_box_title">
+		<text>REGISTRO DE SUPERVIVENCIA Y RECOMPENSAS</text>
+	</string>
+	<string id="st_arena_endless_quick_rule1">
+		<text>• Cada victoria otorga nuevo equipo y municion al azar.</text>
+	</string>
+	<string id="st_arena_endless_quick_rule2">
+		<text>• Pulsa [F] en la arena para cobrar el botin y retirarte.</text>
+	</string>
+	<string id="st_arena_endless_rules_frame_title">
+		<text>NORMAS DE LA ARENA &amp; CONDICIONES DE COMBATE</text>
+	</string>
+	<string id="st_arena_endless_rule_line1">
+		<text>• Escalado de Amenaza: 1v1 en Oleada 1, aumentando progresivamente hasta 1v6 enemigos.</text>
+	</string>
+	<string id="st_arena_endless_rule_line2">
+		<text>• Retirada Tactica [F]: Sal de la arena en cualquier momento cobrando el 100% del dinero acumulado.</text>
+	</string>
+	<string id="st_arena_endless_rule_line3">
+		<text>• Rescate Medico: Si caes abatido en combate, el medico te salvara en el Bar cobrando 2,500 RU.</text>
+	</string>
+	<string id="st_arena_endless_desc_stalkers">
+		<text>Enemigos humanos armados (Bandidos, Mercenarios, Militares, etc.). Usan armas de fuego, tacticas de flanqueo y cobertura. Al vencerlos, tu armamento cambiara al azar.</text>
+	</string>
+	<string id="st_arena_endless_desc_mutants">
+		<text>Fauna mutante hostil de la Zona (ciegos, snorks, chupasangres, burers, quimeras, gigantes). Ataques cuerpo a cuerpo feroces y habilidades anomalas.</text>
+	</string>
+	<string id="st_arena_endless_desc_chaos">
+		<text>Enfrentamiento caotico e impredecible. Cada oleada puede lanzar tanto escuadrones de stalkers armados como peligrosas manadas de mutantes.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_special_ammo_support">
+		<text>Soporte de municion especial (ArtiGrok Ballistics)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_special_ammo_support_desc">
+		<text>Permite equipar municion especial / sobrecargada si el mod ArtiGrok Ballistics esta instalado.</text>
+	</string>
+	<string id="st_arena_loadout_summary_title">
+		<text>EQUIPO SELECCIONADO</text>
+	</string>
+	<string id="st_arena_loadout_sum_round">
+		<text>Ronda</text>
+	</string>
+	<string id="st_arena_loadout_sum_weapon">
+		<text>Arma</text>
+	</string>
+	<string id="st_arena_loadout_sum_ammo">
+		<text>Municion</text>
+	</string>
+	<string id="st_arena_loadout_sum_outfit">
+		<text>Traje</text>
+	</string>
+	<string id="st_arena_loadout_sum_helmet">
+		<text>Casco</text>
+	</string>
+	<string id="st_arena_spec_ammo_title">
+		<text>MUNICION ESPECIAL (ARTIGROK):</text>
+	</string>
+	<string id="st_arena_spec_ammo_none">
+		<text>Sin municion especial</text>
 	</string>
 
 </string_table>

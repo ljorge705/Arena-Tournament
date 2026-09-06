@@ -9,6 +9,7 @@ tournament_mutant_completed = {}
 
 tournament_wins = 0
 tournament_losses = 0
+best_endless_wave = 0
 
 -- Spectator Mode State Variables
 arena_main_t = {}
@@ -523,6 +524,7 @@ function save_state(m_data)
 
 	m_data.xcvb_tournament_wins = tournament_wins
 	m_data.xcvb_tournament_losses = tournament_losses
+	m_data.xcvb_best_endless_wave = best_endless_wave
 end
 
 function load_state(m_data)
@@ -549,6 +551,7 @@ function load_state(m_data)
 
 	tournament_wins = m_data.xcvb_tournament_wins or 0
 	tournament_losses = m_data.xcvb_tournament_losses or 0
+	best_endless_wave = m_data.xcvb_best_endless_wave or 0
 end
 
 --------------------------------------------------------------------------------
@@ -582,6 +585,8 @@ function generate_spectator_fights(filter_type)
 		arena_main_t[i].team1 = {}
 		arena_main_t[i].team2 = {}
 		arena_main_t[i].pwrs = {}
+		arena_main_t[i].mult1 = 1
+		arena_main_t[i].mult2 = 1
 
 		local amt1 = math.random(2, 4)
 		local amt2 = math.random(2, 4)

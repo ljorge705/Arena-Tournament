@@ -9,15 +9,61 @@ local tournament_fight_closed = false
 local spec_fight_ending = false
 local spectator_fight_closed = false
 local next_spectator_hint = 0
+local battle_royale_squad_ids = {}
+local battle_royale_team_faction = {}
+local battle_royale_ending = false
+local battle_royale_closed = false
+local battle_royale_bet_team = 0
+local battle_royale_reward = 0
+local battle_royale_submode = "factions"
+local next_br_hint = 0
+local is_endless_mode = false
+local endless_wave = 1
+local endless_reward = 0
+local endless_enemy_type = "stalkers"
+local endless_enemy_squad_ids = {}
+local endless_ending = false
+local endless_transitioning = false
+local endless_fight_closed = false
 local HI = has_alife_info
 local gt = game.translate_string
+
+local function is_endless_enemy_squad(squad_id)
+    if not endless_enemy_squad_ids then return false end
+    for _, s_id in ipairs(endless_enemy_squad_ids) do
+        if s_id == squad_id then
+            return true
+        end
+    end
+    return false
+end
+
+local function get_endless_total_enemies_alive(dying_squad_id)
+    local total = 0
+    if not endless_enemy_squad_ids then return 0 end
+    for _, s_id in ipairs(endless_enemy_squad_ids) do
+        local squad = alife_object(s_id)
+        if squad then
+            local count = squad:npc_count()
+            if dying_squad_id and s_id == dying_squad_id then
+                count = count - 1
+            end
+            if count > 0 then
+                total = total + count
+            end
+        end
+    end
+    return total
+end
 
 --------------------------------------------------------------------------------
 -- TOURNAMENT COMBAT MODE (Player in the Arena)
 --------------------------------------------------------------------------------
-function start_tournament_fight(category, round_id, loadout_class, loadout_tier)
+function start_tournament_fight(category, round_id, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec)
     tourn_ending = false
+    endless_ending = false
     tournament_fight_closed = false
+    endless_fight_closed = false
     xcvb_arena_main.selected_modifier = "none"
     xcvb_arena_main.selected_modifier_team1 = "none"
     xcvb_arena_main.selected_modifier_team2 = "none"
@@ -38,7 +84,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier)
         local tier = round_data.tier or math.ceil(round_id / 3)
         xcvb_arena_utils.store_actor_inventory()
         CreateTimeEvent("arena_spawn_loadout_e", "arena_spawn_loadout_a", 0.3, function()
-            xcvb_arena_utils.equip_tournament_random_loadout(tier, loadout_class, loadout_tier)
+            xcvb_arena_utils.equip_tournament_random_loadout(tier, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec)
             return true
         end)
     end
@@ -77,6 +123,7 @@ function end_tournament_fight(is_victory)
     if tournament_fight_closed then return end
     tournament_fight_closed = true
     tourn_ending = false
+    endless_ending = false
 
     local actor_alive = db.actor and db.actor:alive()
     if actor_alive then
@@ -203,9 +250,12 @@ function start_arena_fight(bout_idx)
     squad2.assigned_target_id = squad1.id
     squad2.rush_to_target = true
 
-    for i, sec in ipairs(main_t.team1) do
-        local offset_pos = vector():set(pos1.x + math.random(-5, 5), pos1.y, pos1.z + math.random(-3, 3))
-        squad1:add_squad_member(sec, offset_pos, lvid1, gvid1)
+    local mult1 = main_t.mult1 or 1
+    for m_idx = 1, mult1 do
+        for i, sec in ipairs(main_t.team1) do
+            local offset_pos = vector():set(pos1.x + math.random(-5, 5), pos1.y, pos1.z + math.random(-3, 3))
+            squad1:add_squad_member(sec, offset_pos, lvid1, gvid1)
+        end
     end
     squad1:set_squad_relation()
     squad1:refresh()
@@ -213,9 +263,12 @@ function start_arena_fight(bout_idx)
         xcvb_arena_utils.arena_spawned_combatant_ids[m.id] = true
     end
 
-    for i, sec in ipairs(main_t.team2) do
-        local offset_pos = vector():set(pos2.x + math.random(-5, 5), pos2.y, pos2.z + math.random(-3, 3))
-        squad2:add_squad_member(sec, offset_pos, lvid2, gvid2)
+    local mult2 = main_t.mult2 or 1
+    for m_idx = 1, mult2 do
+        for i, sec in ipairs(main_t.team2) do
+            local offset_pos = vector():set(pos2.x + math.random(-5, 5), pos2.y, pos2.z + math.random(-3, 3))
+            squad2:add_squad_member(sec, offset_pos, lvid2, gvid2)
+        end
     end
     squad2:set_squad_relation()
     squad2:refresh()
@@ -227,7 +280,10 @@ function start_arena_fight(bout_idx)
     CreateTimeEvent("allow_relation_update_e", "allow_relation_update_a", 1, function()
         give_info("xcvb_arena_started")
         setup_teams()
-        news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 12000)
+        return true
+    end)
+    CreateTimeEvent("allow_spec_press_f_tip_e", "allow_spec_press_f_tip_a", 3.5, function()
+        news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 15000)
         return true
     end)
 end
@@ -317,6 +373,7 @@ function end_arena_fight(winner_team)
     spec_fight_ending = false
 
     RemoveTimeEvent("allow_relation_update_e", "allow_relation_update_a")
+    RemoveTimeEvent("allow_spec_press_f_tip_e", "allow_spec_press_f_tip_a")
     RemoveTimeEvent("setup_teams_retry_e", "setup_teams_retry_a")
     RemoveTimeEvent("xcvb_arena_end_fight_e", "xcvb_arena_end_fight_a")
     RemoveTimeEvent("xcvb_arena_exit_f_e", "xcvb_arena_exit_f_a")
@@ -384,6 +441,293 @@ function end_arena_fight(winner_team)
 end
 
 --------------------------------------------------------------------------------
+-- BATALLA CAMPAL MULTIBANDO (BETA TESTING)
+--------------------------------------------------------------------------------
+function start_battle_royale_fight(br_data)
+    if not br_data then return end
+    battle_royale_ending = false
+    battle_royale_closed = false
+    battle_royale_squad_ids = {}
+    battle_royale_team_faction = {}
+    battle_royale_submode = br_data.submode or "factions"
+    next_br_hint = 0
+    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
+
+    local num_teams = br_data.num_teams or 4
+    battle_royale_bet_team = br_data.bet_team or 0
+    battle_royale_reward = br_data.reward or 0
+
+    local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
+    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
+    db.actor:set_actor_direction(device().cam_dir:getH())
+    db.actor:hide_weapon()
+
+    local is_mutants_mode = (battle_royale_submode == "mutants")
+
+    for i = 1, num_teams do
+        local t_info = br_data.teams and br_data.teams[i]
+        local fac = (t_info and (t_info.mutant or t_info.faction)) or (is_mutants_mode and "snork" or "stalker")
+        battle_royale_team_faction[i] = fac
+        local mult = (t_info and t_info.mult) or 1
+        if mult < 1 then mult = 1 end
+
+        local is_mutant = is_mutants_mode or (fac == "mutant")
+        local sec = is_mutant and ("arena_mutant_team_" .. i) or ("arena_stalker_team_" .. i)
+        local pos, lvid, gvid = xcvb_arena_utils.get_battle_royale_pos(i, num_teams)
+
+        local squad = alife_create(sec, pos, lvid, gvid)
+        if squad then
+            battle_royale_squad_ids[i] = squad.id
+
+            local member_secs = t_info and t_info.members
+            if not member_secs or #member_secs == 0 then
+                if is_mutants_mode then
+                    member_secs, _ = xcvb_arena_utils.get_squad_for_mutant(fac)
+                else
+                    member_secs, _ = xcvb_arena_utils.get_squad_for_faction(fac, 3)
+                end
+            end
+
+            for m_idx = 1, mult do
+                for _, sec_name in ipairs(member_secs) do
+                    local offset_pos = vector():set(pos.x + math.random(-4, 4), pos.y, pos.z + math.random(-4, 4))
+                    squad:add_squad_member(sec_name, offset_pos, lvid, gvid)
+                end
+            end
+
+            squad:set_squad_relation()
+            squad:refresh()
+            for m in squad:squad_members() do
+                xcvb_arena_utils.arena_spawned_combatant_ids[m.id] = true
+            end
+        end
+    end
+
+    CreateTimeEvent("allow_br_relation_update_e", "allow_br_relation_update_a", 1, function()
+        give_info("xcvb_battle_royale_started")
+        xcvb_arena_utils.setup_battle_royale_relations(battle_royale_squad_ids)
+        local tip_key = is_mutants_mode and "st_arena_mvm_started_tip" or "st_arena_bc_started_tip"
+        local tip_start = string.format(gt(tip_key), tostring(num_teams))
+        news_manager.send_tip(db.actor, tip_start, 0, nil, 8000)
+        return true
+    end)
+    CreateTimeEvent("allow_br_press_f_tip_e", "allow_br_press_f_tip_a", 3.5, function()
+        news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 15000)
+        return true
+    end)
+end
+
+function end_battle_royale(winner_team_idx)
+    if battle_royale_closed then return end
+    battle_royale_closed = true
+    battle_royale_ending = false
+
+    RemoveTimeEvent("allow_br_relation_update_e", "allow_br_relation_update_a")
+    RemoveTimeEvent("allow_br_press_f_tip_e", "allow_br_press_f_tip_a")
+    RemoveTimeEvent("xcvb_arena_end_br_e", "xcvb_arena_end_br_a")
+    RemoveTimeEvent("xcvb_arena_exit_br_f_e", "xcvb_arena_exit_br_f_a")
+
+    local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
+    db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
+    db.actor:restore_weapon()
+
+    local win_idx = tonumber(winner_team_idx) or 0
+    if win_idx > 0 and win_idx == battle_royale_bet_team and battle_royale_reward > 0 then
+        local rew_key = (battle_royale_submode == "mutants") and "st_arena_mvm_reward_tip" or "st_arena_bc_reward_tip"
+        local str = string.format(gt(rew_key), battle_royale_reward)
+        news_manager.send_tip(db.actor, str, 0, nil, 15000)
+        db.actor:give_money(battle_royale_reward)
+    end
+
+    local function arena_safe_release_id(id)
+        pcall(function()
+            if safe_release_manager and safe_release_manager.release then
+                safe_release_manager.release({id = id})
+            else
+                alife_release_id(id)
+            end
+        end)
+    end
+
+    for _, sq_id in pairs(battle_royale_squad_ids) do
+        local squad = alife_object(sq_id)
+        if squad and string.find(squad:section_name(), "arena_") then
+            pcall(function()
+                local member_ids = {}
+                for member in squad:squad_members() do
+                    member_ids[#member_ids + 1] = member.id
+                end
+                for _, member_id in ipairs(member_ids) do
+                    arena_safe_release_id(member_id)
+                end
+                arena_safe_release_id(sq_id)
+            end)
+        end
+    end
+
+    xcvb_arena_utils.clean_arena_corpses()
+    disable_info("xcvb_battle_royale_started")
+    battle_royale_squad_ids = {}
+    battle_royale_team_faction = {}
+    battle_royale_bet_team = 0
+    battle_royale_reward = 0
+    return true
+end
+
+--------------------------------------------------------------------------------
+-- MODO INFINITO (BETA TESTING - Endless Survival Mode)
+--------------------------------------------------------------------------------
+function start_endless_fight(enemy_type)
+    tourn_ending = false
+    endless_ending = false
+    tournament_fight_closed = false
+    endless_fight_closed = false
+    is_endless_mode = true
+    endless_wave = 1
+    endless_reward = 0
+    endless_enemy_type = enemy_type or "stalkers"
+    endless_transitioning = false
+    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
+    RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
+
+    local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_tournament_pos()
+    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
+    db.actor:set_actor_direction(0)
+
+    xcvb_arena_utils.store_actor_inventory()
+
+    CreateTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a", 0.3, function()
+        xcvb_arena_utils.equip_endless_random_loadout(endless_wave)
+        return true
+    end)
+
+    local squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type)
+    endless_enemy_squad_ids = {}
+    if squads then
+        if squads.id then
+            table.insert(endless_enemy_squad_ids, squads.id)
+        else
+            for _, sq in ipairs(squads) do
+                if sq and sq.id then
+                    table.insert(endless_enemy_squad_ids, sq.id)
+                end
+            end
+        end
+    end
+
+    if #endless_enemy_squad_ids == 0 then
+        printe("! xcvb arena: Failed to spawn endless squad for wave %s", endless_wave)
+        xcvb_arena_utils.restore_actor_inventory()
+        is_endless_mode = false
+        return
+    end
+
+    give_info("xcvb_endless_started")
+    CreateTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a", 0.8, function()
+        xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
+        local enemy_count = math.min(6, endless_wave)
+        local tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count)
+        news_manager.send_tip(db.actor, tip, 0, nil, 8000)
+        return true
+    end)
+end
+
+function advance_endless_wave()
+    if endless_ending or endless_transitioning or endless_fight_closed then return end
+    endless_transitioning = true
+
+    local wave_gain = 1000 + (endless_wave * 1000)
+    endless_reward = endless_reward + wave_gain
+
+    if endless_wave > (xcvb_arena_main.best_endless_wave or 0) then
+        xcvb_arena_main.best_endless_wave = endless_wave
+    end
+
+    local clear_tip = string.format(gt("st_arena_endless_wave_cleared"), endless_wave, endless_reward)
+    news_manager.send_tip(db.actor, clear_tip, 0, nil, 7000)
+
+    xcvb_arena_utils.clean_arena_corpses()
+
+    endless_wave = endless_wave + 1
+
+    CreateTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a", 4.0, function()
+        if endless_ending or endless_fight_closed then return true end
+
+        xcvb_arena_utils.equip_endless_random_loadout(endless_wave)
+
+        local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type)
+        endless_enemy_squad_ids = {}
+        if next_squads then
+            if next_squads.id then
+                table.insert(endless_enemy_squad_ids, next_squads.id)
+            else
+                for _, sq in ipairs(next_squads) do
+                    if sq and sq.id then
+                        table.insert(endless_enemy_squad_ids, sq.id)
+                    end
+                end
+            end
+        end
+
+        CreateTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a", 0.8, function()
+            xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
+            return true
+        end)
+
+        local enemy_count = math.min(6, endless_wave)
+        local start_tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count)
+        news_manager.send_tip(db.actor, start_tip, 0, nil, 7000)
+
+        endless_transitioning = false
+        return true
+    end)
+end
+
+function end_endless_fight(is_victory, voluntary_leave)
+    if endless_fight_closed then return end
+    endless_fight_closed = true
+    endless_ending = false
+    tourn_ending = false
+    endless_transitioning = false
+
+    RemoveTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a")
+    RemoveTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a")
+    RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
+    RemoveTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a")
+    RemoveTimeEvent("xcvb_arena_exit_endless_f_e", "xcvb_arena_exit_endless_f_a")
+
+    local actor_alive = db.actor and db.actor:alive()
+    if actor_alive then
+        local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
+        db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
+        pcall(level.enable_input)
+    end
+
+    if endless_enemy_squad_ids then
+        for _, s_id in ipairs(endless_enemy_squad_ids) do
+            xcvb_arena_utils.clean_tournament_squad(s_id)
+        end
+        endless_enemy_squad_ids = {}
+    end
+    xcvb_arena_utils.clean_arena_corpses()
+    xcvb_arena_utils.restore_actor_inventory()
+
+    local waves_cleared = voluntary_leave and (endless_wave - 1) or (is_victory and endless_wave or 0)
+    if voluntary_leave and endless_reward > 0 and actor_alive then
+        db.actor:give_money(endless_reward)
+        local exit_tip = string.format(gt("st_arena_endless_exit_tip"), waves_cleared, endless_reward)
+        news_manager.send_tip(db.actor, exit_tip, 0, nil, 12000)
+    end
+
+    disable_info("xcvb_endless_started")
+    is_endless_mode = false
+    endless_enemy_squad_ids = {}
+    endless_wave = 1
+    endless_reward = 0
+    return true
+end
+
+--------------------------------------------------------------------------------
 -- ENGINE CALLBACKS
 --------------------------------------------------------------------------------
 local hit_timer = 0
@@ -398,12 +742,17 @@ local function has_live_enemy(npc)
 end
 
 function actor_on_update()
-    if tourn_ending then
-        if db.actor then
-            db.actor.health = 1.0
-            db.actor.bleeding = 0
+    if tourn_ending or endless_ending then
+        if not HI("xcvb_tournament_started") and not HI("xcvb_endless_started") and not is_endless_mode then
+            tourn_ending = false
+            endless_ending = false
+        else
+            if db.actor then
+                db.actor.health = 1.0
+                db.actor.bleeding = 0
+            end
+            return
         end
-        return
     end
 
     if HI("xcvb_tournament_started") then
@@ -431,13 +780,48 @@ function actor_on_update()
         end
     end
 
+    if HI("xcvb_endless_started") or is_endless_mode then
+        local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
+        if rescue_enabled ~= false and db.actor and db.actor:alive() then
+            if db.actor.health <= 0.20 then
+                trigger_medic_rescue()
+            end
+        end
+
+        local tg = time_global()
+        if tg > hit_timer then
+            hit_timer = tg + 2000
+            if endless_enemy_squad_ids then
+                for _, s_id in ipairs(endless_enemy_squad_ids) do
+                    local squad = alife_object(s_id)
+                    if squad then
+                        for m in squad:squad_members() do
+                            local npc = level.object_by_id(m.id)
+                            if npc and npc:alive() then
+                                if not has_live_enemy(npc) then
+                                    xcvb_arena_utils.scr_hit(db.actor, npc)
+                                end
+                                if npc.set_enemy then
+                                    pcall(function() npc:set_enemy(db.actor) end)
+                                end
+                                if npc.set_sight and db.actor then
+                                    pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     if HI("xcvb_arena_started") then
         if not spec_fight_ending and not spectator_fight_closed then
             local tg = time_global()
             if next_spectator_hint == 0 then
-                next_spectator_hint = tg + 45000
+                next_spectator_hint = tg + 25000
             elseif tg > next_spectator_hint then
-                next_spectator_hint = tg + 45000
+                next_spectator_hint = tg + 25000
                 news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 10000)
             end
         else
@@ -479,6 +863,28 @@ function actor_on_update()
         next_spectator_hint = 0
     end
     
+    if HI("xcvb_battle_royale_started") then
+        if not battle_royale_ending and not battle_royale_closed then
+            local tg = time_global()
+            if next_br_hint == 0 then
+                next_br_hint = tg + 25000
+            elseif tg > next_br_hint then
+                next_br_hint = tg + 25000
+                news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 10000)
+            end
+        else
+            next_br_hint = 0
+        end
+
+        local tg = time_global()
+        if tg > hit_timer then
+            hit_timer = tg + 2000
+            xcvb_arena_utils.setup_battle_royale_relations(battle_royale_squad_ids)
+        end
+    else
+        next_br_hint = 0
+    end
+
     if HI("xcvb_tournament_started") and tourn_saved_actor_reputation then
         local cur_rep = db.actor:character_reputation()
         if cur_rep < tourn_saved_actor_reputation then
@@ -488,11 +894,37 @@ function actor_on_update()
 end
 
 function on_before_key_press(key, bind, dis, flags)
-	if not HI("xcvb_arena_started") then return end
+	if HI("xcvb_endless_started") or is_endless_mode then
+		local cur_bind = dik_to_bind(key)
+		if key == DIK_keys.DIK_F or cur_bind == key_bindings.kUSE then
+			if not endless_ending and not endless_fight_closed then
+				endless_ending = true
+				xcvb_arena_utils.arena_fade_in_out(1)
+				CreateTimeEvent("xcvb_arena_exit_endless_f_e", "xcvb_arena_exit_endless_f_a", 1.5, function()
+					end_endless_fight(true, true)
+					return true
+				end)
+			end
+			flags.ret_value = false
+			return
+		end
+		return
+	end
+
+	if not HI("xcvb_arena_started") and not HI("xcvb_battle_royale_started") then return end
 	local bind = dik_to_bind(key)
 
 	if key == DIK_keys.DIK_F or bind == key_bindings.kUSE then
-		if not spec_fight_ending and not spectator_fight_closed then
+		if HI("xcvb_battle_royale_started") then
+			if not battle_royale_ending and not battle_royale_closed then
+				battle_royale_ending = true
+				xcvb_arena_utils.arena_fade_in_out(1)
+				CreateTimeEvent("xcvb_arena_exit_br_f_e", "xcvb_arena_exit_br_f_a", 1.5, function()
+					end_battle_royale(0)
+					return true
+				end)
+			end
+		elseif not spec_fight_ending and not spectator_fight_closed then
 			spec_fight_ending = true
 			xcvb_arena_utils.arena_fade_in_out(1)
 			CreateTimeEvent("xcvb_arena_exit_f_e", "xcvb_arena_exit_f_a", 1.5, function()
@@ -527,7 +959,7 @@ function on_enemy_eval(npc, enemy, flags)
     end
 
     local enemy_id = enemy:id()
-    if HI("xcvb_tournament_started") then
+    if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode then
         local npc_squad = get_object_squad(npc)
         local enemy_squad = enemy and get_object_squad(enemy)
         local npc_is_tourn = npc_squad and string.find(npc_squad:section_name(), "arena_")
@@ -538,8 +970,12 @@ function on_enemy_eval(npc, enemy, flags)
             flags.result = true
             return
         end
-        if (npc_is_tourn and not enemy_is_tourn and enemy_id ~= 0) or
-           (not npc_is_tourn and enemy_is_tourn) then
+        if npc_is_tourn and enemy_id ~= 0 then
+            flags.override = true
+            flags.result = false
+            return
+        end
+        if (not npc_is_tourn) and enemy_is_tourn then
             flags.override = true
             flags.result = false
             return
@@ -547,7 +983,7 @@ function on_enemy_eval(npc, enemy, flags)
         return
     end
 
-    if HI("xcvb_arena_started") then
+    if HI("xcvb_arena_started") or HI("xcvb_battle_royale_started") then
         if enemy_id == 0 then
             flags.override = true
             flags.result = false
@@ -577,7 +1013,7 @@ function on_enemy_eval(npc, enemy, flags)
 end
 
 function npc_on_before_hit(npc, s_hit)
-    if HI("xcvb_arena_started") then
+    if HI("xcvb_arena_started") or HI("xcvb_battle_royale_started") then
         local squad = get_object_squad(npc)
         local arena_squad = squad and string.find(squad:section_name(), "arena_")
         local draft_is_ac = s_hit and s_hit.draftsman and s_hit.draftsman:id() == 0 and (s_hit.power or 0) > 0.05
@@ -585,17 +1021,30 @@ function npc_on_before_hit(npc, s_hit)
         if arena_squad and draft_is_ac then
             news_manager.send_tip(db.actor, gt("st_arena_kicked_out"), 0, nil, 15000)
             xcvb_arena_utils.arena_fade_in_out()
-            CreateTimeEvent("xcvb_arena_end_fight_e", "xcvb_arena_end_fight_a", 2, function()
-                end_arena_fight(0)
-                return true
-            end)
+            if HI("xcvb_battle_royale_started") then
+                CreateTimeEvent("xcvb_arena_end_br_e", "xcvb_arena_end_br_a", 2, function()
+                    end_battle_royale(0)
+                    return true
+                end)
+            else
+                CreateTimeEvent("xcvb_arena_end_fight_e", "xcvb_arena_end_fight_a", 2, function()
+                    end_arena_fight(0)
+                    return true
+                end)
+            end
         end
     end
 end
 
 local function trigger_medic_rescue()
-    if tourn_ending then return end
-    tourn_ending = true
+    if tourn_ending or endless_ending then return end
+    if is_endless_mode or HI("xcvb_endless_started") then
+        endless_ending = true
+        tourn_ending = false
+    else
+        tourn_ending = true
+        endless_ending = false
+    end
 
     if db.actor then
         db.actor:hide_weapon()
@@ -627,8 +1076,17 @@ local function trigger_medic_rescue()
         end)
     end
 
+    local target_squad_ids = {}
     if tournament_enemy_squad_id then
-        local squad = alife_object(tournament_enemy_squad_id)
+        table.insert(target_squad_ids, tournament_enemy_squad_id)
+    end
+    if endless_enemy_squad_ids then
+        for _, s_id in ipairs(endless_enemy_squad_ids) do
+            table.insert(target_squad_ids, s_id)
+        end
+    end
+    for _, target_squad_id in ipairs(target_squad_ids) do
+        local squad = alife_object(target_squad_id)
         if squad then
             for member in squad:squad_members() do
                 local npc = level.object_by_id(member.id)
@@ -655,9 +1113,7 @@ local function trigger_medic_rescue()
         level.add_cam_effector("camera_effects\\surge_02.anm", 987126, false, "")
     end)
 
-    pcall(function()
-        level.add_pp_effector("actor_death.ppe", 987125, false)
-    end)
+    pcall(level.add_pp_effector, "actor_death.ppe", 987125, false)
 
     CreateTimeEvent("xcvb_arena_fade_dark_e", "xcvb_arena_fade_dark_a", 2.0, function()
         pcall(function()
@@ -670,7 +1126,13 @@ local function trigger_medic_rescue()
         pcall(level.remove_pp_effector, 987125)
         pcall(level.remove_cam_effector, 987126)
 
-        end_tournament_fight(false)
+        if is_endless_mode or HI("xcvb_endless_started") then
+            end_endless_fight(false, false)
+        else
+            end_tournament_fight(false)
+        end
+        tourn_ending = false
+        endless_ending = false
 
         pcall(function()
             level.add_cam_effector("camera_effects\\wake_up.anm", 987128, false, "")
@@ -694,13 +1156,13 @@ local function trigger_medic_rescue()
 end
 
 function actor_on_before_hit(s_hit, bone_id, flags)
-    if tourn_ending then
+    if (tourn_ending or endless_ending) and (HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode) then
         if s_hit then s_hit.power = 0 end
         if flags then flags.ret_value = false end
         return
     end
 
-    if HI("xcvb_tournament_started") then
+    if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false then
             local cur_health = db.actor and db.actor.health or 1.0
@@ -716,7 +1178,7 @@ function actor_on_before_hit(s_hit, bone_id, flags)
 end
 
 function actor_on_before_death(whoID, flags)
-    if HI("xcvb_tournament_started") or tourn_ending then
+    if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false then
             if flags then flags.ret_value = false end
@@ -727,6 +1189,19 @@ function actor_on_before_death(whoID, flags)
 end
 
 function squad_on_npc_death(squad, se_obj, killer)
+    if (HI("xcvb_endless_started") or is_endless_mode) and is_endless_enemy_squad(squad.id) then
+        local remaining = get_endless_total_enemies_alive(squad.id)
+        if remaining > 1 then
+            local tip = string.format(gt("st_arena_enemies_remaining"), remaining)
+            news_manager.send_tip(db.actor, tip, 0, nil, 4000)
+        elseif remaining == 1 then
+            news_manager.send_tip(db.actor, gt("st_arena_enemy_one_remaining"), 0, nil, 4000)
+        elseif remaining <= 0 then
+            advance_endless_wave()
+        end
+        return
+    end
+
     if HI("xcvb_tournament_started") and tournament_enemy_squad_id and squad.id == tournament_enemy_squad_id then
         local remaining = squad:npc_count() - 1
         if remaining > 1 then
@@ -738,6 +1213,56 @@ function squad_on_npc_death(squad, se_obj, killer)
             on_tournament_victory(current_tournament_round_id)
         end
         return
+    end
+
+    if HI("xcvb_battle_royale_started") and not battle_royale_ending then
+        local is_br = false
+        for _, s_id in pairs(battle_royale_squad_ids) do
+            if s_id == squad.id then
+                is_br = true
+                break
+            end
+        end
+        if is_br then
+            local alive_teams = {}
+            for team_idx, s_id in pairs(battle_royale_squad_ids) do
+                local s = alife_object(s_id)
+                if s then
+                    local cnt = s:npc_count()
+                    if s_id == squad.id then
+                        cnt = cnt - 1
+                    end
+                    if cnt > 0 then
+                        alive_teams[#alive_teams + 1] = team_idx
+                    end
+                end
+            end
+
+            if #alive_teams == 1 then
+                battle_royale_ending = true
+                local winner_idx = alive_teams[1]
+                local fac_key = battle_royale_team_faction[winner_idx] or "stalker"
+                local name = (battle_royale_submode == "mutants") and xcvb_arena_utils.get_mutant_name(fac_key) or xcvb_arena_utils.get_faction_name(fac_key)
+                local tip_str_id = (battle_royale_submode == "mutants") and "st_arena_mvm_winner_tip" or "st_arena_bc_winner_tip"
+                local tip_msg = string.format(gt(tip_str_id), name)
+                news_manager.send_tip(db.actor, tip_msg, 0, nil, 10000)
+
+                xcvb_arena_utils.arena_fade_in_out(2)
+                CreateTimeEvent("xcvb_arena_end_br_e", "xcvb_arena_end_br_a", 4, function()
+                    end_battle_royale(winner_idx)
+                    return true
+                end)
+            elseif #alive_teams == 0 then
+                battle_royale_ending = true
+                news_manager.send_tip(db.actor, gt("st_arena_bc_no_winner"), 0, nil, 10000)
+                xcvb_arena_utils.arena_fade_in_out(2)
+                CreateTimeEvent("xcvb_arena_end_br_e", "xcvb_arena_end_br_a", 4, function()
+                    end_battle_royale(0)
+                    return true
+                end)
+            end
+            return
+        end
     end
 
     if HI("xcvb_arena_started") and not spec_fight_ending then
@@ -770,6 +1295,11 @@ end
 function save_state(m_data)
     m_data.xcvb_arena_squad_id_1 = squad_team_1_id
     m_data.xcvb_arena_squad_id_2 = squad_team_2_id
+    m_data.xcvb_battle_royale_squad_ids = battle_royale_squad_ids
+    m_data.xcvb_battle_royale_team_faction = battle_royale_team_faction
+    m_data.xcvb_battle_royale_bet_team = battle_royale_bet_team
+    m_data.xcvb_battle_royale_reward = battle_royale_reward
+    m_data.xcvb_battle_royale_submode = battle_royale_submode
     m_data.xcvb_tournament_enemy_squad_id = tournament_enemy_squad_id
     m_data.xcvb_current_tournament_category = current_tournament_category
     m_data.xcvb_current_tournament_round_id = current_tournament_round_id
@@ -779,11 +1309,21 @@ function save_state(m_data)
     m_data.xcvb_saved_belt_items = xcvb_arena_utils.saved_belt_items
     m_data.xcvb_saved_actor_item_ids = xcvb_arena_utils.saved_actor_item_ids
     m_data.xcvb_saved_active_slot = xcvb_arena_utils.saved_active_slot
+    m_data.xcvb_is_endless_mode = is_endless_mode
+    m_data.xcvb_endless_wave = endless_wave
+    m_data.xcvb_endless_reward = endless_reward
+    m_data.xcvb_endless_enemy_type = endless_enemy_type
+    m_data.xcvb_endless_enemy_squad_ids = endless_enemy_squad_ids
 end
 
 function load_state(m_data)
     squad_team_1_id = m_data.xcvb_arena_squad_id_1 or squad_team_1_id
     squad_team_2_id = m_data.xcvb_arena_squad_id_2 or squad_team_2_id
+    battle_royale_squad_ids = m_data.xcvb_battle_royale_squad_ids or battle_royale_squad_ids
+    battle_royale_team_faction = m_data.xcvb_battle_royale_team_faction or battle_royale_team_faction
+    battle_royale_bet_team = m_data.xcvb_battle_royale_bet_team or 0
+    battle_royale_reward = m_data.xcvb_battle_royale_reward or 0
+    battle_royale_submode = m_data.xcvb_battle_royale_submode or "factions"
     tournament_enemy_squad_id = m_data.xcvb_tournament_enemy_squad_id or tournament_enemy_squad_id
     current_tournament_category = m_data.xcvb_current_tournament_category or "stalker"
     current_tournament_round_id = m_data.xcvb_current_tournament_round_id or current_tournament_round_id
@@ -793,15 +1333,32 @@ function load_state(m_data)
     xcvb_arena_utils.saved_belt_items = m_data.xcvb_saved_belt_items or {}
     xcvb_arena_utils.saved_actor_item_ids = m_data.xcvb_saved_actor_item_ids or {}
     xcvb_arena_utils.saved_active_slot = m_data.xcvb_saved_active_slot or nil
+    is_endless_mode = m_data.xcvb_is_endless_mode or false
+    endless_wave = m_data.xcvb_endless_wave or 1
+    endless_reward = m_data.xcvb_endless_reward or 0
+    endless_enemy_type = m_data.xcvb_endless_enemy_type or "stalkers"
+    endless_enemy_squad_ids = m_data.xcvb_endless_enemy_squad_ids or {}
+    if m_data.xcvb_endless_enemy_squad_id and #endless_enemy_squad_ids == 0 then
+        table.insert(endless_enemy_squad_ids, m_data.xcvb_endless_enemy_squad_id)
+    end
 end
 
 function actor_on_first_update()
+    tourn_ending = false
+    endless_ending = false
     setup_teams()
     xcvb_arena_utils.init_arena_box()
     if HI("xcvb_tournament_started") and tournament_enemy_squad_id then
         xcvb_arena_utils.setup_tournament_squad_aggro(tournament_enemy_squad_id)
     end
+    if HI("xcvb_endless_started") and endless_enemy_squad_ids and #endless_enemy_squad_ids > 0 then
+        xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
+    end
     if HI("xcvb_arena_started") and not spec_fight_ending and not spectator_fight_closed then
+        news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 12000)
+    end
+    if HI("xcvb_battle_royale_started") and not battle_royale_ending and not battle_royale_closed then
+        xcvb_arena_utils.setup_battle_royale_relations(battle_royale_squad_ids)
         news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 12000)
     end
 end

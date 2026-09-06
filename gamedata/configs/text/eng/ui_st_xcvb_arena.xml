@@ -723,7 +723,7 @@
 		<text>You must select a bet on a match before starting.</text>
 	</string>
 	<string id="st_arena_spectator_press_f">
-		<text>Press F to leave the Arena</text>
+		<text>Press F to leave the arena</text>
 	</string>
 	<string id="st_arena_group_novice">
 		<text>Novice group</text>
@@ -748,6 +748,321 @@
 	</string>
 	<string id="st_arena_group_strong">
 		<text>Strong group</text>
+	</string>
+	<string id="st_arena_btn_beta">
+		<text>Beta Modes</text>
+	</string>
+	<string id="st_arena_bc_title">
+		<text>Battle Royale</text>
+	</string>
+	<string id="st_arena_bc_3teams">
+		<text>3 Factions</text>
+	</string>
+	<string id="st_arena_bc_4teams">
+		<text>4 Factions</text>
+	</string>
+	<string id="st_arena_bc_randomize">
+		<text>Randomize Factions</text>
+	</string>
+	<string id="st_arena_bc_desc">
+		<text>Simultaneous multi-faction arena battle. All-out free-for-all war.</text>
+	</string>
+	<string id="st_arena_bc_team1_header">
+		<text>Team 1 (North-West)</text>
+	</string>
+	<string id="st_arena_bc_team2_header">
+		<text>Team 2 (North-East)</text>
+	</string>
+	<string id="st_arena_bc_team3_header">
+		<text>Team 3 (South-West)</text>
+	</string>
+	<string id="st_arena_bc_team4_header">
+		<text>Team 4 (South-East)</text>
+	</string>
+	<string id="st_arena_bc_members_label">
+		<text>Multiplier:</text>
+	</string>
+	<string id="st_arena_bc_bet_btn">
+		<text>Bet</text>
+	</string>
+	<string id="st_arena_bc_bet_selected">
+		<text>Bet: %s (%s RU)</text>
+	</string>
+	<string id="st_arena_bc_no_bet">
+		<text>Select a team to bet before starting</text>
+	</string>
+	<string id="st_arena_bc_reward_gain">
+		<text>Gain: %s RU</text>
+	</string>
+	<string id="st_arena_bc_start_btn">
+		<text>Start Battle Royale</text>
+	</string>
+	<string id="st_arena_bc_started_tip">
+		<text>Battle Royale started! %s factions fighting to the death.</text>
+	</string>
+	<string id="st_arena_bc_winner_tip">
+		<text>Battle Royale finished! Victor: %s</text>
+	</string>
+	<string id="st_arena_bc_reward_tip">
+		<text>You won your Battle Royale bet! Reward: +%s RU</text>
+	</string>
+	<string id="st_arena_bc_team1_3_header">
+		<text>Team 1 (North)</text>
+	</string>
+	<string id="st_arena_bc_team2_3_header">
+		<text>Team 2 (South-West)</text>
+	</string>
+	<string id="st_arena_bc_team3_3_header">
+		<text>Team 3 (South-East)</text>
+	</string>
+	<string id="st_arena_bc_no_winner">
+		<text>All combatants have fallen! There is no victor.</text>
+	</string>
+	<string id="st_arena_bc_fac_stalker">
+		<text>Loners</text>
+	</string>
+	<string id="st_arena_bc_fac_bandit">
+		<text>Bandits</text>
+	</string>
+	<string id="st_arena_bc_fac_dolg">
+		<text>Duty</text>
+	</string>
+	<string id="st_arena_bc_fac_freedom">
+		<text>Freedom</text>
+	</string>
+	<string id="st_arena_bc_fac_killer">
+		<text>Mercenaries</text>
+	</string>
+	<string id="st_arena_bc_fac_army">
+		<text>Military</text>
+	</string>
+	<string id="st_arena_bc_fac_csky">
+		<text>Clear Sky</text>
+	</string>
+	<string id="st_arena_bc_fac_ecolog">
+		<text>Ecologists</text>
+	</string>
+	<string id="st_arena_bc_fac_renegade">
+		<text>Renegades</text>
+	</string>
+	<string id="st_arena_bc_fac_zombied">
+		<text>Zombified Stalkers</text>
+	</string>
+	<string id="st_arena_bc_fac_mutant">
+		<text>Mutants</text>
+	</string>
+	<string id="st_arena_btn_mvm">
+		<text>Monster vs Monster</text>
+	</string>
+	<string id="st_arena_mvm_title">
+		<text>Monster vs Monster</text>
+	</string>
+	<string id="st_arena_mvm_desc">
+		<text>Simultaneous multi-mutant arena battle. All-out war between Zone beasts.</text>
+	</string>
+	<string id="st_arena_mvm_3teams">
+		<text>3 Species</text>
+	</string>
+	<string id="st_arena_mvm_4teams">
+		<text>4 Species</text>
+	</string>
+	<string id="st_arena_mvm_randomize">
+		<text>Randomize Mutants</text>
+	</string>
+	<string id="st_arena_mvm_start_btn">
+		<text>Start Monster vs Monster</text>
+	</string>
+	<string id="st_arena_mvm_started_tip">
+		<text>Monster vs Monster started! %s mutant species fighting to the death.</text>
+	</string>
+	<string id="st_arena_mvm_winner_tip">
+		<text>Monster vs Monster finished! Victorious species: %s</text>
+	</string>
+	<string id="st_arena_mvm_reward_tip">
+		<text>You won your Monster vs Monster bet! Reward: +%s RU</text>
+	</string>
+	<string id="st_arena_mut_chimera">
+		<text>Chimera</text>
+	</string>
+	<string id="st_arena_mut_gigant">
+		<text>Pseudogiant</text>
+	</string>
+	<string id="st_arena_mut_bloodsucker">
+		<text>Bloodsucker</text>
+	</string>
+	<string id="st_arena_mut_burer">
+		<text>Burer</text>
+	</string>
+	<string id="st_arena_mut_psysucker">
+		<text>Psysucker</text>
+	</string>
+	<string id="st_arena_mut_psy_dog">
+		<text>Psy Dog</text>
+	</string>
+	<string id="st_arena_mut_snork">
+		<text>Snork</text>
+	</string>
+	<string id="st_arena_mut_lurker">
+		<text>Lurker</text>
+	</string>
+	<string id="st_arena_mut_pseudodog">
+		<text>Pseudodog</text>
+	</string>
+	<string id="st_arena_mut_boar">
+		<text>Boar</text>
+	</string>
+	<string id="st_arena_mut_cat">
+		<text>Zone Cat</text>
+	</string>
+	<string id="st_arena_mut_fracture">
+		<text>Fracture</text>
+	</string>
+	<string id="st_arena_mut_flesh">
+		<text>Flesh</text>
+	</string>
+	<string id="st_arena_mut_dog">
+		<text>Blind Dogs</text>
+	</string>
+	<string id="st_arena_mut_zombie">
+		<text>Zombies</text>
+	</string>
+	<string id="st_arena_mut_tushkano">
+		<text>Tushkanos</text>
+	</string>
+	<string id="st_arena_loadout_ammo_title">
+		<text>AMMO TYPE:</text>
+	</string>
+	<string id="st_arena_ammo_auto">
+		<text>Auto</text>
+	</string>
+	<string id="st_arena_ammo_fmj">
+		<text>FMJ</text>
+	</string>
+	<string id="st_arena_ammo_ap">
+		<text>AP (Armor Piercing)</text>
+	</string>
+	<string id="st_arena_ammo_hp">
+		<text>HP (Hollow Point)</text>
+	</string>
+	<string id="st_arena_ammo_buck">
+		<text>BUCK (Buckshot)</text>
+	</string>
+	<string id="st_arena_ammo_dart">
+		<text>DART (AP Dart)</text>
+	</string>
+	<string id="st_arena_ammo_slug">
+		<text>SLUG (Zhekan Slug)</text>
+	</string>
+	<string id="st_arena_beta_tab_br">
+		<text>Battle Royale</text>
+	</string>
+	<string id="st_arena_beta_tab_endless">
+		<text>Endless Mode</text>
+	</string>
+	<string id="st_arena_endless_title">
+		<text>ENDLESS MODE (SURVIVAL)</text>
+	</string>
+	<string id="st_arena_endless_desc">
+		<text>Survive endless scaling waves (1v1, 1v2, 1v3...). After each round your weapon, gear, and ammo change randomly. Press F at any time to escape with your accumulated reward.</text>
+	</string>
+	<string id="st_arena_endless_stats_record">
+		<text>Best Record: Wave %s</text>
+	</string>
+	<string id="st_arena_endless_stats_reward">
+		<text>Base reward: 2,000 RU (+1,000 RU per cleared wave)</text>
+	</string>
+	<string id="st_arena_endless_type_title">
+		<text>ENEMY TYPE:</text>
+	</string>
+	<string id="st_arena_endless_type_stalkers">
+		<text>Stalkers</text>
+	</string>
+	<string id="st_arena_endless_type_mutants">
+		<text>Mutants</text>
+	</string>
+	<string id="st_arena_endless_type_chaos">
+		<text>Chaos Mix</text>
+	</string>
+	<string id="st_arena_endless_start_btn">
+		<text>Start Endless Mode</text>
+	</string>
+	<string id="st_arena_endless_wave_started">
+		<text>WAVE %s: 1v%s - Survive! (Press F to exit with your loot)</text>
+	</string>
+	<string id="st_arena_endless_wave_cleared">
+		<text>WAVE %s CLEARED! Accumulated reward: %s RU. Preparing next wave...</text>
+	</string>
+	<string id="st_arena_endless_exit_tip">
+		<text>You left the Arena. Waves cleared: %s. Reward claimed: %s RU.</text>
+	</string>
+	<string id="st_arena_loadout_ammo_special">
+		<text>SPEC</text>
+	</string>
+	<string id="st_arena_endless_header_title">
+		<text>ENDLESS MODE: SURVIVAL</text>
+	</string>
+	<string id="st_arena_endless_header_subtitle">
+		<text>Survival Arena: Solo combat against continuously scaling waves.</text>
+	</string>
+	<string id="st_arena_endless_stats_box_title">
+		<text>SURVIVAL RECORD &amp; REWARDS</text>
+	</string>
+	<string id="st_arena_endless_quick_rule1">
+		<text>• Each victory grants random new gear and ammunition.</text>
+	</string>
+	<string id="st_arena_endless_quick_rule2">
+		<text>• Press [F] in the arena to collect cash and exit.</text>
+	</string>
+	<string id="st_arena_endless_rules_frame_title">
+		<text>ARENA RULES &amp; COMBAT CONDITIONS</text>
+	</string>
+	<string id="st_arena_endless_rule_line1">
+		<text>• Threat Scaling: 1v1 in Wave 1, steadily increasing up to 1v6 enemies.</text>
+	</string>
+	<string id="st_arena_endless_rule_line2">
+		<text>• Tactical Extraction [F]: Leave the arena at any time taking 100% of accumulated cash.</text>
+	</string>
+	<string id="st_arena_endless_rule_line3">
+		<text>• Medical Rescue: If downed in combat, the medic will evacuate you to the Bar for 2,500 RU.</text>
+	</string>
+	<string id="st_arena_endless_desc_stalkers">
+		<text>Armed human combatants (Bandits, Mercenaries, Military, etc.). They utilize firearms, flanking tactics, and cover. Defeating them re-rolls your loadout.</text>
+	</string>
+	<string id="st_arena_endless_desc_mutants">
+		<text>Hostile mutant fauna of the Zone (blind dogs, snorks, bloodsuckers, burers, chimeras, giants). Fierce melee attacks and anomalous abilities.</text>
+	</string>
+	<string id="st_arena_endless_desc_chaos">
+		<text>Unpredictable chaotic brawl. Each wave can feature either armed stalkers or dangerous mutant packs.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_special_ammo_support">
+		<text>Special ammo support (ArtiGrok Ballistics)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_special_ammo_support_desc">
+		<text>Allows equipping special / overpressured ammo if ArtiGrok Ballistics mod is installed.</text>
+	</string>
+	<string id="st_arena_loadout_summary_title">
+		<text>SELECTED LOADOUT</text>
+	</string>
+	<string id="st_arena_loadout_sum_round">
+		<text>Round</text>
+	</string>
+	<string id="st_arena_loadout_sum_weapon">
+		<text>Weapon</text>
+	</string>
+	<string id="st_arena_loadout_sum_ammo">
+		<text>Ammo</text>
+	</string>
+	<string id="st_arena_loadout_sum_outfit">
+		<text>Suit</text>
+	</string>
+	<string id="st_arena_loadout_sum_helmet">
+		<text>Helmet</text>
+	</string>
+	<string id="st_arena_spec_ammo_title">
+		<text>SPECIAL AMMO (ARTIGROK):</text>
+	</string>
+	<string id="st_arena_spec_ammo_none">
+		<text>No special ammo</text>
 	</string>
 
 </string_table>
