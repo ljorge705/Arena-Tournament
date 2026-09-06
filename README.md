@@ -50,7 +50,7 @@ Compete directly in staged combat rounds against progressively harder combatants
 
 ---
 
-### 3. Betting & Spectator Mode ("Apuestas")
+### 3. Betting & Spectator Mode
 Watch other gladiators fight from the VIP balcony overlooking the arena pit:
 - **6 Concurrent Bout Cards**: Real-time bouts generated with dynamic odds and payouts.
 - **Match Types & Filter Tabs**:
@@ -75,7 +75,7 @@ An all-out 4-faction brawl in the arena pit:
 
 ---
 
-### 5. Beta Modes: Endless Mode ("Modo Infinito" / Survival)
+### 5. Beta Modes: Endless Mode
 A progressive wave survival challenge pushed to the limit:
 - **Scaling Wave Difficulty**: Face escalating odds starting from 1v1 (Wave 1), 1v2 (Wave 2), 1v3 (Wave 3), scaling continuously.
 - **3 Enemy Categories**:
