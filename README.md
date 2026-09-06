@@ -4,7 +4,6 @@
 > **Target Platform**: S.T.A.L.K.E.R. Anomaly / G.A.M.M.A. / GAMMA Mags Reloaded  
 > **Engine used to create the mod**: [xray-monolith-bodycam](https://github.com/asuparabekon/xray-monolith-bodycam) engine fork  
 > **Inspiration**: Based on and evolved from the original [Arena DLC (0.16)](https://www.moddb.com/mods/stalker-anomaly/addons/arena-dlc-01) by *xcvb* on ModDB.  
-> **Changelog**: See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
 ---
 
@@ -154,20 +153,6 @@ Full multilingual text support:
 - **G.A.M.M.A. Mags Reloaded**:  
   Provides automatic magazine loading, chambering, and tactical distribution in all arena bouts.
 
----
-
-## Version History
-
-For a comprehensive breakdown of all additions, adjustments, and fixes, check out the complete [CHANGELOG.md](CHANGELOG.md).
-
-### Recent Highlights (v1.1.1)
-- **Endless Mode**: Complete survival wave system with equipment swaps, multi-point spawning, and evacuation mechanics.
-- **Battle Royale**: 4-faction free-for-all brawl with spectator wagering.
-- **Special Ammo Grid**: Interactive 8-button caliber-matched ammo selector with pagination for ArtiGrok cartridges.
-- **Loadout Summary**: Live translated summary card for selected weapons, ammunition, suits, and helmets.
-- **Bug Fixes**: Fixed Endless Mode player invulnerability on replay, eliminated AI ceiling levitation, and expanded container hitboxes.
-
----
 
 ## Credits & Acknowledgments
 
