@@ -1,6 +1,5 @@
 # Arena Tournament - S.T.A.L.K.E.R. Anomaly / G.A.M.M.A.
-
-> **Version**: *1.1.1*  
+ 
 > **Target Platform**: S.T.A.L.K.E.R. Anomaly / G.A.M.M.A. / GAMMA Mags Reloaded  
 > **Engine used to create the mod**: [xray-monolith-bodycam](https://github.com/asuparabekon/xray-monolith-bodycam) engine fork  
 > **Inspiration**: Based on and evolved from the original [Arena DLC (0.16)](https://www.moddb.com/mods/stalker-anomaly/addons/arena-dlc-01) by *xcvb* on ModDB.  
