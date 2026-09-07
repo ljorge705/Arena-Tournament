@@ -1778,8 +1778,16 @@ function restore_actor_inventory()
             end
         end
         
-        if saved_active_slot then
-            pcall(function() db.actor:activate_slot(saved_active_slot) end)
+        local slot_to_act = saved_active_slot
+        if (not slot_to_act) or (slot_to_act == 0 and not db.actor:item_in_slot(0)) then
+            if db.actor:item_in_slot(2) then slot_to_act = 2
+            elseif db.actor:item_in_slot(3) then slot_to_act = 3
+            elseif db.actor:item_in_slot(1) then slot_to_act = 1
+            elseif db.actor:item_in_slot(0) then slot_to_act = 0
+            end
+        end
+        if slot_to_act then
+            pcall(function() db.actor:activate_slot(slot_to_act) end)
         end
         return true
     end)
@@ -1795,9 +1803,14 @@ function restore_actor_inventory()
                 end
             end
         end
-        
+
         if saved_active_slot and db.actor:active_slot() ~= saved_active_slot then
             pcall(function() db.actor:activate_slot(saved_active_slot) end)
+        elseif db.actor:active_slot() == 0 and not db.actor:item_in_slot(0) then
+            if db.actor:item_in_slot(2) then pcall(function() db.actor:activate_slot(2) end)
+            elseif db.actor:item_in_slot(3) then pcall(function() db.actor:activate_slot(3) end)
+            elseif db.actor:item_in_slot(1) then pcall(function() db.actor:activate_slot(1) end)
+            end
         end
 
         saved_equipped_slots = {}
@@ -2901,8 +2914,32 @@ function equip_endless_random_loadout(wave)
         end
     end
     
-    if db.actor then
-        db.actor.health = math.min(1.0, db.actor.health + 0.40)
+    if xcvb_arena_fight and xcvb_arena_fight.heal_actor_completely then
+        xcvb_arena_fight.heal_actor_completely()
+    else
+        if db.actor then
+            db.actor.health = 1.0
+            db.actor.bleeding = 1.0
+            db.actor.radiation = 0
+            db.actor.psy_health = 1.0
+            db.actor.power = 1.0
+        end
+        if zzz_player_injuries and zzz_player_injuries.health and zzz_player_injuries.maxhp then
+            pcall(function()
+                local bhs_parts = {"head", "torso", "rightarm", "leftarm", "rightleg", "leftleg"}
+                local sv = (utils_obj and utils_obj.save_var) or _G.save_var
+                for _, part in ipairs(bhs_parts) do
+                    local max_v = (zzz_player_injuries.maxhp and zzz_player_injuries.maxhp[part]) or ((part == "head" or part == "torso") and 11 or 5)
+                    zzz_player_injuries.health[part] = max_v
+                    if zzz_player_injuries.timedhp then zzz_player_injuries.timedhp[part] = 0 end
+                    if sv and db.actor then
+                        pcall(sv, db.actor, "health." .. part, max_v)
+                        pcall(sv, db.actor, "timedhp." .. part, 0)
+                    end
+                end
+                zzz_player_injuries.myhealth = 1.0
+            end)
+        end
     end
     
     CreateTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1", 0.3, function()

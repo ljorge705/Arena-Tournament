@@ -260,6 +260,12 @@
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</tourn_start_btn>
 
+		<!-- Quick Endless Mode Button (Bottom Right - Big Button) -->
+		<endless_btn x="460" y="425" width="220" height="48" check_mode="0">
+			<text font="letterica16">st_arena_quick_endless_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</endless_btn>
+
 		<!-- Special Ammo Selection Menu (Right Side, 8 buttons grid + pagination) -->
 		<spec_menu_title x="460" y="388" width="160" height="14">
 			<text r="255" g="220" b="130" font="letterica16" align="l" vert_align="c">st_arena_spec_ammo_title</text>

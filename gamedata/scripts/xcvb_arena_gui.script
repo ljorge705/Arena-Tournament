@@ -185,6 +185,10 @@ function UIXcvbArena:InitControls()
 	self.btn_tourn_start = xml:Init3tButton("tournament_cont:tourn_start_btn", self.tournament_cont)
 	self:Register(self.btn_tourn_start, "btn_tourn_start")
 
+	-- Quick Endless Mode Button (Bottom Right)
+	self.btn_endless = xml:Init3tButton("tournament_cont:endless_btn", self.tournament_cont)
+	self:Register(self.btn_endless, "btn_endless")
+
 	-- Special Ammo Selection Menu (Right Side, 8 buttons grid + pagination)
 	self.spec_menu_title = xml:InitTextWnd("tournament_cont:spec_menu_title", self.tournament_cont)
 	self.spec_page_prev = xml:Init3tButton("tournament_cont:spec_page_prev", self.tournament_cont)
@@ -373,6 +377,7 @@ end
 
 function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_mode", ui_events.BUTTON_CLICKED, self.on_click_mode, self)
+	self:AddCallback("btn_endless", ui_events.BUTTON_CLICKED, self.on_click_quick_endless, self)
 	self:AddCallback("btn_beta", ui_events.BUTTON_CLICKED, self.on_click_beta_mode, self)
 
 	-- Beta Testing tabs
@@ -1122,6 +1127,7 @@ function UIXcvbArena:update_loadout_buttons()
 
 	-- Special Ammo Grid Display (Right side, 8 buttons + pagination)
 	if self.selected_loadout_ammo == "special" and has_artigrok then
+		if self.btn_endless then self.btn_endless:Show(false) end
 		if self.spec_menu_title then
 			self.spec_menu_title:Show(true)
 			if not self.selected_weapon_sec then
@@ -1169,6 +1175,7 @@ function UIXcvbArena:update_loadout_buttons()
 			end
 		end
 	else
+		if self.btn_endless then self.btn_endless:Show(true) end
 		if self.spec_menu_title then self.spec_menu_title:Show(false) end
 		if self.spec_page_prev then self.spec_page_prev:Show(false) end
 		if self.spec_page_next then self.spec_page_next:Show(false) end
@@ -1945,6 +1952,15 @@ function UIXcvbArena:on_click_endless_start()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
 		xcvb_arena_fight.start_endless_fight(self.endless_enemy_type)
+		return true
+	end)
+end
+
+function UIXcvbArena:on_click_quick_endless()
+	self:Close()
+	xcvb_arena_utils.arena_fade_in_out(1)
+	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
+		xcvb_arena_fight.start_endless_fight("stalkers")
 		return true
 	end)
 end

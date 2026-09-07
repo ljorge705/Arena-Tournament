@@ -737,6 +737,10 @@
 		<text>Battle Royale</text>
 	</string>
 	<string id="st_arena_beta_tab_endless">
+		<text>Бесконечный Режим</text>
+	</string>
+	<string id="st_arena_quick_endless_btn">
+		<text>[Testing] Endless Mode [Testing]</text>
 		<text>Бесконечный режим</text>
 	</string>
 	<string id="st_arena_endless_title">

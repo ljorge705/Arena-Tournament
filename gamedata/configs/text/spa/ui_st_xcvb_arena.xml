@@ -959,6 +959,9 @@
 	<string id="st_arena_beta_tab_endless">
 		<text>Modo Infinito</text>
 	</string>
+	<string id="st_arena_quick_endless_btn">
+		<text>[Testing] Endless Mode [Testing]</text>
+	</string>
 	<string id="st_arena_endless_title">
 		<text>MODO INFINITO (SUPERVIVENCIA)</text>
 	</string>

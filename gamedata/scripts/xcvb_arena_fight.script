@@ -56,6 +56,44 @@ local function get_endless_total_enemies_alive(dying_squad_id)
     return total
 end
 
+function heal_actor_completely()
+    if not db.actor then return end
+    pcall(function()
+        db.actor.health = 1.0
+        db.actor.bleeding = 1.0
+        db.actor.radiation = 0
+        db.actor.psy_health = 1.0
+        db.actor.power = 1.0
+    end)
+    if zzz_player_injuries and zzz_player_injuries.health and zzz_player_injuries.maxhp then
+        pcall(function()
+            local bhs_parts = {"head", "torso", "rightarm", "leftarm", "rightleg", "leftleg"}
+            local sv = (utils_obj and utils_obj.save_var) or _G.save_var
+            for _, part in ipairs(bhs_parts) do
+                local max_v = (zzz_player_injuries.maxhp and zzz_player_injuries.maxhp[part]) or ((part == "head" or part == "torso") and 11 or 5)
+                zzz_player_injuries.health[part] = max_v
+                if zzz_player_injuries.timedhp then
+                    zzz_player_injuries.timedhp[part] = 0
+                end
+                if sv and db.actor then
+                    pcall(sv, db.actor, "health." .. part, max_v)
+                    pcall(sv, db.actor, "timedhp." .. part, 0)
+                end
+            end
+            if zzz_player_injuries.preview and zzz_player_injuries.preview.health then
+                for _, part in ipairs(bhs_parts) do
+                    local max_v = (zzz_player_injuries.maxhp and zzz_player_injuries.maxhp[part]) or ((part == "head" or part == "torso") and 11 or 5)
+                    zzz_player_injuries.preview.health[part] = max_v
+                    if zzz_player_injuries.preview.bonus then
+                        zzz_player_injuries.preview.bonus[part] = 0
+                    end
+                end
+            end
+            zzz_player_injuries.myhealth = 1.0
+        end)
+    end
+end
+
 --------------------------------------------------------------------------------
 -- TOURNAMENT COMBAT MODE (Player in the Arena)
 --------------------------------------------------------------------------------
@@ -68,6 +106,9 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     xcvb_arena_main.selected_modifier_team1 = "none"
     xcvb_arena_main.selected_modifier_team2 = "none"
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
+    if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
+    pcall(level.enable_input)
+    pcall(level.show_indicators)
     current_tournament_category = category or "stalker"
     current_tournament_round_id = round_id
     local round_data = xcvb_arena_main.get_round_data(current_tournament_category, round_id)
@@ -110,7 +151,8 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
 end
 
 function on_tournament_victory(round_id)
-    if tournament_fight_closed then return end
+    if tournament_fight_closed or tourn_ending or endless_ending then return end
+    heal_actor_completely()
     news_manager.send_tip(db.actor, gt("st_arena_fight_won"), 0, nil, 8000)
     xcvb_arena_utils.arena_fade_in_out(2)
     CreateTimeEvent("xcvb_arena_end_tourn_e", "xcvb_arena_end_tourn_a", 3, function()
@@ -134,6 +176,11 @@ function end_tournament_fight(is_victory)
 
     RemoveTimeEvent("allow_tournament_aggro_e", "allow_tournament_aggro_a")
     RemoveTimeEvent("xcvb_arena_end_tourn_e", "xcvb_arena_end_tourn_a")
+    RemoveTimeEvent("xcvb_arena_rescue_e", "xcvb_arena_rescue_a")
+
+    if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
+    pcall(level.enable_input)
+    pcall(level.show_indicators)
 
     if tournament_enemy_squad_id then
         xcvb_arena_utils.clean_tournament_squad(tournament_enemy_squad_id)
@@ -145,6 +192,12 @@ function end_tournament_fight(is_victory)
     if random_eq ~= false then
         xcvb_arena_utils.restore_actor_inventory()
     end
+
+    heal_actor_completely()
+    CreateTimeEvent("xcvb_arena_heal_tourn_e", "xcvb_arena_heal_tourn_a", 0.5, function()
+        heal_actor_completely()
+        return true
+    end)
 
     local cat = current_tournament_category or "stalker"
     is_victory = is_victory and actor_alive
@@ -215,9 +268,19 @@ function start_arena_fight(bout_idx)
     
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
-    db.actor:set_actor_direction(device().cam_dir:getH())
-
-    db.actor:hide_weapon()
+    local arena_center = vector():set(152.0, -20.0, 105.0)
+    local look_dir = vector():sub(arena_center, ac_pos)
+    db.actor:set_actor_direction(-look_dir:getH())
+    CreateTimeEvent("arena_spec_cam_e", "arena_spec_cam_a", 0.1, function()
+        if db.actor then
+            local center = vector():set(152.0, -20.0, 105.0)
+            local ldir = vector():sub(center, ac_pos)
+            db.actor:set_actor_direction(-ldir:getH())
+        end
+        return true
+    end)
+    if db.actor then pcall(function() db.actor:activate_slot(0) end) end
+    if game.only_allow_movekeys then pcall(game.only_allow_movekeys, true) end
 
     local type1 = string.find(main_t.team1[1], "sim_default") and "stalker" or "mutant"
     local sec1 = "arena_" .. type1 .. "_team_1"
@@ -380,7 +443,9 @@ function end_arena_fight(winner_team)
 
     local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
     db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
-    db.actor:restore_weapon()
+    if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
+    pcall(level.enable_input)
+    pcall(level.show_indicators)
     
     local bet_team = xcvb_arena_main.team_bet
     local reward = xcvb_arena_main.cur_reward
@@ -459,8 +524,19 @@ function start_battle_royale_fight(br_data)
 
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
-    db.actor:set_actor_direction(device().cam_dir:getH())
-    db.actor:hide_weapon()
+    local arena_center = vector():set(152.0, -20.0, 105.0)
+    local look_dir = vector():sub(arena_center, ac_pos)
+    db.actor:set_actor_direction(-look_dir:getH())
+    CreateTimeEvent("arena_br_cam_e", "arena_br_cam_a", 0.1, function()
+        if db.actor then
+            local center = vector():set(152.0, -20.0, 105.0)
+            local ldir = vector():sub(center, ac_pos)
+            db.actor:set_actor_direction(-ldir:getH())
+        end
+        return true
+    end)
+    if db.actor then pcall(function() db.actor:activate_slot(0) end) end
+    if game.only_allow_movekeys then pcall(game.only_allow_movekeys, true) end
 
     local is_mutants_mode = (battle_royale_submode == "mutants")
 
@@ -529,7 +605,9 @@ function end_battle_royale(winner_team_idx)
 
     local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
     db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
-    db.actor:restore_weapon()
+    if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
+    pcall(level.enable_input)
+    pcall(level.show_indicators)
 
     local win_idx = tonumber(winner_team_idx) or 0
     if win_idx > 0 and win_idx == battle_royale_bet_team and battle_royale_reward > 0 then
@@ -589,6 +667,9 @@ function start_endless_fight(enemy_type)
     endless_transitioning = false
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
     RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
+    if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
+    pcall(level.enable_input)
+    pcall(level.show_indicators)
 
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_tournament_pos()
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
@@ -647,6 +728,7 @@ function advance_endless_wave()
     news_manager.send_tip(db.actor, clear_tip, 0, nil, 7000)
 
     xcvb_arena_utils.clean_arena_corpses()
+    heal_actor_completely()
 
     endless_wave = endless_wave + 1
 
@@ -654,6 +736,7 @@ function advance_endless_wave()
         if endless_ending or endless_fight_closed then return true end
 
         xcvb_arena_utils.equip_endless_random_loadout(endless_wave)
+        heal_actor_completely()
 
         local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type)
         endless_enemy_squad_ids = {}
@@ -695,6 +778,7 @@ function end_endless_fight(is_victory, voluntary_leave)
     RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
     RemoveTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a")
     RemoveTimeEvent("xcvb_arena_exit_endless_f_e", "xcvb_arena_exit_endless_f_a")
+    RemoveTimeEvent("xcvb_arena_rescue_e", "xcvb_arena_rescue_a")
 
     local actor_alive = db.actor and db.actor:alive()
     if actor_alive then
@@ -702,6 +786,10 @@ function end_endless_fight(is_victory, voluntary_leave)
         db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
         pcall(level.enable_input)
     end
+
+    if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
+    pcall(level.enable_input)
+    pcall(level.show_indicators)
 
     if endless_enemy_squad_ids then
         for _, s_id in ipairs(endless_enemy_squad_ids) do
@@ -711,6 +799,12 @@ function end_endless_fight(is_victory, voluntary_leave)
     end
     xcvb_arena_utils.clean_arena_corpses()
     xcvb_arena_utils.restore_actor_inventory()
+
+    heal_actor_completely()
+    CreateTimeEvent("xcvb_arena_heal_endless_e", "xcvb_arena_heal_endless_a", 0.5, function()
+        heal_actor_completely()
+        return true
+    end)
 
     local waves_cleared = voluntary_leave and (endless_wave - 1) or (is_victory and endless_wave or 0)
     if voluntary_leave and endless_reward > 0 and actor_alive then
@@ -741,6 +835,169 @@ local function has_live_enemy(npc)
     return is_alive
 end
 
+--------------------------------------------------------------------------------
+-- CONTINUOUS FIRE (Hip-fire to ADS and ADS to Hip-fire)
+--------------------------------------------------------------------------------
+local cont_fire_last_wpn_id = nil
+local cont_fire_was_firing = false
+local cont_fire_aim_trans = false
+local cont_fire_last_zoomed = false
+local cont_fire_retriggered = false
+
+local function is_weapon_auto_mode(wpn)
+    if not wpn then return false end
+    local ok, fm = pcall(function()
+        if wpn.GetFireMode then return wpn:GetFireMode() end
+        local c = wpn.cast_Weapon and wpn:cast_Weapon()
+        if c and c.GetFireMode then return c:GetFireMode() end
+        return nil
+    end)
+    if ok and fm then
+        if fm == -1 or fm > 1 then
+            return true
+        elseif fm == 1 then
+            return false
+        end
+    end
+    local sec = wpn:section()
+    local modes = ini_sys:r_string_ex(sec, "fire_modes")
+    if modes then
+        if string.find(modes, "-1") and not (string.find(modes, "1,") or string.find(modes, ", 1") or modes == "1") then
+            return true
+        end
+    end
+    return false
+end
+
+function actor_on_hud_animation_play(anm_table, item)
+    if not anm_table or not anm_table.anm_name then return end
+    local anm = anm_table.anm_name
+    if string.find(anm, "aim_start") or string.find(anm, "aim_end") then
+        local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
+        local lmb_held = key_state(fire_dik) ~= 0
+        if lmb_held and cont_fire_was_firing then
+            if string.find(anm, "aim_start") then
+                anm_table.anm_name = string.find(anm, "empty") and "anm_idle_aim_empty" or "anm_idle_aim"
+            else
+                anm_table.anm_name = string.find(anm, "empty") and "anm_idle_empty" or "anm_idle"
+            end
+        end
+    end
+end
+
+function actor_on_weapon_zoom_in(wpn)
+    cont_fire_aim_trans = true
+    local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
+    if key_state(fire_dik) ~= 0 and cont_fire_was_firing and wpn and IsWeapon(wpn) then
+        pcall(game.stop_hud_motion)
+        level.release_action(fire_dik)
+        level.press_action(fire_dik)
+        pcall(function() wpn:switch_state(5) end)
+    end
+end
+
+function actor_on_weapon_zoom_out(wpn)
+    cont_fire_aim_trans = true
+    local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
+    if key_state(fire_dik) ~= 0 and cont_fire_was_firing and wpn and IsWeapon(wpn) then
+        pcall(game.stop_hud_motion)
+        level.release_action(fire_dik)
+        level.press_action(fire_dik)
+        pcall(function() wpn:switch_state(5) end)
+    end
+end
+
+local function continuous_fire_on_update()
+    if not db.actor or not db.actor:alive() then
+        cont_fire_was_firing = false
+        cont_fire_aim_trans = false
+        cont_fire_retriggered = false
+        return
+    end
+
+    -- Skip if UI / inventory / PDA is open
+    if (actor_menu and actor_menu.last_mode ~= 0)
+        or (pda and pda.dialog_closed == false)
+        or (Check_UI and Check_UI())
+        or db.actor:has_info("ui_pda") then
+        cont_fire_was_firing = false
+        cont_fire_aim_trans = false
+        cont_fire_retriggered = false
+        return
+    end
+
+    local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
+    local lmb_held = key_state(fire_dik) ~= 0
+
+    if not lmb_held then
+        cont_fire_was_firing = false
+        cont_fire_aim_trans = false
+        cont_fire_retriggered = false
+        return
+    end
+
+    local wpn = db.actor:active_item()
+    if not wpn or not IsWeapon(wpn) then
+        cont_fire_was_firing = false
+        cont_fire_aim_trans = false
+        cont_fire_retriggered = false
+        return
+    end
+
+    local wpn_id = wpn:id()
+    if wpn_id ~= cont_fire_last_wpn_id then
+        cont_fire_last_wpn_id = wpn_id
+        cont_fire_was_firing = false
+        cont_fire_aim_trans = false
+        cont_fire_retriggered = false
+    end
+
+    local kind = ini_sys:r_string_ex(wpn:section(), "kind")
+    if kind == "w_melee" or kind == "w_misc" then
+        return
+    end
+
+    local state = wpn:get_state()
+    local is_zoomed = (axr_main and axr_main.weapon_is_zoomed) or false
+
+    if is_zoomed ~= cont_fire_last_zoomed then
+        cont_fire_aim_trans = true
+        cont_fire_last_zoomed = is_zoomed
+    end
+
+    if state == 5 then -- eFire
+        cont_fire_was_firing = true
+        cont_fire_retriggered = false
+    end
+
+    -- Seamlessly continue firing when weapon becomes idle during aim transitions
+    if lmb_held and (state == 0 or state == 11 or state == 12) then
+        local ammo = wpn:get_ammo_in_magazine()
+        local is_jammed = (arti_jamming and arti_jamming.is_jammed and arti_jamming.is_jammed(wpn)) or false
+        local is_lowered = (game.actor_weapon_lowered and game.actor_weapon_lowered()) or false
+
+        if ammo > 0 and not is_jammed and not is_lowered then
+            local is_auto = is_weapon_auto_mode(wpn)
+            if is_auto and cont_fire_was_firing then
+                pcall(game.stop_hud_motion)
+                level.release_action(fire_dik)
+                level.press_action(fire_dik)
+                pcall(function() wpn:switch_state(5) end)
+            elseif cont_fire_aim_trans and not cont_fire_retriggered then
+                cont_fire_retriggered = true
+                cont_fire_aim_trans = false
+                pcall(game.stop_hud_motion)
+                level.release_action(fire_dik)
+                level.press_action(fire_dik)
+                pcall(function() wpn:switch_state(5) end)
+            end
+        else
+            cont_fire_was_firing = false
+            cont_fire_aim_trans = false
+        end
+    end
+end
+
 function actor_on_update()
     if tourn_ending or endless_ending then
         if not HI("xcvb_tournament_started") and not HI("xcvb_endless_started") and not is_endless_mode then
@@ -754,6 +1011,8 @@ function actor_on_update()
             return
         end
     end
+
+    continuous_fire_on_update()
 
     if HI("xcvb_tournament_started") then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
@@ -894,8 +1153,15 @@ function actor_on_update()
 end
 
 function on_before_key_press(key, bind, dis, flags)
+	local cur_bind = bind or dik_to_bind(key)
+	if cur_bind == key_bindings.kWPN_ZOOM or dik_to_bind(key) == key_bindings.kWPN_ZOOM then
+		local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
+		if key_state(fire_dik) ~= 0 then
+			cont_fire_aim_trans = true
+		end
+	end
+
 	if HI("xcvb_endless_started") or is_endless_mode then
-		local cur_bind = dik_to_bind(key)
 		if key == DIK_keys.DIK_F or cur_bind == key_bindings.kUSE then
 			if not endless_ending and not endless_fight_closed then
 				endless_ending = true
@@ -947,6 +1213,16 @@ function on_before_key_press(key, bind, dis, flags)
 		return
 	end
 	flags.ret_value = false
+end
+
+function on_key_release(key)
+	local cur_bind = dik_to_bind(key)
+	if cur_bind == key_bindings.kWPN_ZOOM then
+		local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
+		if key_state(fire_dik) ~= 0 then
+			cont_fire_aim_trans = true
+		end
+	end
 end
 
 function on_enemy_eval(npc, enemy, flags)
@@ -1047,34 +1323,12 @@ local function trigger_medic_rescue()
     end
 
     if db.actor then
-        db.actor:hide_weapon()
+        pcall(function() db.actor:activate_slot(0) end)
     end
     pcall(level.disable_input)
     pcall(level.hide_indicators_safe)
 
-    if db.actor then
-        db.actor.health = 1.0
-        db.actor.bleeding = 0
-        db.actor.radiation = 0
-        db.actor.psy_health = 1.0
-        db.actor.power = -1.0
-    end
-
-    if zzz_player_injuries then
-        pcall(function()
-            if zzz_player_injuries.health and zzz_player_injuries.maxhp then
-                zzz_player_injuries.health.head = zzz_player_injuries.maxhp.head
-                zzz_player_injuries.health.torso = zzz_player_injuries.maxhp.torso
-                zzz_player_injuries.health.rightarm = zzz_player_injuries.maxhp.rightarm
-                zzz_player_injuries.health.leftarm = zzz_player_injuries.maxhp.leftarm
-                zzz_player_injuries.health.rightleg = zzz_player_injuries.maxhp.rightleg
-                zzz_player_injuries.health.leftleg = zzz_player_injuries.maxhp.leftleg
-                if zzz_player_injuries.SaveHealthStatus then
-                    zzz_player_injuries.SaveHealthStatus()
-                end
-            end
-        end)
-    end
+    heal_actor_completely()
 
     local target_squad_ids = {}
     if tournament_enemy_squad_id then
@@ -1122,15 +1376,17 @@ local function trigger_medic_rescue()
         return true
     end)
 
-    CreateTimeEvent("xcvb_arena_end_tourn_e", "xcvb_arena_end_tourn_a", 3.5, function()
+    CreateTimeEvent("xcvb_arena_rescue_e", "xcvb_arena_rescue_a", 3.5, function()
         pcall(level.remove_pp_effector, 987125)
         pcall(level.remove_cam_effector, 987126)
 
-        if is_endless_mode or HI("xcvb_endless_started") then
-            end_endless_fight(false, false)
-        else
-            end_tournament_fight(false)
-        end
+        pcall(function()
+            if is_endless_mode or HI("xcvb_endless_started") then
+                end_endless_fight(false, false)
+            else
+                end_tournament_fight(false)
+            end
+        end)
         tourn_ending = false
         endless_ending = false
 
@@ -1139,18 +1395,18 @@ local function trigger_medic_rescue()
             level.add_pp_effector("fade_out.ppe", 987124, false)
         end)
 
-        if db.actor then
-            db.actor:restore_weapon()
-        end
         pcall(level.show_indicators)
         pcall(level.enable_input)
+        if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
 
         local fee = 2500
-        if db.actor:money() >= fee then
+        if db.actor and db.actor:money() >= fee then
             db.actor:give_money(-fee)
         end
         local msg = string.format(gt("st_arena_medic_rescue"), fee)
-        news_manager.send_tip(db.actor, msg, 0, nil, 12000)
+        if db.actor then
+            news_manager.send_tip(db.actor, msg, 0, nil, 12000)
+        end
         return true
     end)
 end
@@ -1348,6 +1604,11 @@ function actor_on_first_update()
     endless_ending = false
     setup_teams()
     xcvb_arena_utils.init_arena_box()
+    if not HI("xcvb_tournament_started") and not HI("xcvb_endless_started") and not is_endless_mode then
+        if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
+        pcall(level.enable_input)
+        pcall(level.show_indicators)
+    end
     if HI("xcvb_tournament_started") and tournament_enemy_squad_id then
         xcvb_arena_utils.setup_tournament_squad_aggro(tournament_enemy_squad_id)
     end
@@ -1371,6 +1632,10 @@ function on_game_start()
     RegisterScriptCallback("npc_on_before_hit", npc_on_before_hit)
     RegisterScriptCallback("actor_on_before_hit", actor_on_before_hit)
     RegisterScriptCallback("on_before_key_press", on_before_key_press)
+    RegisterScriptCallback("on_key_release", on_key_release)
+    RegisterScriptCallback("actor_on_weapon_zoom_in", actor_on_weapon_zoom_in)
+    RegisterScriptCallback("actor_on_weapon_zoom_out", actor_on_weapon_zoom_out)
+    RegisterScriptCallback("actor_on_hud_animation_play", actor_on_hud_animation_play)
     RegisterScriptCallback("save_state", save_state)
     RegisterScriptCallback("load_state", load_state)
     RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
