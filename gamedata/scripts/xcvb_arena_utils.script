@@ -2703,14 +2703,31 @@ local endless_mutant_sections_by_tier = {
 
 local endless_enemy_factions = { "bandit", "renegade", "killer", "army", "dolg", "freedom", "zombied" }
 
+local endless_forbidden_factions = {
+    ["monolith"] = true,
+    ["greh"] = true,
+    ["sin"] = true,
+    ["isg"] = true,
+}
+
 local endless_spawn_zones = {
-    -- 6 verified, open floor zones spanning the North and Mid-North arena sectors
+    -- North Center Gate & Flanks
     { pos = vector():set(151.2, -20.0543, 128.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Gate
     { pos = vector():set(145.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 }, -- North West Flank
     { pos = vector():set(158.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 }, -- North East Flank
+    { pos = vector():set(144.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 }, -- North West Corner
+    { pos = vector():set(160.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 }, -- North East Corner
+    -- Mid-North Sector
     { pos = vector():set(147.0, -20.0550, 115.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North West
     { pos = vector():set(157.0, -20.0550, 115.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North East
     { pos = vector():set(151.2, -20.0550, 119.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Approach
+    -- Center & Mid-Arena Sectors
+    { pos = vector():set(144.0, -20.0550, 105.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-West Flank
+    { pos = vector():set(160.0, -20.0550, 105.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-East Flank
+    { pos = vector():set(151.2, -20.0550, 108.0), fallback_lvid = 40551, gvid = 1796 }, -- Center Arena
+    -- Mid-South Flanks (Safe distance from player starting pos at 152.6, 81.2)
+    { pos = vector():set(144.0, -20.0598, 96.0),  fallback_lvid = 40761, gvid = 1684 }, -- Mid-South West
+    { pos = vector():set(160.0, -20.0598, 96.0),  fallback_lvid = 40761, gvid = 1684 }, -- Mid-South East
 }
 
 local function get_random_endless_spawn_pos(prefer_idx)
@@ -2729,8 +2746,13 @@ local function get_random_endless_spawn_pos(prefer_idx)
 end
 
 function spawn_endless_squad(wave, enemy_type)
+    math.randomseed(os.time() + (time_global() or 0) + math.random(1, 9999))
+
     local cur_wave = wave or 1
     local e_type = enemy_type or "stalkers"
+    if e_type == "random" then
+        e_type = "stalkers"
+    end
     
     local tier = 1
     if cur_wave >= 9 then
@@ -2764,7 +2786,7 @@ function spawn_endless_squad(wave, enemy_type)
     if e_type == "stalkers" then
         local fac_candidates = {}
         for _, f in ipairs(endless_enemy_factions) do
-            if is_enemy_to_actor(f, a_fac) then
+            if is_enemy_to_actor(f, a_fac) and not endless_forbidden_factions[f] then
                 table.insert(fac_candidates, f)
             end
         end
@@ -2785,7 +2807,7 @@ function spawn_endless_squad(wave, enemy_type)
             if not chosen_fac then
                 local fac_candidates = {}
                 for _, f in ipairs(endless_enemy_factions) do
-                    if is_enemy_to_actor(f, a_fac) then
+                    if is_enemy_to_actor(f, a_fac) and not endless_forbidden_factions[f] then
                         table.insert(fac_candidates, f)
                     end
                 end

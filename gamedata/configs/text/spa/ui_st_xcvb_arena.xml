@@ -995,6 +995,9 @@
 	<string id="st_arena_endless_start_btn">
 		<text>Comenzar Modo Infinito</text>
 	</string>
+	<string id="st_arena_endless_enemies_spawning_3s">
+		<text>Los enemigos spawnearan en 3 seg</text>
+	</string>
 	<string id="st_arena_endless_wave_started">
 		<text>OLEADA %s: 1v%s - Sobrevive! (Presiona F para salir con tu botin)</text>
 	</string>

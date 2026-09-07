@@ -995,6 +995,9 @@
 	<string id="st_arena_endless_start_btn">
 		<text>Start Endless Mode</text>
 	</string>
+	<string id="st_arena_endless_enemies_spawning_3s">
+		<text>Enemies will spawn in 3 sec</text>
+	</string>
 	<string id="st_arena_endless_wave_started">
 		<text>WAVE %s: 1v%s - Survive! (Press F to exit with your loot)</text>
 	</string>

@@ -560,6 +560,7 @@ function load_state(m_data)
 	best_endless_wave = m_data.xcvb_best_endless_wave or 0
 	endless_checkpoint_wave = m_data.xcvb_endless_checkpoint_wave or (best_endless_wave > 0 and best_endless_wave or 1)
 	endless_checkpoint_type = m_data.xcvb_endless_checkpoint_type or "stalkers"
+	if endless_checkpoint_type == "random" then endless_checkpoint_type = "stalkers" end
 	if m_data.xcvb_endless_artigrok_ammo ~= nil then
 		endless_artigrok_ammo = m_data.xcvb_endless_artigrok_ammo
 	end

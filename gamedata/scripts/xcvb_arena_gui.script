@@ -2000,6 +2000,7 @@ end
 function UIXcvbArena:on_click_continue_endless()
 	local cp_wave = xcvb_arena_main.endless_checkpoint_wave or xcvb_arena_main.best_endless_wave or 1
 	local e_type = xcvb_arena_main.endless_checkpoint_type or "stalkers"
+	if e_type == "random" then e_type = "stalkers" end
 	self:Close()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
