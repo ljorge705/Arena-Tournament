@@ -189,6 +189,14 @@ function UIXcvbArena:InitControls()
 	self.btn_endless = xml:Init3tButton("tournament_cont:endless_btn", self.tournament_cont)
 	self:Register(self.btn_endless, "btn_endless")
 
+	-- Continue Endless Mode Button (Bottom Right, below Endless Mode)
+	self.btn_endless_cont = xml:Init3tButton("tournament_cont:endless_cont_btn", self.tournament_cont)
+	self:Register(self.btn_endless_cont, "btn_endless_cont")
+
+	-- ArtiGrok Special Ammo Toggle Button (Main Screen)
+	self.endless_arti_btn_main = xml:Init3tButton("tournament_cont:endless_arti_btn_main", self.tournament_cont)
+	self:Register(self.endless_arti_btn_main, "btn_endless_arti_main")
+
 	-- Special Ammo Selection Menu (Right Side, 8 buttons grid + pagination)
 	self.spec_menu_title = xml:InitTextWnd("tournament_cont:spec_menu_title", self.tournament_cont)
 	self.spec_page_prev = xml:Init3tButton("tournament_cont:spec_page_prev", self.tournament_cont)
@@ -370,6 +378,10 @@ function UIXcvbArena:InitControls()
 	self.endless_start_btn = xml:Init3tButton("beta_cont:endless_start_btn", self.beta_cont)
 	self:Register(self.endless_start_btn, "btn_endless_start")
 
+	-- ArtiGrok Special Ammo Toggle Button (Endless Mode Screen)
+	self.endless_arti_btn = xml:Init3tButton("beta_cont:endless_arti_btn", self.beta_cont)
+	self:Register(self.endless_arti_btn, "btn_endless_arti")
+
 	xml:InitStatic("vert_line1", self.bg)
 	xml:InitStatic("vert_line2", self.bg)
 	xml:InitStatic("vert_line3", self.bg)
@@ -378,6 +390,9 @@ end
 function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_mode", ui_events.BUTTON_CLICKED, self.on_click_mode, self)
 	self:AddCallback("btn_endless", ui_events.BUTTON_CLICKED, self.on_click_quick_endless, self)
+	self:AddCallback("btn_endless_cont", ui_events.BUTTON_CLICKED, self.on_click_continue_endless, self)
+	self:AddCallback("btn_endless_arti", ui_events.BUTTON_CLICKED, self.on_click_endless_arti_toggle, self)
+	self:AddCallback("btn_endless_arti_main", ui_events.BUTTON_CLICKED, self.on_click_endless_arti_toggle, self)
 	self:AddCallback("btn_beta", ui_events.BUTTON_CLICKED, self.on_click_beta_mode, self)
 
 	-- Beta Testing tabs
@@ -1128,6 +1143,8 @@ function UIXcvbArena:update_loadout_buttons()
 	-- Special Ammo Grid Display (Right side, 8 buttons + pagination)
 	if self.selected_loadout_ammo == "special" and has_artigrok then
 		if self.btn_endless then self.btn_endless:Show(false) end
+		if self.btn_endless_cont then self.btn_endless_cont:Show(false) end
+		if self.endless_arti_btn_main then self.endless_arti_btn_main:Show(false) end
 		if self.spec_menu_title then
 			self.spec_menu_title:Show(true)
 			if not self.selected_weapon_sec then
@@ -1176,6 +1193,16 @@ function UIXcvbArena:update_loadout_buttons()
 		end
 	else
 		if self.btn_endless then self.btn_endless:Show(true) end
+		if self.btn_endless_cont then
+			self.btn_endless_cont:Show(true)
+			local cp = xcvb_arena_main.endless_checkpoint_wave or xcvb_arena_main.best_endless_wave or 1
+			if cp > 1 then
+				self.btn_endless_cont:TextControl():SetText(gt("st_arena_endless_cont_btn") .. " (" .. tostring(cp) .. ")")
+			else
+				self.btn_endless_cont:TextControl():SetText(gt("st_arena_endless_cont_btn"))
+			end
+		end
+		if self.endless_arti_btn_main then self.endless_arti_btn_main:Show(true) end
 		if self.spec_menu_title then self.spec_menu_title:Show(false) end
 		if self.spec_page_prev then self.spec_page_prev:Show(false) end
 		if self.spec_page_next then self.spec_page_next:Show(false) end
@@ -1186,6 +1213,8 @@ function UIXcvbArena:update_loadout_buttons()
 			end
 		end
 	end
+
+	self:update_endless_arti_btn()
 
 	local function format_label(prefix, val)
 		local clean_p = string.gsub(prefix or "", ":+$", "")
@@ -1908,6 +1937,7 @@ function UIXcvbArena:update_beta_display()
 	if self.endless_type_frame then self.endless_type_frame:Show(is_endless) end
 	if self.endless_rules_frame then self.endless_rules_frame:Show(is_endless) end
 	if self.endless_start_btn then self.endless_start_btn:Show(is_endless) end
+	if self.endless_arti_btn then self.endless_arti_btn:Show(is_endless) end
 
 	if is_endless then
 		self:update_endless_display()
@@ -1940,6 +1970,8 @@ function UIXcvbArena:update_endless_display()
 		local desc_str = gt("st_arena_endless_desc_" .. cur_type)
 		self.endless_type_desc:SetText(desc_str)
 	end
+
+	self:update_endless_arti_btn()
 end
 
 function UIXcvbArena:on_click_endless_type(t)
@@ -1960,9 +1992,41 @@ function UIXcvbArena:on_click_quick_endless()
 	self:Close()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
-		xcvb_arena_fight.start_endless_fight("stalkers")
+		xcvb_arena_fight.start_endless_fight("stalkers", 1)
 		return true
 	end)
+end
+
+function UIXcvbArena:on_click_continue_endless()
+	local cp_wave = xcvb_arena_main.endless_checkpoint_wave or xcvb_arena_main.best_endless_wave or 1
+	local e_type = xcvb_arena_main.endless_checkpoint_type or "stalkers"
+	self:Close()
+	xcvb_arena_utils.arena_fade_in_out(1)
+	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
+		xcvb_arena_fight.start_endless_fight(e_type, cp_wave)
+		return true
+	end)
+end
+
+function UIXcvbArena:on_click_endless_arti_toggle()
+	xcvb_arena_main.endless_artigrok_ammo = not xcvb_arena_main.endless_artigrok_ammo
+	self:update_endless_arti_btn()
+end
+
+function UIXcvbArena:update_endless_arti_btn()
+	local is_on = (xcvb_arena_main and xcvb_arena_main.endless_artigrok_ammo) == true
+	local base_str = gt("st_arena_endless_artigrok_ammo") or "ARTIGROK AMMO"
+	local text = base_str .. (is_on and ": ON" or ": OFF")
+	local col = is_on and GetARGB(255, 100, 255, 100) or GetARGB(255, 180, 180, 180)
+
+	if self.endless_arti_btn then
+		self.endless_arti_btn:TextControl():SetText(text)
+		self.endless_arti_btn:TextControl():SetTextColor(col)
+	end
+	if self.endless_arti_btn_main then
+		self.endless_arti_btn_main:TextControl():SetText(text)
+		self.endless_arti_btn_main:TextControl():SetTextColor(col)
+	end
 end
 
 --------------------------------------------------------------------------------

@@ -255,16 +255,28 @@
 		</loadout_summary_frame>
 
 		<!-- Enter Arena / Main Action Button (Centered) -->
-		<tourn_start_btn x="228" y="425" width="224" height="48" check_mode="0">
+		<tourn_start_btn x="228" y="420" width="224" height="60" check_mode="0">
 			<text font="graffiti19">st_arena_btn_enter</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</tourn_start_btn>
 
-		<!-- Quick Endless Mode Button (Bottom Right - Big Button) -->
-		<endless_btn x="460" y="425" width="220" height="48" check_mode="0">
+		<!-- Quick Endless Mode Button (Bottom Right) -->
+		<endless_btn x="460" y="415" width="220" height="42" check_mode="0">
 			<text font="letterica16">st_arena_quick_endless_btn</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</endless_btn>
+
+		<!-- Continue Endless Mode Button (Bottom Right, below Endless Mode) -->
+		<endless_cont_btn x="460" y="462" width="220" height="42" check_mode="0">
+			<text font="letterica16">st_arena_endless_cont_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</endless_cont_btn>
+
+		<!-- ArtiGrok Special Ammo Toggle Button (Main Screen) -->
+		<endless_arti_btn_main x="460" y="384" width="220" height="28" check_mode="0">
+			<text font="letterica16">st_arena_endless_artigrok_ammo</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</endless_arti_btn_main>
 
 		<!-- Special Ammo Selection Menu (Right Side, 8 buttons grid + pagination) -->
 		<spec_menu_title x="460" y="388" width="160" height="14">
@@ -787,6 +799,12 @@
 			<text font="graffiti22">st_arena_endless_start_btn</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</endless_start_btn>
+
+		<!-- ArtiGrok Special Ammo Toggle Button -->
+		<endless_arti_btn x="525" y="412" width="145" height="48" check_mode="0">
+			<text font="letterica16">st_arena_endless_artigrok_ammo</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</endless_arti_btn>
 	</beta_cont>
 
 	<!-- Row vertical lines (Direct children of <w> as expected by CUIXmlInit) -->

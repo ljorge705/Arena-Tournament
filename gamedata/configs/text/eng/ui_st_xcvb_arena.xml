@@ -962,6 +962,12 @@
 	<string id="st_arena_quick_endless_btn">
 		<text>[Testing] Endless Mode [Testing]</text>
 	</string>
+	<string id="st_arena_endless_cont_btn">
+		<text>Continue Endless Mode</text>
+	</string>
+	<string id="st_arena_endless_artigrok_ammo">
+		<text>ARTIGROK AMMO</text>
+	</string>
 	<string id="st_arena_endless_title">
 		<text>ENDLESS MODE (SURVIVAL)</text>
 	</string>
@@ -1011,22 +1017,22 @@
 		<text>SURVIVAL RECORD &amp; REWARDS</text>
 	</string>
 	<string id="st_arena_endless_quick_rule1">
-		<text>• Each victory grants random new gear and ammunition.</text>
+		<text>- Each victory grants random new gear and ammunition.</text>
 	</string>
 	<string id="st_arena_endless_quick_rule2">
-		<text>• Press [F] in the arena to collect cash and exit.</text>
+		<text>- Press [F] in the arena to collect cash and exit.</text>
 	</string>
 	<string id="st_arena_endless_rules_frame_title">
 		<text>ARENA RULES &amp; COMBAT CONDITIONS</text>
 	</string>
 	<string id="st_arena_endless_rule_line1">
-		<text>• Threat Scaling: 1v1 in Wave 1, steadily increasing up to 1v6 enemies.</text>
+		<text>- Threat Scaling: 1v1 in Wave 1, steadily increasing up to 1v6 enemies.</text>
 	</string>
 	<string id="st_arena_endless_rule_line2">
-		<text>• Tactical Extraction [F]: Leave the arena at any time taking 100% of accumulated cash.</text>
+		<text>- Tactical Extraction [F]: Leave the arena at any time taking 100% of accumulated cash.</text>
 	</string>
 	<string id="st_arena_endless_rule_line3">
-		<text>• Medical Rescue: If downed in combat, the medic will evacuate you to the Bar for 2,500 RU.</text>
+		<text>- Medical Rescue: If downed in combat, the medic will evacuate you to the Bar for 2,500 RU.</text>
 	</string>
 	<string id="st_arena_endless_desc_stalkers">
 		<text>Armed human combatants (Bandits, Mercenaries, Military, etc.). They utilize firearms, flanking tactics, and cover. Defeating them re-rolls your loadout.</text>

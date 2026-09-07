@@ -962,6 +962,12 @@
 	<string id="st_arena_quick_endless_btn">
 		<text>[Testing] Endless Mode [Testing]</text>
 	</string>
+	<string id="st_arena_endless_cont_btn">
+		<text>Continuar Endless Mode</text>
+	</string>
+	<string id="st_arena_endless_artigrok_ammo">
+		<text>ARTIGROK AMMO</text>
+	</string>
 	<string id="st_arena_endless_title">
 		<text>MODO INFINITO (SUPERVIVENCIA)</text>
 	</string>
@@ -1011,22 +1017,22 @@
 		<text>REGISTRO DE SUPERVIVENCIA Y RECOMPENSAS</text>
 	</string>
 	<string id="st_arena_endless_quick_rule1">
-		<text>• Cada victoria otorga nuevo equipo y municion al azar.</text>
+		<text>- Cada victoria otorga nuevo equipo y municion al azar.</text>
 	</string>
 	<string id="st_arena_endless_quick_rule2">
-		<text>• Pulsa [F] en la arena para cobrar el botin y retirarte.</text>
+		<text>- Pulsa [F] en la arena para cobrar el botin y retirarte.</text>
 	</string>
 	<string id="st_arena_endless_rules_frame_title">
 		<text>NORMAS DE LA ARENA &amp; CONDICIONES DE COMBATE</text>
 	</string>
 	<string id="st_arena_endless_rule_line1">
-		<text>• Escalado de Amenaza: 1v1 en Oleada 1, aumentando progresivamente hasta 1v6 enemigos.</text>
+		<text>- Escalado de Amenaza: 1v1 en Oleada 1, aumentando progresivamente hasta 1v6 enemigos.</text>
 	</string>
 	<string id="st_arena_endless_rule_line2">
-		<text>• Retirada Tactica [F]: Sal de la arena en cualquier momento cobrando el 100% del dinero acumulado.</text>
+		<text>- Retirada Tactica [F]: Sal de la arena en cualquier momento cobrando el 100% del dinero acumulado.</text>
 	</string>
 	<string id="st_arena_endless_rule_line3">
-		<text>• Rescate Medico: Si caes abatido en combate, el medico te salvara en el Bar cobrando 2,500 RU.</text>
+		<text>- Rescate Medico: Si caes abatido en combate, el medico te salvara en el Bar cobrando 2,500 RU.</text>
 	</string>
 	<string id="st_arena_endless_desc_stalkers">
 		<text>Enemigos humanos armados (Bandidos, Mercenarios, Militares, etc.). Usan armas de fuego, tacticas de flanqueo y cobertura. Al vencerlos, tu armamento cambiara al azar.</text>

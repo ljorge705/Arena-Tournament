@@ -741,7 +741,12 @@
 	</string>
 	<string id="st_arena_quick_endless_btn">
 		<text>[Testing] Endless Mode [Testing]</text>
-		<text>Бесконечный режим</text>
+	</string>
+	<string id="st_arena_endless_cont_btn">
+		<text>Продолжить Endless Mode</text>
+	</string>
+	<string id="st_arena_endless_artigrok_ammo">
+		<text>ARTIGROK AMMO</text>
 	</string>
 	<string id="st_arena_endless_title">
 		<text>БЕСКОНЕЧНЫЙ РЕЖИМ (ВЫЖИВАНИЕ)</text>
@@ -757,6 +762,9 @@
 	</string>
 	<string id="st_arena_endless_type_title">
 		<text>ТИП ПРОТИВНИКОВ:</text>
+	</string>
+		<string id="st_arena_endless_type_random">
+		<text>Случайно</text>
 	</string>
 	<string id="st_arena_endless_type_stalkers">
 		<text>Сталкеры</text>
@@ -818,6 +826,9 @@
 	<string id="st_arena_endless_desc_chaos">
 		<text>Непредсказуемый хаос. Каждая волна может состоять как из вооруженных сталкеров, так и из стай мутантов.</text>
 	</string>
+	<string id="st_arena_endless_desc_random">
+		<text>Полностью случайные враги и точки появления в каждой волне. Любые комбинации сталкеров, мутантов или соперничающих группировок.</text>
+	</string>
 	<string id="ui_mcm_xcvb_arena_special_ammo_support">
 		<text>Поддержка спецпатронов (ArtiGrok Ballistics)</text>
 	</string>
@@ -847,6 +858,185 @@
 	</string>
 	<string id="st_arena_spec_ammo_none">
 		<text>Нет спец. патронов</text>
+	</string>
+
+
+	<string id="st_arena_btn_mvm">
+		<text>Мутанты против Мутантов</text>
+	</string>
+	<string id="st_arena_mvm_title">
+		<text>МУТАНТЫ ПРОТИВ МУТАНТОВ</text>
+	</string>
+	<string id="st_arena_mvm_desc">
+		<text>Смертельная битва между различными видами мутантов Зоны. Делайте ставки на сильнейший вид!</text>
+	</string>
+	<string id="st_arena_mvm_3teams">
+		<text>3 Вида</text>
+	</string>
+	<string id="st_arena_mvm_4teams">
+		<text>4 Вида</text>
+	</string>
+	<string id="st_arena_mvm_randomize">
+		<text>Случайные виды</text>
+	</string>
+	<string id="st_arena_mvm_start_btn">
+		<text>Начать бой мутантов</text>
+	</string>
+	<string id="st_arena_mvm_started_tip">
+		<text>Бой начался! %s видов мутантов сражаются насмерть.</text>
+	</string>
+	<string id="st_arena_mvm_winner_tip">
+		<text>Бой окончен! Победивший вид: %s</text>
+	</string>
+	<string id="st_arena_mvm_reward_tip">
+		<text>Ваша ставка выиграла! Награда: +%s RU</text>
+	</string>
+	<string id="st_arena_bc_title">
+		<text>КОРОЛЕВСКАЯ БИТВА</text>
+	</string>
+	<string id="st_arena_bc_desc">
+		<text>Масштабная битва нескольких группировок на арене одновременно. Выберите группировку и сделайте ставку!</text>
+	</string>
+	<string id="st_arena_bc_3teams">
+		<text>3 Группировки</text>
+	</string>
+	<string id="st_arena_bc_4teams">
+		<text>4 Группировки</text>
+	</string>
+	<string id="st_arena_bc_randomize">
+		<text>Случайные группировки</text>
+	</string>
+	<string id="st_arena_bc_start_btn">
+		<text>Начать Королевскую битву</text>
+	</string>
+	<string id="st_arena_bc_started_tip">
+		<text>Королевская битва началась! %s группировок сражаются насмерть.</text>
+	</string>
+	<string id="st_arena_bc_winner_tip">
+		<text>Королевская битва окончена! Победитель: %s</text>
+	</string>
+	<string id="st_arena_bc_no_winner">
+		<text>Все участники погибли! Победителя нет.</text>
+	</string>
+	<string id="st_arena_bc_reward_tip">
+		<text>Ваша ставка выиграла! Награда: +%s RU</text>
+	</string>
+	<string id="st_arena_bc_no_bet">
+		<text>Выберите команду и ставку перед началом боя</text>
+	</string>
+	<string id="st_arena_bc_members_label">
+		<text>Множитель:</text>
+	</string>
+	<string id="st_arena_bc_bet_btn">
+		<text>Ставка</text>
+	</string>
+	<string id="st_arena_bc_bet_selected">
+		<text>Ставка: %s (%s RU)</text>
+	</string>
+	<string id="st_arena_bc_reward_gain">
+		<text>Выигрыш: %s RU</text>
+	</string>
+	<string id="st_arena_bc_team1_header">
+		<text>Команда 1 (Северо-Запад)</text>
+	</string>
+	<string id="st_arena_bc_team2_header">
+		<text>Команда 2 (Северо-Восток)</text>
+	</string>
+	<string id="st_arena_bc_team3_header">
+		<text>Команда 3 (Юго-Запад)</text>
+	</string>
+	<string id="st_arena_bc_team4_header">
+		<text>Команда 4 (Юго-Восток)</text>
+	</string>
+	<string id="st_arena_bc_team1_3_header">
+		<text>Команда 1 (Север)</text>
+	</string>
+	<string id="st_arena_bc_team2_3_header">
+		<text>Команда 2 (Юго-Запад)</text>
+	</string>
+	<string id="st_arena_bc_team3_3_header">
+		<text>Команда 3 (Юго-Восток)</text>
+	</string>
+	<string id="st_arena_bc_fac_stalker">
+		<text>Одиночки</text>
+	</string>
+	<string id="st_arena_bc_fac_bandit">
+		<text>Бандиты</text>
+	</string>
+	<string id="st_arena_bc_fac_dolg">
+		<text>Долг</text>
+	</string>
+	<string id="st_arena_bc_fac_freedom">
+		<text>Свобода</text>
+	</string>
+	<string id="st_arena_bc_fac_csky">
+		<text>Чистое Небо</text>
+	</string>
+	<string id="st_arena_bc_fac_ecolog">
+		<text>Ученые</text>
+	</string>
+	<string id="st_arena_bc_fac_killer">
+		<text>Наемники</text>
+	</string>
+	<string id="st_arena_bc_fac_army">
+		<text>Военные</text>
+	</string>
+	<string id="st_arena_bc_fac_renegade">
+		<text>Ренегаты</text>
+	</string>
+	<string id="st_arena_bc_fac_zombied">
+		<text>Зомбированные</text>
+	</string>
+	<string id="st_arena_bc_fac_mutant">
+		<text>Мутанты</text>
+	</string>
+	<string id="st_arena_mut_dog">
+		<text>Слепые псы</text>
+	</string>
+	<string id="st_arena_mut_pseudodog">
+		<text>Псевдособака</text>
+	</string>
+	<string id="st_arena_mut_psy_dog">
+		<text>Пси-собака</text>
+	</string>
+	<string id="st_arena_mut_flesh">
+		<text>Плоть</text>
+	</string>
+	<string id="st_arena_mut_boar">
+		<text>Кабан</text>
+	</string>
+	<string id="st_arena_mut_cat">
+		<text>Кот</text>
+	</string>
+	<string id="st_arena_mut_tushkano">
+		<text>Тушканы</text>
+	</string>
+	<string id="st_arena_mut_zombie">
+		<text>Зомби</text>
+	</string>
+	<string id="st_arena_mut_snork">
+		<text>Снорк</text>
+	</string>
+	<string id="st_arena_mut_bloodsucker">
+		<text>Кровосос</text>
+	</string>
+	<string id="st_arena_mut_psysucker">
+		<text>Пси-суккер</text>
+	</string>
+	<string id="st_arena_mut_fracture">
+		<text>Излом</text>
+	</string>
+	<string id="st_arena_mut_lurker">
+		<text>Люркер</text>
+	</string>
+	<string id="st_arena_mut_burer">
+		<text>Бюрер</text>
+	</string>
+	<string id="st_arena_mut_chimera">
+		<text>Химера</text>
+	</string>
+	<string id="st_arena_mut_gigant">
+		<text>Псевдогигант</text>
 	</string>
 
 </string_table>

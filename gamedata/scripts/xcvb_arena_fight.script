@@ -655,18 +655,30 @@ end
 --------------------------------------------------------------------------------
 -- MODO INFINITO (BETA TESTING - Endless Survival Mode)
 --------------------------------------------------------------------------------
-function start_endless_fight(enemy_type)
+function start_endless_fight(enemy_type, start_wave)
     tourn_ending = false
     endless_ending = false
     tournament_fight_closed = false
     endless_fight_closed = false
     is_endless_mode = true
-    endless_wave = 1
+    endless_wave = math.max(1, start_wave or 1)
     endless_reward = 0
     endless_enemy_type = enemy_type or "stalkers"
     endless_transitioning = false
+
+    if xcvb_arena_main then
+        xcvb_arena_main.endless_checkpoint_type = endless_enemy_type
+        if endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
+            xcvb_arena_main.endless_checkpoint_wave = endless_wave
+        end
+    end
+
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
     RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
+    RemoveTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1")
+    RemoveTimeEvent("arena_equip_endless_e2", "arena_equip_endless_a2")
+    RemoveTimeEvent("arena_equip_endless_draw_e1", "arena_equip_endless_draw_a1")
+    RemoveTimeEvent("arena_equip_endless_draw_e2", "arena_equip_endless_draw_a2")
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
     pcall(level.show_indicators)
@@ -731,6 +743,15 @@ function advance_endless_wave()
     heal_actor_completely()
 
     endless_wave = endless_wave + 1
+    if xcvb_arena_main and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
+        xcvb_arena_main.endless_checkpoint_wave = endless_wave
+    end
+
+    cont_fire_last_wpn_id = nil
+    cont_fire_was_firing = false
+    cont_fire_aim_trans = false
+    cont_fire_last_zoomed = false
+    cont_fire_retriggered = false
 
     CreateTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a", 4.0, function()
         if endless_ending or endless_fight_closed then return true end
@@ -754,6 +775,14 @@ function advance_endless_wave()
 
         CreateTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a", 0.8, function()
             xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
+            if db.actor and db.actor:active_slot() == 0 then
+                for _, s in ipairs({2, 1}) do
+                    if db.actor:item_in_slot(s) then
+                        db.actor:activate_slot(s)
+                        break
+                    end
+                end
+            end
             return true
         end)
 
@@ -777,6 +806,10 @@ function end_endless_fight(is_victory, voluntary_leave)
     RemoveTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a")
     RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
     RemoveTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a")
+    RemoveTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1")
+    RemoveTimeEvent("arena_equip_endless_e2", "arena_equip_endless_a2")
+    RemoveTimeEvent("arena_equip_endless_draw_e1", "arena_equip_endless_draw_a1")
+    RemoveTimeEvent("arena_equip_endless_draw_e2", "arena_equip_endless_draw_a2")
     RemoveTimeEvent("xcvb_arena_exit_endless_f_e", "xcvb_arena_exit_endless_f_a")
     RemoveTimeEvent("xcvb_arena_rescue_e", "xcvb_arena_rescue_a")
 
@@ -811,6 +844,10 @@ function end_endless_fight(is_victory, voluntary_leave)
         db.actor:give_money(endless_reward)
         local exit_tip = string.format(gt("st_arena_endless_exit_tip"), waves_cleared, endless_reward)
         news_manager.send_tip(db.actor, exit_tip, 0, nil, 12000)
+    end
+
+    if xcvb_arena_main and endless_wave and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
+        xcvb_arena_main.endless_checkpoint_wave = endless_wave
     end
 
     disable_info("xcvb_endless_started")
@@ -1317,6 +1354,9 @@ local function trigger_medic_rescue()
     if is_endless_mode or HI("xcvb_endless_started") then
         endless_ending = true
         tourn_ending = false
+        if xcvb_arena_main and endless_wave and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
+            xcvb_arena_main.endless_checkpoint_wave = endless_wave
+        end
     else
         tourn_ending = true
         endless_ending = false

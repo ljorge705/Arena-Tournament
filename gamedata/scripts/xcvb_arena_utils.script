@@ -60,7 +60,8 @@ function get_weapon_ammo(weapon_sec, ammo_type)
             local clean_sec = trim(a_sec)
             if ini_sys:section_exist(clean_sec) then
                 local low = string.lower(clean_sec)
-                if string.find(low, "bad", 1, true)
+                if is_excluded_special_ammo(clean_sec)
+                or string.find(low, "bad", 1, true)
                 or string.find(low, "devastator", 1, true)
                 or string.find(low, "star", 1, true)
                 or string.find(low, "mono", 1, true)
@@ -74,7 +75,8 @@ function get_weapon_ammo(weapon_sec, ammo_type)
             return special_candidates[math.random(#special_candidates)]
         end
         -- Fallback if this specific weapon has no special ammo
-        at = "ap"
+        local fallbacks = { "fmj", "ap", "hp" }
+        at = fallbacks[math.random(#fallbacks)]
     end
     
     local valid_ammos = {}
@@ -1621,17 +1623,24 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
             db.actor:move_to_slot(outfit_obj, 7)
         end
         
-        if spawned_wpn_id then
-            local wpn_obj = level.object_by_id(spawned_wpn_id)
-            if wpn_obj then
-                if loadout_class == "pistol" then
-                    db.actor:move_to_slot(wpn_obj, 1)
-                    db.actor:activate_slot(1)
-                else
-                    db.actor:move_to_slot(wpn_obj, 2)
-                    db.actor:activate_slot(2)
+        local target_slot = (loadout_class == "pistol") and 1 or 2
+        local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
+        if not wpn_obj then
+            db.actor:iterate_inventory(function(_, itm)
+                if temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                    wpn_obj = itm
+                    return true
+                end
+            end, db.actor)
+        end
+        if wpn_obj then
+            if ini_sys:line_exist(wpn_obj:section(), "slot") then
+                local s = ini_sys:r_s32(wpn_obj:section(), "slot")
+                if s == 1 or s == 2 then
+                    target_slot = s
                 end
             end
+            db.actor:move_to_slot(wpn_obj, target_slot)
         end
         
         if spawned_pistol_id then
@@ -1641,6 +1650,34 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
             end
         end
         
+        return true
+    end)
+    
+    local tourn_target_slot = (loadout_class == "pistol") and 1 or 2
+    CreateTimeEvent("arena_equip_draw_e1", "arena_equip_draw_a1", 0.6, function()
+        if not db.actor then return true end
+        local in_slot = db.actor:item_in_slot(tourn_target_slot)
+        if not in_slot then
+            local other_slot = (tourn_target_slot == 2) and 1 or 2
+            if db.actor:item_in_slot(other_slot) then
+                tourn_target_slot = other_slot
+            end
+        end
+        db.actor:activate_slot(tourn_target_slot)
+        return true
+    end)
+    CreateTimeEvent("arena_equip_draw_e2", "arena_equip_draw_a2", 1.0, function()
+        if not db.actor then return true end
+        if db.actor:active_slot() ~= tourn_target_slot then
+            local in_slot = db.actor:item_in_slot(tourn_target_slot)
+            if not in_slot then
+                local other_slot = (tourn_target_slot == 2) and 1 or 2
+                if db.actor:item_in_slot(other_slot) then
+                    tourn_target_slot = other_slot
+                end
+            end
+            db.actor:activate_slot(tourn_target_slot)
+        end
         return true
     end)
     
@@ -2810,6 +2847,20 @@ end
 function equip_endless_random_loadout(wave)
     local cur_wave = wave or 1
     
+    -- 1. Unload all weapons in actor possession and clear magazine binders to avoid dumping ammo/mags into backpack
+    if db.actor then
+        db.actor:iterate_inventory(function(owner, item)
+            if not item then return end
+            if IsWeapon(nil, item:clsid()) then
+                pcall(function() item:set_ammo_elapsed(0) end)
+                if magazine_binder and magazine_binder.set_data then
+                    pcall(magazine_binder.set_data, item:id(), nil)
+                end
+            end
+        end, db.actor)
+    end
+
+    -- 2. Release all previously recorded temporary arena items
     for item_id, _ in pairs(temporary_arena_item_ids) do
         local se_item = alife_object(item_id)
         if se_item then
@@ -2821,6 +2872,35 @@ function equip_endless_random_loadout(wave)
         end
     end
     temporary_arena_item_ids = {}
+
+    -- 3. Sweep actor inventory and purge all remaining arena items (loose ammo, magazines, weapons, outfits, helmets, meds, loot)
+    if db.actor then
+        local leftover_arena_items = {}
+        db.actor:iterate_inventory(function(owner, item)
+            if not item then return end
+            local sec = item:section()
+            -- Never touch essential actor items or quest items
+            if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+                return
+            end
+            -- Never touch original actor items stored in the arena box
+            if saved_actor_item_ids and saved_actor_item_ids[item:id()] then
+                return
+            end
+            table.insert(leftover_arena_items, item:id())
+        end, db.actor)
+
+        for _, id in ipairs(leftover_arena_items) do
+            local se_item = alife_object(id)
+            if se_item then
+                if safe_release_manager and safe_release_manager.release then
+                    safe_release_manager.release({ id = id })
+                else
+                    alife_release(se_item)
+                end
+            end
+        end
+    end
     
     local tier = 1
     if cur_wave >= 8 then
@@ -2884,8 +2964,10 @@ function equip_endless_random_loadout(wave)
             
             local ammo_types = { "fmj", "ap", "hp" }
             local chosen_ammo = ammo_types[math.random(#ammo_types)]
-            if is_artigrok_active() and cur_wave >= 3 and math.random(1, 4) == 1 then
-                chosen_ammo = "special"
+            if xcvb_arena_main and xcvb_arena_main.endless_artigrok_ammo then
+                if is_artigrok_active() then
+                    chosen_ammo = "special"
+                end
             end
             local ammo_sec = get_weapon_ammo(wpn_sec, chosen_ammo)
             if ammo_sec then
@@ -2942,6 +3024,8 @@ function equip_endless_random_loadout(wave)
         end
     end
     
+    local endless_target_slot = (chosen_cls == "pistol") and 1 or 2
+
     CreateTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1", 0.3, function()
         local outfit_obj = spawned_outfit_id and level.object_by_id(spawned_outfit_id)
         if not outfit_obj then
@@ -2956,18 +3040,80 @@ function equip_endless_random_loadout(wave)
             db.actor:move_to_slot(outfit_obj, 7)
         end
         
-        if spawned_wpn_id then
-            local wpn_obj = level.object_by_id(spawned_wpn_id)
-            if wpn_obj then
-                if chosen_cls == "pistol" then
-                    db.actor:move_to_slot(wpn_obj, 1)
-                    db.actor:activate_slot(1)
-                else
-                    db.actor:move_to_slot(wpn_obj, 2)
-                    db.actor:activate_slot(2)
+        local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
+        if not wpn_obj then
+            db.actor:iterate_inventory(function(_, itm)
+                if temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                    wpn_obj = itm
+                    return true
+                end
+            end, db.actor)
+        end
+        if wpn_obj then
+            if ini_sys:line_exist(wpn_obj:section(), "slot") then
+                local s = ini_sys:r_s32(wpn_obj:section(), "slot")
+                if s == 1 or s == 2 then
+                    endless_target_slot = s
+                end
+            end
+            db.actor:move_to_slot(wpn_obj, endless_target_slot)
+        end
+
+        -- Secondary sweep: Purge any stray ammo or magazines that do NOT match the current weapon
+        if db.actor and wpn_sec then
+            local valid_ammo_types = {}
+            local raw_ammos = ini_sys:r_string_ex(wpn_sec, "ammo_class") or ""
+            for _, a in ipairs(str_explode(raw_ammos, ",")) do
+                valid_ammo_types[trim(a)] = true
+            end
+            local valid_mags = {}
+            if magazine_binder and magazine_binder.get_mags_for_weapon then
+                local mags = magazine_binder.get_mags_for_weapon(wpn_sec)
+                if mags then
+                    for _, m in ipairs(mags) do valid_mags[m] = true end
+                end
+            end
+            if magazine_binder and magazine_binder.weapon_default_magazine then
+                local def_m = magazine_binder.weapon_default_magazine(wpn_sec)
+                if def_m then valid_mags[def_m] = true end
+            end
+
+            local stray_items = {}
+            db.actor:iterate_inventory(function(_, itm)
+                if not itm then return end
+                local sec = itm:section()
+                if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+                    return
+                end
+                if saved_actor_item_ids and saved_actor_item_ids[itm:id()] then
+                    return
+                end
+                local cls = itm:clsid()
+                local is_ammo = (IsItem and IsItem("ammo", sec))
+                    or (itm.is_ammo and itm:is_ammo())
+                    or (cls == clsid.wpn_ammo or cls == clsid.wpn_ammo_s or cls == clsid.wpn_ammo_m209 or cls == clsid.wpn_ammo_vog25 or cls == clsid.wpn_ammo_og7b)
+                    or string.find(sec, "^ammo_")
+                local is_mag = string.find(sec, "^mag_")
+                    or (SYS_GetParam and SYS_GetParam(0, sec, "kind") == "w_mag")
+                    or (magazine_binder and magazine_binder.is_magazine and magazine_binder.is_magazine(sec))
+                
+                if (is_ammo and not valid_ammo_types[sec]) or (is_mag and not valid_mags[sec]) then
+                    table.insert(stray_items, itm:id())
+                end
+            end, db.actor)
+
+            for _, s_id in ipairs(stray_items) do
+                local se = alife_object(s_id)
+                if se then
+                    if safe_release_manager and safe_release_manager.release then
+                        safe_release_manager.release({ id = s_id })
+                    else
+                        alife_release(se)
+                    end
                 end
             end
         end
+
         return true
     end)
     
@@ -2983,6 +3129,47 @@ function equip_endless_random_loadout(wave)
         end
         if helm_obj then
             db.actor:move_to_slot(helm_obj, 12)
+        end
+        return true
+    end)
+
+    CreateTimeEvent("arena_equip_endless_draw_e1", "arena_equip_endless_draw_a1", 0.6, function()
+        if not db.actor then return true end
+        local in_slot = db.actor:item_in_slot(endless_target_slot)
+        if not in_slot then
+            local other_slot = (endless_target_slot == 2) and 1 or 2
+            if db.actor:item_in_slot(other_slot) then
+                endless_target_slot = other_slot
+            else
+                local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
+                if not wpn_obj then
+                    db.actor:iterate_inventory(function(_, itm)
+                        if temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                            wpn_obj = itm
+                            return true
+                        end
+                    end, db.actor)
+                end
+                if wpn_obj then
+                    db.actor:move_to_slot(wpn_obj, endless_target_slot)
+                end
+            end
+        end
+        db.actor:activate_slot(endless_target_slot)
+        return true
+    end)
+
+    CreateTimeEvent("arena_equip_endless_draw_e2", "arena_equip_endless_draw_a2", 1.0, function()
+        if not db.actor then return true end
+        if db.actor:active_slot() ~= endless_target_slot then
+            local in_slot = db.actor:item_in_slot(endless_target_slot)
+            if not in_slot then
+                local other_slot = (endless_target_slot == 2) and 1 or 2
+                if db.actor:item_in_slot(other_slot) then
+                    endless_target_slot = other_slot
+                end
+            end
+            db.actor:activate_slot(endless_target_slot)
         end
         return true
     end)
