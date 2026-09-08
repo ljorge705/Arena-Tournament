@@ -680,6 +680,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty)
     end
 
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
+    RemoveTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a")
     RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
     RemoveTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a")
     RemoveTimeEvent("arena_spawn_endless_squad_e", "arena_spawn_endless_squad_a")
@@ -778,7 +779,6 @@ function advance_endless_wave()
     local clear_tip = string.format(gt("st_arena_endless_wave_cleared"), endless_wave, endless_reward)
     news_manager.send_tip(db.actor, clear_tip, 0, nil, 7000)
 
-    xcvb_arena_utils.clean_arena_corpses()
     heal_actor_completely()
 
     endless_wave = endless_wave + 1
@@ -803,6 +803,13 @@ function advance_endless_wave()
             msg_spawn = "Los enemigos spawnearan en 3 seg"
         end
         news_manager.send_tip(db.actor, msg_spawn, 0, nil, 3000)
+        return true
+    end)
+
+    RemoveTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a")
+    CreateTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a", 3.5, function()
+        if endless_ending or endless_fight_closed then return true end
+        xcvb_arena_utils.clean_arena_corpses()
         return true
     end)
 
@@ -867,6 +874,7 @@ function end_endless_fight(is_victory, voluntary_leave)
     RemoveTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a")
     RemoveTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a")
     RemoveTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a")
+    RemoveTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a")
     RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
     RemoveTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a")
     RemoveTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1")

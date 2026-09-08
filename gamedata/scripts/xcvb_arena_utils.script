@@ -971,10 +971,22 @@ function clean_arena_corpses()
         arena_spawned_combatant_ids = {}
     end
 
+    -- Durante el modo Endless activo entre oleadas, solo se eliminan los combatientes de la ronda previa.
+    -- NO programar arena_sweep que borraria a los nuevos enemigos recien spawneados.
+    local is_endless_active = (has_alife_info("xcvb_endless_started") or (xcvb_arena_fight and xcvb_arena_fight.is_endless_mode))
+        and not (xcvb_arena_fight and xcvb_arena_fight.endless_fight_closed)
+    if is_endless_active then
+        RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
+        return
+    end
+
     local pass_count = 0
     local max_passes = 3
     local function arena_sweep()
-        if has_alife_info("xcvb_tournament_started") or has_alife_info("xcvb_arena_started") then
+        if has_alife_info("xcvb_tournament_started")
+           or has_alife_info("xcvb_arena_started")
+           or (has_alife_info("xcvb_endless_started") and not (xcvb_arena_fight and xcvb_arena_fight.endless_fight_closed))
+           or (xcvb_arena_fight and xcvb_arena_fight.is_endless_mode and not xcvb_arena_fight.endless_fight_closed) then
             return true
         end
 
@@ -997,7 +1009,15 @@ function clean_arena_corpses()
                             local cls = se:clsid()
                             local is_npc = IsStalker(nil, cls) or IsMonster(nil, cls)
                             local is_item = IsWeapon(nil, cls) or IsAmmo(nil, cls) or IsOutfit(nil, cls) or IsHeadgear(nil, cls)
-                            if is_npc or is_item then
+                            if is_npc then
+                                -- Jamas borrar a un NPC o mutante que este vivo
+                                local is_alive = false
+                                pcall(function() is_alive = se:alive() end)
+                                if not is_alive then
+                                    safe_release_by_id(id)
+                                    found_anything = true
+                                end
+                            elseif is_item then
                                 safe_release_by_id(id)
                                 found_anything = true
                             end
@@ -2721,39 +2741,116 @@ local endless_forbidden_factions = {
     ["isg"] = true,
 }
 
-local endless_spawn_zones = {
-    -- North Center Gate & Flanks
+local endless_north_spawn_zones = {
+    -- North Center Gate & Approach
     { pos = vector():set(151.2, -20.0543, 128.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Gate
+    { pos = vector():set(151.2, -20.0543, 126.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Approach
+    { pos = vector():set(148.0, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 }, -- North West Gate
+    { pos = vector():set(154.5, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 }, -- North East Gate
+    -- North Flanks & Corners
     { pos = vector():set(145.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 }, -- North West Flank
     { pos = vector():set(158.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 }, -- North East Flank
     { pos = vector():set(144.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 }, -- North West Corner
     { pos = vector():set(160.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 }, -- North East Corner
-    -- Mid-North Sector
-    { pos = vector():set(147.0, -20.0550, 115.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North West
-    { pos = vector():set(157.0, -20.0550, 115.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North East
-    { pos = vector():set(151.2, -20.0550, 119.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Approach
-    -- Center & Mid-Arena Sectors
-    { pos = vector():set(144.0, -20.0550, 105.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-West Flank
-    { pos = vector():set(160.0, -20.0550, 105.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-East Flank
-    { pos = vector():set(151.2, -20.0550, 108.0), fallback_lvid = 40551, gvid = 1796 }, -- Center Arena
-    -- Mid-South Flanks (Safe distance from player starting pos at 152.6, 81.2)
-    { pos = vector():set(144.0, -20.0598, 96.0),  fallback_lvid = 40761, gvid = 1684 }, -- Mid-South West
-    { pos = vector():set(160.0, -20.0598, 96.0),  fallback_lvid = 40761, gvid = 1684 }, -- Mid-South East
 }
 
-local function get_random_endless_spawn_pos(prefer_idx)
-    local z_idx = prefer_idx
-    if not z_idx or z_idx < 1 or z_idx > #endless_spawn_zones then
-        z_idx = math.random(1, #endless_spawn_zones)
+local endless_south_spawn_zones = {
+    -- South Center Gate & Approach
+    { pos = vector():set(152.6, -20.0598, 81.5), fallback_lvid = 40761, gvid = 1684 }, -- South Center Gate
+    { pos = vector():set(152.6, -20.0598, 84.0), fallback_lvid = 40761, gvid = 1684 }, -- South Center Approach
+    { pos = vector():set(149.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 }, -- South West Gate
+    { pos = vector():set(156.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 }, -- South East Gate
+    -- South Flanks & Corners
+    { pos = vector():set(145.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 }, -- South West Flank
+    { pos = vector():set(158.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 }, -- South East Flank
+    { pos = vector():set(144.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 }, -- South West Corner
+    { pos = vector():set(160.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 }, -- South East Corner
+}
+
+local function get_safe_endless_spawn_positions(num_enemies)
+    local n_req = math.max(1, num_enemies or 1)
+    local actor_pos = nil
+    if db.actor and db.actor:alive() then
+        pcall(function() actor_pos = db.actor:position() end)
     end
-    local zone = endless_spawn_zones[z_idx]
-    -- Safe micro-jitter of +/- 0.5m so squad members do not overlap, keeping away from obstacles
-    local ox = (math.random() * 1.0) - 0.5
-    local oz = (math.random() * 1.0) - 0.5
-    local p = vector():set(zone.pos.x + ox, zone.pos.y, zone.pos.z + oz)
-    local lvid = get_safe_arena_lvid(p, zone.fallback_lvid)
-    local gvid = zone.gvid
-    return p, lvid, gvid
+    if not actor_pos then
+        actor_pos = vector():set(152.6, -20.0598, 81.2)
+    end
+
+    -- Centro de la arena en Z es ~105.0. Portón norte ~128.0, portón sur ~81.2.
+    -- Determinamos si el jugador está más cerca del sur o del norte para spawnear en el lado opuesto (más lejano)
+    local dist_to_north = math.abs(126.0 - actor_pos.z)
+    local dist_to_south = math.abs(actor_pos.z - 83.5)
+
+    local primary_zones = (dist_to_north >= dist_to_south) and endless_north_spawn_zones or endless_south_spawn_zones
+    local backup_zones  = (dist_to_north >= dist_to_south) and endless_south_spawn_zones or endless_north_spawn_zones
+
+    local MIN_SAFE_DIST = 18.0 -- Distancia mínima absoluta en metros respecto al jugador
+
+    local function evaluate_pool(pool)
+        local candidates = {}
+        for _, z in ipairs(pool) do
+            local d = 0
+            pcall(function() d = actor_pos:distance_to(z.pos) end)
+            table.insert(candidates, { zone = z, dist = d })
+        end
+        table.sort(candidates, function(a, b) return a.dist > b.dist end)
+        return candidates
+    end
+
+    local prim_eval = evaluate_pool(primary_zones)
+    local safe_zones = {}
+
+    for _, c in ipairs(prim_eval) do
+        if c.dist >= MIN_SAFE_DIST then
+            table.insert(safe_zones, c.zone)
+        end
+    end
+
+    -- Si la piscina primaria no tiene suficientes puntos sobre la distancia mínima, comprobar el respaldo
+    if #safe_zones < n_req then
+        local back_eval = evaluate_pool(backup_zones)
+        for _, c in ipairs(back_eval) do
+            if c.dist >= MIN_SAFE_DIST then
+                table.insert(safe_zones, c.zone)
+            end
+        end
+    end
+
+    -- Respaldo de seguridad: si por algún motivo no hay zonas que cumplan la cota, usar las más lejanas de la primaria
+    if #safe_zones == 0 then
+        for _, c in ipairs(prim_eval) do
+            table.insert(safe_zones, c.zone)
+        end
+    end
+
+    -- Barajar las zonas seguras para distribuir enemigos entre distintos portones y flancos
+    for i = #safe_zones, 2, -1 do
+        local j = math.random(i)
+        safe_zones[i], safe_zones[j] = safe_zones[j], safe_zones[i]
+    end
+
+    local positions = {}
+    for i = 1, n_req do
+        local zone = safe_zones[((i - 1) % #safe_zones) + 1]
+        local ox = (math.random() * 1.0) - 0.5
+        local oz = (math.random() * 1.0) - 0.5
+        local p = vector():set(zone.pos.x + ox, zone.pos.y, zone.pos.z + oz)
+        local lvid = get_safe_arena_lvid(p, zone.fallback_lvid)
+        local gvid = zone.gvid
+        table.insert(positions, { pos = p, lvid = lvid, gvid = gvid })
+    end
+
+    return positions
+end
+
+function get_random_endless_spawn_pos(prefer_idx)
+    local positions = get_safe_endless_spawn_positions(1)
+    if positions and positions[1] then
+        return positions[1].pos, positions[1].lvid, positions[1].gvid
+    end
+    local p = vector():set(151.2, -20.0543, 128.0)
+    return p, 40551, 1796
 end
 
 function spawn_endless_squad(wave, enemy_type, difficulty)
@@ -2819,14 +2916,7 @@ function spawn_endless_squad(wave, enemy_type, difficulty)
         rank = math.max(1, math.min(4, tier))
     end
     
-    local zone_order = {}
-    for z = 1, #endless_spawn_zones do
-        table.insert(zone_order, z)
-    end
-    for i = #zone_order, 2, -1 do
-        local j = math.random(i)
-        zone_order[i], zone_order[j] = zone_order[j], zone_order[i]
-    end
+    local spawn_points = get_safe_endless_spawn_positions(num_enemies)
 
     local wave_fac = nil
     if e_type == "stalkers" then
@@ -2873,8 +2963,8 @@ function spawn_endless_squad(wave, enemy_type, difficulty)
         end
         
         if sec and ini_sys:section_exist(sec) then
-            local z_idx = zone_order[((i - 1) % #zone_order) + 1]
-            local m_pos, m_lvid, m_gvid = get_random_endless_spawn_pos(z_idx)
+            local sp = spawn_points[i] or spawn_points[1]
+            local m_pos, m_lvid, m_gvid = sp.pos, sp.lvid, sp.gvid
             
             local is_m = choose_mutant or (sec and not string.find(sec, "^sim_default_"))
             local squad_sec = is_m and "arena_tournament_mutant_squad" or "arena_tournament_enemy_squad"
