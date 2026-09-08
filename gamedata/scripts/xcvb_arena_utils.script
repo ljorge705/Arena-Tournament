@@ -2038,9 +2038,9 @@ function hit_npcs(squad_id1, squad_id2, force_wake)
     local function wake_up_squad(sq_a, sq_b)
         for m_a in sq_a:squad_members() do
             local npc_a = level.object_by_id(m_a.id)
-            if npc_a and npc_a:alive() and (force_wake or not has_live_enemy(npc_a)) then
+            if npc_a and npc_a:alive() and not is_npc_wounded(npc_a) and (force_wake or not has_live_enemy(npc_a)) then
                 local target = get_nearest_target(npc_a, sq_b)
-                if target then
+                if target and not is_npc_wounded(target) then
                     xcvb_arena_utils.scr_hit(target, npc_a)
                 end
             end
@@ -2171,7 +2171,7 @@ function force_stalker_aggro(squad_id1, squad_id2, initial_wake)
         local nearest_distance = nil
         for member in enemy_squad:squad_members() do
             local candidate = level.object_by_id(member.id)
-            if candidate and candidate:alive() and IsStalker and IsStalker(candidate) then
+            if candidate and candidate:alive() and not is_npc_wounded(candidate) and IsStalker and IsStalker(candidate) then
                 local distance = get_distance(stalker, candidate)
                 if not nearest or (distance and (not nearest_distance or distance < nearest_distance)) then
                     nearest = candidate
@@ -2184,6 +2184,7 @@ function force_stalker_aggro(squad_id1, squad_id2, initial_wake)
 
     local function update_stalker(stalker, enemy_squad, team_idx)
         if not (stalker and stalker:alive() and IsStalker and IsStalker(stalker)) then return end
+        if is_npc_wounded(stalker) then return end
 
         pcall(function() stalker:change_team(team_idx, team_idx, team_idx) end)
         pcall(function() stalker:set_mental_state(anim.danger) end)
@@ -2236,21 +2237,58 @@ function force_stalker_aggro(squad_id1, squad_id2, initial_wake)
 
     for member1 in squad1:squad_members() do
         local stalker1 = level.object_by_id(member1.id)
-        if stalker1 and stalker1:alive() and IsStalker and IsStalker(stalker1) then
+        if stalker1 and stalker1:alive() and not is_npc_wounded(stalker1) and IsStalker and IsStalker(stalker1) then
             update_stalker(stalker1, squad2, 1)
         end
     end
 
     for member2 in squad2:squad_members() do
         local stalker2 = level.object_by_id(member2.id)
-        if stalker2 and stalker2:alive() and IsStalker and IsStalker(stalker2) then
+        if stalker2 and stalker2:alive() and not is_npc_wounded(stalker2) and IsStalker and IsStalker(stalker2) then
             update_stalker(stalker2, squad1, 2)
         end
     end
 end
 
+function is_npc_wounded(npc)
+    if not (npc and npc:alive()) then return false end
+    if IsMonster and IsMonster(npc) then return false end
+    local wounded = false
+    pcall(function()
+        if IsWounded and IsWounded(npc) then
+            wounded = true
+            return
+        end
+        if xr_wounded then
+            if xr_wounded.is_wounded and xr_wounded.is_wounded(npc) then
+                wounded = true
+                return
+            end
+            if xr_wounded.is_heavy_wounded and xr_wounded.is_heavy_wounded(npc:id()) then
+                wounded = true
+                return
+            end
+            if xr_wounded.is_psy_wounded and xr_wounded.is_psy_wounded(npc:id()) then
+                wounded = true
+                return
+            end
+        end
+        if npc.critically_wounded and npc:critically_wounded() then
+            wounded = true
+            return
+        end
+        local hp = npc.health or (npc.GetHealth and npc:GetHealth())
+        if hp and hp <= 0.15 then
+            wounded = true
+            return
+        end
+    end)
+    return wounded
+end
+
 function scr_hit(npc, who, power)
     if not (npc and who) then return end
+    if is_npc_wounded(who) or is_npc_wounded(npc) then return end
     local h = hit()
     -- hit.wound despierta la IA
     h.type = hit.wound
@@ -2718,7 +2756,7 @@ local function get_random_endless_spawn_pos(prefer_idx)
     return p, lvid, gvid
 end
 
-function spawn_endless_squad(wave, enemy_type)
+function spawn_endless_squad(wave, enemy_type, difficulty)
     math.randomseed(os.time() + (time_global() or 0) + math.random(1, 9999))
 
     local cur_wave = wave or 1
@@ -2726,25 +2764,60 @@ function spawn_endless_squad(wave, enemy_type)
     if e_type == "random" then
         e_type = "stalkers"
     end
+    local diff = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
     
     local tier = 1
-    if cur_wave >= 9 then
-        tier = 5
-    elseif cur_wave >= 7 then
-        tier = 4
-    elseif cur_wave >= 5 then
-        tier = 3
-    elseif cur_wave >= 3 then
-        tier = 2
-    end
-    
     local num_enemies = cur_wave
-    if num_enemies > 6 then
-        num_enemies = 6
+
+    if diff == "easy" then
+        -- Facil: Progression is gentler, fewer enemies
+        if cur_wave >= 13 then
+            tier = 5
+        elseif cur_wave >= 10 then
+            tier = 4
+        elseif cur_wave >= 7 then
+            tier = 3
+        elseif cur_wave >= 4 then
+            tier = 2
+        else
+            tier = 1
+        end
+        num_enemies = math.min(4, math.max(1, math.ceil(cur_wave * 0.6)))
+    elseif diff == "hard" then
+        -- Dificil: Faster tier progression, more enemies (up to 8)
+        if cur_wave >= 6 then
+            tier = 5
+        elseif cur_wave >= 4 then
+            tier = 4
+        elseif cur_wave >= 2 then
+            tier = 3
+        else
+            tier = 2
+        end
+        num_enemies = math.min(8, cur_wave + 1)
+    else -- "medium" (Intermedio)
+        -- Intermedio: Standard progression
+        if cur_wave >= 9 then
+            tier = 5
+        elseif cur_wave >= 7 then
+            tier = 4
+        elseif cur_wave >= 5 then
+            tier = 3
+        elseif cur_wave >= 3 then
+            tier = 2
+        else
+            tier = 1
+        end
+        num_enemies = math.min(6, cur_wave)
     end
     
     local a_fac = get_actor_faction()
     local rank = math.max(0, math.min(4, tier - 1))
+    if diff == "easy" then
+        rank = math.max(0, math.min(2, tier - 1))
+    elseif diff == "hard" then
+        rank = math.max(1, math.min(4, tier))
+    end
     
     local zone_order = {}
     for z = 1, #endless_spawn_zones do
@@ -2826,8 +2899,9 @@ function spawn_endless_squad(wave, enemy_type)
     return spawned_squads
 end
 
-function equip_endless_random_loadout(wave)
+function equip_endless_random_loadout(wave, difficulty)
     local cur_wave = wave or 1
+    local diff = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
     
     -- 1. Unload all weapons in actor possession and clear magazine binders to avoid dumping ammo/mags into backpack
     if db.actor then
@@ -2885,14 +2959,26 @@ function equip_endless_random_loadout(wave)
     end
     
     local tier = 1
-    if cur_wave >= 8 then
-        tier = 5
-    elseif cur_wave >= 6 then
-        tier = 4
-    elseif cur_wave >= 4 then
-        tier = 3
-    elseif cur_wave >= 2 then
-        tier = 2
+    if diff == "easy" then
+        if cur_wave >= 6 then
+            tier = 5
+        elseif cur_wave >= 4 then
+            tier = 4
+        elseif cur_wave >= 3 then
+            tier = 3
+        elseif cur_wave >= 2 then
+            tier = 2
+        end
+    else
+        if cur_wave >= 8 then
+            tier = 5
+        elseif cur_wave >= 6 then
+            tier = 4
+        elseif cur_wave >= 4 then
+            tier = 3
+        elseif cur_wave >= 2 then
+            tier = 2
+        end
     end
     
     local t_data = tournament_loadouts_t[tier] or tournament_loadouts_t[1]
@@ -2973,6 +3059,13 @@ function equip_endless_random_loadout(wave)
         for _, med_sec in ipairs(t_data.meds) do
             if ini_sys:section_exist(med_sec) then
                 local se = alife_create(med_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+                if se then temporary_arena_item_ids[se.id] = true end
+            end
+        end
+        if diff == "easy" then
+            local bonus_med = "medkit"
+            if ini_sys:section_exist(bonus_med) then
+                local se = alife_create(bonus_med, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
                 if se then temporary_arena_item_ids[se.id] = true end
             end
         end

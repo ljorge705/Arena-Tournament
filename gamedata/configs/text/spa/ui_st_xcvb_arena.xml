@@ -962,6 +962,24 @@
 	<string id="st_arena_quick_endless_btn">
 		<text>[Testing] Endless Mode [Testing]</text>
 	</string>
+	<string id="st_arena_endless_diff_title">
+		<text>Dificultad:</text>
+	</string>
+	<string id="st_arena_endless_diff_subtitle">
+		<text>Selecciona la dificultad del Modo Infinito</text>
+	</string>
+	<string id="st_arena_endless_diff_easy">
+		<text>Facil</text>
+	</string>
+	<string id="st_arena_endless_diff_medium">
+		<text>Intermedio</text>
+	</string>
+	<string id="st_arena_endless_diff_hard">
+		<text>Dificil</text>
+	</string>
+	<string id="st_arena_endless_diff_cancel">
+		<text>Cancelar</text>
+	</string>
 	<string id="st_arena_endless_cont_btn">
 		<text>Continuar Endless Mode</text>
 	</string>

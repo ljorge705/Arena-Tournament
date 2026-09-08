@@ -12,6 +12,7 @@ tournament_losses = 0
 best_endless_wave = 0
 endless_checkpoint_wave = 1
 endless_checkpoint_type = "stalkers"
+endless_difficulty = "medium"
 endless_artigrok_ammo = false
 
 -- Spectator Mode State Variables
@@ -530,6 +531,7 @@ function save_state(m_data)
 	m_data.xcvb_best_endless_wave = best_endless_wave
 	m_data.xcvb_endless_checkpoint_wave = endless_checkpoint_wave
 	m_data.xcvb_endless_checkpoint_type = endless_checkpoint_type
+	m_data.xcvb_endless_difficulty = endless_difficulty
 	m_data.xcvb_endless_artigrok_ammo = endless_artigrok_ammo
 end
 
@@ -561,6 +563,7 @@ function load_state(m_data)
 	endless_checkpoint_wave = m_data.xcvb_endless_checkpoint_wave or (best_endless_wave > 0 and best_endless_wave or 1)
 	endless_checkpoint_type = m_data.xcvb_endless_checkpoint_type or "stalkers"
 	if endless_checkpoint_type == "random" then endless_checkpoint_type = "stalkers" end
+	endless_difficulty = m_data.xcvb_endless_difficulty or "medium"
 	if m_data.xcvb_endless_artigrok_ammo ~= nil then
 		endless_artigrok_ammo = m_data.xcvb_endless_artigrok_ammo
 	end

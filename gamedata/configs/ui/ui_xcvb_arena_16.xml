@@ -807,6 +807,35 @@
 		</endless_arti_btn>
 	</beta_cont>
 
+	<!-- ============================================== -->
+	<!-- ENDLESS DIFFICULTY SELECTION POPUP MENU        -->
+	<!-- ============================================== -->
+	<endless_diff_menu x="250" y="216" width="320" height="255" stretch="1">
+		<texture>ui_table_back</texture>
+		<title x="15" y="14" width="290" height="24">
+			<text r="255" g="220" b="140" font="graffiti22" align="c" vert_align="c">st_arena_endless_diff_title</text>
+		</title>
+		<desc x="15" y="42" width="290" height="20">
+			<text r="200" g="200" b="200" font="letterica16" align="c" vert_align="c">st_arena_endless_diff_subtitle</text>
+		</desc>
+		<btn_diff_easy x="35" y="68" width="250" height="36" check_mode="0">
+			<text font="letterica18">st_arena_endless_diff_easy</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_easy>
+		<btn_diff_medium x="35" y="110" width="250" height="36" check_mode="0">
+			<text font="letterica18">st_arena_endless_diff_medium</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_medium>
+		<btn_diff_hard x="35" y="152" width="250" height="36" check_mode="0">
+			<text font="letterica18">st_arena_endless_diff_hard</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_hard>
+		<btn_diff_cancel x="60" y="202" width="200" height="32" check_mode="0">
+			<text font="letterica16">st_arena_endless_diff_cancel</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_cancel>
+	</endless_diff_menu>
+
 	<!-- Row vertical lines (Direct children of <w> as expected by CUIXmlInit) -->
 	<vert_line1 x="80" y="0" width="1" height="48" stretch="1">
 		<texture>xcvb_arena_gui_row_vert_line</texture>

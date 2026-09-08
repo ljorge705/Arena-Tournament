@@ -382,6 +382,34 @@ function UIXcvbArena:InitControls()
 	self.endless_arti_btn = xml:Init3tButton("beta_cont:endless_arti_btn", self.beta_cont)
 	self:Register(self.endless_arti_btn, "btn_endless_arti")
 
+	-- Endless Mode Difficulty Selection Modal Window
+	self.endless_diff_menu = xml:InitStatic("endless_diff_menu", self.bg)
+	self.endless_diff_menu:Show(false)
+
+	self.btn_diff_easy = xml:Init3tButton("endless_diff_menu:btn_diff_easy", self.endless_diff_menu)
+	self:Register(self.btn_diff_easy, "btn_diff_easy")
+	if self.btn_diff_easy:TextControl() then
+		self.btn_diff_easy:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+	end
+
+	self.btn_diff_medium = xml:Init3tButton("endless_diff_menu:btn_diff_medium", self.endless_diff_menu)
+	self:Register(self.btn_diff_medium, "btn_diff_medium")
+	if self.btn_diff_medium:TextControl() then
+		self.btn_diff_medium:TextControl():SetTextColor(GetARGB(255, 255, 220, 130))
+	end
+
+	self.btn_diff_hard = xml:Init3tButton("endless_diff_menu:btn_diff_hard", self.endless_diff_menu)
+	self:Register(self.btn_diff_hard, "btn_diff_hard")
+	if self.btn_diff_hard:TextControl() then
+		self.btn_diff_hard:TextControl():SetTextColor(GetARGB(255, 255, 110, 110))
+	end
+
+	self.btn_diff_cancel = xml:Init3tButton("endless_diff_menu:btn_diff_cancel", self.endless_diff_menu)
+	self:Register(self.btn_diff_cancel, "btn_diff_cancel")
+	if self.btn_diff_cancel:TextControl() then
+		self.btn_diff_cancel:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+	end
+
 	xml:InitStatic("vert_line1", self.bg)
 	xml:InitStatic("vert_line2", self.bg)
 	xml:InitStatic("vert_line3", self.bg)
@@ -394,6 +422,12 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_endless_arti", ui_events.BUTTON_CLICKED, self.on_click_endless_arti_toggle, self)
 	self:AddCallback("btn_endless_arti_main", ui_events.BUTTON_CLICKED, self.on_click_endless_arti_toggle, self)
 	self:AddCallback("btn_beta", ui_events.BUTTON_CLICKED, self.on_click_beta_mode, self)
+
+	-- Endless Mode Difficulty callbacks
+	self:AddCallback("btn_diff_easy", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("easy") end, self)
+	self:AddCallback("btn_diff_medium", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("medium") end, self)
+	self:AddCallback("btn_diff_hard", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("hard") end, self)
+	self:AddCallback("btn_diff_cancel", ui_events.BUTTON_CLICKED, function() self:show_endless_difficulty_menu(false) end, self)
 
 	-- Beta Testing tabs
 	self:AddCallback("beta_tab_br", ui_events.BUTTON_CLICKED, function() self:on_click_beta_tab("br") end, self)
@@ -732,6 +766,7 @@ function UIXcvbArena:on_click_action(row_idx)
 end
 
 function UIXcvbArena:update_view_mode()
+	self:show_endless_difficulty_menu(false)
 	if self.current_mode == "tournament" then
 		self.tournament_cont:Show(true)
 		self.spectator_cont:Show(false)
@@ -1195,11 +1230,27 @@ function UIXcvbArena:update_loadout_buttons()
 		if self.btn_endless then self.btn_endless:Show(true) end
 		if self.btn_endless_cont then
 			self.btn_endless_cont:Show(true)
-			local cp = xcvb_arena_main.endless_checkpoint_wave or xcvb_arena_main.best_endless_wave or 1
+			local cp = xcvb_arena_main.endless_checkpoint_wave or 1
+			local diff = xcvb_arena_main.endless_difficulty or "medium"
+			local diff_name = gt("st_arena_endless_diff_" .. diff)
+			if not diff_name or diff_name == "" or string.find(diff_name, "^st_") then
+				diff_name = (diff == "easy" and "Facil") or (diff == "hard" and "Dificil") or "Intermedio"
+			end
+
+			local text
 			if cp > 1 then
-				self.btn_endless_cont:TextControl():SetText(gt("st_arena_endless_cont_btn") .. " (" .. tostring(cp) .. ")")
+				text = gt("st_arena_endless_cont_btn") .. ": " .. diff_name .. " (" .. tostring(cp) .. ")"
 			else
-				self.btn_endless_cont:TextControl():SetText(gt("st_arena_endless_cont_btn"))
+				text = gt("st_arena_endless_cont_btn") .. ": " .. diff_name
+			end
+			self.btn_endless_cont:TextControl():SetText(text)
+
+			if diff == "easy" then
+				self.btn_endless_cont:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+			elseif diff == "hard" then
+				self.btn_endless_cont:TextControl():SetTextColor(GetARGB(255, 255, 120, 120))
+			else
+				self.btn_endless_cont:TextControl():SetTextColor(GetARGB(255, 255, 220, 130))
 			end
 		end
 		if self.endless_arti_btn_main then self.endless_arti_btn_main:Show(true) end
@@ -1979,32 +2030,55 @@ function UIXcvbArena:on_click_endless_type(t)
 	self:update_endless_display()
 end
 
-function UIXcvbArena:on_click_endless_start()
+function UIXcvbArena:show_endless_difficulty_menu(show)
+	if self.endless_diff_menu then
+		self.endless_diff_menu:Show(show == true)
+	end
+	if self.tournament_cont then
+		self.tournament_cont:Enable(not show)
+	end
+	if self.beta_cont then
+		self.beta_cont:Enable(not show)
+	end
+	if self.btn_mode then self.btn_mode:Enable(not show) end
+	if self.btn_beta then self.btn_beta:Enable(not show) end
+end
+
+function UIXcvbArena:on_select_endless_difficulty(diff)
+	self:show_endless_difficulty_menu(false)
+	local e_type = self.endless_target_enemy_type or "stalkers"
+	if xcvb_arena_main then
+		xcvb_arena_main.endless_difficulty = diff
+		xcvb_arena_main.endless_checkpoint_wave = 1
+		xcvb_arena_main.endless_checkpoint_type = e_type
+	end
 	self:Close()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
-		xcvb_arena_fight.start_endless_fight(self.endless_enemy_type)
+		xcvb_arena_fight.start_endless_fight(e_type, 1, diff)
 		return true
 	end)
 end
 
+function UIXcvbArena:on_click_endless_start()
+	self.endless_target_enemy_type = self.endless_enemy_type or "stalkers"
+	self:show_endless_difficulty_menu(true)
+end
+
 function UIXcvbArena:on_click_quick_endless()
-	self:Close()
-	xcvb_arena_utils.arena_fade_in_out(1)
-	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
-		xcvb_arena_fight.start_endless_fight("stalkers", 1)
-		return true
-	end)
+	self.endless_target_enemy_type = "stalkers"
+	self:show_endless_difficulty_menu(true)
 end
 
 function UIXcvbArena:on_click_continue_endless()
 	local cp_wave = xcvb_arena_main.endless_checkpoint_wave or xcvb_arena_main.best_endless_wave or 1
 	local e_type = xcvb_arena_main.endless_checkpoint_type or "stalkers"
 	if e_type == "random" then e_type = "stalkers" end
+	local diff = xcvb_arena_main.endless_difficulty or "medium"
 	self:Close()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
-		xcvb_arena_fight.start_endless_fight(e_type, cp_wave)
+		xcvb_arena_fight.start_endless_fight(e_type, cp_wave, diff)
 		return true
 	end)
 end
@@ -2039,6 +2113,10 @@ function UIXcvbArena:OnKeyboard(dik, keyboard_action)
 	if res == false then
 		local bind = dik_to_bind(dik)
 		if bind == key_bindings.kQUIT or dik == DIK_keys.DIK_ESCAPE then
+			if self.endless_diff_menu and self.endless_diff_menu:IsShown() then
+				self:show_endless_difficulty_menu(false)
+				return true
+			end
 			self:Close()
 		end
 	end
@@ -2046,6 +2124,9 @@ function UIXcvbArena:OnKeyboard(dik, keyboard_action)
 end
 
 function UIXcvbArena:Close()
+	if self.endless_diff_menu and self.endless_diff_menu:IsShown() then
+		self:show_endless_difficulty_menu(false)
+	end
 	if self:IsShown() then
 		self:HideDialog()
 		Unregister_UI("UIXcvbArena")

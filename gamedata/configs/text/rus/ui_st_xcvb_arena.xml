@@ -742,8 +742,26 @@
 	<string id="st_arena_quick_endless_btn">
 		<text>[Testing] Endless Mode [Testing]</text>
 	</string>
+	<string id="st_arena_endless_diff_title">
+		<text>Сложность:</text>
+	</string>
+	<string id="st_arena_endless_diff_subtitle">
+		<text>Выберите сложность бесконечного режима</text>
+	</string>
+	<string id="st_arena_endless_diff_easy">
+		<text>Легко</text>
+	</string>
+	<string id="st_arena_endless_diff_medium">
+		<text>Средне</text>
+	</string>
+	<string id="st_arena_endless_diff_hard">
+		<text>Сложно</text>
+	</string>
+	<string id="st_arena_endless_diff_cancel">
+		<text>Отмена</text>
+	</string>
 	<string id="st_arena_endless_cont_btn">
-		<text>Продолжить Endless Mode</text>
+		<text>Продолжить Endless</text>
 	</string>
 	<string id="st_arena_endless_artigrok_ammo">
 		<text>ARTIGROK AMMO</text>

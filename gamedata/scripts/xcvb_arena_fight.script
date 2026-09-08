@@ -25,6 +25,7 @@ local endless_enemy_squad_ids = {}
 local endless_ending = false
 local endless_transitioning = false
 local endless_fight_closed = false
+local endless_difficulty = "medium"
 local HI = has_alife_info
 local gt = game.translate_string
 
@@ -655,7 +656,7 @@ end
 --------------------------------------------------------------------------------
 -- MODO INFINITO (BETA TESTING - Endless Survival Mode)
 --------------------------------------------------------------------------------
-function start_endless_fight(enemy_type, start_wave)
+function start_endless_fight(enemy_type, start_wave, difficulty)
     tourn_ending = false
     endless_ending = false
     tournament_fight_closed = false
@@ -667,11 +668,13 @@ function start_endless_fight(enemy_type, start_wave)
     if endless_enemy_type == "random" then
         endless_enemy_type = "stalkers"
     end
+    endless_difficulty = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
     endless_transitioning = false
 
     if xcvb_arena_main then
+        xcvb_arena_main.endless_difficulty = endless_difficulty
         xcvb_arena_main.endless_checkpoint_type = endless_enemy_type
-        if endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
+        if endless_wave == 1 or difficulty ~= nil or endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
             xcvb_arena_main.endless_checkpoint_wave = endless_wave
         end
     end
@@ -697,7 +700,7 @@ function start_endless_fight(enemy_type, start_wave)
     xcvb_arena_utils.store_actor_inventory()
 
     CreateTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a", 0.3, function()
-        xcvb_arena_utils.equip_endless_random_loadout(endless_wave)
+        xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty)
         return true
     end)
 
@@ -714,7 +717,7 @@ function start_endless_fight(enemy_type, start_wave)
     CreateTimeEvent("arena_spawn_endless_squad_e", "arena_spawn_endless_squad_a", 3.0, function()
         if endless_ending or endless_fight_closed then return true end
 
-        local squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type)
+        local squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
         endless_enemy_squad_ids = {}
         if squads then
             if squads.id then
@@ -735,8 +738,9 @@ function start_endless_fight(enemy_type, start_wave)
             return true
         end
 
-        local enemy_count = math.min(6, endless_wave)
-        local tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count)
+        local enemy_count = #endless_enemy_squad_ids
+        local diff_str = gt("st_arena_endless_diff_" .. (endless_difficulty or "medium"))
+        local tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count) .. " (" .. diff_str .. ")"
         news_manager.send_tip(db.actor, tip, 0, nil, 8000)
 
         local attempts = 0
@@ -758,7 +762,13 @@ function advance_endless_wave()
     if endless_ending or endless_transitioning or endless_fight_closed then return end
     endless_transitioning = true
 
-    local wave_gain = 1000 + (endless_wave * 1000)
+    local diff_mult = 1.0
+    if endless_difficulty == "easy" then
+        diff_mult = 0.8
+    elseif endless_difficulty == "hard" then
+        diff_mult = 1.5
+    end
+    local wave_gain = math.floor((1000 + (endless_wave * 1000)) * diff_mult)
     endless_reward = endless_reward + wave_gain
 
     if endless_wave > (xcvb_arena_main.best_endless_wave or 0) then
@@ -772,8 +782,11 @@ function advance_endless_wave()
     heal_actor_completely()
 
     endless_wave = endless_wave + 1
-    if xcvb_arena_main and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
-        xcvb_arena_main.endless_checkpoint_wave = endless_wave
+    if xcvb_arena_main then
+        if endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
+            xcvb_arena_main.endless_checkpoint_wave = endless_wave
+        end
+        xcvb_arena_main.endless_difficulty = endless_difficulty
     end
 
     cont_fire_last_wpn_id = nil
@@ -796,10 +809,10 @@ function advance_endless_wave()
     CreateTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a", 4.0, function()
         if endless_ending or endless_fight_closed then return true end
 
-        xcvb_arena_utils.equip_endless_random_loadout(endless_wave)
+        xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty)
         heal_actor_completely()
 
-        local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type)
+        local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
         endless_enemy_squad_ids = {}
         if next_squads then
             if next_squads.id then
@@ -833,8 +846,9 @@ function advance_endless_wave()
             return false
         end)
 
-        local enemy_count = math.min(6, endless_wave)
-        local start_tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count)
+        local enemy_count = #endless_enemy_squad_ids
+        local diff_str = gt("st_arena_endless_diff_" .. (endless_difficulty or "medium"))
+        local start_tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count) .. " (" .. diff_str .. ")"
         news_manager.send_tip(db.actor, start_tip, 0, nil, 7000)
 
         endless_transitioning = false
@@ -895,8 +909,11 @@ function end_endless_fight(is_victory, voluntary_leave)
         news_manager.send_tip(db.actor, exit_tip, 0, nil, 12000)
     end
 
-    if xcvb_arena_main and endless_wave and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
-        xcvb_arena_main.endless_checkpoint_wave = endless_wave
+    if xcvb_arena_main then
+        if endless_wave and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
+            xcvb_arena_main.endless_checkpoint_wave = endless_wave
+        end
+        xcvb_arena_main.endless_difficulty = endless_difficulty
     end
 
     disable_info("xcvb_endless_started")
@@ -911,6 +928,17 @@ end
 -- ENGINE CALLBACKS
 --------------------------------------------------------------------------------
 local hit_timer = 0
+local function is_npc_wounded(npc)
+    if xcvb_arena_utils and xcvb_arena_utils.is_npc_wounded then
+        return xcvb_arena_utils.is_npc_wounded(npc)
+    end
+    if not (npc and npc:alive()) then return false end
+    if IsMonster and IsMonster(npc) then return false end
+    if IsWounded and IsWounded(npc) then return true end
+    local hp = npc.health or (npc.GetHealth and npc:GetHealth())
+    return (hp and hp <= 0.15) or false
+end
+
 local function has_live_enemy(npc)
     local enemy = nil
     local is_alive = false
@@ -1157,8 +1185,16 @@ function actor_on_update()
                 if squad then
                     for m in squad:squad_members() do
                         local npc = level.object_by_id(m.id)
-                        if npc and npc:alive() and not has_live_enemy(npc) then
-                            xcvb_arena_utils.scr_hit(db.actor, npc)
+                        if npc and npc:alive() then
+                            if is_npc_wounded(npc) then
+                                pcall(function()
+                                    if npc.bleeding and npc.bleeding < 0.3 then
+                                        npc.bleeding = 0.5
+                                    end
+                                end)
+                            elseif not has_live_enemy(npc) then
+                                xcvb_arena_utils.scr_hit(db.actor, npc)
+                            end
                         end
                     end
                 end
@@ -1187,17 +1223,25 @@ function actor_on_update()
                         for m in squad:squad_members() do
                             local npc = level.object_by_id(m.id)
                             if npc and npc:alive() then
-                                if not has_live_enemy(npc) then
-                                    xcvb_arena_utils.scr_hit(db.actor, npc)
-                                end
-                                if npc.set_enemy then
-                                    pcall(function() npc:set_enemy(db.actor) end)
-                                end
-                                if npc.set_sight and db.actor then
-                                    pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
-                                end
-                                if npc.make_enemy_visible and db.actor then
-                                    pcall(function() npc:make_enemy_visible(db.actor) end)
+                                if is_npc_wounded(npc) then
+                                    pcall(function()
+                                        if npc.bleeding and npc.bleeding < 0.3 then
+                                            npc.bleeding = 0.5
+                                        end
+                                    end)
+                                else
+                                    if not has_live_enemy(npc) then
+                                        xcvb_arena_utils.scr_hit(db.actor, npc)
+                                    end
+                                    if npc.set_enemy then
+                                        pcall(function() npc:set_enemy(db.actor) end)
+                                    end
+                                    if npc.set_sight and db.actor then
+                                        pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                                    end
+                                    if npc.make_enemy_visible and db.actor then
+                                        pcall(function() npc:make_enemy_visible(db.actor) end)
+                                    end
                                 end
                             end
                         end
@@ -1233,7 +1277,7 @@ function actor_on_update()
                 if not sq then return end
                 for m in sq:squad_members() do
                     local n = level.object_by_id(m.id)
-                    if n and n:alive() then
+                    if n and n:alive() and not is_npc_wounded(n) then
                         if IsMonster and IsMonster(n) then
                             pcall(function() n:berserk() end)
                             pcall(function() n:set_custom_panic_threshold(0) end)
@@ -1422,6 +1466,23 @@ function on_enemy_eval(npc, enemy, flags)
 end
 
 function npc_on_before_hit(npc, s_hit)
+    if not (npc and s_hit) then return end
+
+    -- Ignore artificial wake-up hits on wounded NPCs to prevent animation interrupt
+    if s_hit.type == hit.wound and (s_hit.power or 0) < 0.01 and is_npc_wounded(npc) then
+        s_hit.power = 0
+        return
+    end
+
+    -- In active combat modes (Endless or Tournament), if player shoots a wounded enemy, ensure lethal damage
+    if (HI("xcvb_endless_started") or is_endless_mode or HI("xcvb_tournament_started")) and is_npc_wounded(npc) then
+        local draft_is_ac = s_hit.draftsman and s_hit.draftsman:id() == 0
+        if draft_is_ac and (s_hit.power or 0) > 0.05 then
+            s_hit.power = math.max(s_hit.power or 0, 10.0)
+            return
+        end
+    end
+
     if HI("xcvb_arena_started") or HI("xcvb_battle_royale_started") then
         local squad = get_object_squad(npc)
         local arena_squad = squad and string.find(squad:section_name(), "arena_")
@@ -1705,6 +1766,7 @@ function save_state(m_data)
     m_data.xcvb_endless_wave = endless_wave
     m_data.xcvb_endless_reward = endless_reward
     m_data.xcvb_endless_enemy_type = endless_enemy_type
+    m_data.xcvb_endless_difficulty = endless_difficulty
     m_data.xcvb_endless_enemy_squad_ids = endless_enemy_squad_ids
 end
 
@@ -1730,6 +1792,7 @@ function load_state(m_data)
     endless_reward = m_data.xcvb_endless_reward or 0
     endless_enemy_type = m_data.xcvb_endless_enemy_type or "stalkers"
     if endless_enemy_type == "random" then endless_enemy_type = "stalkers" end
+    endless_difficulty = m_data.xcvb_endless_difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
     endless_enemy_squad_ids = m_data.xcvb_endless_enemy_squad_ids or {}
     if m_data.xcvb_endless_enemy_squad_id and #endless_enemy_squad_ids == 0 then
         table.insert(endless_enemy_squad_ids, m_data.xcvb_endless_enemy_squad_id)
