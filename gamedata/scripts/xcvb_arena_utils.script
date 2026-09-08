@@ -273,8 +273,11 @@ cfg = scripts\arena_board_logic.ltx
     return se_obj
 end
 
+local balcony_respawned = false
+
 function spawn_balcony()
-    local pos = vector():set(140.1, -13.01, 102.2)
+    -- Coordenadas exactas originales de la carpeta old
+    local pos = vector():set(140.1, -13.51, 102.2)
     local lvid = 40551
     local gvid = 1710
     if level and level.name and level.name() == "l05_bar" and level.vertex_id then
@@ -311,10 +314,12 @@ function check_and_spawn_board()
             if sec == "xcvb_arena_board" then
                 board_found = true
             elseif sec == "xcvb_arena_balcony" then
-                balcony_found = true
-            end
-            if board_found and balcony_found then
-                break
+                -- Al cargar partida, elimina el balcon viejo atascado en el savegame
+                if not balcony_respawned then
+                    alife_release(se)
+                else
+                    balcony_found = true
+                end
             end
         end
     end
@@ -322,8 +327,11 @@ function check_and_spawn_board()
     if not board_found then
         spawn_board()
     end
-    if not balcony_found then
+
+    -- Genera el balcon limpio una sola vez por sesion para no tirarte al vacio durante el loop de 4 segundos
+    if not balcony_respawned or not balcony_found then
         spawn_balcony()
+        balcony_respawned = true
     end
 end
 
@@ -577,7 +585,7 @@ function get_team_rank_string(ar)
     return nil
 end
 function get_actor_arena_pos()
-    local pos = vector():set(142.6, -12.70, 102.1)
+    local pos = vector():set(141.6, -13.35, 102.1)
     local lvid = 37386
     local gvid = 1710
     return pos, lvid, gvid

@@ -29,6 +29,10 @@ local endless_difficulty = "medium"
 local HI = has_alife_info
 local gt = game.translate_string
 
+local function is_spectator_mode()
+    return HI("xcvb_arena_started") or HI("xcvb_battle_royale_started")
+end
+
 local function is_endless_enemy_squad(squad_id)
     if not endless_enemy_squad_ids then return false end
     for _, s_id in ipairs(endless_enemy_squad_ids) do
@@ -1286,13 +1290,13 @@ function actor_on_update()
                 for m in sq:squad_members() do
                     local n = level.object_by_id(m.id)
                     if n and n:alive() and not is_npc_wounded(n) then
+                        if db.actor then
+                            pcall(function() n:set_relation(game_object.neutral, db.actor) end)
+                            pcall(function() n:force_set_goodwill(5000, db.actor) end)
+                        end
                         if IsMonster and IsMonster(n) then
                             pcall(function() n:berserk() end)
                             pcall(function() n:set_custom_panic_threshold(0) end)
-                            if db.actor then
-                                pcall(function() n:set_relation(game_object.neutral, db.actor) end)
-                                pcall(function() n:force_set_goodwill(5000, db.actor) end)
-                            end
                         elseif IsStalker and IsStalker(n) then
                             pcall(function() n:set_mental_state(anim.danger) end)
                             pcall(function() n:set_custom_panic_threshold(0.05) end)
@@ -1617,6 +1621,12 @@ local function trigger_medic_rescue()
 end
 
 function actor_on_before_hit(s_hit, bone_id, flags)
+    if is_spectator_mode() then
+        if s_hit then s_hit.power = 0 end
+        if flags then flags.ret_value = false end
+        return
+    end
+
     if (tourn_ending or endless_ending) and (HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode) then
         if s_hit then s_hit.power = 0 end
         if flags then flags.ret_value = false end
@@ -1639,6 +1649,12 @@ function actor_on_before_hit(s_hit, bone_id, flags)
 end
 
 function actor_on_before_death(whoID, flags)
+    if is_spectator_mode() then
+        if flags then flags.ret_value = false end
+        if db.actor then db.actor.health = 1.0 end
+        return
+    end
+
     if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false then
