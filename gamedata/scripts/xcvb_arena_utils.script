@@ -828,11 +828,6 @@ function setup_tournament_squad_aggro(squad_id)
     for m in squad:squad_members() do
         local npc = level.object_by_id(m.id)
         if npc and npc:alive() then
-            local n_pos = npc:position()
-            if n_pos and (n_pos.y > -19.0 or n_pos.y < -21.5) then
-                local fixed_pos = vector():set(n_pos.x, -20.0543, n_pos.z)
-                pcall(function() npc:set_npc_position(fixed_pos) end)
-            end
             pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
             pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
             pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
@@ -869,23 +864,21 @@ function setup_endless_squads_aggro(squad_ids)
         squad_ids = { squad_ids }
     end
     local all_npcs = {}
-    local total_living = 0
-    local loaded_living = 0
+    local total_members = 0
+    local online_members = 0
+
     for _, s_id in ipairs(squad_ids) do
         local squad = s_id and alife_object(s_id)
         if squad then
+            squad.scripted_target = "actor"
+            squad.assigned_target_id = 0
+            squad.rush_to_target = true
             for m in squad:squad_members() do
-                total_living = total_living + 1
+                total_members = total_members + 1
                 local npc = level.object_by_id(m.id)
                 if npc and npc:alive() then
-                    loaded_living = loaded_living + 1
+                    online_members = online_members + 1
                     table.insert(all_npcs, npc)
-                    
-                    local n_pos = npc:position()
-                    if n_pos and (n_pos.y > -19.0 or n_pos.y < -21.5 or n_pos.x < 145.0 or n_pos.x > 159.0) then
-                        local fixed_pos = vector():set(151.2, -20.0543, 120.0)
-                        pcall(function() npc:set_npc_position(fixed_pos) end)
-                    end
                     pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
                     pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
                     pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
@@ -932,10 +925,7 @@ function setup_endless_squads_aggro(squad_ids)
         end
     end
 
-    if total_living > 0 and loaded_living < total_living then
-        return false
-    end
-    return true
+    return (total_members > 0 and online_members >= total_members)
 end
 
 function give_tournament_rewards(round_data)
@@ -2277,17 +2267,17 @@ end
 
 local orig_get_script_target = sim_squad_scripted.sim_squad_scripted.get_script_target
 function sim_squad_scripted.sim_squad_scripted.get_script_target(self)
-    local sec = self:section_name()
-    if sec and string.find(sec, "arena_") then
-        return self.id
-    end
-
     if self.scripted_target then
         if self.scripted_target == "actor" or self.scripted_target == 0 then
             return 0
         end
         local new_id = tonumber(self.scripted_target)
         if new_id then return new_id end
+    end
+    
+    local sec = self:section_name()
+    if sec and string.find(sec, "arena_") then
+        return self.id
     end
     
     if orig_get_script_target then
@@ -2301,50 +2291,12 @@ end
 
 function get_safe_arena_lvid(pos, fallback_lvid)
     local def_lvid = fallback_lvid or 40551
-    if not (level and level.vertex_id) then
-        return def_lvid
-    end
-    
-    local ok, v = pcall(level.vertex_id, pos)
-    if not (ok and v and v > 0 and v < 4294967295) then
-        return def_lvid
-    end
-    
-    if level.vertex_position then
-        local ok2, v_pos = pcall(level.vertex_position, v)
-        if ok2 and v_pos then
-            -- Arena pit floor is at Y ~ -20.05.
-            -- Spectator balcony is at Y ~ -13, Catwalks / roof are at Y >= -5.
-            -- If Y is outside [-21.5, -19.0] or X outside [145.0, 159.0], this node is on ceiling/balcony!
-            if v_pos.y > -19.0 or v_pos.y < -21.5 or v_pos.x < 145.0 or v_pos.x > 159.0 then
-                local ok3, def_pos = pcall(level.vertex_position, def_lvid)
-                if ok3 and def_pos then
-                    pos.x = def_pos.x
-                    pos.y = def_pos.y
-                    pos.z = def_pos.z
-                end
-                return def_lvid
-            end
-            
-            -- Horizontal sanity check: node must be reasonably close (< 3.5m)
-            local dx = v_pos.x - pos.x
-            local dz = v_pos.z - pos.z
-            if (dx * dx + dz * dz) > 12.25 then
-                local ok3, def_pos = pcall(level.vertex_position, def_lvid)
-                if ok3 and def_pos then
-                    pos.x = def_pos.x
-                    pos.y = def_pos.y
-                    pos.z = def_pos.z
-                end
-                return def_lvid
-            end
-            
-            -- Valid arena floor node! Snap position Y to exact floor height
-            pos.y = v_pos.y
+    if level and level.vertex_id then
+        local ok, v = pcall(level.vertex_id, pos)
+        if ok and v and v > 0 and v < 4294967295 then
             return v
         end
     end
-    
     return def_lvid
 end
 
@@ -2732,19 +2684,23 @@ local endless_forbidden_factions = {
 }
 
 local endless_spawn_zones = {
-    -- North Gate & North Approaches (Safe from balcony, walls, and player start at 152.6, 81.2)
+    -- North Center Gate & Flanks
     { pos = vector():set(151.2, -20.0543, 128.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Gate
-    { pos = vector():set(147.5, -20.0543, 124.0), fallback_lvid = 40551, gvid = 1796 }, -- North West Flank
-    { pos = vector():set(155.5, -20.0543, 124.0), fallback_lvid = 40551, gvid = 1796 }, -- North East Flank
-    { pos = vector():set(151.2, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Approach
+    { pos = vector():set(145.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 }, -- North West Flank
+    { pos = vector():set(158.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 }, -- North East Flank
+    { pos = vector():set(144.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 }, -- North West Corner
+    { pos = vector():set(160.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 }, -- North East Corner
     -- Mid-North Sector
-    { pos = vector():set(148.0, -20.0550, 117.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North West
-    { pos = vector():set(155.0, -20.0550, 117.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North East
-    { pos = vector():set(151.2, -20.0550, 117.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North Center
-    -- Center Arena Pit (Open field, completely clear of the balcony at X=142.6, Z=102.1)
-    { pos = vector():set(148.0, -20.0550, 111.0), fallback_lvid = 40551, gvid = 1796 }, -- Center West
-    { pos = vector():set(155.0, -20.0550, 111.0), fallback_lvid = 40551, gvid = 1796 }, -- Center East
-    { pos = vector():set(151.2, -20.0550, 111.0), fallback_lvid = 40551, gvid = 1796 }, -- Center Mid
+    { pos = vector():set(147.0, -20.0550, 115.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North West
+    { pos = vector():set(157.0, -20.0550, 115.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-North East
+    { pos = vector():set(151.2, -20.0550, 119.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Approach
+    -- Center & Mid-Arena Sectors
+    { pos = vector():set(144.0, -20.0550, 105.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-West Flank
+    { pos = vector():set(160.0, -20.0550, 105.0), fallback_lvid = 40551, gvid = 1796 }, -- Mid-East Flank
+    { pos = vector():set(151.2, -20.0550, 108.0), fallback_lvid = 40551, gvid = 1796 }, -- Center Arena
+    -- Mid-South Flanks (Safe distance from player starting pos at 152.6, 81.2)
+    { pos = vector():set(144.0, -20.0598, 96.0),  fallback_lvid = 40761, gvid = 1684 }, -- Mid-South West
+    { pos = vector():set(160.0, -20.0598, 96.0),  fallback_lvid = 40761, gvid = 1684 }, -- Mid-South East
 }
 
 local function get_random_endless_spawn_pos(prefer_idx)
@@ -2753,9 +2709,9 @@ local function get_random_endless_spawn_pos(prefer_idx)
         z_idx = math.random(1, #endless_spawn_zones)
     end
     local zone = endless_spawn_zones[z_idx]
-    -- Safe micro-jitter of +/- 0.35m so squad members do not overlap
-    local ox = (math.random() * 0.7) - 0.35
-    local oz = (math.random() * 0.7) - 0.35
+    -- Safe micro-jitter of +/- 0.5m so squad members do not overlap, keeping away from obstacles
+    local ox = (math.random() * 1.0) - 0.5
+    local oz = (math.random() * 1.0) - 0.5
     local p = vector():set(zone.pos.x + ox, zone.pos.y, zone.pos.z + oz)
     local lvid = get_safe_arena_lvid(p, zone.fallback_lvid)
     local gvid = zone.gvid
@@ -2853,29 +2809,14 @@ function spawn_endless_squad(wave, enemy_type)
             -- Cada combatiente se crea en su propio escuadron independiente para que no corran a reagruparse hacia un lado
             local sq = alife_create(squad_sec, m_pos, m_lvid, m_gvid)
             if sq then
-                sq.scripted_target = nil
-                sq.assigned_target_id = sq.id
-                sq.rush_to_target = false
+                sq.scripted_target = "actor"
+                sq.assigned_target_id = 0
+                sq.rush_to_target = true
                 sq:add_squad_member(sec, m_pos, m_lvid, m_gvid)
                 sq:set_squad_relation()
                 sq:refresh()
                 for m in sq:squad_members() do
                     arena_spawned_combatant_ids[m.id] = true
-                    if db.spawned_vertex_by_id and db.spawned_vertex_by_id[m.id] then
-                        local sv = db.spawned_vertex_by_id[m.id]
-                        if level.vertex_position then
-                            local sv_pos = level.vertex_position(sv)
-                            if sv_pos and (sv_pos.y > -19.0 or sv_pos.y < -21.5 or sv_pos.x < 145.0 or sv_pos.x > 159.0) then
-                                db.spawned_vertex_by_id[m.id] = 40551
-                            end
-                        end
-                    end
-                    local se_obj = alife_object(m.id)
-                    if se_obj and se_obj.position and (se_obj.position.y > -19.0 or se_obj.position.y < -21.5 or se_obj.position.x < 145.0 or se_obj.position.x > 159.0) then
-                        se_obj.position.x = 151.2
-                        se_obj.position.y = -20.0543
-                        se_obj.position.z = 120.0
-                    end
                 end
                 table.insert(spawned_squads, sq)
             end

@@ -682,7 +682,6 @@ function start_endless_fight(enemy_type, start_wave)
     RemoveTimeEvent("arena_spawn_endless_squad_e", "arena_spawn_endless_squad_a")
     RemoveTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a")
     RemoveTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a")
-    RemoveTimeEvent("allow_endless_aggro_load_e", "allow_endless_aggro_load_a")
     RemoveTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1")
     RemoveTimeEvent("arena_equip_endless_e2", "arena_equip_endless_a2")
     RemoveTimeEvent("arena_equip_endless_draw_e1", "arena_equip_endless_draw_a1")
@@ -740,14 +739,15 @@ function start_endless_fight(enemy_type, start_wave)
         local tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count)
         news_manager.send_tip(db.actor, tip, 0, nil, 8000)
 
-        local aggro_retries = 0
-        CreateTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a", 0.5, function()
+        local attempts = 0
+        CreateTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a", 0.8, function()
             if endless_ending or endless_fight_closed then return true end
-            aggro_retries = aggro_retries + 1
+            attempts = attempts + 1
             local done = xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
-            if done or aggro_retries >= 15 then
+            if done or attempts >= 6 then
                 return true
             end
+            ResetTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a", 0.4)
             return false
         end)
         return true
@@ -813,10 +813,10 @@ function advance_endless_wave()
             end
         end
 
-        local aggro_retries = 0
-        CreateTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a", 0.5, function()
+        local attempts_w = 0
+        CreateTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a", 0.8, function()
             if endless_ending or endless_fight_closed then return true end
-            aggro_retries = aggro_retries + 1
+            attempts_w = attempts_w + 1
             local done = xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
             if db.actor and db.actor:active_slot() == 0 then
                 for _, s in ipairs({2, 1}) do
@@ -826,9 +826,10 @@ function advance_endless_wave()
                     end
                 end
             end
-            if done or aggro_retries >= 15 then
+            if done or attempts_w >= 6 then
                 return true
             end
+            ResetTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a", 0.4)
             return false
         end)
 
@@ -852,7 +853,6 @@ function end_endless_fight(is_victory, voluntary_leave)
     RemoveTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a")
     RemoveTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a")
     RemoveTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a")
-    RemoveTimeEvent("allow_endless_aggro_load_e", "allow_endless_aggro_load_a")
     RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
     RemoveTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a")
     RemoveTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1")
@@ -958,6 +958,47 @@ end
 function actor_on_hud_animation_play(anm_table, item)
     if not anm_table or not anm_table.anm_name then return end
     local anm = anm_table.anm_name
+
+    -- Bypass first-draw / inspection animations (anm_show_first, anm_inspect, anm_bore) on weapon reset/draw
+    if string.find(anm, "first") or string.find(anm, "inspect") or (string.find(anm, "bore") and (HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode)) then
+        local is_empty = string.find(anm, "empty") or string.find(anm, "_0") or string.find(anm, "0_")
+        local target_anm = nil
+
+        if string.find(anm, "first") then
+            local clean = string.gsub(anm, "_first", "")
+            clean = string.gsub(clean, "first_", "")
+            clean = string.gsub(clean, "first", "")
+            target_anm = clean
+        elseif string.find(anm, "inspect") then
+            target_anm = is_empty and "anm_show_empty" or "anm_show"
+        elseif string.find(anm, "bore") then
+            target_anm = is_empty and "anm_idle_empty" or "anm_idle"
+        end
+
+        if target_anm and item and item.section and ini_sys then
+            local sec = item:section()
+            local hud_sec = ini_sys:r_string_ex(sec, "hud")
+            if hud_sec and not ini_sys:line_exist(hud_sec, target_anm) then
+                if string.find(anm, "bore") then
+                    target_anm = (is_empty and ini_sys:line_exist(hud_sec, "anm_idle_empty")) and "anm_idle_empty" or "anm_idle"
+                else
+                    if is_empty and ini_sys:line_exist(hud_sec, "anm_show_empty") then
+                        target_anm = "anm_show_empty"
+                    elseif ini_sys:line_exist(hud_sec, "anm_show") then
+                        target_anm = "anm_show"
+                    elseif ini_sys:line_exist(hud_sec, "anm_idle") then
+                        target_anm = "anm_idle"
+                    end
+                end
+            end
+        end
+
+        if target_anm then
+            anm_table.anm_name = target_anm
+            anm = target_anm
+        end
+    end
+
     if string.find(anm, "aim_start") or string.find(anm, "aim_end") then
         local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
         local lmb_held = key_state(fire_dik) ~= 0
@@ -1140,12 +1181,12 @@ function actor_on_update()
                 for _, s_id in ipairs(endless_enemy_squad_ids) do
                     local squad = alife_object(s_id)
                     if squad then
+                        squad.scripted_target = "actor"
+                        squad.assigned_target_id = 0
+                        squad.rush_to_target = true
                         for m in squad:squad_members() do
                             local npc = level.object_by_id(m.id)
                             if npc and npc:alive() then
-                                pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
-                                pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
-                                pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
                                 if not has_live_enemy(npc) then
                                     xcvb_arena_utils.scr_hit(db.actor, npc)
                                 end
@@ -1709,16 +1750,7 @@ function actor_on_first_update()
         xcvb_arena_utils.setup_tournament_squad_aggro(tournament_enemy_squad_id)
     end
     if HI("xcvb_endless_started") and endless_enemy_squad_ids and #endless_enemy_squad_ids > 0 then
-        local load_retries = 0
-        CreateTimeEvent("allow_endless_aggro_load_e", "allow_endless_aggro_load_a", 0.5, function()
-            if not HI("xcvb_endless_started") or endless_ending or endless_fight_closed then return true end
-            load_retries = load_retries + 1
-            local done = xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
-            if done or load_retries >= 15 then
-                return true
-            end
-            return false
-        end)
+        xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
     end
     if HI("xcvb_arena_started") and not spec_fight_ending and not spectator_fight_closed then
         news_manager.send_tip(db.actor, gt("st_arena_spectator_press_f"), 0, nil, 12000)

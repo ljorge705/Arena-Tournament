@@ -713,20 +713,8 @@ local function apply_arena_combat_ai()
 	if not console then return end
 
 	-- The bodycam fork exposes these cvars. They improve target acquisition and
-	-- cover selection while preserving the engine's normal tactical movement.
 	local commands = {
-		"ai_vision_speed_boost 1.35",
-		"ai_aim_fire_angle 0.30",
-		"ai_enemy_inertia_time_to_somebody 2500",
-		"ai_search_inertia_time 10000",
-		"ai_aim_inertia_time 350",
-		"ai_aim_queue_inertia_time 200",
-		"ai_fire_make_sense_interval 7000",
-		"ai_cover_search_near_radius 12",
-		"ai_cover_search_far_radius 38",
-		"ai_cover_default_max_dist 24",
-		"ai_close_move_distance 2.0",
-		"ai_wait_in_smart_cover_time 18000",
+		"ai_use_smart_covers 1",
 		"ai_move_to_cover_run 1",
 	}
 
