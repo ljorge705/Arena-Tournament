@@ -46,6 +46,9 @@
 	<string id="st_arena_btn_locked">
 		<text>RONDA BLOQUEADA</text>
 	</string>
+	<string id="st_arena_3dssg_scope_select">
+		<text>3DSSG: SELECCIONAR MIRA</text>
+	</string>
 
 	<!-- Rangos / Categorias -->
 	<string id="st_arena_tier_1_name">

@@ -35,6 +35,8 @@ function UIXcvbArena:__init() super()
 	self.selected_loadout_class = "random"
 	self.selected_loadout_tier = 0
 	self.selected_loadout_ammo = "auto"
+	self.selected_3dssg_mode = "off"
+	self.selected_3dssg_scope = nil
 	self.selected_weapon_sec = nil
 	self.selected_special_ammo_sec = nil
 	self.available_weapons_cache = {}
@@ -168,6 +170,11 @@ function UIXcvbArena:InitControls()
 		self:Register(btn, "btn_loadout_ammo_" .. at)
 	end
 
+	self.btn_3dssg = xml:Init3tButton("tournament_cont:btn_3dssg", self.tournament_cont)
+	self:Register(self.btn_3dssg, "btn_3dssg")
+	self.btn_3dssg_scope = xml:Init3tButton("tournament_cont:btn_3dssg_scope", self.tournament_cont)
+	self:Register(self.btn_3dssg_scope, "btn_3dssg_scope")
+
 	-- Loadout Summary Frame (Left Side)
 	self.loadout_summary_frame = xml:InitStatic("tournament_cont:loadout_summary_frame", self.tournament_cont)
 	self.summary_title = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_title", self.loadout_summary_frame)
@@ -180,6 +187,7 @@ function UIXcvbArena:InitControls()
 	self.summary_ammo = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_ammo", self.loadout_summary_frame)
 	self.summary_outfit = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_outfit", self.loadout_summary_frame)
 	self.summary_helmet = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_helmet", self.loadout_summary_frame)
+	self.summary_scope = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_scope", self.loadout_summary_frame)
 
 	-- Main Action Button
 	self.btn_tourn_start = xml:Init3tButton("tournament_cont:tourn_start_btn", self.tournament_cont)
@@ -404,6 +412,9 @@ function UIXcvbArena:InitControls()
 		self.btn_diff_hard:TextControl():SetTextColor(GetARGB(255, 255, 110, 110))
 	end
 
+	self.btn_diff_3dssg = xml:Init3tButton("endless_diff_menu:btn_diff_3dssg", self.endless_diff_menu)
+	self:Register(self.btn_diff_3dssg, "btn_diff_3dssg")
+
 	self.btn_diff_cancel = xml:Init3tButton("endless_diff_menu:btn_diff_cancel", self.endless_diff_menu)
 	self:Register(self.btn_diff_cancel, "btn_diff_cancel")
 	if self.btn_diff_cancel:TextControl() then
@@ -427,6 +438,7 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_diff_easy", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("easy") end, self)
 	self:AddCallback("btn_diff_medium", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("medium") end, self)
 	self:AddCallback("btn_diff_hard", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("hard") end, self)
+	self:AddCallback("btn_diff_3dssg", ui_events.BUTTON_CLICKED, self.on_click_endless_3dssg, self)
 	self:AddCallback("btn_diff_cancel", ui_events.BUTTON_CLICKED, function() self:show_endless_difficulty_menu(false) end, self)
 
 	-- Beta Testing tabs
@@ -485,6 +497,8 @@ function UIXcvbArena:InitCallbacks()
 	for _, at in ipairs(ammo_types) do
 		self:AddCallback("btn_loadout_ammo_" .. at, ui_events.BUTTON_CLICKED, function() self:on_click_loadout_ammo(at) end, self)
 	end
+	self:AddCallback("btn_3dssg", ui_events.BUTTON_CLICKED, self.on_click_3dssg, self)
+	self:AddCallback("btn_3dssg_scope", ui_events.BUTTON_CLICKED, self.on_click_3dssg_scope, self)
 
 	-- Main enter button callback
 	self:AddCallback("btn_tourn_start", ui_events.BUTTON_CLICKED, self.on_click_tourn_start, self)
@@ -713,6 +727,8 @@ function UIXcvbArena:reset_loadout_selection()
 	self.selected_loadout_class = "random"
 	self.selected_loadout_tier = 0
 	self.selected_loadout_ammo = "auto"
+	self.selected_3dssg_mode = "off"
+	self.selected_3dssg_scope = nil
 	self.selected_weapon_sec = nil
 	self.selected_special_ammo_sec = nil
 	self.available_weapons_cache = {}
@@ -1029,6 +1045,35 @@ function UIXcvbArena:on_click_loadout_ammo(at)
 	self:update_loadout_buttons()
 end
 
+function UIXcvbArena:on_click_3dssg()
+	if self.selected_3dssg_mode == "off" then
+		self.selected_3dssg_mode = "random"
+	elseif self.selected_3dssg_mode == "random" and self.selected_weapon_sec then
+		self.selected_3dssg_mode = "custom"
+	else
+		self.selected_3dssg_mode = "off"
+	end
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_3dssg_scope()
+	if not self.selected_weapon_sec then return end
+	local scopes = xcvb_arena_utils.get_weapon_scopes(self.selected_weapon_sec)
+	if not scopes or #scopes == 0 then return end
+	local current = 0
+	for i, scope in ipairs(scopes) do
+		if scope == self.selected_3dssg_scope then
+			current = i
+			break
+		end
+	end
+	current = current + 1
+	if current > #scopes then current = 1 end
+	self.selected_3dssg_scope = scopes[current]
+	self.selected_3dssg_mode = "custom"
+	self:update_loadout_buttons()
+end
+
 function UIXcvbArena:update_loadout_buttons()
 	local class_names = {
 		random = gt("st_arena_class_random"),
@@ -1158,6 +1203,26 @@ function UIXcvbArena:update_loadout_buttons()
 		local active_ammo = ammo_names[self.selected_loadout_ammo] or gt("st_arena_ammo_auto")
 		self.loadout_ammo_title:SetText(gt("st_arena_loadout_ammo_title") .. " " .. active_ammo:upper() .. " [ON]")
 		self.loadout_ammo_title:SetTextColor(GetARGB(255, 255, 220, 80))
+	end
+
+	local scope_list = self.selected_weapon_sec and xcvb_arena_utils.get_weapon_scopes(self.selected_weapon_sec) or {}
+	if self.selected_3dssg_scope and not is_in_list(scope_list, self.selected_3dssg_scope) then
+		self.selected_3dssg_scope = scope_list[1]
+	end
+	if self.selected_3dssg_mode == "custom" and not self.selected_3dssg_scope then
+		self.selected_3dssg_mode = "random"
+	end
+	if self.btn_3dssg then
+		local mode_text = self.selected_3dssg_mode == "random" and "3DSSG [ON] [RANDOM]"
+			or self.selected_3dssg_mode == "custom" and "3DSSG [ON] [CUSTOM]" or "3DSSG [OFF]"
+		self.btn_3dssg:TextControl():SetText(mode_text)
+		self.btn_3dssg:TextControl():SetTextColor(self.selected_3dssg_mode == "off" and GetARGB(255, 150, 150, 150) or GetARGB(255, 100, 255, 100))
+	end
+	if self.btn_3dssg_scope then
+		local scope_name = self.selected_3dssg_scope and xcvb_arena_utils.get_item_short_name(self.selected_3dssg_scope) or gt("st_arena_3dssg_scope_select")
+		self.btn_3dssg_scope:TextControl():SetText("3DSSG: " .. scope_name)
+		self.btn_3dssg_scope:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		self.btn_3dssg_scope:Enable(self.selected_weapon_sec ~= nil and #scope_list > 0)
 	end
 
 	-- Query special ammunition for currently selected weapon
@@ -1336,6 +1401,12 @@ function UIXcvbArena:update_loadout_buttons()
 			if string.len(h_name) > 22 then h_name = string.sub(h_name, 1, 20) .. ".." end
 			self.summary_helmet:SetText(format_label(gt("st_arena_loadout_sum_helmet"), h_name))
 		end
+
+		if self.summary_scope then
+			local s_name = self.selected_3dssg_scope and xcvb_arena_utils.get_item_short_name(self.selected_3dssg_scope) or none_str
+			if string.len(s_name) > 22 then s_name = string.sub(s_name, 1, 20) .. ".." end
+			self.summary_scope:SetText(format_label("3DSSG", s_name))
+		end
 	end
 end
 
@@ -1354,6 +1425,8 @@ function UIXcvbArena:on_click_tourn_start()
 	local chosen_ammo = self.selected_loadout_ammo
 	local chosen_weapon = self.selected_weapon_sec
 	local chosen_forced_ammo = (chosen_ammo == "special") and self.selected_special_ammo_sec or nil
+	local chosen_3dssg_mode = self.selected_3dssg_mode
+	local chosen_3dssg_scope = self.selected_3dssg_scope
 
 	-- Reset loadout selection so it does not persist into future rounds
 	self:reset_loadout_selection()
@@ -1362,7 +1435,7 @@ function UIXcvbArena:on_click_tourn_start()
 	xcvb_arena_main.selected_modifier_team2 = "none"
 
 	self:Close()
-	xcvb_arena_fight.start_tournament_fight(cat, self.selected_round_id, chosen_cls, chosen_tier, chosen_ammo, chosen_weapon, chosen_forced_ammo)
+	xcvb_arena_fight.start_tournament_fight(cat, self.selected_round_id, chosen_cls, chosen_tier, chosen_ammo, chosen_weapon, chosen_forced_ammo, chosen_3dssg_mode, chosen_3dssg_scope)
 end
 
 --------------------------------------------------------------------------------
@@ -2034,6 +2107,9 @@ function UIXcvbArena:show_endless_difficulty_menu(show)
 	if self.endless_diff_menu then
 		self.endless_diff_menu:Show(show == true)
 	end
+	if show then
+		self:update_endless_3dssg_button()
+	end
 	if self.tournament_cont then
 		self.tournament_cont:Enable(not show)
 	end
@@ -2055,9 +2131,21 @@ function UIXcvbArena:on_select_endless_difficulty(diff)
 	self:Close()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
-		xcvb_arena_fight.start_endless_fight(e_type, 1, diff)
+		xcvb_arena_fight.start_endless_fight(e_type, 1, diff, xcvb_arena_main.endless_3dssg == true)
 		return true
 	end)
+end
+
+function UIXcvbArena:on_click_endless_3dssg()
+	xcvb_arena_main.endless_3dssg = not (xcvb_arena_main.endless_3dssg == true)
+	self:update_endless_3dssg_button()
+end
+
+function UIXcvbArena:update_endless_3dssg_button()
+	if not self.btn_diff_3dssg then return end
+	local is_on = xcvb_arena_main and xcvb_arena_main.endless_3dssg == true
+	self.btn_diff_3dssg:TextControl():SetText(is_on and "3DSSG [ON] [RANDOM]" or "3DSSG [OFF]")
+	self.btn_diff_3dssg:TextControl():SetTextColor(is_on and GetARGB(255, 100, 255, 100) or GetARGB(255, 180, 180, 180))
 end
 
 function UIXcvbArena:on_click_endless_start()
@@ -2078,7 +2166,7 @@ function UIXcvbArena:on_click_continue_endless()
 	self:Close()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
-		xcvb_arena_fight.start_endless_fight(e_type, cp_wave, diff)
+		xcvb_arena_fight.start_endless_fight(e_type, cp_wave, diff, xcvb_arena_main.endless_3dssg == true)
 		return true
 	end)
 end

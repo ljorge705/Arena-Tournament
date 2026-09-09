@@ -1198,6 +1198,116 @@ function get_available_weapons(effective_tier, loadout_class)
     return valid
 end
 
+function get_weapon_scopes(weapon_sec)
+    if not weapon_sec or not ini_sys:section_exist(weapon_sec) then return {} end
+    local parent = ini_sys:r_string_ex(weapon_sec, "parent_section") or weapon_sec
+    local scope_text = ini_sys:r_string_ex(parent, "scopes") or ini_sys:r_string_ex(weapon_sec, "scopes")
+    if not scope_text then return {} end
+    local result = {}
+    for _, scope in ipairs(str_explode(scope_text, ",")) do
+        local clean_scope = trim(scope)
+        local child = parent .. "_" .. clean_scope
+        local is_upgrade_kit = ini_sys:section_exist(clean_scope)
+            and ini_sys:r_bool_ex(clean_scope, "weapon_kit", false)
+        local is_scope = IsItem and IsItem("scope", clean_scope)
+        if clean_scope ~= "" and is_scope and not is_upgrade_kit and ini_sys:section_exist(child) then
+            table.insert(result, clean_scope)
+        end
+    end
+    return result
+end
+
+local function attach_arena_scope(weapon, requested_scope)
+    if not (weapon and IsWeapon(nil, weapon:clsid()) and not (IsKnife and IsKnife(nil, weapon:clsid()))) then return end
+    local parent = ini_sys:r_string_ex(weapon:section(), "parent_section") or weapon:section()
+    if weapon:section() ~= parent then return end
+    local scopes = get_weapon_scopes(parent)
+    if #scopes == 0 then return end
+    local scope_sec = requested_scope
+    local requested_is_valid = false
+    for _, candidate in ipairs(scopes) do
+        if candidate == scope_sec then
+            requested_is_valid = true
+            break
+        end
+    end
+    if not requested_is_valid then
+        scope_sec = scopes[math.random(#scopes)]
+    end
+    local child_section = parent .. "_" .. scope_sec
+    local scope_obj = alife_create(scope_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+    if not scope_obj then return end
+    temporary_arena_item_ids[scope_obj.id] = true
+    local weapon_id = weapon:id()
+    local restore_slot = nil
+    local was_active = false
+    for _, slot in ipairs({ 1, 2, 3 }) do
+        local slot_item = db.actor:item_in_slot(slot)
+        if slot_item and slot_item:id() == weapon_id then
+            restore_slot = slot
+            was_active = db.actor:active_slot() == slot
+            break
+        end
+    end
+
+    local attach_attempts = 0
+    CreateTimeEvent("arena_3dssg_attach", "scope_attach_" .. tostring(scope_obj.id), 0.1, function()
+        attach_attempts = attach_attempts + 1
+        if not db.actor or not item_weapon or not item_weapon.attach_scope then return true end
+        local scope_item = nil
+        local source_weapon = nil
+        db.actor:iterate_inventory(function(_, item)
+            if not scope_item and item and item:section() == scope_sec then
+                scope_item = item
+            end
+            if not source_weapon and item and item:id() == weapon_id then
+                source_weapon = item
+            end
+        end, db.actor)
+        if scope_item and source_weapon then
+            local ok = pcall(item_weapon.attach_scope, scope_item, source_weapon)
+            if ok then
+                CreateTimeEvent("arena_3dssg_restore", "scope_restore_" .. tostring(weapon_id), 0.15, function()
+                    if not db.actor then return true end
+                    local attached_weapon = nil
+                    db.actor:iterate_inventory(function(_, item)
+                        if item and item:section() == child_section and IsWeapon(nil, item:clsid()) then
+                            attached_weapon = item
+                            return true
+                        end
+                    end, db.actor)
+                    if attached_weapon then
+                        temporary_arena_item_ids[attached_weapon:id()] = true
+                        db.actor:move_to_slot(attached_weapon, restore_slot or 2)
+                        if was_active then
+                            db.actor:activate_slot(restore_slot or 2)
+                        end
+                        return true
+                    end
+                    return false
+                end)
+                return true
+            end
+        end
+        return attach_attempts >= 10
+    end)
+    if se_save_var and (ini_sys:r_float_ex(scope_sec, "s3ds_image_type") or 0) > 1 then
+        CreateTimeEvent("arena_3dssg_battery", "scope_battery_" .. tostring(scope_obj.id), 0.1, function()
+            db.actor:iterate_inventory(function(_, item)
+                local item_section = item and item:section()
+                if item_section and string.find(item_section, "^" .. parent .. "_", 1) then
+                    se_save_var(item:id(), nil, "3dss_thermal_battery", {
+                        version = 2,
+                        main = { section = scope_sec, charge = 1.0 },
+                    })
+                    return true
+                end
+            end, db.actor)
+            return true
+        end)
+    end
+end
+
 function get_tier_preview_gear(effective_tier)
     local t = effective_tier or 1
     local t_data = tournament_loadouts_t[t] or tournament_loadouts_t[1]
@@ -1522,7 +1632,7 @@ local function power_up_exoskeleton(spawned_outfit_id, outfit_sec)
     end)
 end
 
-function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier, chosen_ammo_type, forced_weapon_sec, forced_ammo_sec)
+function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier, chosen_ammo_type, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec)
     local effective_tier = (forced_tier and tonumber(forced_tier) and tonumber(forced_tier) > 0) and tonumber(forced_tier) or round_tier
     local t_data = tournament_loadouts_t[effective_tier] or tournament_loadouts_t[1]
     
@@ -1672,13 +1782,31 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
         
         if spawned_pistol_id then
             local p_obj = level.object_by_id(spawned_pistol_id)
-            if p_obj then
+            if p_obj and not (IsKnife and IsKnife(nil, p_obj:clsid())) then
                 db.actor:move_to_slot(p_obj, 1)
             end
         end
+
+        db.actor:iterate_inventory(function(_, itm)
+            if temporary_arena_item_ids[itm:id()] and IsKnife and IsKnife(nil, itm:clsid()) then
+                db.actor:move_to_slot(itm, 0)
+            end
+        end, db.actor)
         
         return true
     end)
+
+    if scope_mode and scope_mode ~= "off" then
+        CreateTimeEvent("arena_equip_3dssg", "arena_equip_3dssg", 1.1, function()
+            if not db.actor then return true end
+            db.actor:iterate_inventory(function(_, itm)
+                if temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                    attach_arena_scope(itm, scope_mode == "custom" and forced_scope_sec or nil)
+                end
+            end, db.actor)
+            return true
+        end)
+    end
     
     local tourn_target_slot = (loadout_class == "pistol") and 1 or 2
     CreateTimeEvent("arena_equip_draw_e1", "arena_equip_draw_a1", 0.6, function()
@@ -2553,13 +2681,98 @@ function get_squad_for_faction(fac_key, amount)
     return ret_ar, pwr, k
 end
 
+function update_battle_royale_targets(squads)
+    local target_squad_by_id = {}
+    for squad_id, _ in pairs(squads) do
+        local squad = alife_object(squad_id)
+        if squad then
+            for member in squad:squad_members() do
+                target_squad_by_id[member.id] = squad_id
+            end
+        end
+    end
+
+    local function is_valid_target(target, own_squad_id)
+        if not (target and target:alive() and target:id() ~= 0) then return false end
+        if is_npc_wounded(target) then return false end
+        local target_squad_id = target_squad_by_id[target:id()]
+        return target_squad_id and target_squad_id ~= own_squad_id
+    end
+
+    local function get_nearest_target(npc, own_squad_id)
+        local nearest = nil
+        local nearest_distance = nil
+        for squad_id, _ in pairs(squads) do
+            local squad = alife_object(squad_id)
+            if squad and squad.id ~= own_squad_id then
+                for member in squad:squad_members() do
+                    local candidate = level.object_by_id(member.id)
+                    if candidate and candidate:alive() and not is_npc_wounded(candidate) then
+                        local distance = nil
+                        pcall(function()
+                            distance = npc:position():distance_to(candidate:position())
+                        end)
+                        if not nearest or (distance and (not nearest_distance or distance < nearest_distance)) then
+                            nearest = candidate
+                            nearest_distance = distance
+                        end
+                    end
+                end
+            end
+        end
+        return nearest
+    end
+
+    for own_squad_id, _ in pairs(squads) do
+        local own_squad = alife_object(own_squad_id)
+        if own_squad then
+            for member in own_squad:squad_members() do
+                local npc = level.object_by_id(member.id)
+                if npc and npc:alive() and not is_npc_wounded(npc) then
+                    local current_enemy = nil
+                    pcall(function()
+                        current_enemy = npc:best_enemy()
+                    end)
+
+                    if not is_valid_target(current_enemy, own_squad_id) then
+                        local target = get_nearest_target(npc, own_squad_id)
+                        if target then
+                            local target_squad_id = target_squad_by_id[target:id()]
+                            if target_squad_id then
+                                own_squad.scripted_target = target_squad_id
+                                own_squad.assigned_target_id = target_squad_id
+                                own_squad.rush_to_target = true
+                            end
+                            pcall(function() npc:force_set_goodwill(-9999, target) end)
+                            pcall(function() npc:set_relation(game_object.enemy, target) end)
+                            if npc.make_enemy_visible then
+                                pcall(function() npc:make_enemy_visible(target) end)
+                            end
+                            if npc.set_enemy then
+                                pcall(function() npc:set_enemy(target) end)
+                            end
+                            if npc.register_in_combat then
+                                pcall(function() npc:register_in_combat() end)
+                            end
+                            pcall(function() npc:set_sight(look.fire_point, target:position()) end)
+                            xcvb_arena_utils.scr_hit(target, npc, 0.001)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
 function setup_battle_royale_relations(squad_ids)
     if not squad_ids then return end
     local squads = {}
+    local squad_lookup = {}
     for idx, sq_id in ipairs(squad_ids) do
         local sq = sq_id and alife_object(sq_id)
         if sq then
             squads[idx] = sq
+            squad_lookup[sq.id] = true
         end
     end
 
@@ -2585,6 +2798,8 @@ function setup_battle_royale_relations(squad_ids)
                     end
                 end
             end
+
+            update_battle_royale_targets(squad_lookup)
         end
     end
 
@@ -2997,7 +3212,7 @@ function spawn_endless_squad(wave, enemy_type, difficulty)
     return spawned_squads
 end
 
-function equip_endless_random_loadout(wave, difficulty)
+function equip_endless_random_loadout(wave, difficulty, use_3dssg)
     local cur_wave = wave or 1
     local diff = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
     
@@ -3346,4 +3561,16 @@ function equip_endless_random_loadout(wave, difficulty)
         end
         return true
     end)
+
+    if use_3dssg then
+        CreateTimeEvent("arena_equip_endless_3dssg", "arena_equip_endless_3dssg", 1.1, function()
+            if not db.actor then return true end
+            db.actor:iterate_inventory(function(_, itm)
+                if temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                    attach_arena_scope(itm, nil)
+                end
+            end, db.actor)
+            return true
+        end)
+    end
 end

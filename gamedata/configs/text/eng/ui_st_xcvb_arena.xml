@@ -46,6 +46,9 @@
 	<string id="st_arena_btn_locked">
 		<text>ROUND LOCKED</text>
 	</string>
+	<string id="st_arena_3dssg_scope_select">
+		<text>3DSSG: SELECT SCOPE</text>
+	</string>
 
 	<!-- Ranks / Tiers -->
 	<string id="st_arena_tier_1_name">

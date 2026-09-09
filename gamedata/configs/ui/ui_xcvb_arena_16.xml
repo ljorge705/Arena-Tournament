@@ -224,7 +224,7 @@
 		</loadout_ammo_btn_special>
 
 		<!-- Loadout Summary Frame (Left Side) -->
-		<loadout_summary_frame x="0" y="388" width="220" height="132" stretch="1">
+		<loadout_summary_frame x="0" y="388" width="220" height="156" stretch="1">
 			<texture>xcvb_arena_gui_row_frame</texture>
 			<summary_title x="10" y="6" width="200" height="14">
 				<text r="255" g="220" b="130" font="letterica16" align="l" vert_align="c">st_arena_loadout_summary_title</text>
@@ -252,10 +252,22 @@
 			<summary_helmet x="10" y="108" width="200" height="16">
 				<text r="170" g="170" b="170" font="letterica16" align="l" vert_align="c"></text>
 			</summary_helmet>
+			<summary_scope x="10" y="124" width="200" height="16">
+				<text r="150" g="210" b="230" font="letterica16" align="l" vert_align="c"></text>
+			</summary_scope>
 		</loadout_summary_frame>
 
+		<btn_3dssg x="228" y="388" width="224" height="28" check_mode="0">
+			<text font="letterica16">3DSSG [OFF]</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_3dssg>
+		<btn_3dssg_scope x="228" y="420" width="224" height="28" check_mode="0">
+			<text font="letterica16">st_arena_3dssg_scope_select</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_3dssg_scope>
+
 		<!-- Enter Arena / Main Action Button (Centered) -->
-		<tourn_start_btn x="228" y="420" width="224" height="60" check_mode="0">
+		<tourn_start_btn x="228" y="452" width="224" height="60" check_mode="0">
 			<text font="graffiti19">st_arena_btn_enter</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</tourn_start_btn>
@@ -810,7 +822,7 @@
 	<!-- ============================================== -->
 	<!-- ENDLESS DIFFICULTY SELECTION POPUP MENU        -->
 	<!-- ============================================== -->
-	<endless_diff_menu x="250" y="216" width="320" height="255" stretch="1">
+	<endless_diff_menu x="250" y="202" width="320" height="285" stretch="1">
 		<texture>ui_table_back</texture>
 		<title x="15" y="14" width="290" height="24">
 			<text r="255" g="220" b="140" font="graffiti22" align="c" vert_align="c">st_arena_endless_diff_title</text>
@@ -830,7 +842,11 @@
 			<text font="letterica18">st_arena_endless_diff_hard</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_hard>
-		<btn_diff_cancel x="60" y="202" width="200" height="32" check_mode="0">
+		<btn_diff_3dssg x="35" y="194" width="250" height="32" check_mode="0">
+			<text font="letterica16">3DSSG [OFF]</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_3dssg>
+		<btn_diff_cancel x="60" y="244" width="200" height="32" check_mode="0">
 			<text font="letterica16">st_arena_endless_diff_cancel</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_cancel>

@@ -102,7 +102,7 @@ end
 --------------------------------------------------------------------------------
 -- TOURNAMENT COMBAT MODE (Player in the Arena)
 --------------------------------------------------------------------------------
-function start_tournament_fight(category, round_id, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec)
+function start_tournament_fight(category, round_id, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec)
     tourn_ending = false
     endless_ending = false
     tournament_fight_closed = false
@@ -130,7 +130,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
         local tier = round_data.tier or math.ceil(round_id / 3)
         xcvb_arena_utils.store_actor_inventory()
         CreateTimeEvent("arena_spawn_loadout_e", "arena_spawn_loadout_a", 0.3, function()
-            xcvb_arena_utils.equip_tournament_random_loadout(tier, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec)
+            xcvb_arena_utils.equip_tournament_random_loadout(tier, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec)
             return true
         end)
     end
@@ -660,7 +660,7 @@ end
 --------------------------------------------------------------------------------
 -- MODO INFINITO (BETA TESTING - Endless Survival Mode)
 --------------------------------------------------------------------------------
-function start_endless_fight(enemy_type, start_wave, difficulty)
+function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     tourn_ending = false
     endless_ending = false
     tournament_fight_closed = false
@@ -673,6 +673,9 @@ function start_endless_fight(enemy_type, start_wave, difficulty)
         endless_enemy_type = "stalkers"
     end
     endless_difficulty = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
+    if xcvb_arena_main then
+        xcvb_arena_main.endless_3dssg = use_3dssg == true
+    end
     endless_transitioning = false
 
     if xcvb_arena_main then
@@ -705,7 +708,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty)
     xcvb_arena_utils.store_actor_inventory()
 
     CreateTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a", 0.3, function()
-        xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty)
+        xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, use_3dssg == true)
         return true
     end)
 
@@ -820,7 +823,7 @@ function advance_endless_wave()
     CreateTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a", 4.0, function()
         if endless_ending or endless_fight_closed then return true end
 
-        xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty)
+        xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, xcvb_arena_main.endless_3dssg == true)
         heal_actor_completely()
 
         local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
@@ -1140,7 +1143,16 @@ local function continuous_fire_on_update()
     -- Seamlessly continue firing when weapon becomes idle during aim transitions
     if lmb_held and (state == 0 or state == 11 or state == 12) then
         local ammo = wpn:get_ammo_in_magazine()
-        local is_jammed = (arti_jamming and arti_jamming.is_jammed and arti_jamming.is_jammed(wpn)) or false
+        
+        -- Verificación segura de encasquillamiento (Soporta Vanilla + Arti's Jamming)
+        local is_jammed = (wpn:get_state() == 7) -- 7 representa 'eMisfire' en Vanilla
+        if rawget(_G, "arti_jamming") and type(_G.arti_jamming.is_jammed) == "function" then
+            local ok, res = pcall(_G.arti_jamming.is_jammed, wpn)
+            if ok and res then
+                is_jammed = true
+            end
+        end
+        
         local is_lowered = (game.actor_weapon_lowered and game.actor_weapon_lowered()) or false
 
         if ammo > 0 and not is_jammed and not is_lowered then
