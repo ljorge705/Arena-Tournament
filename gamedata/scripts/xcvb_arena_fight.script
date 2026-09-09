@@ -1144,14 +1144,17 @@ local function continuous_fire_on_update()
     if lmb_held and (state == 0 or state == 11 or state == 12) then
         local ammo = wpn:get_ammo_in_magazine()
         
-        -- Verificación segura de encasquillamiento (Soporta Vanilla + Arti's Jamming)
-        local is_jammed = (wpn:get_state() == 7) -- 7 representa 'eMisfire' en Vanilla
-        if rawget(_G, "arti_jamming") and type(_G.arti_jamming.is_jammed) == "function" then
-            local ok, res = pcall(_G.arti_jamming.is_jammed, wpn)
-            if ok and res then
-                is_jammed = true
-            end
-        end
+-- Verificación segura de encasquillamiento (Soporta Vanilla + Arti's Jamming)
+		local is_jammed = (wpn:get_state() == 7) -- 7 representa 'eMisfire' en Vanilla
+		if rawget(_G, "arti_jamming") then
+			if type(_G.arti_jamming.get_jammed) == "function" then
+				local ok, res = pcall(_G.arti_jamming.get_jammed, wpn:id())
+				if ok and res then is_jammed = true end
+			elseif type(_G.arti_jamming.check_unjam) == "function" then
+				local ok, res = pcall(_G.arti_jamming.check_unjam, wpn)
+				if ok and res then is_jammed = true end
+			end
+		end
         
         local is_lowered = (game.actor_weapon_lowered and game.actor_weapon_lowered()) or false
 
