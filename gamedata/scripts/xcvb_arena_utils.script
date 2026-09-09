@@ -2768,77 +2768,79 @@ function setup_battle_royale_relations(squad_ids)
     if not squad_ids then return end
     local squads = {}
     local squad_lookup = {}
-    for idx, sq_id in ipairs(squad_ids) do
+    local alive_indices = {}
+    
+    -- Filtrar solo escuadrones vivos
+    for idx, sq_id in pairs(squad_ids) do
         local sq = sq_id and alife_object(sq_id)
-        if sq then
+        if sq and sq:npc_count() > 0 then
             squads[idx] = sq
             squad_lookup[sq.id] = true
+            table.insert(alive_indices, idx)
         end
     end
-
-    local total = #squad_ids
-    for idx, sq in pairs(squads) do
-        local next_idx = (idx % total) + 1
+    
+    local total_alive = #alive_indices
+    if total_alive == 0 then return end
+    
+    -- Reconectar el ciclo de agresión ignorando equipos muertos
+    for i, idx in ipairs(alive_indices) do
+        local sq = squads[idx]
+        local next_i = (i % total_alive) + 1
+        local next_idx = alive_indices[next_i]
         local next_target = squads[next_idx]
-        if next_target then
+        
+        if next_target and next_target.id ~= sq.id then
             sq.scripted_target = next_target.id
             sq.assigned_target_id = next_target.id
         end
         sq.rush_to_target = true
     end
 
-    for i = 1, total do
+    for _, i in ipairs(alive_indices) do
         local sq_i = squads[i]
-        if sq_i then
-            for j = 1, total do
-                if i ~= j then
-                    local sq_j = squads[j]
-                    if sq_j then
-                        pcall(function() sq_i:set_relation(sq_j, "enemy") end)
-                    end
-                end
+        for _, j in ipairs(alive_indices) do
+            if i ~= j then
+                local sq_j = squads[j]
+                pcall(function() sq_i:set_relation(sq_j, "enemy") end)
             end
-
-            update_battle_royale_targets(squad_lookup)
         end
     end
+    
+    -- Se optimiza sacando la actualización fuera del loop anidado
+    update_battle_royale_targets(squad_lookup)
 
-    for i = 1, total do
+    for _, i in ipairs(alive_indices) do
         local sq_i = squads[i]
-        if sq_i then
-            for m_i in sq_i:squad_members() do
-                local npc_i = level.object_by_id(m_i.id)
-                if npc_i and npc_i:alive() then
-                    pcall(function() npc_i:change_team(i, i, i) end)
-                    pcall(function() npc_i:add_restrictions("bar_arena_restrictor", "") end)
-                    if db.actor then
-                        pcall(function() npc_i:force_set_goodwill(5000, db.actor) end)
-                        pcall(function() npc_i:set_relation(game_object.neutral, db.actor) end)
+        for m_i in sq_i:squad_members() do
+            local npc_i = level.object_by_id(m_i.id)
+            if npc_i and npc_i:alive() then
+                pcall(function() npc_i:change_team(i, i, i) end)
+                pcall(function() npc_i:add_restrictions("bar_arena_restrictor", "") end)
+                if db.actor then
+                    pcall(function() npc_i:force_set_goodwill(5000, db.actor) end)
+                    pcall(function() npc_i:set_relation(game_object.neutral, db.actor) end)
+                end
+                if IsMonster and IsMonster(npc_i) then
+                    pcall(function() npc_i:berserk() end)
+                    pcall(function() npc_i:set_custom_panic_threshold(0) end)
+                elseif IsStalker and IsStalker(npc_i) then
+                    pcall(function() npc_i:set_mental_state(anim.danger) end)
+                    pcall(function() npc_i:set_custom_panic_threshold(0.05) end)
+                    if npc_i.register_in_combat then
+                        pcall(function() npc_i:register_in_combat() end)
                     end
-                    if IsMonster and IsMonster(npc_i) then
-                        pcall(function() npc_i:berserk() end)
-                        pcall(function() npc_i:set_custom_panic_threshold(0) end)
-                    elseif IsStalker and IsStalker(npc_i) then
-                        pcall(function() npc_i:set_mental_state(anim.danger) end)
-                        pcall(function() npc_i:set_custom_panic_threshold(0.05) end)
-                        if npc_i.register_in_combat then
-                            pcall(function() npc_i:register_in_combat() end)
-                        end
-                    end
-
-                    for j = 1, total do
-                        if i ~= j then
-                            local sq_j = squads[j]
-                            if sq_j then
-                                for m_j in sq_j:squad_members() do
-                                    local npc_j = level.object_by_id(m_j.id)
-                                    if npc_j and npc_j:alive() then
-                                        pcall(function() npc_i:force_set_goodwill(-9999, npc_j) end)
-                                        pcall(function() npc_i:set_relation(game_object.enemy, npc_j) end)
-                                        if npc_i.make_enemy_visible then
-                                            pcall(function() npc_i:make_enemy_visible(npc_j) end)
-                                        end
-                                    end
+                end
+                for _, j in ipairs(alive_indices) do
+                    if i ~= j then
+                        local sq_j = squads[j]
+                        for m_j in sq_j:squad_members() do
+                            local npc_j = level.object_by_id(m_j.id)
+                            if npc_j and npc_j:alive() then
+                                pcall(function() npc_i:force_set_goodwill(-9999, npc_j) end)
+                                pcall(function() npc_i:set_relation(game_object.enemy, npc_j) end)
+                                if npc_i.make_enemy_visible then
+                                    pcall(function() npc_i:make_enemy_visible(npc_j) end)
                                 end
                             end
                         end
