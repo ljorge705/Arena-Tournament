@@ -6,24 +6,28 @@
 	</bg>
 
 	<!-- Title & Header -->
-	<title_main x="70" y="48" width="380" height="26">
+	<title_main x="70" y="48" width="230" height="26">
 		<text r="240" g="210" b="120" font="graffiti22" align="l" vert_align="c">st_arena_title</text>
 	</title_main>
 
-	<player_rank x="70" y="74" width="380" height="20">
+	<player_rank x="70" y="74" width="230" height="20">
 		<text r="200" g="200" b="200" font="letterica18" align="l" vert_align="c"></text>
 	</player_rank>
 
-	<player_record x="70" y="94" width="380" height="20">
+	<player_record x="70" y="94" width="230" height="20">
 		<text r="140" g="220" b="140" font="letterica16" align="l" vert_align="c"></text>
 	</player_record>
 
 	<!-- Mode Switch Buttons -->
-	<mode_btn x="410" y="52" width="165" height="34" check_mode="0">
+	<practice_btn x="305" y="52" width="142" height="34" check_mode="0">
+		<text font="letterica16">st_arena_btn_practice</text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</practice_btn>
+	<mode_btn x="452" y="52" width="142" height="34" check_mode="0">
 		<text font="letterica16">st_arena_mode_spectator</text>
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 	</mode_btn>
-	<beta_btn x="585" y="52" width="165" height="34" check_mode="0">
+	<beta_btn x="599" y="52" width="151" height="34" check_mode="0">
 		<text font="letterica16">st_arena_btn_beta</text>
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 	</beta_btn>

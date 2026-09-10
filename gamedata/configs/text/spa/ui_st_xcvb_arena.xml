@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="windows-1251"?>
 
 <string_table>
-
-	<!-- Interaccion y Base -->
 	<string id="st_arena_use">
 		<text>Tablon del Torneo ($$ACTION_USE$$)</text>
 	</string>
@@ -18,16 +16,12 @@
 	<string id="st_arena_mode_spectator">
 		<text>Apuestas</text>
 	</string>
-
-	<!-- Categorias del Torneo -->
 	<string id="st_arena_cat_stalkers">
 		<text>STALKERS (HUMANOS)</text>
 	</string>
 	<string id="st_arena_cat_mutants">
 		<text>MUTANTES DE LA ZONA</text>
 	</string>
-
-	<!-- Estados de Rondas -->
 	<string id="st_arena_status_locked">
 		<text>[BLOQUEADO]</text>
 	</string>
@@ -49,8 +43,6 @@
 	<string id="st_arena_3dssg_scope_select">
 		<text>3DSSG: SELECCIONAR MIRA</text>
 	</string>
-
-	<!-- Rangos / Categorias -->
 	<string id="st_arena_tier_1_name">
 		<text>NIVEL 1: NOVATOS</text>
 	</string>
@@ -66,7 +58,6 @@
 	<string id="st_arena_tier_5_name">
 		<text>NIVEL 5: LEYENDAS</text>
 	</string>
-
 	<string id="st_arena_rank_label">
 		<text>Rango Actual:</text>
 	</string>
@@ -82,8 +73,6 @@
 	<string id="st_arena_difficulty_label">
 		<text>Dificultad:</text>
 	</string>
-
-	<!-- Dificultades -->
 	<string id="st_arena_diff_very_easy">
 		<text>Muy Facil (*)</text>
 	</string>
@@ -105,12 +94,6 @@
 	<string id="st_arena_diff_legendary">
 		<text>Legendaria (CHAMPION)</text>
 	</string>
-
-	<!-- ============================================== -->
-	<!-- TORNEO DE STALKERS (HUMANOS) - 15 RONDAS -->
-	<!-- ============================================== -->
-
-	<!-- Nivel 1: Novatos -->
 	<string id="st_arena_s_round_1_name">
 		<text>Ronda 1: Novato Solitario</text>
 	</string>
@@ -123,7 +106,6 @@
 	<string id="st_arena_s_round_1_reward">
 		<text>3,000 RU + Vendas y Botiquin basico</text>
 	</string>
-
 	<string id="st_arena_s_round_2_name">
 		<text>Ronda 2: Duo de Renegados</text>
 	</string>
@@ -136,7 +118,6 @@
 	<string id="st_arena_s_round_2_reward">
 		<text>4,500 RU + Cartuchos de perdigon</text>
 	</string>
-
 	<string id="st_arena_s_round_3_name">
 		<text>Ronda 3: Trio Callejero</text>
 	</string>
@@ -149,8 +130,6 @@
 	<string id="st_arena_s_round_3_reward">
 		<text>6,000 RU + Kit basico de limpieza de armas</text>
 	</string>
-
-	<!-- Nivel 2: Cazadores -->
 	<string id="st_arena_s_round_4_name">
 		<text>Ronda 4: Emboscada en el Vertedero</text>
 	</string>
@@ -163,7 +142,6 @@
 	<string id="st_arena_s_round_4_reward">
 		<text>8,500 RU + Municion 9x19 + Estimulante</text>
 	</string>
-
 	<string id="st_arena_s_round_5_name">
 		<text>Ronda 5: Patrulla de Caza</text>
 	</string>
@@ -182,7 +160,6 @@
 	<string id="st_arena_s_round_5_reward">
 		<text>11,000 RU + Botiquin militar + Municion</text>
 	</string>
-
 	<string id="st_arena_s_round_6_name">
 		<text>Ronda 6: Escuadron Mercenario Ligero</text>
 	</string>
@@ -195,8 +172,6 @@
 	<string id="st_arena_s_round_6_reward">
 		<text>14,000 RU + Materiales de reparacion intermedios</text>
 	</string>
-
-	<!-- Nivel 3: Veteranos -->
 	<string id="st_arena_s_round_7_name">
 		<text>Ronda 7: Choque con Deber</text>
 	</string>
@@ -209,7 +184,6 @@
 	<string id="st_arena_s_round_7_reward">
 		<text>18,000 RU + Municion perforante + Botiquines</text>
 	</string>
-
 	<string id="st_arena_s_round_8_name">
 		<text>Ronda 8: Tiradores de Libertad</text>
 	</string>
@@ -222,7 +196,6 @@
 	<string id="st_arena_s_round_8_reward">
 		<text>23,000 RU + Kit de reparacion de trajes + Municion</text>
 	</string>
-
 	<string id="st_arena_s_round_9_name">
 		<text>Ronda 9: Comando Mercenario de Elite</text>
 	</string>
@@ -235,8 +208,6 @@
 	<string id="st_arena_s_round_9_reward">
 		<text>28,000 RU + Kit de mantenimiento avanzado</text>
 	</string>
-
-	<!-- Nivel 4: Maestros -->
 	<string id="st_arena_s_round_10_name">
 		<text>Ronda 10: Infanteria Pesada Militar</text>
 	</string>
@@ -249,7 +220,6 @@
 	<string id="st_arena_s_round_10_reward">
 		<text>36,000 RU + Cajas de municion pesada + Estimulantes</text>
 	</string>
-
 	<string id="st_arena_s_round_11_name">
 		<text>Ronda 11: Escuadron de Choque Mercenario</text>
 	</string>
@@ -262,7 +232,6 @@
 	<string id="st_arena_s_round_11_reward">
 		<text>45,000 RU + Municion de francotirador + Suministros</text>
 	</string>
-
 	<string id="st_arena_s_round_12_name">
 		<text>Ronda 12: La Muralla de Exoesqueleto</text>
 	</string>
@@ -275,8 +244,6 @@
 	<string id="st_arena_s_round_12_reward">
 		<text>55,000 RU + Set de herramientas expertas</text>
 	</string>
-
-	<!-- Nivel 5: Leyendas -->
 	<string id="st_arena_s_round_13_name">
 		<text>Ronda 13: Vanguardia Mercenaria de Elite</text>
 	</string>
@@ -289,7 +256,6 @@
 	<string id="st_arena_s_round_13_reward">
 		<text>70,000 RU + Suministros militares de elite</text>
 	</string>
-
 	<string id="st_arena_s_round_14_name">
 		<text>Ronda 14: Guardia Mercenaria con Gauss</text>
 	</string>
@@ -302,7 +268,6 @@
 	<string id="st_arena_s_round_14_reward">
 		<text>90,000 RU + Baterias Gauss + Artefacto de alta categoria</text>
 	</string>
-
 	<string id="st_arena_s_round_15_name">
 		<text>Ronda 15: El Gran Campeon: El Verdugo</text>
 	</string>
@@ -315,13 +280,6 @@
 	<string id="st_arena_s_round_15_reward">
 		<text>130,000 RU + Titulo 'Gran Campeon' + Trofeo de la Arena</text>
 	</string>
-
-
-	<!-- ============================================== -->
-	<!-- CAZA DE MUTANTES - 15 RONDAS -->
-	<!-- ============================================== -->
-
-	<!-- Nivel 1: Alimanas -->
 	<string id="st_arena_m_round_1_name">
 		<text>Ronda 1: Plaga de Roedores</text>
 	</string>
@@ -334,7 +292,6 @@
 	<string id="st_arena_m_round_1_reward">
 		<text>3,000 RU + Cartuchos de perdigon y vendas</text>
 	</string>
-
 	<string id="st_arena_m_round_2_name">
 		<text>Ronda 2: Jauria Callejera</text>
 	</string>
@@ -347,7 +304,6 @@
 	<string id="st_arena_m_round_2_reward">
 		<text>4,500 RU + Municion de escopeta + Botiquin</text>
 	</string>
-
 	<string id="st_arena_m_round_3_name">
 		<text>Ronda 3: Ataque Furioso</text>
 	</string>
@@ -360,8 +316,6 @@
 	<string id="st_arena_m_round_3_reward">
 		<text>6,000 RU + Kit basico de mantenimiento</text>
 	</string>
-
-	<!-- Nivel 2: Bestias Salvajes -->
 	<string id="st_arena_m_round_4_name">
 		<text>Ronda 4: Estampida Porcina</text>
 	</string>
@@ -374,7 +328,6 @@
 	<string id="st_arena_m_round_4_reward">
 		<text>8,500 RU + Cartuchos pesados de escopeta + Estimulante</text>
 	</string>
-
 	<string id="st_arena_m_round_5_name">
 		<text>Ronda 5: Gatos de la Niebla</text>
 	</string>
@@ -387,7 +340,6 @@
 	<string id="st_arena_m_round_5_reward">
 		<text>11,000 RU + Botiquin militar + Estimulantes</text>
 	</string>
-
 	<string id="st_arena_m_round_6_name">
 		<text>Ronda 6: Peste de Snorks</text>
 	</string>
@@ -400,8 +352,6 @@
 	<string id="st_arena_m_round_6_reward">
 		<text>14,000 RU + Materiales de reparacion de nivel medio</text>
 	</string>
-
-	<!-- Nivel 3: Depredadores -->
 	<string id="st_arena_m_round_7_name">
 		<text>Ronda 7: Acechadores Nocturnos</text>
 	</string>
@@ -414,7 +364,6 @@
 	<string id="st_arena_m_round_7_reward">
 		<text>18,000 RU + Inyectores coagulantes + Municion</text>
 	</string>
-
 	<string id="st_arena_m_round_8_name">
 		<text>Ronda 8: Depredadores Mentales</text>
 	</string>
@@ -427,7 +376,6 @@
 	<string id="st_arena_m_round_8_reward">
 		<text>23,000 RU + Kit de reparacion + Estimulantes</text>
 	</string>
-
 	<string id="st_arena_m_round_9_name">
 		<text>Ronda 9: Grito Psiquico</text>
 	</string>
@@ -440,8 +388,6 @@
 	<string id="st_arena_m_round_9_reward">
 		<text>28,000 RU + Bloqueadores psiquicos + Kit de mantenimiento</text>
 	</string>
-
-	<!-- Nivel 4: Horrores Psiquicos y Titanes -->
 	<string id="st_arena_m_round_10_name">
 		<text>Ronda 10: Danza Fantasma</text>
 	</string>
@@ -454,7 +400,6 @@
 	<string id="st_arena_m_round_10_reward">
 		<text>36,000 RU + Drogas psiquicas + Estimulantes de elite</text>
 	</string>
-
 	<string id="st_arena_m_round_11_name">
 		<text>Ronda 11: Escudo Telequinetico</text>
 	</string>
@@ -467,7 +412,6 @@
 	<string id="st_arena_m_round_11_reward">
 		<text>45,000 RU + Kit de herramientas pesadas</text>
 	</string>
-
 	<string id="st_arena_m_round_12_name">
 		<text>Ronda 12: El Coloso de la Fosa</text>
 	</string>
@@ -480,8 +424,6 @@
 	<string id="st_arena_m_round_12_reward">
 		<text>55,000 RU + Set de herramientas expertas</text>
 	</string>
-
-	<!-- Nivel 5: Leyendas de la Zona -->
 	<string id="st_arena_m_round_13_name">
 		<text>Ronda 13: Pesadilla de Dos Cabezas</text>
 	</string>
@@ -494,7 +436,6 @@
 	<string id="st_arena_m_round_13_reward">
 		<text>70,000 RU + Partes raras de mutante + Estimulantes</text>
 	</string>
-
 	<string id="st_arena_m_round_14_name">
 		<text>Ronda 14: El Tirano Psiquico</text>
 	</string>
@@ -507,12 +448,11 @@
 	<string id="st_arena_m_round_14_reward">
 		<text>90,000 RU + Artefacto de alta categoria + Botiquines cientificos</text>
 	</string>
-
 	<string id="st_arena_m_round_15_name">
 		<text>Ronda 15: El Duo del Apocalipsis</text>
 	</string>
 	<string id="st_arena_m_round_15_enemies">
-		<text>2x Quimeras Negras + 1x Pseudogigante Titano</text>
+		<text>2x Quimeras Negras + 1x Pseudogigante Titanico</text>
 	</string>
 	<string id="st_arena_m_round_15_desc">
 		<text>La prueba final de supervivencia: las bestias mas poderosas y temidas de la Zona soltadas juntas en la arena.</text>
@@ -520,8 +460,6 @@
 	<string id="st_arena_m_round_15_reward">
 		<text>130,000 RU + Titulo 'Maestro Cazador' + Trofeo Supremo</text>
 	</string>
-
-	<!-- Avisos en combate (Megafonia de Arnie) -->
 	<string id="st_arena_fight_started">
 		<text>Comienza el combate! Mata o muere!</text>
 	</string>
@@ -552,8 +490,6 @@
 	<string id="st_arena_gear_restored">
 		<text>Tu equipamiento original ha sido devuelto a tu inventario.</text>
 	</string>
-
-	<!-- Original Spectator Mode Strings -->
 	<string id="st_arena_team1">
 		<text>Equipo 1</text>
 	</string>
@@ -581,8 +517,6 @@
 	<string id="st_arena_your_reward">
 		<text>Has ganado %s RU en tu apuesta.</text>
 	</string>
-
-	<!-- MCM Config Strings -->
 	<string id="ui_mcm_xcvb_arena_title">
 		<text>Torneo de la Arena (GAMMA)</text>
 	</string>
@@ -619,8 +553,6 @@
 	<string id="ui_mcm_xcvb_arena_allow_replay_desc">
 		<text>Permite entrar de nuevo a cualquier ronda que ya hayas completado para entrenar o ganar dinero adicional.</text>
 	</string>
-
-	<!-- MCM Spectator Mode settings -->
 	<string id="ui_mcm_xcvb_arena_fight_chance">
 		<text>Probabilidad de combate de apuestas (por periodo)</text>
 	</string>
@@ -633,7 +565,6 @@
 	<string id="ui_mcm_xcvb_arena_stalker_team2_chance">
 		<text>Probabilidad de stalkers en Equipo 2</text>
 	</string>
-	<!-- Selectores de equipamiento de la arena -->
 	<string id="st_arena_loadout_class_title">
 		<text>CLASE DE ARMA PRINCIPAL:</text>
 	</string>
@@ -679,7 +610,6 @@
 	<string id="st_arena_tier_5_btn">
 		<text>Tier 5</text>
 	</string>
-	<!-- Filtros y apuestas del modo espectador -->
 	<string id="st_arena_filter_all">
 		<text>Todos los Combates</text>
 	</string>
@@ -753,7 +683,7 @@
 		<text>Grupo fuerte</text>
 	</string>
 	<string id="st_arena_btn_beta">
-		<text>Beta Modes</text>
+		<text>Modos Beta</text>
 	</string>
 	<string id="st_arena_bc_title">
 		<text>Batalla Campal</text>
@@ -993,7 +923,7 @@
 		<text>Cancelar</text>
 	</string>
 	<string id="st_arena_endless_cont_btn">
-		<text>Continuar Endless Mode</text>
+		<text>Continuar Modo Infinito</text>
 	</string>
 	<string id="st_arena_endless_artigrok_ammo">
 		<text>ARTIGROK AMMO</text>
@@ -1008,7 +938,7 @@
 		<text>Mejor Record: Oleada %s</text>
 	</string>
 	<string id="st_arena_endless_stats_reward">
-		<text>Recompensa base: 2,000 RU (+1,000 RU por oleada superada)</text>
+		<text>Recompensa base segun dificultad: Facil (800 RU), Media (1,400 RU), Dificil (2,000 RU) + bono por oleada</text>
 	</string>
 	<string id="st_arena_endless_type_title">
 		<text>TIPO DE ENEMIGOS:</text>
@@ -1026,7 +956,7 @@
 		<text>Comenzar Modo Infinito</text>
 	</string>
 	<string id="st_arena_endless_enemies_spawning_3s">
-		<text>Los enemigos spawnearan en 3 seg</text>
+		<text>Los enemigos apareceran en 3 seg</text>
 	</string>
 	<string id="st_arena_endless_wave_started">
 		<text>OLEADA %s: 1v%s - Sobrevive! (Presiona F para salir con tu botin)</text>
@@ -1071,7 +1001,7 @@
 		<text>Enemigos humanos armados (Bandidos, Mercenarios, Militares, etc.). Usan armas de fuego, tacticas de flanqueo y cobertura. Al vencerlos, tu armamento cambiara al azar.</text>
 	</string>
 	<string id="st_arena_endless_desc_mutants">
-		<text>Fauna mutante hostil de la Zona (ciegos, snorks, chupasangres, burers, quimeras, gigantes). Ataques cuerpo a cuerpo feroces y habilidades anomalas.</text>
+		<text>Fauna mutante hostil de la Zona (perros ciegos, snorks, chupasangres, burers, quimeras, gigantes). Ataques cuerpo a cuerpo feroces y habilidades anomalas.</text>
 	</string>
 	<string id="st_arena_endless_desc_chaos">
 		<text>Enfrentamiento caotico e impredecible. Cada oleada puede lanzar tanto escuadrones de stalkers armados como peligrosas manadas de mutantes.</text>
@@ -1106,5 +1036,112 @@
 	<string id="st_arena_spec_ammo_none">
 		<text>Sin municion especial</text>
 	</string>
-
+	<string id="st_arena_fight_won_looting">
+		<text>VICTORY! You have 12s to loot the fallen. Press [F] to exit immediately.</text>
+	</string>
+	<string id="st_arena_status_locked_rank">
+		<text>[BLOQUEADO: RANGO]</text>
+	</string>
+	<string id="st_arena_btn_locked_rank">
+		<text>RANGO INSUFICIENTE</text>
+	</string>
+	<string id="st_arena_rank_required_tip">
+		<text>Requisito de rango: %s o superior.</text>
+	</string>
+	<string id="st_arena_status_cooldown">
+		<text>EN ESPERA: %s</text>
+	</string>
+	<string id="st_arena_cooldown_tip">
+		<text>Premio en tiempo de espera (%s restantes). Puedes repetir el combate para practicar sin premio.</text>
+	</string>
+	<string id="st_arena_btn_replay_no_reward">
+		<text>REPETIR (SIN PREMIO)</text>
+	</string>
+	<string id="st_arena_fight_won_practice">
+		<text>VICTORIA! Combate de practica completado (sin premio). Premio completo disponible en %s.</text>
+	</string>
+	<string id="st_arena_btn_practice">
+		<text>Modo Practica</text>
+	</string>
+	<string id="st_arena_btn_practice_on">
+		<text>[PRACTICA: ON]</text>
+	</string>
+	<string id="st_arena_btn_practice_action">
+		<text>[PRACTICA]</text>
+	</string>
+	<string id="st_arena_practice_mode_active_desc">
+		<text>MODO PRACTICA ACTIVO: Requisitos de rango desactivados. No se otorgaran recompensas de dinero ni objetos en este modo.</text>
+	</string>
+	<string id="st_arena_fight_won_practice_simple">
+		<text>VICTORIA! Combate de practica completado (sin premio).</text>
+	</string>
+	<string id="st_arena_endless_wave_cleared_practice">
+		<text>Oleada %d superada! [Modo Practica]</text>
+	</string>
+	<string id="st_arena_endless_exit_tip_practice">
+		<text>[MODO PRACTICA] Modo Infinito finalizado! Oleadas superadas: %d. No se otorga recompensa monetaria.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_replay_7d">
+		<text>7 Dias (Predeterminado)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_replay_3d">
+		<text>3 Dias</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_replay_1d">
+		<text>1 Dia</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_replay_instant">
+		<text>Instantaneo (Siempre permitido)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_replay_disabled">
+		<text>Desactivado (Solo una vez)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_7d">
+		<text>7 Dias (Predeterminado)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_3d">
+		<text>3 Dias</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_1d">
+		<text>1 Dia</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_instant">
+		<text>Instantaneo (Siempre permitido)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_disabled">
+		<text>Desactivado (Solo una vez)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_7d">
+		<text>7 Dias (Predeterminado)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_3d">
+		<text>3 Dias</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_1d">
+		<text>1 Dia</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_instant">
+		<text>Instantaneo (Siempre permitido)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_disabled">
+		<text>Desactivado (Solo una vez)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_panic_key">
+		<text>Tecla de Panico (Modo Infinito)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_panic_key_desc">
+		<text>Presiona esta tecla durante el Modo Infinito o Modo Espectador para salir de inmediato.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_medic_rescue_fee">
+		<text>Costo de Rescate Medico (RU)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_medic_rescue_fee_desc">
+		<text>Cantidad de rublos cobrados cuando el medico de la arena te rescata de un dano fatal.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_reward_mult">
+		<text>Multiplicador de Recompensas (Modo Infinito)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_reward_mult_desc">
+		<text>Ajusta el multiplicador de recompensas de dinero por oleada en Modo Infinito.</text>
+	</string>
 </string_table>

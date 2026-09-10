@@ -1894,7 +1894,7 @@ function restore_actor_inventory()
         end
     end
     temporary_arena_item_ids = {}
-    
+
     local contraband_to_delete = {}
     db.actor:iterate_inventory(function(owner, item)
         if not item then return end
@@ -1909,6 +1909,10 @@ function restore_actor_inventory()
     end, db.actor)
 
     for _, id in ipairs(contraband_to_delete) do
+        local obj = level.object_by_id(id)
+        if obj and db.actor and db.actor.move_to_ruck then
+            pcall(function() db.actor:move_to_ruck(obj) end)
+        end
         local se_item = alife_object(id)
         if se_item then
             if safe_release_manager and safe_release_manager.release then

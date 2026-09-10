@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="windows-1251"?>
 
 <string_table>
-
-	<!-- Interaction and Base -->
 	<string id="st_arena_use">
 		<text>Tournament Board ($$ACTION_USE$$)</text>
 	</string>
@@ -18,16 +16,12 @@
 	<string id="st_arena_mode_spectator">
 		<text>Betting</text>
 	</string>
-
-	<!-- Tournament Categories -->
 	<string id="st_arena_cat_stalkers">
 		<text>STALKERS (HUMANS)</text>
 	</string>
 	<string id="st_arena_cat_mutants">
 		<text>MUTANTS OF THE ZONE</text>
 	</string>
-
-	<!-- Round States -->
 	<string id="st_arena_status_locked">
 		<text>[LOCKED]</text>
 	</string>
@@ -49,8 +43,6 @@
 	<string id="st_arena_3dssg_scope_select">
 		<text>3DSSG: SELECT SCOPE</text>
 	</string>
-
-	<!-- Ranks / Tiers -->
 	<string id="st_arena_tier_1_name">
 		<text>TIER 1: ROOKIES</text>
 	</string>
@@ -66,7 +58,6 @@
 	<string id="st_arena_tier_5_name">
 		<text>TIER 5: LEGENDS</text>
 	</string>
-
 	<string id="st_arena_rank_label">
 		<text>Current Rank:</text>
 	</string>
@@ -82,8 +73,6 @@
 	<string id="st_arena_difficulty_label">
 		<text>Difficulty:</text>
 	</string>
-
-	<!-- Difficulties -->
 	<string id="st_arena_diff_very_easy">
 		<text>Very Easy (*)</text>
 	</string>
@@ -105,12 +94,6 @@
 	<string id="st_arena_diff_legendary">
 		<text>Legendary (CHAMPION)</text>
 	</string>
-
-	<!-- ============================================== -->
-	<!-- STALKER TOURNAMENT (HUMANS) - 15 ROUNDS -->
-	<!-- ============================================== -->
-
-	<!-- Tier 1: Rookies -->
 	<string id="st_arena_s_round_1_name">
 		<text>Round 1: Lone Rookie</text>
 	</string>
@@ -123,7 +106,6 @@
 	<string id="st_arena_s_round_1_reward">
 		<text>3,000 RU + Bandages &amp; Basic Medkit</text>
 	</string>
-
 	<string id="st_arena_s_round_2_name">
 		<text>Round 2: Renegade Duo</text>
 	</string>
@@ -136,7 +118,6 @@
 	<string id="st_arena_s_round_2_reward">
 		<text>4,500 RU + Buckshot Ammo</text>
 	</string>
-
 	<string id="st_arena_s_round_3_name">
 		<text>Round 3: Street Trio</text>
 	</string>
@@ -149,8 +130,6 @@
 	<string id="st_arena_s_round_3_reward">
 		<text>6,000 RU + Basic Maintenance Kit</text>
 	</string>
-
-	<!-- Tier 2: Hunters -->
 	<string id="st_arena_s_round_4_name">
 		<text>Round 4: Garbage Ambush</text>
 	</string>
@@ -163,7 +142,6 @@
 	<string id="st_arena_s_round_4_reward">
 		<text>8,500 RU + 9x19 Ammo + Stimpack</text>
 	</string>
-
 	<string id="st_arena_s_round_5_name">
 		<text>Round 5: Hunting Patrol</text>
 	</string>
@@ -182,7 +160,6 @@
 	<string id="st_arena_s_round_5_reward">
 		<text>11,000 RU + Army Medkit + Ammo</text>
 	</string>
-
 	<string id="st_arena_s_round_6_name">
 		<text>Round 6: Light Mercenary Recon</text>
 	</string>
@@ -195,8 +172,6 @@
 	<string id="st_arena_s_round_6_reward">
 		<text>14,000 RU + Medium Repair Materials</text>
 	</string>
-
-	<!-- Tier 3: Veterans -->
 	<string id="st_arena_s_round_7_name">
 		<text>Round 7: Duty Clash</text>
 	</string>
@@ -209,7 +184,6 @@
 	<string id="st_arena_s_round_7_reward">
 		<text>18,000 RU + AP Ammo + Medkits</text>
 	</string>
-
 	<string id="st_arena_s_round_8_name">
 		<text>Round 8: Freedom Marksmen</text>
 	</string>
@@ -222,7 +196,6 @@
 	<string id="st_arena_s_round_8_reward">
 		<text>23,000 RU + Armor Repair Kit + Match Ammo</text>
 	</string>
-
 	<string id="st_arena_s_round_9_name">
 		<text>Round 9: Elite Mercenary Commando</text>
 	</string>
@@ -235,8 +208,6 @@
 	<string id="st_arena_s_round_9_reward">
 		<text>28,000 RU + Advanced Maintenance Kit</text>
 	</string>
-
-	<!-- Tier 4: Masters -->
 	<string id="st_arena_s_round_10_name">
 		<text>Round 10: Heavy Military Infantry</text>
 	</string>
@@ -249,7 +220,6 @@
 	<string id="st_arena_s_round_10_reward">
 		<text>36,000 RU + Heavy Ammo Boxes + Stimpacks</text>
 	</string>
-
 	<string id="st_arena_s_round_11_name">
 		<text>Round 11: Mercenary Hit Squad</text>
 	</string>
@@ -262,7 +232,6 @@
 	<string id="st_arena_s_round_11_reward">
 		<text>45,000 RU + Sniper Ammo + Military Supplies</text>
 	</string>
-
 	<string id="st_arena_s_round_12_name">
 		<text>Round 12: Exoskeleton Wall</text>
 	</string>
@@ -275,8 +244,6 @@
 	<string id="st_arena_s_round_12_reward">
 		<text>55,000 RU + Expert Toolset</text>
 	</string>
-
-	<!-- Tier 5: Legends -->
 	<string id="st_arena_s_round_13_name">
 		<text>Round 13: Elite Mercenary Vanguard</text>
 	</string>
@@ -289,7 +256,6 @@
 	<string id="st_arena_s_round_13_reward">
 		<text>70,000 RU + Elite Military Supplies</text>
 	</string>
-
 	<string id="st_arena_s_round_14_name">
 		<text>Round 14: Mercenary Gauss Guard</text>
 	</string>
@@ -302,7 +268,6 @@
 	<string id="st_arena_s_round_14_reward">
 		<text>90,000 RU + Gauss Batteries + High-Tier Artefact</text>
 	</string>
-
 	<string id="st_arena_s_round_15_name">
 		<text>Round 15: Grand Champion: The Executioner</text>
 	</string>
@@ -315,13 +280,6 @@
 	<string id="st_arena_s_round_15_reward">
 		<text>130,000 RU + 'Grand Champion' Title + Arena Trophy</text>
 	</string>
-
-
-	<!-- ============================================== -->
-	<!-- MUTANT HUNTING - 15 ROUNDS -->
-	<!-- ============================================== -->
-
-	<!-- Tier 1: Vermin -->
 	<string id="st_arena_m_round_1_name">
 		<text>Round 1: Rodent Infestation</text>
 	</string>
@@ -334,7 +292,6 @@
 	<string id="st_arena_m_round_1_reward">
 		<text>3,000 RU + Buckshot Shells and Bandages</text>
 	</string>
-
 	<string id="st_arena_m_round_2_name">
 		<text>Round 2: Street Pack</text>
 	</string>
@@ -347,7 +304,6 @@
 	<string id="st_arena_m_round_2_reward">
 		<text>4,500 RU + Shotgun Ammo + Medkit</text>
 	</string>
-
 	<string id="st_arena_m_round_3_name">
 		<text>Round 3: Furious Assault</text>
 	</string>
@@ -360,8 +316,6 @@
 	<string id="st_arena_m_round_3_reward">
 		<text>6,000 RU + Basic Maintenance Kit</text>
 	</string>
-
-	<!-- Tier 2: Wild Beasts -->
 	<string id="st_arena_m_round_4_name">
 		<text>Round 4: Boar Stampede</text>
 	</string>
@@ -374,7 +328,6 @@
 	<string id="st_arena_m_round_4_reward">
 		<text>8,500 RU + Heavy Buckshot Shells + Stimpack</text>
 	</string>
-
 	<string id="st_arena_m_round_5_name">
 		<text>Round 5: Fog Felines</text>
 	</string>
@@ -387,7 +340,6 @@
 	<string id="st_arena_m_round_5_reward">
 		<text>11,000 RU + Army Medkit + Stims</text>
 	</string>
-
 	<string id="st_arena_m_round_6_name">
 		<text>Round 6: Snork Plague</text>
 	</string>
@@ -400,8 +352,6 @@
 	<string id="st_arena_m_round_6_reward">
 		<text>14,000 RU + Medium Repair Materials</text>
 	</string>
-
-	<!-- Tier 3: Predators -->
 	<string id="st_arena_m_round_7_name">
 		<text>Round 7: Night Lurkers</text>
 	</string>
@@ -414,7 +364,6 @@
 	<string id="st_arena_m_round_7_reward">
 		<text>18,000 RU + Coagulant Injectors + Ammo</text>
 	</string>
-
 	<string id="st_arena_m_round_8_name">
 		<text>Round 8: Mind Flayers</text>
 	</string>
@@ -427,7 +376,6 @@
 	<string id="st_arena_m_round_8_reward">
 		<text>23,000 RU + Repair Kit + Stimpacks</text>
 	</string>
-
 	<string id="st_arena_m_round_9_name">
 		<text>Round 9: Psychic Shriek</text>
 	</string>
@@ -440,8 +388,6 @@
 	<string id="st_arena_m_round_9_reward">
 		<text>28,000 RU + Psy-Blockers + Maintenance Kit</text>
 	</string>
-
-	<!-- Tier 4: Psy Horrors and Titans -->
 	<string id="st_arena_m_round_10_name">
 		<text>Round 10: Phantom Dance</text>
 	</string>
@@ -454,7 +400,6 @@
 	<string id="st_arena_m_round_10_reward">
 		<text>36,000 RU + Psy-Drugs + Elite Stims</text>
 	</string>
-
 	<string id="st_arena_m_round_11_name">
 		<text>Round 11: Telekinetic Shield</text>
 	</string>
@@ -467,7 +412,6 @@
 	<string id="st_arena_m_round_11_reward">
 		<text>45,000 RU + Heavy Toolset</text>
 	</string>
-
 	<string id="st_arena_m_round_12_name">
 		<text>Round 12: Titan of the Pit</text>
 	</string>
@@ -480,8 +424,6 @@
 	<string id="st_arena_m_round_12_reward">
 		<text>55,000 RU + Expert Toolset</text>
 	</string>
-
-	<!-- Tier 5: Zone Legends -->
 	<string id="st_arena_m_round_13_name">
 		<text>Round 13: Twin-Headed Nightmare</text>
 	</string>
@@ -494,7 +436,6 @@
 	<string id="st_arena_m_round_13_reward">
 		<text>70,000 RU + Rare Mutant Trophies + Stims</text>
 	</string>
-
 	<string id="st_arena_m_round_14_name">
 		<text>Round 14: The Psychic Tyrant</text>
 	</string>
@@ -507,7 +448,6 @@
 	<string id="st_arena_m_round_14_reward">
 		<text>90,000 RU + High-Tier Artefact + Scientific Medkits</text>
 	</string>
-
 	<string id="st_arena_m_round_15_name">
 		<text>Round 15: Duo of the Apocalypse</text>
 	</string>
@@ -520,8 +460,6 @@
 	<string id="st_arena_m_round_15_reward">
 		<text>130,000 RU + 'Master Hunter' Title + Supreme Trophy</text>
 	</string>
-
-	<!-- Combat Announcements (Arnie's Megaphone) -->
 	<string id="st_arena_fight_started">
 		<text>Combat has begun! Kill or be killed!</text>
 	</string>
@@ -552,8 +490,6 @@
 	<string id="st_arena_gear_restored">
 		<text>Your original equipment has been restored to your inventory.</text>
 	</string>
-
-	<!-- Original Spectator Mode Strings -->
 	<string id="st_arena_team1">
 		<text>Team 1</text>
 	</string>
@@ -581,8 +517,6 @@
 	<string id="st_arena_your_reward">
 		<text>You won %s RU.</text>
 	</string>
-
-	<!-- MCM Config Strings -->
 	<string id="ui_mcm_xcvb_arena_title">
 		<text>Arena Tournament (GAMMA)</text>
 	</string>
@@ -619,8 +553,6 @@
 	<string id="ui_mcm_xcvb_arena_allow_replay_desc">
 		<text>Allows entering already-cleared rounds for practice or extra rewards.</text>
 	</string>
-
-	<!-- MCM Spectator Mode settings -->
 	<string id="ui_mcm_xcvb_arena_fight_chance">
 		<text>Spectator fight chance (for each time period)</text>
 	</string>
@@ -633,7 +565,6 @@
 	<string id="ui_mcm_xcvb_arena_stalker_team2_chance">
 		<text>Spectator Team 2 stalkers chance</text>
 	</string>
-	<!-- Selectores de equipamiento de la arena -->
 	<string id="st_arena_loadout_class_title">
 		<text>PRIMARY WEAPON CLASS:</text>
 	</string>
@@ -679,7 +610,6 @@
 	<string id="st_arena_tier_5_btn">
 		<text>Tier 5</text>
 	</string>
-	<!-- Filtros y apuestas del modo espectador -->
 	<string id="st_arena_filter_all">
 		<text>All Matches</text>
 	</string>
@@ -1008,7 +938,7 @@
 		<text>Best Record: Wave %s</text>
 	</string>
 	<string id="st_arena_endless_stats_reward">
-		<text>Base reward: 2,000 RU (+1,000 RU per cleared wave)</text>
+		<text>Base reward scales with difficulty: Easy (800 RU), Medium (1,400 RU), Hard (2,000 RU) + wave bonus</text>
 	</string>
 	<string id="st_arena_endless_type_title">
 		<text>ENEMY TYPE:</text>
@@ -1106,5 +1036,112 @@
 	<string id="st_arena_spec_ammo_none">
 		<text>No special ammo</text>
 	</string>
-
+	<string id="st_arena_fight_won_looting">
+		<text>VICTORY! You have 12s to loot the fallen. Press [F] to exit immediately.</text>
+	</string>
+	<string id="st_arena_status_locked_rank">
+		<text>[LOCKED: RANK]</text>
+	</string>
+	<string id="st_arena_btn_locked_rank">
+		<text>RANK TOO LOW</text>
+	</string>
+	<string id="st_arena_rank_required_tip">
+		<text>Rank requirement: %s or higher.</text>
+	</string>
+	<string id="st_arena_status_cooldown">
+		<text>COOLDOWN: %s</text>
+	</string>
+	<string id="st_arena_cooldown_tip">
+		<text>Reward on cooldown (%s remaining). You can still replay for practice without rewards.</text>
+	</string>
+	<string id="st_arena_btn_replay_no_reward">
+		<text>REPLAY (NO REWARD)</text>
+	</string>
+	<string id="st_arena_fight_won_practice">
+		<text>VICTORY! Practice bout completed (no reward). Full reward available in %s.</text>
+	</string>
+	<string id="st_arena_btn_practice">
+		<text>Practice Mode</text>
+	</string>
+	<string id="st_arena_btn_practice_on">
+		<text>[PRACTICE: ON]</text>
+	</string>
+	<string id="st_arena_btn_practice_action">
+		<text>[PRACTICE]</text>
+	</string>
+	<string id="st_arena_practice_mode_active_desc">
+		<text>PRACTICE MODE ACTIVE: Rank requirements disabled. No cash or item rewards will be awarded in this mode.</text>
+	</string>
+	<string id="st_arena_fight_won_practice_simple">
+		<text>VICTORY! Practice bout completed (no reward).</text>
+	</string>
+	<string id="st_arena_endless_wave_cleared_practice">
+		<text>Wave %d cleared! [Practice Mode]</text>
+	</string>
+	<string id="st_arena_endless_exit_tip_practice">
+		<text>[PRACTICE MODE] Endless run finished! Waves cleared: %d. No cash reward in Practice Mode.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_replay_7d">
+		<text>7 Days (Default)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_replay_3d">
+		<text>3 Days</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_replay_1d">
+		<text>1 Day</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_replay_instant">
+		<text>Instant (Always allowed)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_replay_disabled">
+		<text>Disabled (One-time only)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_7d">
+		<text>7 Days (Default)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_3d">
+		<text>3 Days</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_1d">
+		<text>1 Day</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_instant">
+		<text>Instant (Always allowed)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_disabled">
+		<text>Disabled (One-time only)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_7d">
+		<text>7 Days (Default)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_3d">
+		<text>3 Days</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_1d">
+		<text>1 Day</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_instant">
+		<text>Instant (Always allowed)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_disabled">
+		<text>Disabled (One-time only)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_panic_key">
+		<text>Endless Mode Panic Key</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_panic_key_desc">
+		<text>Press this key during Endless Mode or Spectator Mode to immediately exit.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_medic_rescue_fee">
+		<text>Medic Rescue Fee (RU)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_medic_rescue_fee_desc">
+		<text>Amount of rubles deducted when the arena medic rescues you from fatal damage.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_reward_mult">
+		<text>Endless Mode Reward Multiplier</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_reward_mult_desc">
+		<text>Adjust reward earnings multiplier for Endless Mode waves.</text>
+	</string>
 </string_table>

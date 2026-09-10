@@ -2,13 +2,13 @@
 local defaults = {
 	["random_equipment"] = true,
 	["reward_mult"] = 1.0,
+	["endless_reward_mult"] = 1.0,
 	["give_items"] = true,
 	["medic_rescue"] = true,
-	["allow_replay"] = true,
+	["medic_rescue_fee"] = 2500,
+	["allow_replay"] = "7d",
 	["special_ammo_support"] = true,
-	["fight_chance"] = 0.7,
-	["stalker_team1_chance"] = 0.25,
-	["stalker_team2_chance"] = 0.25,
+	["panic_key"] = DIK_keys.DIK_F,
 }
 
 function get_config(key)
@@ -31,15 +31,23 @@ function on_mcm_load()
 			{ id = "reward_mult", type = "track", val = 2, min = 0.5, max = 3.0, step = 0.1, def = 1.0 },
 			{ id = "give_items", type = "check", val = 1, def = true },
 			{ id = "medic_rescue", type = "check", val = 1, def = true },
-			{ id = "allow_replay", type = "check", val = 1, def = true },
+			{ id = "medic_rescue_fee", type = "track", val = 2, min = 0, max = 10000, step = 500, def = 2500 },
+			{ id = "allow_replay", type = "list", val = 0, def = "7d", no_str = true,
+				content = {
+					{ "7d", "ui_mcm_xcvb_arena_replay_7d" },
+					{ "3d", "ui_mcm_xcvb_arena_replay_3d" },
+					{ "1d", "ui_mcm_xcvb_arena_replay_1d" },
+					{ "instant", "ui_mcm_xcvb_arena_replay_instant" },
+					{ "disabled", "ui_mcm_xcvb_arena_replay_disabled" },
+				}
+			},
 			{ id = "special_ammo_support", type = "check", val = 1, def = true },
 
 			{ id = "line", type = "line" },
 
-			-- Spectator Mode Settings
-			{ id = "fight_chance", type = "track", val = 2, min = 0, max = 1, step = 0.05, def = 0.7 },
-			{ id = "stalker_team1_chance", type = "track", val = 2, min = 0, max = 1, step = 0.05, def = 0.25 },
-			{ id = "stalker_team2_chance", type = "track", val = 2, min = 0, max = 1, step = 0.05, def = 0.25 },
+			-- Endless Mode & Controls Settings
+			{ id = "panic_key", type = "key_bind", val = 2, def = DIK_keys.DIK_F },
+			{ id = "endless_reward_mult", type = "track", val = 2, min = 0.5, max = 3.0, step = 0.1, def = 1.0 },
 		}
 	}
 	return op

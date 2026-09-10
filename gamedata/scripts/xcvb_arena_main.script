@@ -3,9 +3,11 @@
 -- Progression Variables
 tournament_stalker_unlocked_round = 1
 tournament_stalker_completed = {}
+tournament_stalker_completed_time = {}
 
 tournament_mutant_unlocked_round = 1
 tournament_mutant_completed = {}
+tournament_mutant_completed_time = {}
 
 tournament_wins = 0
 tournament_losses = 0
@@ -15,6 +17,7 @@ endless_checkpoint_type = "stalkers"
 endless_difficulty = "medium"
 endless_artigrok_ammo = false
 endless_3dssg = false
+practice_mode_active = false
 
 -- Spectator Mode State Variables
 arena_main_t = {}
@@ -486,7 +489,132 @@ function get_round_data(category, round_id)
 	return nil
 end
 
+function get_actor_rank_num()
+	local r_name = nil
+	if ranks and ranks.get_player_rank_name then
+		r_name = ranks.get_player_rank_name()
+	elseif ranks and ranks.get_obj_rank_name and db.actor then
+		r_name = ranks.get_obj_rank_name(db.actor)
+	end
+
+	local rank_name_to_tier = {
+		["novice"] = 1,
+		["trainee"] = 1,
+		["experienced"] = 2,
+		["professional"] = 2,
+		["veteran"] = 3,
+		["expert"] = 3,
+		["master"] = 4,
+		["legend"] = 5,
+	}
+	if r_name and rank_name_to_tier[r_name] then
+		return rank_name_to_tier[r_name]
+	end
+
+	local cr = db.actor and db.actor:character_rank() or 0
+	if cr >= 36000 then
+		return 5
+	elseif cr >= 18000 then
+		return 4
+	elseif cr >= 4500 then
+		return 3
+	elseif cr >= 900 then
+		return 2
+	else
+		return 1
+	end
+end
+
+function is_tier_unlocked_by_rank(tier)
+	if practice_mode_active == true then
+		return true
+	end
+	return get_actor_rank_num() >= tier
+end
+
+function get_tier_required_rank_name(tier)
+	local tier_rank_ids = {
+		[1] = "st_rank_novice",
+		[2] = "st_rank_experienced",
+		[3] = "st_rank_veteran",
+		[4] = "st_rank_master",
+		[5] = "st_rank_legend",
+	}
+	local id = tier_rank_ids[tier] or "st_rank_novice"
+	return game.translate_string(id)
+end
+
+local function get_cooldown_duration_sec()
+	local mode = xcvb_arena_mcm.get_config("allow_replay")
+	if mode == "disabled" or mode == false then
+		return -1
+	elseif mode == "instant" then
+		return 0
+	elseif mode == "1d" then
+		return 86400
+	elseif mode == "3d" then
+		return 259200
+	else
+		return 604800 -- 7 in-game days
+	end
+end
+
+local function t2c(t)
+	if not t then return nil end
+	local y = t.y or t.Y or 0
+	if y < 2000 then return nil end
+	local ct = game.CTime()
+	ct:set(y, t.mo or t.M or 1, t.d or t.D or 1, t.h or 0, t.mi or t.m or 0, t.s or 0, t.ms or 0)
+	return ct
+end
+
+function get_round_cooldown_remaining(category, round_id)
+	local dur = get_cooldown_duration_sec()
+	if dur == 0 then
+		return 0, ""
+	elseif dur < 0 then
+		return -1, ""
+	end
+
+	local comp_table = (category == "mutant") and tournament_mutant_completed_time or tournament_stalker_completed_time
+	local saved_time_t = comp_table and comp_table[round_id]
+	if not saved_time_t then
+		return 0, ""
+	end
+
+	local saved_ct = t2c(saved_time_t)
+	if not saved_ct then
+		comp_table[round_id] = nil
+		return 0, ""
+	end
+
+	local cur_ct = game.get_game_time()
+	local elapsed_sec = cur_ct:diffSec(saved_ct)
+	if elapsed_sec < 0 or elapsed_sec >= dur then
+		return 0, ""
+	end
+
+	local remain_sec = math.min(math.floor(dur - elapsed_sec), dur)
+	local days = math.floor(remain_sec / 86400)
+	local hours = math.floor((remain_sec % 86400) / 3600)
+	local time_str = ""
+	if days > 0 then
+		time_str = string.format("%dd %dh", days, hours)
+	else
+		local mins = math.floor((remain_sec % 3600) / 60)
+		time_str = string.format("%dh %dm", hours, mins)
+	end
+	return remain_sec, time_str
+end
+
 function is_round_unlocked(category, round_id)
+	if practice_mode_active == true then
+		return true
+	end
+	local tier = math.ceil(round_id / 3)
+	if not is_tier_unlocked_by_rank(tier) then
+		return false
+	end
 	local unl = get_unlocked_round(category)
 	return round_id <= unl
 end
@@ -523,9 +651,11 @@ function save_state(m_data)
 
 	m_data.xcvb_tournament_stalker_unlocked = tournament_stalker_unlocked_round
 	m_data.xcvb_tournament_stalker_completed = tournament_stalker_completed
+	m_data.xcvb_tournament_stalker_comp_time = tournament_stalker_completed_time
 
 	m_data.xcvb_tournament_mutant_unlocked = tournament_mutant_unlocked_round
 	m_data.xcvb_tournament_mutant_completed = tournament_mutant_completed
+	m_data.xcvb_tournament_mutant_comp_time = tournament_mutant_completed_time
 
 	m_data.xcvb_tournament_wins = tournament_wins
 	m_data.xcvb_tournament_losses = tournament_losses
@@ -534,6 +664,7 @@ function save_state(m_data)
 	m_data.xcvb_endless_checkpoint_type = endless_checkpoint_type
 	m_data.xcvb_endless_difficulty = endless_difficulty
 	m_data.xcvb_endless_artigrok_ammo = endless_artigrok_ammo
+	m_data.xcvb_practice_mode_active = (practice_mode_active == true)
 end
 
 function load_state(m_data)
@@ -554,9 +685,21 @@ function load_state(m_data)
 
 	tournament_stalker_unlocked_round = m_data.xcvb_tournament_stalker_unlocked or 1
 	tournament_stalker_completed = m_data.xcvb_tournament_stalker_completed or {}
+	tournament_stalker_completed_time = m_data.xcvb_tournament_stalker_comp_time or {}
+	for k, v in pairs(tournament_stalker_completed_time) do
+		if type(v) ~= "table" or (v.y or v.Y or 0) < 2000 then
+			tournament_stalker_completed_time[k] = nil
+		end
+	end
 
 	tournament_mutant_unlocked_round = m_data.xcvb_tournament_mutant_unlocked or 1
 	tournament_mutant_completed = m_data.xcvb_tournament_mutant_completed or {}
+	tournament_mutant_completed_time = m_data.xcvb_tournament_mutant_comp_time or {}
+	for k, v in pairs(tournament_mutant_completed_time) do
+		if type(v) ~= "table" or (v.y or v.Y or 0) < 2000 then
+			tournament_mutant_completed_time[k] = nil
+		end
+	end
 
 	tournament_wins = m_data.xcvb_tournament_wins or 0
 	tournament_losses = m_data.xcvb_tournament_losses or 0
@@ -567,6 +710,9 @@ function load_state(m_data)
 	endless_difficulty = m_data.xcvb_endless_difficulty or "medium"
 	if m_data.xcvb_endless_artigrok_ammo ~= nil then
 		endless_artigrok_ammo = m_data.xcvb_endless_artigrok_ammo
+	end
+	if m_data.xcvb_practice_mode_active ~= nil then
+		practice_mode_active = (m_data.xcvb_practice_mode_active == true)
 	end
 end
 

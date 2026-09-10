@@ -98,6 +98,9 @@ function UIXcvbArena:InitControls()
 	self.player_record = xml:InitTextWnd("player_record", self.bg)
 
 	-- Mode Switch Buttons
+	self.btn_practice = xml:Init3tButton("practice_btn", self.bg)
+	self:Register(self.btn_practice, "btn_practice")
+
 	self.btn_mode = xml:Init3tButton("mode_btn", self.bg)
 	self:Register(self.btn_mode, "btn_mode")
 
@@ -456,6 +459,7 @@ function UIXcvbArena:InitControls()
 end
 
 function UIXcvbArena:InitCallbacks()
+	self:AddCallback("btn_practice", ui_events.BUTTON_CLICKED, self.on_click_practice_toggle, self)
 	self:AddCallback("btn_mode", ui_events.BUTTON_CLICKED, self.on_click_mode, self)
 	self:AddCallback("btn_endless", ui_events.BUTTON_CLICKED, self.on_click_quick_endless, self)
 	self:AddCallback("btn_endless_cont", ui_events.BUTTON_CLICKED, self.on_click_continue_endless, self)
@@ -753,6 +757,26 @@ function UIXcvbArena:on_click_mode()
 	self:update_view_mode()
 end
 
+function UIXcvbArena:on_click_practice_toggle()
+	xcvb_arena_main.practice_mode_active = not (xcvb_arena_main.practice_mode_active == true)
+	self:update_practice_button()
+	self:update_view_mode()
+end
+
+function UIXcvbArena:update_practice_button()
+	if not self.btn_practice then return end
+	local is_on = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
+	if is_on then
+		self.btn_practice:TextControl():SetFont(GetFontLetterica18Russian())
+		self.btn_practice:TextControl():SetText(gt("st_arena_btn_practice_on"))
+		self.btn_practice:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+	else
+		self.btn_practice:TextControl():SetFont(GetFontLetterica16Russian())
+		self.btn_practice:TextControl():SetText(gt("st_arena_btn_practice"))
+		self.btn_practice:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+	end
+end
+
 function UIXcvbArena:on_click_beta_mode()
 	if self.current_mode == "beta" then
 		self.current_mode = "tournament"
@@ -806,18 +830,21 @@ function UIXcvbArena:on_click_action(row_idx)
 	local prev_selected = self.selected_round_id
 	self.selected_round_id = round_id
 
-	local unl = xcvb_arena_main.is_round_unlocked(self.current_category, round_id)
+	local is_practice = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
+	local tier = math.ceil(round_id / 3)
+	local rank_ok = is_practice or xcvb_arena_main.is_tier_unlocked_by_rank(tier)
+	local unl = is_practice or xcvb_arena_main.is_round_unlocked(self.current_category, round_id)
 	local comp = xcvb_arena_main.is_round_completed(self.current_category, round_id)
-	local replay = xcvb_arena_mcm.get_config("allow_replay")
+	local remain_sec = xcvb_arena_main.get_round_cooldown_remaining(self.current_category, round_id)
 
 	if prev_selected ~= round_id then
 		-- Si cambia a otra ronda, reiniciar la selección de arma y mostrar los detalles
 		self:reset_loadout_selection()
 		self:update_tournament_display()
 	else
-		-- Si hace clic en la ronda que ya estaba seleccionada, iniciar combate
+		-- Si hace clic en la ronda que ya estaba seleccionada, iniciar combate si cumple condiciones
 		self:update_tournament_display()
-		if unl and (not comp or replay ~= false) then
+		if is_practice or (rank_ok and unl and (not comp or remain_sec >= 0)) then
 			self:on_click_tourn_start()
 		end
 	end
@@ -826,6 +853,10 @@ end
 function UIXcvbArena:update_view_mode()
 	self:show_endless_difficulty_menu(false)
 	self:show_dssg_menu(false)
+	self:update_practice_button()
+	if self.btn_practice then
+		self.btn_practice:Show(self.current_mode == "tournament")
+	end
 	if self.current_mode == "tournament" then
 		self.tournament_cont:Show(true)
 		self.spectator_cont:Show(false)
@@ -897,8 +928,11 @@ function UIXcvbArena:update_tournament_display()
 	-- Tier tabs highlight
 	for t = 1, 5 do
 		local btn = self.tier_btns[t]
+		local t_rank_ok = xcvb_arena_main.practice_mode_active or xcvb_arena_main.is_tier_unlocked_by_rank(t)
 		if t == self.current_tier then
 			btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+		elseif not t_rank_ok then
+			btn:TextControl():SetTextColor(GetARGB(255, 120, 100, 100))
 		else
 			btn:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
 		end
@@ -908,7 +942,7 @@ function UIXcvbArena:update_tournament_display()
 	local tier_data = tiers_table[self.current_tier]
 	if not tier_data then return end
 
-	local replay_allowed = xcvb_arena_mcm.get_config("allow_replay")
+	local rank_ok = xcvb_arena_main.is_tier_unlocked_by_rank(self.current_tier)
 
 	for r = 1, 3 do
 		local round_id = (self.current_tier - 1) * 3 + r
@@ -918,6 +952,7 @@ function UIXcvbArena:update_tournament_display()
 		if r_data then
 			local is_unlocked = xcvb_arena_main.is_round_unlocked(cat, round_id)
 			local is_comp = xcvb_arena_main.is_round_completed(cat, round_id)
+			local remain_sec, remain_str = xcvb_arena_main.get_round_cooldown_remaining(cat, round_id)
 
 			local enemy_label = gt(r_data.enemies_str)
 			if r_data.id == 5 and cat == "stalker" then
@@ -938,10 +973,28 @@ function UIXcvbArena:update_tournament_display()
 				row.name:SetTextColor(GetARGB(255, 210, 210, 210))
 			end
 
-			if is_comp then
-				row.action_btn:TextControl():SetText(gt("st_arena_status_completed"))
-				row.action_btn:TextControl():SetTextColor(GetARGB(255, 140, 220, 140))
-				row.action_btn:Enable(replay_allowed ~= false)
+			if xcvb_arena_main.practice_mode_active then
+				row.action_btn:TextControl():SetText(gt("st_arena_btn_practice_action"))
+				row.action_btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+				row.action_btn:Enable(true)
+			elseif not rank_ok then
+				row.action_btn:TextControl():SetText(gt("st_arena_status_locked_rank"))
+				row.action_btn:TextControl():SetTextColor(GetARGB(255, 180, 100, 100))
+				row.action_btn:Enable(false)
+			elseif is_comp then
+				if remain_sec > 0 then
+					row.action_btn:TextControl():SetText(gt("st_arena_btn_replay_no_reward"))
+					row.action_btn:TextControl():SetTextColor(GetARGB(255, 200, 160, 100))
+					row.action_btn:Enable(true)
+				elseif remain_sec < 0 then
+					row.action_btn:TextControl():SetText(gt("st_arena_status_completed"))
+					row.action_btn:TextControl():SetTextColor(GetARGB(255, 140, 220, 140))
+					row.action_btn:Enable(false)
+				else
+					row.action_btn:TextControl():SetText(gt("st_arena_btn_replay"))
+					row.action_btn:TextControl():SetTextColor(GetARGB(255, 140, 220, 140))
+					row.action_btn:Enable(true)
+				end
 			elseif is_unlocked then
 				row.action_btn:TextControl():SetText(gt("st_arena_status_ready"))
 				row.action_btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
@@ -965,15 +1018,33 @@ function UIXcvbArena:update_tournament_display()
 			end
 		end
 
-		self.detail_title:SetText(gt(sel_data.name) .. " - " .. gt(sel_data.diff_str))
-		self.detail_desc:SetText(sel_desc)
-
+		local sel_tier = math.ceil(self.selected_round_id / 3)
+		local sel_rank_ok = xcvb_arena_main.is_tier_unlocked_by_rank(sel_tier)
 		local sel_unlocked = xcvb_arena_main.is_round_unlocked(cat, self.selected_round_id)
 		local sel_comp = xcvb_arena_main.is_round_completed(cat, self.selected_round_id)
+		local sel_remain_sec, sel_remain_str = xcvb_arena_main.get_round_cooldown_remaining(cat, self.selected_round_id)
 
-		if sel_comp then
-			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay"))
-			self.btn_tourn_start:Enable(replay_allowed ~= false)
+		if xcvb_arena_main.practice_mode_active then
+			sel_desc = sel_desc .. "\\n\\n" .. gt("st_arena_practice_mode_active_desc")
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_practice_action"))
+			self.btn_tourn_start:Enable(true)
+		elseif not sel_rank_ok then
+			local req_rank = xcvb_arena_main.get_tier_required_rank_name(sel_tier)
+			sel_desc = sel_desc .. "\\n\\n" .. string.format(gt("st_arena_rank_required_tip"), req_rank)
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_locked_rank"))
+			self.btn_tourn_start:Enable(false)
+		elseif sel_comp then
+			if sel_remain_sec > 0 then
+				sel_desc = sel_desc .. "\\n\\n" .. string.format(gt("st_arena_cooldown_tip"), sel_remain_str)
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay_no_reward"))
+				self.btn_tourn_start:Enable(true)
+			elseif sel_remain_sec < 0 then
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_status_completed"))
+				self.btn_tourn_start:Enable(false)
+			else
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay"))
+				self.btn_tourn_start:Enable(true)
+			end
 		elseif sel_unlocked then
 			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_enter"))
 			self.btn_tourn_start:Enable(true)
@@ -981,6 +1052,9 @@ function UIXcvbArena:update_tournament_display()
 			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_locked"))
 			self.btn_tourn_start:Enable(false)
 		end
+
+		self.detail_title:SetText(gt(sel_data.name) .. " - " .. gt(sel_data.diff_str))
+		self.detail_desc:SetText(sel_desc)
 	end
 
 	self:update_loadout_buttons()
@@ -1441,12 +1515,20 @@ end
 
 function UIXcvbArena:on_click_tourn_start()
 	local cat = self.current_category
-	local unl = xcvb_arena_main.is_round_unlocked(cat, self.selected_round_id)
+	local is_practice = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
+	local sel_tier = math.ceil(self.selected_round_id / 3)
+	local rank_ok = is_practice or xcvb_arena_main.is_tier_unlocked_by_rank(sel_tier)
+	local unl = is_practice or xcvb_arena_main.is_round_unlocked(cat, self.selected_round_id)
 	local comp = xcvb_arena_main.is_round_completed(cat, self.selected_round_id)
-	local replay = xcvb_arena_mcm.get_config("allow_replay")
+	local remain_sec = xcvb_arena_main.get_round_cooldown_remaining(cat, self.selected_round_id)
 
-	if (not unl) or (comp and replay == false) then
-		return
+	if not is_practice then
+		if not rank_ok or not unl then
+			return
+		end
+		if comp and remain_sec < 0 then
+			return
+		end
 	end
 
 	local chosen_cls = self.selected_loadout_class
@@ -2341,6 +2423,7 @@ function UIXcvbArena:show_endless_difficulty_menu(show)
 	end
 	if self.btn_mode then self.btn_mode:Enable(not show) end
 	if self.btn_beta then self.btn_beta:Enable(not show) end
+	if self.btn_practice then self.btn_practice:Enable(not show) end
 end
 
 function UIXcvbArena:on_select_endless_difficulty(diff)
