@@ -30,6 +30,7 @@ local endless_ending = false
 local endless_transitioning = false
 local endless_fight_closed = false
 local endless_difficulty = "medium"
+
 function is_battle_royale_npc_initialized(npc_id)
     return battle_royale_initialized_npcs[npc_id] == true
 end
@@ -120,10 +121,19 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     endless_ending = false
     tournament_fight_closed = false
     endless_fight_closed = false
+    is_endless_mode = false
+    endless_transitioning = false
+    spec_fight_ending = false
+    spectator_fight_closed = false
+    battle_royale_ending = false
+    battle_royale_closed = false
     xcvb_arena_main.selected_modifier = "none"
     xcvb_arena_main.selected_modifier_team1 = "none"
     xcvb_arena_main.selected_modifier_team2 = "none"
-    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
+    pcall(disable_info, "xcvb_endless_started")
+    pcall(disable_info, "xcvb_arena_started")
+    pcall(disable_info, "xcvb_battle_royale_started")
+    
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
     pcall(level.show_indicators)
@@ -170,10 +180,13 @@ end
 
 function on_tournament_victory(round_id)
     if tournament_fight_closed or tourn_ending or endless_ending then return end
+    tourn_ending = true
     heal_actor_completely()
     news_manager.send_tip(db.actor, gt("st_arena_fight_won"), 0, nil, 8000)
     xcvb_arena_utils.arena_fade_in_out(2)
-    CreateTimeEvent("xcvb_arena_end_tourn_e", "xcvb_arena_end_tourn_a", 3, function()
+    
+    local uid = tostring(math.random(100000))
+    CreateTimeEvent("xcvb_arena_end_tourn_e", "tourn_a_" .. uid, 3, function()
         end_tournament_fight(true)
         return true
     end)
@@ -191,10 +204,6 @@ function end_tournament_fight(is_victory)
         db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
         pcall(level.enable_input)
     end
-
-    RemoveTimeEvent("allow_tournament_aggro_e", "allow_tournament_aggro_a")
-    RemoveTimeEvent("xcvb_arena_end_tourn_e", "xcvb_arena_end_tourn_a")
-    RemoveTimeEvent("xcvb_arena_rescue_e", "xcvb_arena_rescue_a")
 
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
@@ -279,7 +288,6 @@ end
 function start_arena_fight(bout_idx)
     spec_fight_ending = false
     spectator_fight_closed = false
-    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
     local b_idx = bout_idx or xcvb_arena_main.selected_spec_bout or 1
     local main_t = xcvb_arena_main.arena_main_t[b_idx]
     if not main_t or not main_t.team1 or #main_t.team1 == 0 or not main_t.team2 or #main_t.team2 == 0 then return end
@@ -322,7 +330,6 @@ function start_arena_fight(bout_idx)
     end
     squad_team_2_id = squad2.id
 
-    -- Ambos escuadrones reciben una orden inicial de avance para evitar que un bando espere pasivamente.
     squad1.scripted_target = squad2.id
     squad1.assigned_target_id = squad2.id
     squad1.rush_to_target = true
@@ -388,7 +395,6 @@ function setup_teams()
     local sq1_is_stalker = string.find(sq1:section_name(), "stalker")
     local sq2_is_stalker = string.find(sq2:section_name(), "stalker")
     local is_stalker_vs_stalker = sq1_is_stalker and sq2_is_stalker
-    -- Stalkers with firearms should retain the engine's cover and movement logic.
     local rush = not is_stalker_vs_stalker
     sq1.rush_to_target = rush
     sq2.rush_to_target = rush
@@ -452,12 +458,6 @@ function end_arena_fight(winner_team)
     if spectator_fight_closed then return end
     spectator_fight_closed = true
     spec_fight_ending = false
-
-    RemoveTimeEvent("allow_relation_update_e", "allow_relation_update_a")
-    RemoveTimeEvent("allow_spec_press_f_tip_e", "allow_spec_press_f_tip_a")
-    RemoveTimeEvent("setup_teams_retry_e", "setup_teams_retry_a")
-    RemoveTimeEvent("xcvb_arena_end_fight_e", "xcvb_arena_end_fight_a")
-    RemoveTimeEvent("xcvb_arena_exit_f_e", "xcvb_arena_exit_f_a")
 
     local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
     db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
@@ -550,7 +550,6 @@ function start_battle_royale_fight(br_data)
     battle_royale_announced_eliminations = {}
     battle_royale_last_status = ""
     next_br_status = 0
-    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
 
     local num_teams = br_data.num_teams or 4
     battle_royale_bet_team = br_data.bet_team or 0
@@ -686,11 +685,6 @@ function end_battle_royale(winner_team_idx)
     battle_royale_closed = true
     battle_royale_ending = false
 
-    RemoveTimeEvent("allow_br_relation_update_e", "allow_br_relation_update_a")
-    RemoveTimeEvent("allow_br_press_f_tip_e", "allow_br_press_f_tip_a")
-    RemoveTimeEvent("xcvb_arena_end_br_e", "xcvb_arena_end_br_a")
-    RemoveTimeEvent("xcvb_arena_exit_br_f_e", "xcvb_arena_exit_br_f_a")
-
     local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
     db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
@@ -764,6 +758,14 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
         xcvb_arena_main.endless_3dssg = use_3dssg == true
     end
     endless_transitioning = false
+    spec_fight_ending = false
+    spectator_fight_closed = false
+    battle_royale_ending = false
+    battle_royale_closed = false
+
+    pcall(disable_info, "xcvb_tournament_started")
+    pcall(disable_info, "xcvb_arena_started")
+    pcall(disable_info, "xcvb_battle_royale_started")
 
     if xcvb_arena_main then
         xcvb_arena_main.endless_difficulty = endless_difficulty
@@ -773,17 +775,6 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
         end
     end
 
-    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
-    RemoveTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a")
-    RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
-    RemoveTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a")
-    RemoveTimeEvent("arena_spawn_endless_squad_e", "arena_spawn_endless_squad_a")
-    RemoveTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a")
-    RemoveTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a")
-    RemoveTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1")
-    RemoveTimeEvent("arena_equip_endless_e2", "arena_equip_endless_a2")
-    RemoveTimeEvent("arena_equip_endless_draw_e1", "arena_equip_endless_draw_a1")
-    RemoveTimeEvent("arena_equip_endless_draw_e2", "arena_equip_endless_draw_a2")
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
     pcall(level.show_indicators)
@@ -795,6 +786,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     xcvb_arena_utils.store_actor_inventory()
 
     CreateTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a", 0.3, function()
+        if endless_ending or endless_fight_closed then return true end
         xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, use_3dssg == true)
         return true
     end)
@@ -889,7 +881,6 @@ function advance_endless_wave()
     cont_fire_last_zoomed = false
     cont_fire_retriggered = false
 
-    RemoveTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a")
     CreateTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a", 1.0, function()
         if endless_ending or endless_fight_closed then return true end
         local msg_spawn = gt("st_arena_endless_enemies_spawning_3s")
@@ -900,7 +891,6 @@ function advance_endless_wave()
         return true
     end)
 
-    RemoveTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a")
     CreateTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a", 3.5, function()
         if endless_ending or endless_fight_closed then return true end
         xcvb_arena_utils.clean_arena_corpses()
@@ -963,20 +953,6 @@ function end_endless_fight(is_victory, voluntary_leave)
     endless_ending = false
     tourn_ending = false
     endless_transitioning = false
-
-    RemoveTimeEvent("arena_spawn_endless_squad_e", "arena_spawn_endless_squad_a")
-    RemoveTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a")
-    RemoveTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a")
-    RemoveTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a")
-    RemoveTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a")
-    RemoveTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a")
-    RemoveTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a")
-    RemoveTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1")
-    RemoveTimeEvent("arena_equip_endless_e2", "arena_equip_endless_a2")
-    RemoveTimeEvent("arena_equip_endless_draw_e1", "arena_equip_endless_draw_a1")
-    RemoveTimeEvent("arena_equip_endless_draw_e2", "arena_equip_endless_draw_a2")
-    RemoveTimeEvent("xcvb_arena_exit_endless_f_e", "xcvb_arena_exit_endless_f_a")
-    RemoveTimeEvent("xcvb_arena_rescue_e", "xcvb_arena_rescue_a")
 
     local actor_alive = db.actor and db.actor:alive()
     if actor_alive then
@@ -1286,7 +1262,7 @@ function actor_on_update()
     if HI("xcvb_tournament_started") then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false and db.actor and db.actor:alive() then
-            if db.actor.health <= 0.20 then
+            if db.actor.health <= 0.01 then
                 trigger_medic_rescue()
             end
         end
@@ -1319,7 +1295,7 @@ function actor_on_update()
     if HI("xcvb_endless_started") or is_endless_mode then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false and db.actor and db.actor:alive() then
-            if db.actor.health <= 0.20 then
+            if db.actor.health <= 0.01 then
                 trigger_medic_rescue()
             end
         end
@@ -1467,7 +1443,8 @@ function on_before_key_press(key, bind, dis, flags)
 			if not endless_ending and not endless_fight_closed then
 				endless_ending = true
 				xcvb_arena_utils.arena_fade_in_out(1)
-				CreateTimeEvent("xcvb_arena_exit_endless_f_e", "xcvb_arena_exit_endless_f_a", 1.5, function()
+                local uid = tostring(math.random(100000))
+				CreateTimeEvent("xcvb_arena_exit_endless_f_e", "endless_a_" .. uid, 1.5, function()
 					end_endless_fight(true, true)
 					return true
 				end)
@@ -1486,7 +1463,8 @@ function on_before_key_press(key, bind, dis, flags)
 			if not battle_royale_ending and not battle_royale_closed then
 				battle_royale_ending = true
 				xcvb_arena_utils.arena_fade_in_out(1)
-				CreateTimeEvent("xcvb_arena_exit_br_f_e", "xcvb_arena_exit_br_f_a", 1.5, function()
+                local uid = tostring(math.random(100000))
+				CreateTimeEvent("xcvb_arena_exit_br_f_e", "br_f_a_" .. uid, 1.5, function()
 					end_battle_royale(0)
 					return true
 				end)
@@ -1494,7 +1472,8 @@ function on_before_key_press(key, bind, dis, flags)
 		elseif not spec_fight_ending and not spectator_fight_closed then
 			spec_fight_ending = true
 			xcvb_arena_utils.arena_fade_in_out(1)
-			CreateTimeEvent("xcvb_arena_exit_f_e", "xcvb_arena_exit_f_a", 1.5, function()
+            local uid = tostring(math.random(100000))
+			CreateTimeEvent("xcvb_arena_exit_f_e", "spec_f_a_" .. uid, 1.5, function()
 				end_arena_fight(0)
 				return true
 			end)
@@ -1616,12 +1595,14 @@ function npc_on_before_hit(npc, s_hit)
             news_manager.send_tip(db.actor, gt("st_arena_kicked_out"), 0, nil, 15000)
             xcvb_arena_utils.arena_fade_in_out()
             if HI("xcvb_battle_royale_started") then
-                CreateTimeEvent("xcvb_arena_end_br_e", "xcvb_arena_end_br_a", 2, function()
+                local uid = tostring(math.random(100000))
+                CreateTimeEvent("xcvb_arena_end_br_e", "br_a_" .. uid, 2, function()
                     end_battle_royale(0)
                     return true
                 end)
             else
-                CreateTimeEvent("xcvb_arena_end_fight_e", "xcvb_arena_end_fight_a", 2, function()
+                local uid = tostring(math.random(100000))
+                CreateTimeEvent("xcvb_arena_end_fight_e", "fight_a_" .. uid, 2, function()
                     end_arena_fight(0)
                     return true
                 end)
@@ -1632,6 +1613,7 @@ end
 
 local function trigger_medic_rescue()
     if tourn_ending or endless_ending then return end
+    if tournament_fight_closed or endless_fight_closed then return end
     if is_endless_mode or HI("xcvb_endless_started") then
         endless_ending = true
         tourn_ending = false
@@ -1690,14 +1672,15 @@ local function trigger_medic_rescue()
 
     pcall(level.add_pp_effector, "actor_death.ppe", 987125, false)
 
-    CreateTimeEvent("xcvb_arena_fade_dark_e", "xcvb_arena_fade_dark_a", 2.0, function()
+    local uid = tostring(math.random(100000))
+    CreateTimeEvent("xcvb_arena_fade_dark_e", "dark_a_" .. uid, 2.0, function()
         pcall(function()
             level.add_pp_effector("fade_in.ppe", 987123, false)
         end)
         return true
     end)
 
-    CreateTimeEvent("xcvb_arena_rescue_e", "xcvb_arena_rescue_a", 3.5, function()
+    CreateTimeEvent("xcvb_arena_rescue_e", "rescue_a_" .. uid, 3.5, function()
         pcall(level.remove_pp_effector, 987125)
         pcall(level.remove_cam_effector, 987126)
 
@@ -1751,7 +1734,7 @@ function actor_on_before_hit(s_hit, bone_id, flags)
             local cur_health = db.actor and db.actor.health or 1.0
             local dmg = (s_hit and s_hit.power) or 0
             
-            if cur_health <= 0.25 or (cur_health - dmg <= 0.15) then
+            if cur_health <= 0.01 or (cur_health - dmg <= 0.01) then
                 if s_hit then s_hit.power = 0 end
                 if flags then flags.ret_value = false end
                 trigger_medic_rescue()
@@ -1826,7 +1809,8 @@ function squad_on_npc_death(squad, se_obj, killer)
                 news_manager.send_tip(db.actor, tip_msg, 0, nil, 10000)
 
                 xcvb_arena_utils.arena_fade_in_out(2)
-                CreateTimeEvent("xcvb_arena_end_br_e", "xcvb_arena_end_br_a", 4, function()
+                local uid = tostring(math.random(100000))
+                CreateTimeEvent("xcvb_arena_end_br_e", "br_a_" .. uid, 4, function()
                     end_battle_royale(winner_idx)
                     return true
                 end)
@@ -1834,7 +1818,8 @@ function squad_on_npc_death(squad, se_obj, killer)
                 battle_royale_ending = true
                 news_manager.send_tip(db.actor, gt("st_arena_bc_no_winner"), 0, nil, 10000)
                 xcvb_arena_utils.arena_fade_in_out(2)
-                CreateTimeEvent("xcvb_arena_end_br_e", "xcvb_arena_end_br_a", 4, function()
+                local uid = tostring(math.random(100000))
+                CreateTimeEvent("xcvb_arena_end_br_e", "br_a_" .. uid, 4, function()
                     end_battle_royale(0)
                     return true
                 end)
@@ -1866,7 +1851,8 @@ function squad_on_npc_death(squad, se_obj, killer)
                 spec_fight_ending = true
                 news_manager.send_tip(db.actor, gt("st_arena_team_2_won"), 0, nil, 10000)
                 xcvb_arena_utils.arena_fade_in_out(2)
-                CreateTimeEvent("xcvb_arena_end_fight_e", "xcvb_arena_end_fight_a", 4, function()
+                local uid = tostring(math.random(100000))
+                CreateTimeEvent("xcvb_arena_end_fight_e", "fight_a_" .. uid, 4, function()
                     end_arena_fight(2)
                     return true
                 end)
@@ -1877,7 +1863,8 @@ function squad_on_npc_death(squad, se_obj, killer)
                 spec_fight_ending = true
                 news_manager.send_tip(db.actor, gt("st_arena_team_1_won"), 0, nil, 10000)
                 xcvb_arena_utils.arena_fade_in_out(2)
-                CreateTimeEvent("xcvb_arena_end_fight_e", "xcvb_arena_end_fight_a", 4, function()
+                local uid = tostring(math.random(100000))
+                CreateTimeEvent("xcvb_arena_end_fight_e", "fight_a_" .. uid, 4, function()
                     end_arena_fight(1)
                     return true
                 end)
