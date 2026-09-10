@@ -37,6 +37,8 @@ function UIXcvbArena:__init() super()
 	self.selected_loadout_ammo = "auto"
 	self.selected_3dssg_mode = "off"
 	self.selected_3dssg_scope = nil
+	self.selected_3dssg_entry_list = {}
+	self.arr_3dssg_page = 1
 	self.selected_weapon_sec = nil
 	self.selected_special_ammo_sec = nil
 	self.available_weapons_cache = {}
@@ -172,8 +174,6 @@ function UIXcvbArena:InitControls()
 
 	self.btn_3dssg = xml:Init3tButton("tournament_cont:btn_3dssg", self.tournament_cont)
 	self:Register(self.btn_3dssg, "btn_3dssg")
-	self.btn_3dssg_scope = xml:Init3tButton("tournament_cont:btn_3dssg_scope", self.tournament_cont)
-	self:Register(self.btn_3dssg_scope, "btn_3dssg_scope")
 
 	-- Loadout Summary Frame (Left Side)
 	self.loadout_summary_frame = xml:InitStatic("tournament_cont:loadout_summary_frame", self.tournament_cont)
@@ -421,6 +421,35 @@ function UIXcvbArena:InitControls()
 		self.btn_diff_cancel:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
 	end
 
+	-- 3DSSG Selection Popup Menu (Mirrors + Kits)
+	self.dssg_menu = xml:InitStatic("dssg_menu", self.bg)
+	self.dssg_menu:Show(false)
+	self.dssg_menu_title = xml:InitTextWnd("dssg_menu:title", self.dssg_menu)
+	self.dssg_menu_subtitle = xml:InitTextWnd("dssg_menu:subtitle", self.dssg_menu)
+	self.btn_3dssg_off = xml:Init3tButton("dssg_menu:btn_3dssg_off", self.dssg_menu)
+	self:Register(self.btn_3dssg_off, "btn_3dssg_off")
+	if self.btn_3dssg_off:TextControl() then
+		self.btn_3dssg_off:TextControl():SetTextColor(GetARGB(255, 200, 200, 200))
+	end
+	self.btn_3dssg_random = xml:Init3tButton("dssg_menu:btn_3dssg_random", self.dssg_menu)
+	self:Register(self.btn_3dssg_random, "btn_3dssg_random")
+	if self.btn_3dssg_random:TextControl() then
+		self.btn_3dssg_random:TextControl():SetTextColor(GetARGB(255, 200, 200, 200))
+	end
+	self.arr_3dssg_rows = {}
+	for i = 1, 7 do
+		local btn = xml:Init3tButton("dssg_menu:dssg_row_" .. i, self.dssg_menu)
+		self.arr_3dssg_rows[i] = btn
+		self:Register(btn, "btn_arr_3dssg_" .. i)
+	end
+	self.arr_3dssg_page_prev = xml:Init3tButton("dssg_menu:dssg_page_prev", self.dssg_menu)
+	self:Register(self.arr_3dssg_page_prev, "btn_arr_3dssg_prev")
+	self.arr_3dssg_page_info = xml:InitTextWnd("dssg_menu:dssg_page_info", self.dssg_menu)
+	self.arr_3dssg_page_next = xml:Init3tButton("dssg_menu:dssg_page_next", self.dssg_menu)
+	self:Register(self.arr_3dssg_page_next, "btn_arr_3dssg_next")
+	self.btn_dssg_close = xml:Init3tButton("dssg_menu:dssg_close_btn", self.dssg_menu)
+	self:Register(self.btn_dssg_close, "btn_dssg_close")
+
 	xml:InitStatic("vert_line1", self.bg)
 	xml:InitStatic("vert_line2", self.bg)
 	xml:InitStatic("vert_line3", self.bg)
@@ -498,7 +527,17 @@ function UIXcvbArena:InitCallbacks()
 		self:AddCallback("btn_loadout_ammo_" .. at, ui_events.BUTTON_CLICKED, function() self:on_click_loadout_ammo(at) end, self)
 	end
 	self:AddCallback("btn_3dssg", ui_events.BUTTON_CLICKED, self.on_click_3dssg, self)
-	self:AddCallback("btn_3dssg_scope", ui_events.BUTTON_CLICKED, self.on_click_3dssg_scope, self)
+
+	-- 3DSSG Selection Menu callbacks
+	self:AddCallback("btn_3dssg_off", ui_events.BUTTON_CLICKED, self.on_click_3dssg_menu_off, self)
+	self:AddCallback("btn_3dssg_random", ui_events.BUTTON_CLICKED, self.on_click_3dssg_menu_random, self)
+	self:AddCallback("btn_dssg_close", ui_events.BUTTON_CLICKED, function() self:show_dssg_menu(false) end, self)
+	self:AddCallback("btn_arr_3dssg_prev", ui_events.BUTTON_CLICKED, function() self:on_click_dssg_page(-1) end, self)
+	self:AddCallback("btn_arr_3dssg_next", ui_events.BUTTON_CLICKED, function() self:on_click_dssg_page(1) end, self)
+	for i = 1, 7 do
+		local row = i
+		self:AddCallback("btn_arr_3dssg_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_dssg_row(row) end, self)
+	end
 
 	-- Main enter button callback
 	self:AddCallback("btn_tourn_start", ui_events.BUTTON_CLICKED, self.on_click_tourn_start, self)
@@ -729,10 +768,13 @@ function UIXcvbArena:reset_loadout_selection()
 	self.selected_loadout_ammo = "auto"
 	self.selected_3dssg_mode = "off"
 	self.selected_3dssg_scope = nil
+	self.selected_3dssg_entry_list = {}
+	self.arr_3dssg_page = 1
 	self.selected_weapon_sec = nil
 	self.selected_special_ammo_sec = nil
 	self.available_weapons_cache = {}
 	self.spec_ammo_page = 1
+	self:show_dssg_menu(false)
 	if self.loadout_class_btns then
 		self:update_loadout_buttons()
 	end
@@ -783,6 +825,7 @@ end
 
 function UIXcvbArena:update_view_mode()
 	self:show_endless_difficulty_menu(false)
+	self:show_dssg_menu(false)
 	if self.current_mode == "tournament" then
 		self.tournament_cont:Show(true)
 		self.spectator_cont:Show(false)
@@ -1046,32 +1089,16 @@ function UIXcvbArena:on_click_loadout_ammo(at)
 end
 
 function UIXcvbArena:on_click_3dssg()
-	if self.selected_3dssg_mode == "off" then
-		self.selected_3dssg_mode = "random"
-	elseif self.selected_3dssg_mode == "random" and self.selected_weapon_sec then
-		self.selected_3dssg_mode = "custom"
-	else
-		self.selected_3dssg_mode = "off"
-	end
-	self:update_loadout_buttons()
-end
-
-function UIXcvbArena:on_click_3dssg_scope()
-	if not self.selected_weapon_sec then return end
-	local scopes = xcvb_arena_utils.get_weapon_scopes(self.selected_weapon_sec)
-	if not scopes or #scopes == 0 then return end
-	local current = 0
-	for i, scope in ipairs(scopes) do
-		if scope == self.selected_3dssg_scope then
-			current = i
-			break
+	if not self.selected_weapon_sec then
+		if self.selected_3dssg_mode == "off" then
+			self.selected_3dssg_mode = "random"
+		else
+			self.selected_3dssg_mode = "off"
 		end
+		self:update_loadout_buttons()
+		return
 	end
-	current = current + 1
-	if current > #scopes then current = 1 end
-	self.selected_3dssg_scope = scopes[current]
-	self.selected_3dssg_mode = "custom"
-	self:update_loadout_buttons()
+	self:open_dssg_menu()
 end
 
 function UIXcvbArena:update_loadout_buttons()
@@ -1213,16 +1240,18 @@ function UIXcvbArena:update_loadout_buttons()
 		self.selected_3dssg_mode = "random"
 	end
 	if self.btn_3dssg then
+		local has_3dssg = next(scope_list) ~= nil
+		if not has_3dssg then
+			self.selected_3dssg_scope = nil
+			self.selected_3dssg_mode = "off"
+		end
 		local mode_text = self.selected_3dssg_mode == "random" and "3DSSG [ON] [RANDOM]"
 			or self.selected_3dssg_mode == "custom" and "3DSSG [ON] [CUSTOM]" or "3DSSG [OFF]"
-		self.btn_3dssg:TextControl():SetText(mode_text)
-		self.btn_3dssg:TextControl():SetTextColor(self.selected_3dssg_mode == "off" and GetARGB(255, 150, 150, 150) or GetARGB(255, 100, 255, 100))
-	end
-	if self.btn_3dssg_scope then
-		local scope_name = self.selected_3dssg_scope and xcvb_arena_utils.get_item_short_name(self.selected_3dssg_scope) or gt("st_arena_3dssg_scope_select")
-		self.btn_3dssg_scope:TextControl():SetText("3DSSG: " .. scope_name)
-		self.btn_3dssg_scope:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
-		self.btn_3dssg_scope:Enable(self.selected_weapon_sec ~= nil and #scope_list > 0)
+		self.btn_3dssg:TextControl():SetText(has_3dssg and mode_text or "3DSSG [OFF]")
+		self.btn_3dssg:Enable(has_3dssg)
+		self.btn_3dssg:TextControl():SetTextColor(has_3dssg
+			and (self.selected_3dssg_mode == "off" and GetARGB(255, 150, 150, 150) or GetARGB(255, 100, 255, 100))
+			or GetARGB(255, 90, 90, 90))
 	end
 
 	-- Query special ammunition for currently selected weapon
@@ -1647,7 +1676,7 @@ end
 
 local bc_available_factions = {
 	"dolg", "freedom", "killer", "army",
-	"stalker", "bandit", "csky", "ecolog", "renegade", "zombied", "mutant"
+	"stalker", "bandit", "csky", "ecolog", "renegade", "zombied"
 }
 
 local bc_faction_power = {
@@ -1747,8 +1776,28 @@ function UIXcvbArena:on_click_bc_randomize()
 			local j = math.random(1, i)
 			pool[i], pool[j] = pool[j], pool[i]
 		end
+
+		local selected = {}
+		for _, faction in ipairs(pool) do
+			local candidate = {}
+			for i = 1, #selected do
+				candidate[i] = selected[i]
+			end
+			candidate[#candidate + 1] = faction
+			if #selected == 0 or xcvb_arena_utils.are_battle_royale_factions_hostile(candidate) then
+				selected[#selected + 1] = faction
+			end
+			if #selected >= self.bc_num_teams then break end
+		end
+
+		if #selected < self.bc_num_teams then
+			self.bc_num_teams = #selected
+			if self.bc_num_teams == 4 then
+				self.bc_num_teams = 3
+			end
+		end
 		for i = 1, 4 do
-			self.bc_teams[i].faction = pool[i] or "stalker"
+			self.bc_teams[i].faction = selected[i] or "stalker"
 		end
 	end
 	self:update_bc_display()
@@ -2006,6 +2055,17 @@ function UIXcvbArena:on_click_bc_start()
 	if bet <= 0 or db.actor:money() < bet then
 		return
 	end
+
+	if not is_mutants then
+		local factions = {}
+		for i = 1, self.bc_num_teams do
+			factions[i] = self.bc_teams[i].faction
+		end
+		if not xcvb_arena_utils.are_battle_royale_factions_hostile(factions) then
+			news_manager.send_tip(db.actor, gt("st_arena_bc_invalid_factions"), 0, nil, 8000)
+			return
+		end
+	end
 	db.actor:give_money(-bet)
 
 	local br_data = {
@@ -2101,6 +2161,169 @@ end
 function UIXcvbArena:on_click_endless_type(t)
 	self.endless_enemy_type = t
 	self:update_endless_display()
+end
+
+function UIXcvbArena:open_dssg_menu()
+	if not self.selected_weapon_sec then return end
+	local entries = xcvb_arena_utils.get_weapon_scopes(self.selected_weapon_sec) or {}
+	if #entries == 0 then return end
+	local kits, scopes = {}, {}
+	for _, sec in ipairs(entries) do
+		if ini_sys:section_exist(sec) and ini_sys:r_bool_ex(sec, "weapon_kit", false) then
+			table.insert(kits, sec)
+		else
+			table.insert(scopes, sec)
+		end
+	end
+	self.selected_3dssg_entry_list = {}
+	for _, sec in ipairs(kits) do table.insert(self.selected_3dssg_entry_list, sec) end
+	for _, sec in ipairs(scopes) do table.insert(self.selected_3dssg_entry_list, sec) end
+	self.arr_3dssg_page = 1
+	self:show_dssg_menu(true)
+end
+
+function UIXcvbArena:show_dssg_menu(show)
+    if not self.dssg_menu then return end
+    
+    local is_show = (show == true)
+    
+    -- Mostrar/Ocultar el fondo principal
+    self.dssg_menu:Show(is_show)
+    
+    -- Sincronizar botones estáticos explícitamente para evitar bloqueos
+    if self.btn_3dssg_off then self.btn_3dssg_off:Show(is_show) end
+    if self.btn_3dssg_random then self.btn_3dssg_random:Show(is_show) end
+    if self.btn_dssg_close then self.btn_dssg_close:Show(is_show) end
+    
+    if is_show then
+        self:update_dssg_menu()
+    else
+        -- Matar forzosamente los hitboxes invisibles de la paginación y las filas
+        if self.arr_3dssg_page_prev then self.arr_3dssg_page_prev:Show(false) end
+        if self.arr_3dssg_page_next then self.arr_3dssg_page_next:Show(false) end
+        
+        if self.arr_3dssg_rows then
+            for i = 1, 7 do
+                if self.arr_3dssg_rows[i] then
+                    self.arr_3dssg_rows[i]:Show(false)
+                end
+            end
+        end
+    end
+end
+
+function UIXcvbArena:update_dssg_menu()
+	if not self.dssg_menu or not self.dssg_menu:IsShown() then return end
+	local entries = self.selected_3dssg_entry_list or {}
+	local total = #entries
+	local per_page = 7
+	local total_pages = math.max(1, math.ceil(total / per_page))
+	if (not self.arr_3dssg_page) or self.arr_3dssg_page > total_pages then self.arr_3dssg_page = 1 end
+	if self.arr_3dssg_page < 1 then self.arr_3dssg_page = 1 end
+
+	local w_name = ""
+	if self.selected_weapon_sec then
+		w_name = xcvb_arena_utils.get_item_name(self.selected_weapon_sec) or ""
+	end
+	if self.dssg_menu_title then
+		self.dssg_menu_title:SetText("3DSSG: " .. w_name)
+	end
+	if self.dssg_menu_subtitle then
+		self.dssg_menu_subtitle:SetText("Miras / Kits: " .. tostring(total))
+	end
+
+	-- Mode buttons
+	local cur_mode = self.selected_3dssg_mode
+	local cur_scope = self.selected_3dssg_scope
+	if self.btn_3dssg_off then
+		if cur_mode == "off" then
+			self.btn_3dssg_off:TextControl():SetText("3DSSG [OFF] [x]")
+			self.btn_3dssg_off:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+		else
+			self.btn_3dssg_off:TextControl():SetText("3DSSG [OFF]")
+			self.btn_3dssg_off:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		end
+	end
+	if self.btn_3dssg_random then
+		if cur_mode == "random" then
+			self.btn_3dssg_random:TextControl():SetText("3DSSG [RANDOM] [x]")
+			self.btn_3dssg_random:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+		else
+			self.btn_3dssg_random:TextControl():SetText("3DSSG [RANDOM]")
+			self.btn_3dssg_random:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		end
+	end
+
+	-- Scope/kit rows
+	local start_idx = (self.arr_3dssg_page - 1) * per_page
+	for i = 1, per_page do
+		local btn = self.arr_3dssg_rows and self.arr_3dssg_rows[i]
+		if btn then
+			local entry = entries[start_idx + i]
+			if entry then
+				btn:Show(true)
+				local kit_flag = ini_sys:section_exist(entry) and ini_sys:r_bool_ex(entry, "weapon_kit", false)
+				local e_name = xcvb_arena_utils.get_item_short_name(entry) or entry
+				if string.len(e_name) > 28 then
+					e_name = string.sub(e_name, 1, 26) .. ".."
+				end
+				local prefix = (kit_flag == true) and "[KIT] " or ""
+				local mark = (cur_mode == "custom" and entry == cur_scope) and " [x]" or ""
+				btn:TextControl():SetText(prefix .. e_name .. mark)
+				if cur_mode == "custom" and entry == cur_scope then
+					btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+				elseif kit_flag == true then
+					btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 255))
+				else
+					btn:TextControl():SetTextColor(GetARGB(255, 200, 200, 200))
+				end
+			else
+				btn:Show(false)
+			end
+		end
+	end
+
+	-- Pagination
+	if self.arr_3dssg_page_prev then self.arr_3dssg_page_prev:Show(total_pages > 1) end
+	if self.arr_3dssg_page_next then self.arr_3dssg_page_next:Show(total_pages > 1) end
+	if self.arr_3dssg_page_info then
+		self.arr_3dssg_page_info:SetText(tostring(self.arr_3dssg_page) .. "/" .. tostring(total_pages))
+	end
+end
+
+function UIXcvbArena:on_click_dssg_row(row_idx)
+	local entries = self.selected_3dssg_entry_list or {}
+	local actual_idx = (self.arr_3dssg_page - 1) * 7 + row_idx
+	local entry = entries[actual_idx]
+	if not entry then return end
+	self.selected_3dssg_scope = entry
+	self.selected_3dssg_mode = "custom"
+	self:show_dssg_menu(false)
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_3dssg_menu_off()
+	self.selected_3dssg_mode = "off"
+	self.selected_3dssg_scope = nil
+	self:show_dssg_menu(false)
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_3dssg_menu_random()
+	self.selected_3dssg_mode = "random"
+	self.selected_3dssg_scope = nil
+	self:show_dssg_menu(false)
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_dssg_page(dir)
+	local entries = self.selected_3dssg_entry_list or {}
+	local total_pages = math.max(1, math.ceil(#entries / 7))
+	local target = (self.arr_3dssg_page or 1) + dir
+	if target < 1 then target = total_pages end
+	if target > total_pages then target = 1 end
+	self.arr_3dssg_page = target
+	self:update_dssg_menu()
 end
 
 function UIXcvbArena:show_endless_difficulty_menu(show)
@@ -2201,6 +2424,10 @@ function UIXcvbArena:OnKeyboard(dik, keyboard_action)
 	if res == false then
 		local bind = dik_to_bind(dik)
 		if bind == key_bindings.kQUIT or dik == DIK_keys.DIK_ESCAPE then
+			if self.dssg_menu and self.dssg_menu:IsShown() then
+				self:show_dssg_menu(false)
+				return true
+			end
 			if self.endless_diff_menu and self.endless_diff_menu:IsShown() then
 				self:show_endless_difficulty_menu(false)
 				return true
@@ -2214,6 +2441,9 @@ end
 function UIXcvbArena:Close()
 	if self.endless_diff_menu and self.endless_diff_menu:IsShown() then
 		self:show_endless_difficulty_menu(false)
+	end
+	if self.dssg_menu and self.dssg_menu:IsShown() then
+		self:show_dssg_menu(false)
 	end
 	if self:IsShown() then
 		self:HideDialog()

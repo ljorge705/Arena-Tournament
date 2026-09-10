@@ -407,6 +407,19 @@ function is_enemy_faction(fac1, fac2)
     return false
 end
 
+function are_battle_royale_factions_hostile(factions)
+    if not factions or #factions < 2 then return false end
+    for i = 1, #factions - 1 do
+        for j = i + 1, #factions do
+            if not is_enemy_faction(factions[i], factions[j])
+                and not is_enemy_faction(factions[j], factions[i]) then
+                return false
+            end
+        end
+    end
+    return true
+end
+
 function get_stalker_team(amount, opponent_faction)
     local ret_ar = {}
     local pwr = 0
@@ -1210,7 +1223,7 @@ function get_weapon_scopes(weapon_sec)
         local is_upgrade_kit = ini_sys:section_exist(clean_scope)
             and ini_sys:r_bool_ex(clean_scope, "weapon_kit", false)
         local is_scope = IsItem and IsItem("scope", clean_scope)
-        if clean_scope ~= "" and is_scope and not is_upgrade_kit and ini_sys:section_exist(child) then
+        if clean_scope ~= "" and (is_scope or is_upgrade_kit) and ini_sys:section_exist(child) then
             table.insert(result, clean_scope)
         end
     end
@@ -2692,75 +2705,53 @@ function update_battle_royale_targets(squads)
         end
     end
 
-    local function is_valid_target(target, own_squad_id)
-        if not (target and target:alive() and target:id() ~= 0) then return false end
-        if is_npc_wounded(target) then return false end
-        local target_squad_id = target_squad_by_id[target:id()]
-        return target_squad_id and target_squad_id ~= own_squad_id
-    end
-
-    local function get_nearest_target(npc, own_squad_id)
-        local nearest = nil
-        local nearest_distance = nil
-        for squad_id, _ in pairs(squads) do
-            local squad = alife_object(squad_id)
-            if squad and squad.id ~= own_squad_id then
-                for member in squad:squad_members() do
-                    local candidate = level.object_by_id(member.id)
-                    if candidate and candidate:alive() and not is_npc_wounded(candidate) then
-                        local distance = nil
-                        pcall(function()
-                            distance = npc:position():distance_to(candidate:position())
-                        end)
-                        if not nearest or (distance and (not nearest_distance or distance < nearest_distance)) then
-                            nearest = candidate
-                            nearest_distance = distance
-                        end
-                    end
-                end
-            end
-        end
-        return nearest
-    end
-
     for own_squad_id, _ in pairs(squads) do
         local own_squad = alife_object(own_squad_id)
         if own_squad then
             for member in own_squad:squad_members() do
                 local npc = level.object_by_id(member.id)
                 if npc and npc:alive() and not is_npc_wounded(npc) then
-                    local current_enemy = nil
-                    pcall(function()
-                        current_enemy = npc:best_enemy()
-                    end)
-
-                    if not is_valid_target(current_enemy, own_squad_id) then
-                        local target = get_nearest_target(npc, own_squad_id)
-                        if target then
-                            local target_squad_id = target_squad_by_id[target:id()]
-                            if target_squad_id then
-                                own_squad.scripted_target = target_squad_id
-                                own_squad.assigned_target_id = target_squad_id
-                                own_squad.rush_to_target = true
-                            end
-                            pcall(function() npc:force_set_goodwill(-9999, target) end)
-                            pcall(function() npc:set_relation(game_object.enemy, target) end)
-                            if npc.make_enemy_visible then
-                                pcall(function() npc:make_enemy_visible(target) end)
-                            end
-                            if npc.set_enemy then
-                                pcall(function() npc:set_enemy(target) end)
-                            end
-                            if npc.register_in_combat then
-                                pcall(function() npc:register_in_combat() end)
-                            end
-                            pcall(function() npc:set_sight(look.fire_point, target:position()) end)
-                            xcvb_arena_utils.scr_hit(target, npc, 0.001)
+                    local enemy = nil
+                    pcall(function() enemy = npc:best_enemy() end)
+                    local enemy_squad_id = enemy and target_squad_by_id[enemy:id()]
+                    if enemy and (not enemy:alive() or not enemy_squad_id or enemy_squad_id == own_squad_id) then
+                        if npc.clear_enemy then
+                            pcall(function() npc:clear_enemy() end)
+                        elseif npc.set_enemy then
+                            pcall(function() npc:set_enemy(nil) end)
                         end
                     end
                 end
             end
         end
+    end
+end
+
+function ensure_battle_royale_ammo(npc)
+    if not npc or not IsStalker or not IsStalker(nil, npc:clsid()) then return end
+    local weapon_sec = nil
+    npc:iterate_inventory(function(owner, item)
+        if not weapon_sec and item and IsWeapon and IsWeapon(nil, item:clsid()) then
+            weapon_sec = item:section()
+        end
+    end, npc)
+    if not weapon_sec then return end
+
+    local ammo_sec = get_weapon_ammo(weapon_sec, "auto")
+    if not ammo_sec or not ini_sys:section_exist(ammo_sec) then return end
+    for _ = 1, 12 do
+        alife_create_item(ammo_sec, npc)
+    end
+end
+
+function protect_battle_royale_spectator(npc)
+    if not (npc and db.actor) then return end
+    pcall(function() npc:set_relation(game_object.neutral, db.actor) end)
+    pcall(function() npc:force_set_goodwill(5000, db.actor) end)
+    if npc.clear_enemy then
+        pcall(function() npc:clear_enemy() end)
+    elseif npc.set_enemy then
+        pcall(function() npc:set_enemy(nil) end)
     end
 end
 
@@ -2770,10 +2761,20 @@ function setup_battle_royale_relations(squad_ids)
     local squad_lookup = {}
     local alive_indices = {}
     
-    -- Filtrar solo escuadrones vivos
+    -- Filtrar solo escuadrones con combatientes vivos. npc_count() puede
+    -- conservar miembros muertos durante varios frames tras el callback.
     for idx, sq_id in pairs(squad_ids) do
         local sq = sq_id and alife_object(sq_id)
-        if sq and sq:npc_count() > 0 then
+        local live_count = 0
+        if sq then
+            for member in sq:squad_members() do
+                local npc = level.object_by_id(member.id)
+                if not npc or npc:alive() then
+                    live_count = live_count + 1
+                end
+            end
+        end
+        if sq and live_count > 0 then
             squads[idx] = sq
             squad_lookup[sq.id] = true
             table.insert(alive_indices, idx)
@@ -2794,6 +2795,8 @@ function setup_battle_royale_relations(squad_ids)
             sq.scripted_target = next_target.id
             sq.assigned_target_id = next_target.id
         end
+        -- Keep the squad inside the arena and moving toward the current enemy team.
+        -- Individual NPCs still select their own visible targets and cover.
         sq.rush_to_target = true
     end
 
@@ -2815,20 +2818,30 @@ function setup_battle_royale_relations(squad_ids)
         for m_i in sq_i:squad_members() do
             local npc_i = level.object_by_id(m_i.id)
             if npc_i and npc_i:alive() then
-                pcall(function() npc_i:change_team(i, i, i) end)
-                pcall(function() npc_i:add_restrictions("bar_arena_restrictor", "") end)
-                if db.actor then
-                    pcall(function() npc_i:force_set_goodwill(5000, db.actor) end)
-                    pcall(function() npc_i:set_relation(game_object.neutral, db.actor) end)
+                local needs_initialization = not xcvb_arena_fight
+                    or not xcvb_arena_fight.is_battle_royale_npc_initialized
+                    or not xcvb_arena_fight.is_battle_royale_npc_initialized(npc_i:id())
+                if needs_initialization then
+                    pcall(function() npc_i:change_team(i, i, i) end)
+                    pcall(function() npc_i:add_restrictions("bar_arena_restrictor", "") end)
                 end
-                if IsMonster and IsMonster(npc_i) then
-                    pcall(function() npc_i:berserk() end)
-                    pcall(function() npc_i:set_custom_panic_threshold(0) end)
-                elseif IsStalker and IsStalker(npc_i) then
-                    pcall(function() npc_i:set_mental_state(anim.danger) end)
-                    pcall(function() npc_i:set_custom_panic_threshold(0.05) end)
-                    if npc_i.register_in_combat then
-                        pcall(function() npc_i:register_in_combat() end)
+                if db.actor then
+                    protect_battle_royale_spectator(npc_i)
+                end
+                if needs_initialization then
+                    if IsMonster and IsMonster(npc_i) then
+                        pcall(function() npc_i:berserk() end)
+                        pcall(function() npc_i:set_custom_panic_threshold(0) end)
+                    elseif IsStalker and IsStalker(npc_i) then
+                        pcall(function() npc_i:set_mental_state(anim.danger) end)
+                        pcall(function() npc_i:set_custom_panic_threshold(0.05) end)
+                        ensure_battle_royale_ammo(npc_i)
+                        if npc_i.register_in_combat then
+                            pcall(function() npc_i:register_in_combat() end)
+                        end
+                    end
+                    if xcvb_arena_fight and xcvb_arena_fight.mark_battle_royale_npc_initialized then
+                        xcvb_arena_fight.mark_battle_royale_npc_initialized(npc_i:id())
                     end
                 end
                 for _, j in ipairs(alive_indices) do
@@ -2839,9 +2852,6 @@ function setup_battle_royale_relations(squad_ids)
                             if npc_j and npc_j:alive() then
                                 pcall(function() npc_i:force_set_goodwill(-9999, npc_j) end)
                                 pcall(function() npc_i:set_relation(game_object.enemy, npc_j) end)
-                                if npc_i.make_enemy_visible then
-                                    pcall(function() npc_i:make_enemy_visible(npc_j) end)
-                                end
                             end
                         end
                     end

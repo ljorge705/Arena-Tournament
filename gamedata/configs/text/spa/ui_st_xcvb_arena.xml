@@ -821,6 +821,15 @@
 	<string id="st_arena_bc_no_winner">
 		<text>Todos los combatientes han caido. No hay vencedor.</text>
 	</string>
+	<string id="st_arena_bc_invalid_factions">
+		<text>Las facciones seleccionadas no son enemigas segun el lore. Cambia la composicion o baraja de nuevo.</text>
+	</string>
+	<string id="st_arena_bc_team_eliminated">
+		<text>%s ha sido eliminado. Quedan %s equipos en pie.</text>
+	</string>
+	<string id="st_arena_bc_status">
+		<text>Quedan: %s</text>
+	</string>
 	<string id="st_arena_bc_fac_stalker">
 		<text>Solitarios</text>
 	</string>

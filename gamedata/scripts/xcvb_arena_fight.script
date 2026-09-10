@@ -17,6 +17,10 @@ local battle_royale_bet_team = 0
 local battle_royale_reward = 0
 local battle_royale_submode = "factions"
 local next_br_hint = 0
+local next_br_status = 0
+local battle_royale_announced_eliminations = {}
+local battle_royale_last_status = ""
+local battle_royale_initialized_npcs = {}
 local is_endless_mode = false
 local endless_wave = 1
 local endless_reward = 0
@@ -26,6 +30,15 @@ local endless_ending = false
 local endless_transitioning = false
 local endless_fight_closed = false
 local endless_difficulty = "medium"
+function is_battle_royale_npc_initialized(npc_id)
+    return battle_royale_initialized_npcs[npc_id] == true
+end
+
+function mark_battle_royale_npc_initialized(npc_id)
+    if npc_id then
+        battle_royale_initialized_npcs[npc_id] = true
+    end
+end
 local HI = has_alife_info
 local gt = game.translate_string
 
@@ -515,12 +528,28 @@ end
 --------------------------------------------------------------------------------
 function start_battle_royale_fight(br_data)
     if not br_data then return end
+    if br_data.submode ~= "mutants" then
+        local factions = {}
+        for i = 1, (br_data.num_teams or 0) do
+            local team = br_data.teams and br_data.teams[i]
+            if team and team.faction then
+                factions[#factions + 1] = team.faction
+            end
+        end
+        if not xcvb_arena_utils.are_battle_royale_factions_hostile(factions) then
+            news_manager.send_tip(db.actor, gt("st_arena_bc_invalid_factions"), 0, nil, 8000)
+            return
+        end
+    end
     battle_royale_ending = false
     battle_royale_closed = false
     battle_royale_squad_ids = {}
     battle_royale_team_faction = {}
     battle_royale_submode = br_data.submode or "factions"
     next_br_hint = 0
+    battle_royale_announced_eliminations = {}
+    battle_royale_last_status = ""
+    next_br_status = 0
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
 
     local num_teams = br_data.num_teams or 4
@@ -598,6 +627,60 @@ function start_battle_royale_fight(br_data)
     end)
 end
 
+local function get_battle_royale_team_count(squad, dying_member_id)
+    if not squad then return 0 end
+    local count = 0
+    for member in squad:squad_members() do
+        local npc = level.object_by_id(member.id)
+        if member.id ~= dying_member_id and (not npc or npc:alive()) then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+local function get_battle_royale_alive_teams(dying_member_id)
+    local alive_teams = {}
+    for team_idx, squad_id in pairs(battle_royale_squad_ids) do
+        local squad = squad_id and alife_object(squad_id)
+        if squad then
+            if get_battle_royale_team_count(squad, dying_member_id) > 0 then
+                alive_teams[#alive_teams + 1] = team_idx
+            end
+        end
+    end
+    table.sort(alive_teams)
+    return alive_teams
+end
+
+local function get_battle_royale_status()
+    local status = {}
+    for team_idx, squad_id in pairs(battle_royale_squad_ids) do
+        local squad = squad_id and alife_object(squad_id)
+        local count = get_battle_royale_team_count(squad)
+        if count > 0 then
+            local fac_key = battle_royale_team_faction[team_idx] or "stalker"
+            local name = (battle_royale_submode == "mutants")
+                and xcvb_arena_utils.get_mutant_name(fac_key)
+                or xcvb_arena_utils.get_faction_name(fac_key)
+            status[#status + 1] = name .. " " .. tostring(count)
+        end
+    end
+    table.sort(status)
+    return table.concat(status, ", ")
+end
+
+local function announce_battle_royale_elimination(team_idx, alive_count)
+    if battle_royale_announced_eliminations[team_idx] then return end
+    battle_royale_announced_eliminations[team_idx] = true
+    local fac_key = battle_royale_team_faction[team_idx] or "stalker"
+    local name = (battle_royale_submode == "mutants")
+        and xcvb_arena_utils.get_mutant_name(fac_key)
+        or xcvb_arena_utils.get_faction_name(fac_key)
+    local msg = string.format(gt("st_arena_bc_team_eliminated"), name, alive_count)
+    news_manager.send_tip(db.actor, msg, 0, nil, 7000)
+end
+
 function end_battle_royale(winner_team_idx)
     if battle_royale_closed then return end
     battle_royale_closed = true
@@ -652,6 +735,10 @@ function end_battle_royale(winner_team_idx)
     disable_info("xcvb_battle_royale_started")
     battle_royale_squad_ids = {}
     battle_royale_team_faction = {}
+    battle_royale_announced_eliminations = {}
+    next_br_status = 0
+    battle_royale_last_status = ""
+    battle_royale_initialized_npcs = {}
     battle_royale_bet_team = 0
     battle_royale_reward = 0
     return true
@@ -1343,9 +1430,19 @@ function actor_on_update()
         if tg > hit_timer then
             hit_timer = tg + 2000
             xcvb_arena_utils.setup_battle_royale_relations(battle_royale_squad_ids)
+            if next_br_status == 0 or tg > next_br_status then
+                next_br_status = tg + 15000
+                local status = get_battle_royale_status()
+                if status ~= "" and status ~= battle_royale_last_status then
+                    battle_royale_last_status = status
+                    news_manager.send_tip(db.actor, string.format(gt("st_arena_bc_status"), status), 0, nil, 5000)
+                end
+            end
         end
     else
         next_br_hint = 0
+        next_br_status = 0
+        battle_royale_initialized_npcs = {}
     end
 
     if HI("xcvb_tournament_started") and tourn_saved_actor_reputation then
@@ -1716,19 +1813,8 @@ function squad_on_npc_death(squad, se_obj, killer)
             end
         end
         if is_br then
-            local alive_teams = {}
-            for team_idx, s_id in pairs(battle_royale_squad_ids) do
-                local s = alife_object(s_id)
-                if s then
-                    local cnt = s:npc_count()
-                    if s_id == squad.id then
-                        cnt = cnt - 1
-                    end
-                    if cnt > 0 then
-                        alive_teams[#alive_teams + 1] = team_idx
-                    end
-                end
-            end
+            local dying_member_id = se_obj and se_obj.id
+            local alive_teams = get_battle_royale_alive_teams(dying_member_id)
 
             if #alive_teams == 1 then
                 battle_royale_ending = true
@@ -1752,6 +1838,22 @@ function squad_on_npc_death(squad, se_obj, killer)
                     end_battle_royale(0)
                     return true
                 end)
+            else
+                local eliminated_team = nil
+                for team_idx, s_id in pairs(battle_royale_squad_ids) do
+                    if s_id == squad.id then
+                        eliminated_team = team_idx
+                        break
+                    end
+                end
+                if eliminated_team then
+                    announce_battle_royale_elimination(eliminated_team, #alive_teams)
+                end
+                local status = get_battle_royale_status()
+                if status ~= "" then
+                    battle_royale_last_status = status
+                    news_manager.send_tip(db.actor, string.format(gt("st_arena_bc_status"), status), 0, nil, 6000)
+                end
             end
             return
         end

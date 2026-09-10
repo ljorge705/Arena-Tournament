@@ -261,10 +261,6 @@
 			<text font="letterica16">3DSSG [OFF]</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_3dssg>
-		<btn_3dssg_scope x="228" y="420" width="224" height="28" check_mode="0">
-			<text font="letterica16">st_arena_3dssg_scope_select</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_3dssg_scope>
 
 		<!-- Enter Arena / Main Action Button (Centered) -->
 		<tourn_start_btn x="228" y="452" width="224" height="60" check_mode="0">
@@ -851,6 +847,70 @@
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_cancel>
 	</endless_diff_menu>
+
+	<!-- ============================================== -->
+	<!-- 3DSSG SELECTION POPUP MENU (Mirrors + Kits)    -->
+	<!-- ============================================== -->
+	<dssg_menu x="140" y="94" width="540" height="500" stretch="1">
+		<texture>ui_table_back</texture>
+		<title x="15" y="12" width="510" height="22">
+			<text r="255" g="220" b="140" font="graffiti22" align="c" vert_align="c">3DSSG</text>
+		</title>
+		<subtitle x="15" y="36" width="510" height="16">
+			<text r="200" g="200" b="200" font="letterica16" align="c" vert_align="c"></text>
+		</subtitle>
+		<btn_3dssg_off x="20" y="56" width="248" height="30" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_3dssg_off>
+		<btn_3dssg_random x="272" y="56" width="248" height="30" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_3dssg_random>
+		<dssg_row_1 x="20" y="92" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</dssg_row_1>
+		<dssg_row_2 x="20" y="132" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</dssg_row_2>
+		<dssg_row_3 x="20" y="172" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</dssg_row_3>
+		<dssg_row_4 x="20" y="212" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</dssg_row_4>
+		<dssg_row_5 x="20" y="252" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</dssg_row_5>
+		<dssg_row_6 x="20" y="292" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</dssg_row_6>
+		<dssg_row_7 x="20" y="332" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</dssg_row_7>
+		<dssg_page_prev x="140" y="380" width="50" height="28" check_mode="0">
+			<text font="letterica16">&lt;</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</dssg_page_prev>
+		<dssg_page_info x="195" y="382" width="200" height="24">
+			<text r="200" g="200" b="200" font="letterica16" align="c" vert_align="c">1/1</text>
+		</dssg_page_info>
+		<dssg_page_next x="350" y="380" width="50" height="28" check_mode="0">
+			<text font="letterica16">&gt;</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</dssg_page_next>
+		<dssg_close_btn x="60" y="450" width="420" height="34" check_mode="0">
+			<text font="letterica18">st_arena_endless_diff_cancel</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</dssg_close_btn>
+	</dssg_menu>
 
 	<!-- Row vertical lines (Direct children of <w> as expected by CUIXmlInit) -->
 	<vert_line1 x="80" y="0" width="1" height="48" stretch="1">

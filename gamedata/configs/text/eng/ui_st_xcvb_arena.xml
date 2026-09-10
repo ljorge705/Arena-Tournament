@@ -821,6 +821,15 @@
 	<string id="st_arena_bc_no_winner">
 		<text>All combatants have fallen! There is no victor.</text>
 	</string>
+	<string id="st_arena_bc_invalid_factions">
+		<text>The selected factions are not enemies according to the lore. Change the lineup or randomize again.</text>
+	</string>
+	<string id="st_arena_bc_team_eliminated">
+		<text>%s has been eliminated. %s teams remain.</text>
+	</string>
+	<string id="st_arena_bc_status">
+		<text>Left: %s</text>
+	</string>
 	<string id="st_arena_bc_fac_stalker">
 		<text>Loners</text>
 	</string>
