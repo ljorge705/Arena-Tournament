@@ -13,6 +13,7 @@ function open_gui()
 		GUI:ShowDialog(true)
 		Register_UI("UIXcvbArena", "xcvb_arena_gui")
 		GUI:reset_loadout_selection()
+		GUI:auto_select_current_round()
 		GUI:update_view_mode()
 	end
 end
@@ -191,6 +192,7 @@ function UIXcvbArena:InitControls()
 	self.summary_outfit = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_outfit", self.loadout_summary_frame)
 	self.summary_helmet = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_helmet", self.loadout_summary_frame)
 	self.summary_scope = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_scope", self.loadout_summary_frame)
+	self.summary_cost = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_cost", self.loadout_summary_frame)
 
 	-- Main Action Button
 	self.btn_tourn_start = xml:Init3tButton("tournament_cont:tourn_start_btn", self.tournament_cont)
@@ -804,23 +806,49 @@ function UIXcvbArena:reset_loadout_selection()
 	end
 end
 
+function UIXcvbArena:auto_select_current_round()
+	local cat = self.current_category or "stalker"
+	local unl = xcvb_arena_main.get_unlocked_round(cat)
+	local tier = math.min(5, math.ceil(unl / 3))
+	self.current_tier = tier
+	local start_round = (tier - 1) * 3 + 1
+	local target_round = start_round
+	for r = 0, 2 do
+		local cand = start_round + r
+		if xcvb_arena_main.is_round_unlocked(cat, cand) and not xcvb_arena_main.is_round_completed(cat, cand) then
+			target_round = cand
+			break
+		end
+	end
+	self.selected_round_id = target_round
+end
+
 function UIXcvbArena:on_click_cat_stalkers()
 	self.current_category = "stalker"
-	self.selected_round_id = (self.current_tier - 1) * 3 + 1
+	self:auto_select_current_round()
 	self:reset_loadout_selection()
 	self:update_tournament_display()
 end
 
 function UIXcvbArena:on_click_cat_mutants()
 	self.current_category = "mutant"
-	self.selected_round_id = (self.current_tier - 1) * 3 + 1
+	self:auto_select_current_round()
 	self:reset_loadout_selection()
 	self:update_tournament_display()
 end
 
 function UIXcvbArena:on_click_tier(tier)
 	self.current_tier = tier
-	self.selected_round_id = (tier - 1) * 3 + 1
+	local start_round = (tier - 1) * 3 + 1
+	local target_round = start_round
+	for r = 0, 2 do
+		local cand = start_round + r
+		if xcvb_arena_main.is_round_unlocked(self.current_category, cand) and not xcvb_arena_main.is_round_completed(self.current_category, cand) then
+			target_round = cand
+			break
+		end
+	end
+	self.selected_round_id = target_round
 	self:reset_loadout_selection()
 	self:update_tournament_display()
 end
@@ -980,7 +1008,7 @@ function UIXcvbArena:update_tournament_display()
 			elseif not rank_ok then
 				row.action_btn:TextControl():SetText(gt("st_arena_status_locked_rank"))
 				row.action_btn:TextControl():SetTextColor(GetARGB(255, 180, 100, 100))
-				row.action_btn:Enable(false)
+				row.action_btn:Enable(true)
 			elseif is_comp then
 				if remain_sec > 0 then
 					row.action_btn:TextControl():SetText(gt("st_arena_btn_replay_no_reward"))
@@ -989,7 +1017,7 @@ function UIXcvbArena:update_tournament_display()
 				elseif remain_sec < 0 then
 					row.action_btn:TextControl():SetText(gt("st_arena_status_completed"))
 					row.action_btn:TextControl():SetTextColor(GetARGB(255, 140, 220, 140))
-					row.action_btn:Enable(false)
+					row.action_btn:Enable(true)
 				else
 					row.action_btn:TextControl():SetText(gt("st_arena_btn_replay"))
 					row.action_btn:TextControl():SetTextColor(GetARGB(255, 140, 220, 140))
@@ -1002,7 +1030,7 @@ function UIXcvbArena:update_tournament_display()
 			else
 				row.action_btn:TextControl():SetText(gt("st_arena_status_locked"))
 				row.action_btn:TextControl():SetTextColor(GetARGB(255, 160, 160, 160))
-				row.action_btn:Enable(false)
+				row.action_btn:Enable(true)
 			end
 		end
 	end
@@ -1026,38 +1054,96 @@ function UIXcvbArena:update_tournament_display()
 
 		if xcvb_arena_main.practice_mode_active then
 			sel_desc = sel_desc .. "\\n\\n" .. gt("st_arena_practice_mode_active_desc")
-			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_practice_action"))
-			self.btn_tourn_start:Enable(true)
 		elseif not sel_rank_ok then
 			local req_rank = xcvb_arena_main.get_tier_required_rank_name(sel_tier)
 			sel_desc = sel_desc .. "\\n\\n" .. string.format(gt("st_arena_rank_required_tip"), req_rank)
-			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_locked_rank"))
-			self.btn_tourn_start:Enable(false)
 		elseif sel_comp then
 			if sel_remain_sec > 0 then
 				sel_desc = sel_desc .. "\\n\\n" .. string.format(gt("st_arena_cooldown_tip"), sel_remain_str)
-				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay_no_reward"))
-				self.btn_tourn_start:Enable(true)
-			elseif sel_remain_sec < 0 then
-				self.btn_tourn_start:TextControl():SetText(gt("st_arena_status_completed"))
-				self.btn_tourn_start:Enable(false)
-			else
-				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay"))
-				self.btn_tourn_start:Enable(true)
 			end
-		elseif sel_unlocked then
-			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_enter"))
-			self.btn_tourn_start:Enable(true)
-		else
-			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_locked"))
-			self.btn_tourn_start:Enable(false)
 		end
+
+		self:update_tourn_start_button()
 
 		self.detail_title:SetText(gt(sel_data.name) .. " - " .. gt(sel_data.diff_str))
 		self.detail_desc:SetText(sel_desc)
 	end
 
 	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:get_current_loadout_rental_fee()
+	return xcvb_arena_utils.get_loadout_rental_fee(
+		self.selected_round_id,
+		self.selected_loadout_class,
+		self.selected_loadout_tier,
+		self.selected_loadout_ammo,
+		self.selected_weapon_sec,
+		self.selected_3dssg_scope
+	)
+end
+
+function UIXcvbArena:update_tourn_start_button()
+	if not self.btn_tourn_start then return end
+	local cat = self.current_category or "stalker"
+	local sel_tier = math.ceil(self.selected_round_id / 3)
+	local is_practice = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
+	local sel_rank_ok = is_practice or xcvb_arena_main.is_tier_unlocked_by_rank(sel_tier)
+	local sel_unlocked = is_practice or xcvb_arena_main.is_round_unlocked(cat, self.selected_round_id)
+	local sel_comp = xcvb_arena_main.is_round_completed(cat, self.selected_round_id)
+	local sel_remain_sec = xcvb_arena_main.get_round_cooldown_remaining(cat, self.selected_round_id)
+
+	local fee = self:get_current_loadout_rental_fee()
+	local actor_money = db.actor and db.actor:money() or 0
+
+	if is_practice then
+		self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_practice_action"))
+		self.btn_tourn_start:Enable(true)
+	elseif not sel_rank_ok then
+		self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_locked_rank"))
+		self.btn_tourn_start:Enable(false)
+	elseif sel_comp then
+		if sel_remain_sec > 0 then
+			if fee > 0 and actor_money < fee then
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_insufficient_funds"))
+				self.btn_tourn_start:Enable(false)
+			elseif fee > 0 then
+				self.btn_tourn_start:TextControl():SetText(string.format(gt("st_arena_btn_replay_fee"), tostring(fee)))
+				self.btn_tourn_start:Enable(true)
+			else
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay_no_reward"))
+				self.btn_tourn_start:Enable(true)
+			end
+		elseif sel_remain_sec < 0 then
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_status_completed"))
+			self.btn_tourn_start:Enable(false)
+		else
+			if fee > 0 and actor_money < fee then
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_insufficient_funds"))
+				self.btn_tourn_start:Enable(false)
+			elseif fee > 0 then
+				self.btn_tourn_start:TextControl():SetText(string.format(gt("st_arena_btn_replay_fee"), tostring(fee)))
+				self.btn_tourn_start:Enable(true)
+			else
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay"))
+				self.btn_tourn_start:Enable(true)
+			end
+		end
+	elseif sel_unlocked then
+		if fee > 0 and actor_money < fee then
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_insufficient_funds"))
+			self.btn_tourn_start:Enable(false)
+		elseif fee > 0 then
+			self.btn_tourn_start:TextControl():SetText(string.format(gt("st_arena_btn_enter_with_fee"), tostring(fee)))
+			self.btn_tourn_start:Enable(true)
+		else
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_enter"))
+			self.btn_tourn_start:Enable(true)
+		end
+	else
+		self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_locked"))
+		self.btn_tourn_start:Enable(false)
+	end
 end
 
 local function is_in_list(tbl, val)
@@ -1510,7 +1596,26 @@ function UIXcvbArena:update_loadout_buttons()
 			if string.len(s_name) > 22 then s_name = string.sub(s_name, 1, 20) .. ".." end
 			self.summary_scope:SetText(format_label("3DSSG", s_name))
 		end
+
+		if self.summary_cost then
+			local cost_label = gt("st_arena_loadout_cost_label")
+			local fee = self:get_current_loadout_rental_fee()
+			if fee == 0 then
+				self.summary_cost:SetText(format_label(cost_label, gt("st_arena_cost_free")))
+				self.summary_cost:SetTextColor(GetARGB(255, 120, 240, 120))
+			else
+				local actor_money = db.actor and db.actor:money() or 0
+				self.summary_cost:SetText(format_label(cost_label, tostring(fee) .. " RU"))
+				if actor_money >= fee then
+					self.summary_cost:SetTextColor(GetARGB(255, 255, 220, 100))
+				else
+					self.summary_cost:SetTextColor(GetARGB(255, 255, 100, 100))
+				end
+			end
+		end
 	end
+
+	self:update_tourn_start_button()
 end
 
 function UIXcvbArena:on_click_tourn_start()
@@ -1528,6 +1633,21 @@ function UIXcvbArena:on_click_tourn_start()
 		end
 		if comp and remain_sec < 0 then
 			return
+		end
+	end
+
+	local fee = self:get_current_loadout_rental_fee()
+	if (not is_practice) and fee > 0 then
+		local actor_money = db.actor and db.actor:money() or 0
+		if actor_money < fee then
+			local msg = string.format(gt("st_arena_err_insufficient_funds"), fee)
+			if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
+			return
+		end
+		if db.actor then
+			db.actor:give_money(-fee)
+			local fee_msg = string.format(gt("st_arena_fee_deducted_tip"), fee)
+			news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000)
 		end
 	end
 

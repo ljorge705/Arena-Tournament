@@ -3590,3 +3590,85 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
         end)
     end
 end
+
+--------------------------------------------------------------------------------
+-- LOADOUT RENTAL FEE CALCULATION
+--------------------------------------------------------------------------------
+function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_ammo, weapon_sec, scope_sec)
+    if xcvb_arena_main and xcvb_arena_main.practice_mode_active then
+        return 0
+    end
+
+    local mult = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("rental_fee_mult"))
+    if mult == nil then mult = 1.0 end
+    if mult <= 0 then
+        return 0
+    end
+
+    local round_tier = math.max(1, math.min(5, math.ceil((round_id or 1) / 3)))
+    local eff_tier = loadout_tier
+    if not eff_tier or eff_tier == 0 then
+        eff_tier = round_tier
+    end
+    if eff_tier < 1 then eff_tier = 1 end
+    if eff_tier > 5 then eff_tier = 5 end
+
+    local total_fee = 0
+
+    -- 1. Primary weapon fee (free if random)
+    if loadout_class and loadout_class ~= "random" then
+        local w_fee = 0
+        if weapon_sec and ini_sys and ini_sys:section_exist(weapon_sec) then
+            local cost = ini_sys:r_u32(weapon_sec, "cost") or 0
+            if cost > 0 then
+                w_fee = math.max(300, math.floor(cost * 0.08))
+            end
+        end
+        if w_fee == 0 then
+            local class_base = {
+                pistol = 400,
+                shotgun = 700,
+                smg = 800,
+                rifle = 1200,
+                sniper = 1600,
+            }
+            w_fee = (class_base[loadout_class] or 600) * eff_tier
+        end
+        total_fee = total_fee + w_fee
+    end
+
+    -- 2. Weapon Tier override fee (bringing higher tier weapons into lower tier matches)
+    if loadout_tier and loadout_tier > 0 then
+        if loadout_tier > round_tier then
+            total_fee = total_fee + (loadout_tier - round_tier) * 1200
+        else
+            total_fee = total_fee + 300
+        end
+    end
+
+    -- 3. Ammo type fee (free if auto)
+    if loadout_ammo and loadout_ammo ~= "auto" then
+        local ammo_tier_cost = {
+            fmj = 300,
+            hp = 500,
+            ap = 1000,
+            special = 1500,
+        }
+        local a_cost = (ammo_tier_cost[loadout_ammo] or 400) * eff_tier
+        total_fee = total_fee + a_cost
+    end
+
+    -- 4. Scope fee
+    if scope_sec then
+        total_fee = total_fee + 500
+    end
+
+    total_fee = total_fee * mult
+    if total_fee > 0 then
+        total_fee = math.max(100, math.floor((total_fee / 50) + 0.5) * 50)
+    else
+        total_fee = 0
+    end
+
+    return total_fee
+end

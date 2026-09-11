@@ -259,6 +259,9 @@
 			<summary_scope x="10" y="124" width="200" height="16">
 				<text r="150" g="210" b="230" font="letterica16" align="l" vert_align="c"></text>
 			</summary_scope>
+			<summary_cost x="10" y="139" width="200" height="15">
+				<text r="120" g="240" b="120" font="letterica16" align="l" vert_align="c"></text>
+			</summary_cost>
 		</loadout_summary_frame>
 
 		<btn_3dssg x="228" y="388" width="224" height="28" check_mode="0">

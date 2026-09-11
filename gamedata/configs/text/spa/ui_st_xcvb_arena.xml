@@ -1013,7 +1013,7 @@
 		<text>Permite equipar municion especial / sobrecargada si el mod ArtiGrok Ballistics esta instalado.</text>
 	</string>
 	<string id="st_arena_loadout_summary_title">
-		<text>EQUIPO SELECCIONADO</text>
+		<text>PRESTAMO DE ARMAMENTO</text>
 	</string>
 	<string id="st_arena_loadout_sum_round">
 		<text>Ronda</text>
@@ -1143,5 +1143,32 @@
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_reward_mult_desc">
 		<text>Ajusta el multiplicador de recompensas de dinero por oleada en Modo Infinito.</text>
+	</string>
+	<string id="st_arena_loadout_cost_label">
+		<text>Coste de prestamo</text>
+	</string>
+	<string id="st_arena_cost_free">
+		<text>GRATIS</text>
+	</string>
+	<string id="st_arena_btn_enter_with_fee">
+		<text>ENTRAR (-%s RU)</text>
+	</string>
+	<string id="st_arena_btn_replay_fee">
+		<text>REPETIR (-%s RU)</text>
+	</string>
+	<string id="st_arena_btn_insufficient_funds">
+		<text>FONDOS INSUFICIENTES</text>
+	</string>
+	<string id="st_arena_err_insufficient_funds">
+		<text>Fondos insuficientes: Necesitas %s RU para el prestamo de armamento.</text>
+	</string>
+	<string id="st_arena_fee_deducted_tip">
+		<text>Prestamo de armamento: Se han descontado %s RU.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_rental_fee_mult">
+		<text>Multiplicador de coste de prestamo</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_rental_fee_mult_desc">
+		<text>Ajusta el coste al elegir armas, niveles o municiones especificas (0 = Gratis, 1.0 = Predeterminado).</text>
 	</string>
 </string_table>

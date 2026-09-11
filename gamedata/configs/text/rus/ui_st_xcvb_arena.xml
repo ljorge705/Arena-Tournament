@@ -1013,7 +1013,7 @@
 		<text>Позволяет использовать специальные / усиленные патроны, если установлен мод ArtiGrok Ballistics.</text>
 	</string>
 	<string id="st_arena_loadout_summary_title">
-		<text>ВЫБРАННОЕ СНАРЯЖЕНИЕ</text>
+		<text>АРЕНДА СНАРЯЖЕНИЯ</text>
 	</string>
 	<string id="st_arena_loadout_sum_round">
 		<text>Раунд</text>
@@ -1143,5 +1143,32 @@
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_reward_mult_desc">
 		<text>Настройка множителя денежного вознаграждения за волны в Бесконечном режиме.</text>
+	</string>
+	<string id="st_arena_loadout_cost_label">
+		<text>Стоимость аренды</text>
+	</string>
+	<string id="st_arena_cost_free">
+		<text>БЕСПЛАТНО</text>
+	</string>
+	<string id="st_arena_btn_enter_with_fee">
+		<text>ВОЙТИ (-%s RU)</text>
+	</string>
+	<string id="st_arena_btn_replay_fee">
+		<text>ПОВТОРИТЬ (-%s RU)</text>
+	</string>
+	<string id="st_arena_btn_insufficient_funds">
+		<text>НЕДОСТАТОЧНО ДЕНЕГ</text>
+	</string>
+	<string id="st_arena_err_insufficient_funds">
+		<text>Недостаточно денег: Требуется %s RU для аренды снаряжения.</text>
+	</string>
+	<string id="st_arena_fee_deducted_tip">
+		<text>Аренда снаряжения: Списано %s RU.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_rental_fee_mult">
+		<text>Множитель стоимости аренды снаряжения</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_rental_fee_mult_desc">
+		<text>Регулирует стоимость выбора конкретного оружия, тира или патронов (0 = Бесплатно, 1.0 = По умолчанию).</text>
 	</string>
 </string_table>

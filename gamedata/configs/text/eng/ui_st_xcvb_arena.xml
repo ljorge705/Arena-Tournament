@@ -1013,7 +1013,7 @@
 		<text>Allows equipping special / overpressured ammo if ArtiGrok Ballistics mod is installed.</text>
 	</string>
 	<string id="st_arena_loadout_summary_title">
-		<text>SELECTED LOADOUT</text>
+		<text>EQUIPMENT RENTAL</text>
 	</string>
 	<string id="st_arena_loadout_sum_round">
 		<text>Round</text>
@@ -1143,5 +1143,32 @@
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_reward_mult_desc">
 		<text>Adjust reward earnings multiplier for Endless Mode waves.</text>
+	</string>
+	<string id="st_arena_loadout_cost_label">
+		<text>Rental Fee</text>
+	</string>
+	<string id="st_arena_cost_free">
+		<text>FREE</text>
+	</string>
+	<string id="st_arena_btn_enter_with_fee">
+		<text>ENTER (-%s RU)</text>
+	</string>
+	<string id="st_arena_btn_replay_fee">
+		<text>REPLAY (-%s RU)</text>
+	</string>
+	<string id="st_arena_btn_insufficient_funds">
+		<text>INSUFFICIENT FUNDS</text>
+	</string>
+	<string id="st_arena_err_insufficient_funds">
+		<text>Insufficient funds: You need %s RU for the equipment rental.</text>
+	</string>
+	<string id="st_arena_fee_deducted_tip">
+		<text>Equipment rental: %s RU deducted.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_rental_fee_mult">
+		<text>Loadout Rental Fee Multiplier</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_rental_fee_mult_desc">
+		<text>Adjusts the fee when selecting specific weapons, tiers, or ammo types (0 = Free, 1.0 = Default).</text>
 	</string>
 </string_table>

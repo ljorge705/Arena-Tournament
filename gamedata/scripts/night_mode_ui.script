@@ -1,0 +1,366 @@
+-- ============================================================
+-- night_mode_ui.script
+-- Boton "MODO NOCHE" en el menu principal (+ pausa) para
+-- STALKER Anomaly 1.5.2 / X-Ray Monolith.
+--
+-- - Inyecta un boton en el menu nativo (ui_main_menu.main_menu)
+--   que alterna night_mode_manager.enable()/disable().
+-- - Si el menu nativo no es parcheable en tu build, muestra una
+--   ventana flotante fallback solo en menu principal.
+-- - Extra: tecla F8 + comandos de consola para alternar in-game.
+--
+-- No requiere XML: todo el UI se crea por codigo.
+-- ============================================================
+
+-- Etiqueta del boton segun estado (ES). Intenta traducir si hay MCM/lang.
+function nm_button_label()
+  local on = false
+  pcall(function()
+    if night_mode_manager ~= nil and night_mode_manager.is_active ~= nil then
+      on = night_mode_manager.is_active()
+    end
+  end)
+  if on == true then
+    return "MODO NOCHE: ON  ->  VOLVER A NORMAL"
+  else
+    return "MODO NOCHE: OFF  ->  PONER NOCHE (02:30)"
+  end
+end
+
+-- Toggle central: llama al manager y refresca todo el UI + tip in-game.
+function nm_toggle_from_menu()
+  local ok = pcall(function()
+    if night_mode_manager ~= nil and night_mode_manager.toggle ~= nil then
+      night_mode_manager.toggle()
+    elseif toggle_night_mode ~= nil then
+      toggle_night_mode()
+    end
+  end)
+  if not ok then
+    return
+  end
+  pcall(function() night_mode_ui_refresh() end)
+  -- Feedback en HUD cuando hay actor (in-game / pausa con partida cargada)
+  pcall(function()
+    if db ~= nil and db.actor ~= nil and news_manager ~= nil and news_manager.send_tip ~= nil then
+      local on = false
+      if night_mode_manager ~= nil then on = night_mode_manager.is_active() end
+      if on then
+        news_manager.send_tip(db.actor, "MODO NOCHE activado (02:30)", 0, nil, 5000)
+      else
+        news_manager.send_tip(db.actor, "Modo normal restaurado", 0, nil, 5000)
+      end
+    end
+  end)
+end
+
+-- ============================================================
+-- Ventana flotante fallback (solo se muestra en menu principal
+-- si la inyeccion al menu nativo no fue posible).
+-- ============================================================
+NM_UI = NM_UI or nil
+
+class "UINightModeToggle" (CUIScriptWnd)
+
+function UINightModeToggle:__init() super()
+  self:SetWndRect(Frect():set(0, 0, 1024, 768))
+  self:SetAutoDelete(false)
+  self:Enable(true)
+
+  self.btn = CUI3tButton()
+  self.btn:SetWndPos(vector2():set(30, 700))
+  self.btn:SetWndSize(vector2():set(340, 36))
+  pcall(function()
+    self.btn:TextControl():SetText(nm_button_label())
+    self.btn:TextControl():SetTextColor(GetARGB(255, 170, 210, 255))
+  end)
+  self.btn:Enable(true)
+  self.btn:Show(true)
+  self:AddWindow(self.btn, true)
+  self:Register(self.btn, "nm_toggle_fallback")
+  self:AddCallback("nm_toggle_fallback", ui_events.BUTTON_CLICKED, nm_toggle_from_menu, self)
+end
+
+function UINightModeToggle:__finalize()
+end
+
+function UINightModeToggle:refresh()
+  pcall(function()
+    if self.btn ~= nil then
+      self.btn:TextControl():SetText(nm_button_label())
+      local on = false
+      if night_mode_manager ~= nil then on = night_mode_manager.is_active() end
+      if on then
+        self.btn:TextControl():SetTextColor(GetARGB(255, 120, 255, 120))
+      else
+        self.btn:TextControl():SetTextColor(GetARGB(255, 170, 210, 255))
+      end
+    end
+  end)
+end
+
+function night_mode_ui_refresh()
+  -- Refresca boton inyectado en menu nativo (si existe instancia viva)
+  pcall(function()
+    if _G.nm_mm_instance ~= nil and _G.nm_mm_instance.nm_btn ~= nil then
+      _G.nm_mm_instance.nm_btn:TextControl():SetText(nm_button_label())
+    end
+  end)
+  -- Refresca fallback
+  pcall(function()
+    if NM_UI ~= nil and NM_UI.refresh ~= nil then
+      NM_UI:refresh()
+    end
+  end)
+end
+
+local function nm_in_menu()
+  -- true si estamos en menu principal (sin nivel / sin actor)
+  local present_ok, present = pcall(function()
+    if level ~= nil and level.present ~= nil then return level.present() end
+    return false
+  end)
+  if present_ok and present == true then
+    return false
+  end
+  return true
+end
+
+function night_mode_ui_show_fallback()
+  pcall(function()
+    if _G.nm_mm_patched == true then
+      return -- menu nativo ya tiene el boton, no hace falta fallback
+    end
+    if not nm_in_menu() then
+      return -- in-game: no ensuciar el HUD (usar F8 / consola / pausa)
+    end
+    if NM_UI == nil then
+      NM_UI = UINightModeToggle()
+    end
+    NM_UI:refresh()
+    if NM_UI:IsShown() ~= true then
+      NM_UI:ShowDialog(true)
+    end
+  end)
+end
+
+function night_mode_ui_hide_fallback()
+  pcall(function()
+    if NM_UI ~= nil and NM_UI:IsShown() == true then
+      NM_UI:ShowDialog(false)
+    end
+  end)
+end
+
+-- ============================================================
+-- Inyeccion al menu nativo (ui_main_menu.main_menu)
+-- ============================================================
+local function nm_inject_into_instance(mm)
+  if mm == nil then
+    return false
+  end
+  if mm.nm_btn ~= nil then
+    pcall(function() mm.nm_btn:TextControl():SetText(nm_button_label()) end)
+    return true -- ya inyectado en esta instancia
+  end
+  local ok = pcall(function()
+    mm.nm_btn = CUI3tButton()
+    mm.nm_btn:SetWndPos(vector2():set(30, 700))
+    mm.nm_btn:SetWndSize(vector2():set(340, 36))
+    mm.nm_btn:TextControl():SetText(nm_button_label())
+    mm.nm_btn:TextControl():SetTextColor(GetARGB(255, 170, 210, 255))
+    mm.nm_btn:Enable(true)
+    mm.nm_btn:Show(true)
+    mm:AddWindow(mm.nm_btn, true)
+    mm:Register(mm.nm_btn, "nm_toggle")
+    mm:AddCallback("nm_toggle", ui_events.BUTTON_CLICKED, nm_toggle_from_menu, mm)
+    _G.nm_mm_instance = mm
+  end)
+  return ok
+end
+
+local function nm_patch_main_menu_class()
+  if _G.nm_mm_patched == true then
+    return true
+  end
+  local cls = nil
+  pcall(function()
+    if ui_main_menu ~= nil and ui_main_menu.main_menu ~= nil then
+      cls = ui_main_menu.main_menu
+    elseif _G.main_menu ~= nil and type(_G.main_menu) == "table" then
+      cls = _G.main_menu
+    end
+  end)
+  if cls == nil then
+    return false
+  end
+  if cls.__nm_patched == true then
+    _G.nm_mm_patched = true
+    return true
+  end
+  -- Guardar originales para encadenar (no romper otros mods)
+  local orig_init = cls.InitControls
+  local orig_show = cls.ShowStartDialog
+  -- Parche 1: tras crear controles, inyectar boton
+  cls.InitControls = function(self)
+    if orig_init ~= nil then
+      pcall(function() orig_init(self) end)
+    end
+    pcall(nm_inject_into_instance, self)
+  end
+  -- Parche 2: al mostrar el dialogo inicial, asegurar boton visible + etiqueta fresca
+  if orig_show ~= nil then
+    cls.ShowStartDialog = function(self)
+      local r = nil
+      pcall(function() r = orig_show(self) end)
+      pcall(nm_inject_into_instance, self)
+      pcall(night_mode_ui_refresh)
+      return r
+    end
+  end
+  cls.__nm_patched = true
+  _G.nm_mm_patched = true
+  -- Si el menu ya estaba instanciado, intentar sobre la instancia viva
+  pcall(function()
+    if _G.nm_mm_instance ~= nil then
+      nm_inject_into_instance(_G.nm_mm_instance)
+    end
+  end)
+  return true
+end
+
+-- Callbacks del engine para menu (nombres varian por fork: probar varios)
+local function nm_on_mm_event(...)
+  local ev_arg = ...
+  pcall(nm_patch_main_menu_class)
+  pcall(function()
+    -- Capturar instancia si el evento la trae como arg (algunos forks la pasan)
+    local a1 = ev_arg
+    if a1 ~= nil and type(a1) == "userdata" then
+      pcall(nm_inject_into_instance, a1)
+      _G.nm_mm_instance = a1
+    end
+  end)
+  -- Sin boton nativo -> fallback flotante en menu
+  if _G.nm_mm_patched ~= true then
+    pcall(night_mode_ui_show_fallback)
+  else
+    pcall(night_mode_ui_hide_fallback)
+  end
+  pcall(night_mode_ui_refresh)
+end
+
+-- Tecla F8 in-game / en pausa para alternar sin boton
+local function nm_on_key_press(dik, bind)
+  pcall(function()
+    if dik == nil or DIK_keys == nil then
+      return
+    end
+    if dik == DIK_keys.DIK_F8 then
+      -- Solo cuando hay partida (evitar romper navegacion del menu con F8)
+      local in_game = false
+      pcall(function()
+        if level ~= nil and level.present ~= nil then
+          in_game = level.present()
+        end
+      end)
+      if in_game then
+        nm_toggle_from_menu()
+      else
+        -- En menu principal F8 tambien alterna (pre-arma cvars de noche)
+        nm_toggle_from_menu()
+      end
+    end
+  end)
+  return false -- no consumir la tecla para otros handlers
+end
+
+local function nm_register_console_commands()
+  -- Distintos forks exponen distinto API; probar todos sin romper.
+  pcall(function()
+    if AddConsoleCommand ~= nil then
+      AddConsoleCommand("night_mode_toggle", nm_toggle_from_menu)
+      AddConsoleCommand("night_mode_on", function()
+        pcall(function() night_mode_manager.enable() end)
+        pcall(night_mode_ui_refresh)
+      end)
+      AddConsoleCommand("night_mode_off", function()
+        pcall(function() night_mode_manager.disable() end)
+        pcall(night_mode_ui_refresh)
+      end)
+    end
+  end)
+  pcall(function()
+    if register_console_command ~= nil then
+      register_console_command("night_mode_toggle", nm_toggle_from_menu)
+    end
+  end)
+  pcall(function()
+    local con = nil
+    if get_console ~= nil then con = get_console() end
+    if con ~= nil and con.AddCommand ~= nil then
+      con:AddCommand("night_mode_toggle", nm_toggle_from_menu)
+    end
+  end)
+end
+
+local nm_first_actor_update_done = false
+
+local function nm_actor_on_first_update()
+  nm_first_actor_update_done = true
+  pcall(nm_patch_main_menu_class)
+  pcall(night_mode_ui_hide_fallback) -- en partida no mostramos fallback
+  pcall(night_mode_ui_refresh)
+  return true
+end
+
+local nm_last_fallback_check = 0
+
+local function nm_actor_on_update()
+  -- Solo para ocultar el fallback si se coló al cargar partida
+  local tg = 0
+  pcall(function() tg = time_global() end)
+  if tg - (nm_last_fallback_check or 0) > 3000 then
+    nm_last_fallback_check = tg
+    pcall(night_mode_ui_hide_fallback)
+  end
+end
+
+function on_game_start()
+  -- 1) Comandos de consola (night_mode_toggle / _on / _off)
+  pcall(nm_register_console_commands)
+  -- 2) Intentar parche del menu nativo ya (si ui_main_menu cargo antes)
+  pcall(nm_patch_main_menu_class)
+  -- 3) Reintentar en cada evento de menu (cada fork usa un nombre distinto)
+  local mm_events = {
+    "main_menu_on_init", "main_menu_on_show", "main_menu_on_update",
+    "mm_on_init", "mm_on_show", "ui_main_menu_on_init",
+  }
+  for _, ev in ipairs(mm_events) do
+    pcall(function() RegisterScriptCallback(ev, nm_on_mm_event) end)
+  end
+  -- 4) Tecla F8 global
+  pcall(function() RegisterScriptCallback("on_key_press", nm_on_key_press) end)
+  -- 5) Ciclo actor: ocultar fallback en partida + refrescar
+  pcall(function() RegisterScriptCallback("actor_on_first_update", nm_actor_on_first_update) end)
+  pcall(function() RegisterScriptCallback("actor_on_update", nm_actor_on_update) end)
+  -- 6) Si arrancamos directamente en menu, mostrar fallback hasta que el
+  --    parche aplique (el evento de menu lo ocultara si ya no hace falta).
+  pcall(function()
+    if nm_in_menu() and _G.nm_mm_patched ~= true then
+      -- Diferir un tick: el menu puede no estar construido aun en on_game_start
+      if CreateTimeEvent ~= nil then
+        pcall(function() RemoveTimeEvent("nm_ui_boot_e", "nm_ui_boot_a") end)
+        -- CreateTimeEvent no corre en menu en algunos builds; el evento de
+        -- menu (paso 3) es el camino principal. Esto es solo best-effort.
+        pcall(function()
+          CreateTimeEvent("nm_ui_boot_e", "nm_ui_boot_a", 1.0, function()
+            nm_on_mm_event()
+            return true
+          end)
+        end)
+      end
+      night_mode_ui_show_fallback()
+    end
+  end)
+end

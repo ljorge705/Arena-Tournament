@@ -8,6 +8,7 @@ local defaults = {
 	["medic_rescue_fee"] = 2500,
 	["allow_replay"] = "7d",
 	["special_ammo_support"] = true,
+	["rental_fee_mult"] = 1.0,
 	["panic_key"] = DIK_keys.DIK_F,
 }
 
@@ -42,6 +43,7 @@ function on_mcm_load()
 				}
 			},
 			{ id = "special_ammo_support", type = "check", val = 1, def = true },
+			{ id = "rental_fee_mult", type = "track", val = 2, min = 0.0, max = 3.0, step = 0.1, def = 1.0 },
 
 			{ id = "line", type = "line" },
 

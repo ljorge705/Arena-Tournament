@@ -233,6 +233,7 @@ function end_tournament_fight(is_victory)
     end)
 
     local cat = current_tournament_category or "stalker"
+    local actor_alive = db.actor and db.actor:alive()
     is_victory = is_victory and actor_alive
     if is_victory and current_tournament_round_id then
         xcvb_arena_main.tournament_wins = xcvb_arena_main.tournament_wins + 1
@@ -1007,6 +1008,7 @@ function end_endless_fight(is_victory, voluntary_leave)
     end)
 
     local waves_cleared = voluntary_leave and (endless_wave - 1) or (is_victory and endless_wave or 0)
+    local actor_alive = db.actor and db.actor:alive()
     if voluntary_leave and actor_alive then
         if endless_reward > 0 then
             db.actor:give_money(endless_reward)
