@@ -1,0 +1,992 @@
+-- Arena Tournament Main Data & Progression Manager
+
+-- Progression Variables
+tournament_stalker_unlocked_round = 1
+tournament_stalker_completed = {}
+tournament_stalker_completed_time = {}
+
+tournament_mutant_unlocked_round = 1
+tournament_mutant_completed = {}
+tournament_mutant_completed_time = {}
+
+tournament_wins = 0
+tournament_losses = 0
+best_endless_wave = 0
+endless_checkpoint_wave = 1
+endless_checkpoint_type = "stalkers"
+endless_difficulty = "medium"
+endless_artigrok_ammo = false
+endless_3dssg = false
+practice_mode_active = false
+night_mode_active = false
+night_mode_saved_time = nil
+night_mode_saved_needs = nil
+night_mode_saved_render = nil
+night_mode_device = "device_torch_dummy"
+
+-- Spectator Mode State Variables
+arena_main_t = {}
+current_spec_filter = "all"
+selected_spec_bout = 1
+team_bet = 0
+bet_amount = 1000
+cur_reward = 0
+current_period = 0
+selected_modifier_team1 = "none"
+selected_modifier_tier_team1 = 3
+selected_modifier_team2 = "none"
+selected_modifier_tier_team2 = 3
+
+-- Legacy fallback aliases
+selected_modifier = "none"
+selected_modifier_tier = 3
+
+--------------------------------------------------------------------------------
+-- TOURNAMENT DATA: STALKERS (HUMAN COMBATANTS) - 15 BOUTS
+--------------------------------------------------------------------------------
+
+tournament_stalker_tiers_t = {
+	[1] = {
+		name = "st_arena_tier_1_name",
+		rounds = {
+			[1] = {
+				id = 1, tier = 1, category = "stalker",
+				name = "st_arena_s_round_1_name",
+				enemies_str = "st_arena_s_round_1_enemies",
+				desc = "st_arena_s_round_1_desc",
+				reward_str = "st_arena_s_round_1_reward",
+				diff_str = "st_arena_diff_very_easy",
+				reward_money = 3000,
+				reward_items = { "bandage", "bandage", "medkit" },
+				squad_type = "stalker",
+				sections = { "sim_default_bandit_0" },
+			},
+			[2] = {
+				id = 2, tier = 1, category = "stalker",
+				name = "st_arena_s_round_2_name",
+				enemies_str = "st_arena_s_round_2_enemies",
+				desc = "st_arena_s_round_2_desc",
+				reward_str = "st_arena_s_round_2_reward",
+				diff_str = "st_arena_diff_easy",
+				reward_money = 4500,
+				reward_items = { "ammo_12x70_buck", "bandage" },
+				squad_type = "stalker",
+				sections = { "sim_default_renegade_0", "sim_default_renegade_0" },
+			},
+			[3] = {
+				id = 3, tier = 1, category = "stalker",
+				name = "st_arena_s_round_3_name",
+				enemies_str = "st_arena_s_round_3_enemies",
+				desc = "st_arena_s_round_3_desc",
+				reward_str = "st_arena_s_round_3_reward",
+				diff_str = "st_arena_diff_easy",
+				reward_money = 6000,
+				reward_items = { "cleaning_kit_p", "bandage" },
+				squad_type = "stalker",
+				sections = { "sim_default_bandit_0", "sim_default_bandit_0", "sim_default_bandit_1" },
+			},
+		}
+	},
+	[2] = {
+		name = "st_arena_tier_2_name",
+		rounds = {
+			[4] = {
+				id = 4, tier = 2, category = "stalker",
+				name = "st_arena_s_round_4_name",
+				enemies_str = "st_arena_s_round_4_enemies",
+				desc = "st_arena_s_round_4_desc",
+				reward_str = "st_arena_s_round_4_reward",
+				diff_str = "st_arena_diff_medium",
+				reward_money = 8500,
+				reward_items = { "ammo_9x19_fmj", "stimpack" },
+				squad_type = "stalker",
+				sections = { "sim_default_bandit_1", "sim_default_bandit_1", "sim_default_bandit_2" },
+			},
+			[5] = {
+				id = 5, tier = 2, category = "stalker",
+				name = "st_arena_s_round_5_name",
+				enemies_str = "st_arena_s_round_5_enemies",
+				desc = "st_arena_s_round_5_desc",
+				reward_str = "st_arena_s_round_5_reward",
+				diff_str = "st_arena_diff_medium",
+				reward_money = 11000,
+				reward_items = { "medkit_army", "ammo_12x70_buck" },
+				squad_type = "stalker",
+				sections = { "sim_default_renegade_1", "sim_default_renegade_2", "sim_default_renegade_1" },
+			},
+			[6] = {
+				id = 6, tier = 2, category = "stalker",
+				name = "st_arena_s_round_6_name",
+				enemies_str = "st_arena_s_round_6_enemies",
+				desc = "st_arena_s_round_6_desc",
+				reward_str = "st_arena_s_round_6_reward",
+				diff_str = "st_arena_diff_medium",
+				reward_money = 14000,
+				reward_items = { "toolkit_r_1", "bandage" },
+				squad_type = "stalker",
+				sections = { "sim_default_killer_1", "sim_default_killer_2", "sim_default_killer_2" },
+			},
+		}
+	},
+	[3] = {
+		name = "st_arena_tier_3_name",
+		rounds = {
+			[7] = {
+				id = 7, tier = 3, category = "stalker",
+				name = "st_arena_s_round_7_name",
+				enemies_str = "st_arena_s_round_7_enemies",
+				desc = "st_arena_s_round_7_desc",
+				reward_str = "st_arena_s_round_7_reward",
+				diff_str = "st_arena_diff_hard",
+				reward_money = 18000,
+				reward_items = { "ammo_9x39_ap", "medkit_army" },
+				squad_type = "stalker",
+				sections = { "sim_default_duty_2", "sim_default_duty_3", "sim_default_duty_2" },
+			},
+			[8] = {
+				id = 8, tier = 3, category = "stalker",
+				name = "st_arena_s_round_8_name",
+				enemies_str = "st_arena_s_round_8_enemies",
+				desc = "st_arena_s_round_8_desc",
+				reward_str = "st_arena_s_round_8_reward",
+				diff_str = "st_arena_diff_hard",
+				reward_money = 23000,
+				reward_items = { "sewing_kit_b", "ammo_5.56x45_ap" },
+				squad_type = "stalker",
+				sections = { "sim_default_freedom_2", "sim_default_freedom_3", "sim_default_freedom_3" },
+			},
+			[9] = {
+				id = 9, tier = 3, category = "stalker",
+				name = "st_arena_s_round_9_name",
+				enemies_str = "st_arena_s_round_9_enemies",
+				desc = "st_arena_s_round_9_desc",
+				reward_str = "st_arena_s_round_9_reward",
+				diff_str = "st_arena_diff_hard",
+				reward_money = 28000,
+				reward_items = { "toolkit_r_2", "stimpack_army" },
+				squad_type = "stalker",
+				sections = { "sim_default_killer_3", "sim_default_killer_3", "sim_default_killer_3", "sim_default_killer_4" },
+			},
+		}
+	},
+	[4] = {
+		name = "st_arena_tier_4_name",
+		rounds = {
+			[10] = {
+				id = 10, tier = 4, category = "stalker",
+				name = "st_arena_s_round_10_name",
+				enemies_str = "st_arena_s_round_10_enemies",
+				desc = "st_arena_s_round_10_desc",
+				reward_str = "st_arena_s_round_10_reward",
+				diff_str = "st_arena_diff_very_hard",
+				reward_money = 36000,
+				reward_items = { "ammo_7.62x54_ap", "medkit_scientic" },
+				squad_type = "stalker",
+				sections = { "sim_default_military_3", "sim_default_military_3", "sim_default_military_4", "sim_default_military_4" },
+			},
+			[11] = {
+				id = 11, tier = 4, category = "stalker",
+				name = "st_arena_s_round_11_name",
+				enemies_str = "st_arena_s_round_11_enemies",
+				desc = "st_arena_s_round_11_desc",
+				reward_str = "st_arena_s_round_11_reward",
+				diff_str = "st_arena_diff_very_hard",
+				reward_money = 45000,
+				reward_items = { "ammo_9x39_ap", "stimpack_army" },
+				squad_type = "stalker",
+				sections = { "sim_default_killer_3", "sim_default_killer_3", "sim_default_killer_4", "sim_default_killer_4" },
+			},
+			[12] = {
+				id = 12, tier = 4, category = "stalker",
+				name = "st_arena_s_round_12_name",
+				enemies_str = "st_arena_s_round_12_enemies",
+				desc = "st_arena_s_round_12_desc",
+				reward_str = "st_arena_s_round_12_reward",
+				diff_str = "st_arena_diff_extreme",
+				reward_money = 55000,
+				reward_items = { "toolkit_r_3", "drug_antidot" },
+				squad_type = "stalker",
+				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
+			},
+		}
+	},
+	[5] = {
+		name = "st_arena_tier_5_name",
+		rounds = {
+			[13] = {
+				id = 13, tier = 5, category = "stalker",
+				name = "st_arena_s_round_13_name",
+				enemies_str = "st_arena_s_round_13_enemies",
+				desc = "st_arena_s_round_13_desc",
+				reward_str = "st_arena_s_round_13_reward",
+				diff_str = "st_arena_diff_extreme",
+				reward_money = 70000,
+				reward_items = { "medkit_scientic", "stimpack_army", "grenade_f1" },
+				squad_type = "stalker",
+				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
+			},
+			[14] = {
+				id = 14, tier = 5, category = "stalker",
+				name = "st_arena_s_round_14_name",
+				enemies_str = "st_arena_s_round_14_enemies",
+				desc = "st_arena_s_round_14_desc",
+				reward_str = "st_arena_s_round_14_reward",
+				diff_str = "st_arena_diff_legendary",
+				reward_money = 90000,
+				reward_items = { "ammo_gauss", "af_medusa", "medkit_scientic" },
+				squad_type = "stalker",
+				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
+			},
+			[15] = {
+				id = 15, tier = 5, category = "stalker",
+				name = "st_arena_s_round_15_name",
+				enemies_str = "st_arena_s_round_15_enemies",
+				desc = "st_arena_s_round_15_desc",
+				reward_str = "st_arena_s_round_15_reward",
+				diff_str = "st_arena_diff_legendary",
+				reward_money = 130000,
+				reward_items = { "af_fireball", "medkit_scientic", "stimpack_army" },
+				squad_type = "stalker",
+				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
+			},
+		}
+	}
+}
+
+--------------------------------------------------------------------------------
+-- TOURNAMENT DATA: MUTANTS (ZONE BEASTS) - 15 BOUTS
+--------------------------------------------------------------------------------
+
+tournament_mutant_tiers_t = {
+	[1] = {
+		name = "st_arena_tier_1_name",
+		rounds = {
+			[1] = {
+				id = 1, tier = 1, category = "mutant",
+				name = "st_arena_m_round_1_name",
+				enemies_str = "st_arena_m_round_1_enemies",
+				desc = "st_arena_m_round_1_desc",
+				reward_str = "st_arena_m_round_1_reward",
+				diff_str = "st_arena_diff_very_easy",
+				reward_money = 3000,
+				reward_items = { "ammo_12x70_buck", "bandage" },
+				squad_type = "mutant",
+				sections = { "tushkano_normal", "tushkano_normal", "tushkano_normal", "tushkano_normal", "tushkano_normal", "tushkano_normal" },
+			},
+			[2] = {
+				id = 2, tier = 1, category = "mutant",
+				name = "st_arena_m_round_2_name",
+				enemies_str = "st_arena_m_round_2_enemies",
+				desc = "st_arena_m_round_2_desc",
+				reward_str = "st_arena_m_round_2_reward",
+				diff_str = "st_arena_diff_easy",
+				reward_money = 4500,
+				reward_items = { "ammo_12x70_buck", "medkit" },
+				squad_type = "mutant",
+				sections = { "dog_weak_red", "dog_normal_white", "dog_normal_brown", "dog_normal_bulterier" },
+			},
+			[3] = {
+				id = 3, tier = 1, category = "mutant",
+				name = "st_arena_m_round_3_name",
+				enemies_str = "st_arena_m_round_3_enemies",
+				desc = "st_arena_m_round_3_desc",
+				reward_str = "st_arena_m_round_3_reward",
+				diff_str = "st_arena_diff_easy",
+				reward_money = 6000,
+				reward_items = { "cleaning_kit_s", "bandage" },
+				squad_type = "mutant",
+				sections = { "dog_strong_black", "dog_strong_red", "pseudodog_normal", "pseudodog_normal" },
+			},
+		}
+	},
+	[2] = {
+		name = "st_arena_tier_2_name",
+		rounds = {
+			[4] = {
+				id = 4, tier = 2, category = "mutant",
+				name = "st_arena_m_round_4_name",
+				enemies_str = "st_arena_m_round_4_enemies",
+				desc = "st_arena_m_round_4_desc",
+				reward_str = "st_arena_m_round_4_reward",
+				diff_str = "st_arena_diff_medium",
+				reward_money = 8500,
+				reward_items = { "ammo_12x76_zhekan", "stimpack" },
+				squad_type = "mutant",
+				sections = { "boar_normal", "boar_strong", "flesh_strong" },
+			},
+			[5] = {
+				id = 5, tier = 2, category = "mutant",
+				name = "st_arena_m_round_5_name",
+				enemies_str = "st_arena_m_round_5_enemies",
+				desc = "st_arena_m_round_5_desc",
+				reward_str = "st_arena_m_round_5_reward",
+				diff_str = "st_arena_diff_medium",
+				reward_money = 11000,
+				reward_items = { "medkit_army", "stimpack" },
+				squad_type = "mutant",
+				sections = { "cat_normal_a", "cat_normal_b", "cat_strong_a", "cat_strong_b" },
+			},
+			[6] = {
+				id = 6, tier = 2, category = "mutant",
+				name = "st_arena_m_round_6_name",
+				enemies_str = "st_arena_m_round_6_enemies",
+				desc = "st_arena_m_round_6_desc",
+				reward_str = "st_arena_m_round_6_reward",
+				diff_str = "st_arena_diff_medium",
+				reward_money = 14000,
+				reward_items = { "toolkit_r_1", "bandage" },
+				squad_type = "mutant",
+				sections = { "snork_normal", "snork_normal2", "snork_strong" },
+			},
+		}
+	},
+	[3] = {
+		name = "st_arena_tier_3_name",
+		rounds = {
+			[7] = {
+				id = 7, tier = 3, category = "mutant",
+				name = "st_arena_m_round_7_name",
+				enemies_str = "st_arena_m_round_7_enemies",
+				desc = "st_arena_m_round_7_desc",
+				reward_str = "st_arena_m_round_7_reward",
+				diff_str = "st_arena_diff_hard",
+				reward_money = 18000,
+				reward_items = { "drug_coagulant", "ammo_5.45x39_ap" },
+				squad_type = "mutant",
+				sections = { "lurker_1_normal", "lurker_2_normal", "lurker_3_strong" },
+			},
+			[8] = {
+				id = 8, tier = 3, category = "mutant",
+				name = "st_arena_m_round_8_name",
+				enemies_str = "st_arena_m_round_8_enemies",
+				desc = "st_arena_m_round_8_desc",
+				reward_str = "st_arena_m_round_8_reward",
+				diff_str = "st_arena_diff_hard",
+				reward_money = 23000,
+				reward_items = { "toolkit_r_2", "medkit_army" },
+				squad_type = "mutant",
+				sections = { "psysucker_2_normal", "psysucker_3_strong", "psysucker_3_normal" },
+			},
+			[9] = {
+				id = 9, tier = 3, category = "mutant",
+				name = "st_arena_m_round_9_name",
+				enemies_str = "st_arena_m_round_9_enemies",
+				desc = "st_arena_m_round_9_desc",
+				reward_str = "st_arena_m_round_9_reward",
+				diff_str = "st_arena_diff_hard",
+				reward_money = 28000,
+				reward_items = { "drug_psy_blockade", "stimpack_army" },
+				squad_type = "mutant",
+				sections = { "psysucker_3_strong", "psysucker_3_strong", "fracture_strong", "fracture_3" },
+			},
+		}
+	},
+	[4] = {
+		name = "st_arena_tier_4_name",
+		rounds = {
+			[10] = {
+				id = 10, tier = 4, category = "mutant",
+				name = "st_arena_m_round_10_name",
+				enemies_str = "st_arena_m_round_10_enemies",
+				desc = "st_arena_m_round_10_desc",
+				reward_str = "st_arena_m_round_10_reward",
+				diff_str = "st_arena_diff_very_hard",
+				reward_money = 36000,
+				reward_items = { "drug_psy_blockade", "stimpack_army" },
+				squad_type = "mutant",
+				sections = { "psy_dog_normal", "psy_dog_normal", "pseudodog_grey_strong" },
+			},
+			[11] = {
+				id = 11, tier = 4, category = "mutant",
+				name = "st_arena_m_round_11_name",
+				enemies_str = "st_arena_m_round_11_enemies",
+				desc = "st_arena_m_round_11_desc",
+				reward_str = "st_arena_m_round_11_reward",
+				diff_str = "st_arena_diff_very_hard",
+				reward_money = 45000,
+				reward_items = { "toolkit_r_3", "medkit_scientic" },
+				squad_type = "mutant",
+				sections = { "burer_normal", "burer_normal" },
+			},
+			[12] = {
+				id = 12, tier = 4, category = "mutant",
+				name = "st_arena_m_round_12_name",
+				enemies_str = "st_arena_m_round_12_enemies",
+				desc = "st_arena_m_round_12_desc",
+				reward_str = "st_arena_m_round_12_reward",
+				diff_str = "st_arena_diff_extreme",
+				reward_money = 55000,
+				reward_items = { "toolkit_r_3", "ammo_12x76_zhekan" },
+				squad_type = "mutant",
+				sections = { "gigant_normal" },
+			},
+		}
+	},
+	[5] = {
+		name = "st_arena_tier_5_name",
+		rounds = {
+			[13] = {
+				id = 13, tier = 5, category = "mutant",
+				name = "st_arena_m_round_13_name",
+				enemies_str = "st_arena_m_round_13_enemies",
+				desc = "st_arena_m_round_13_desc",
+				reward_str = "st_arena_m_round_13_reward",
+				diff_str = "st_arena_diff_extreme",
+				reward_money = 70000,
+				reward_items = { "mutant_part_chimera_claw", "medkit_scientic" },
+				squad_type = "mutant",
+				sections = { "chimera_strong", "chimera_normal" },
+			},
+			[14] = {
+				id = 14, tier = 5, category = "mutant",
+				name = "st_arena_m_round_14_name",
+				enemies_str = "st_arena_m_round_14_enemies",
+				desc = "st_arena_m_round_14_desc",
+				reward_str = "st_arena_m_round_14_reward",
+				diff_str = "st_arena_diff_legendary",
+				reward_money = 90000,
+				reward_items = { "af_electra_flash", "medkit_scientic" },
+				squad_type = "mutant",
+				sections = { "m_controller_normal", "zombie_strong", "zombie_strong", "zombie_blind" },
+			},
+			[15] = {
+				id = 15, tier = 5, category = "mutant",
+				name = "st_arena_m_round_15_name",
+				enemies_str = "st_arena_m_round_15_enemies",
+				desc = "st_arena_m_round_15_desc",
+				reward_str = "st_arena_m_round_15_reward",
+				diff_str = "st_arena_diff_legendary",
+				reward_money = 130000,
+				reward_items = { "af_soul", "medkit_scientic", "stimpack_army" },
+				squad_type = "mutant",
+				sections = { "chimera_strong3", "chimera_strong2", "gigant_strong" },
+			},
+		}
+	}
+}
+
+--------------------------------------------------------------------------------
+-- HELPER FUNCTIONS
+--------------------------------------------------------------------------------
+
+function get_category_tiers(category)
+	if category == "mutant" then
+		return tournament_mutant_tiers_t
+	else
+		return tournament_stalker_tiers_t
+	end
+end
+
+function get_unlocked_round(category)
+	if category == "mutant" then
+		return tournament_mutant_unlocked_round
+	else
+		return tournament_stalker_unlocked_round
+	end
+end
+
+function get_round_data(category, round_id)
+	local tiers = get_category_tiers(category)
+	local tier_idx = math.ceil(round_id / 3)
+	if tiers[tier_idx] and tiers[tier_idx].rounds[round_id] then
+		return tiers[tier_idx].rounds[round_id]
+	end
+	return nil
+end
+
+function get_actor_rank_num()
+	local r_name = nil
+	if ranks and ranks.get_player_rank_name then
+		r_name = ranks.get_player_rank_name()
+	elseif ranks and ranks.get_obj_rank_name and db.actor then
+		r_name = ranks.get_obj_rank_name(db.actor)
+	end
+
+	local rank_name_to_tier = {
+		["novice"] = 1,
+		["trainee"] = 1,
+		["experienced"] = 2,
+		["professional"] = 2,
+		["veteran"] = 3,
+		["expert"] = 3,
+		["master"] = 4,
+		["legend"] = 5,
+	}
+	if r_name and rank_name_to_tier[r_name] then
+		return rank_name_to_tier[r_name]
+	end
+
+	local cr = db.actor and db.actor:character_rank() or 0
+	if cr >= 36000 then
+		return 5
+	elseif cr >= 18000 then
+		return 4
+	elseif cr >= 4500 then
+		return 3
+	elseif cr >= 900 then
+		return 2
+	else
+		return 1
+	end
+end
+
+function is_tier_unlocked_by_rank(tier)
+	if practice_mode_active == true then
+		return true
+	end
+	return get_actor_rank_num() >= tier
+end
+
+function get_tier_required_rank_name(tier)
+	local tier_rank_ids = {
+		[1] = "st_rank_novice",
+		[2] = "st_rank_experienced",
+		[3] = "st_rank_veteran",
+		[4] = "st_rank_master",
+		[5] = "st_rank_legend",
+	}
+	local id = tier_rank_ids[tier] or "st_rank_novice"
+	return game.translate_string(id)
+end
+
+local function get_cooldown_duration_sec()
+	local mode = xcvb_arena_mcm.get_config("allow_replay")
+	if mode == "disabled" or mode == "never" or mode == false then
+		return -1
+	elseif mode == "instant" or mode == "always" then
+		return 0
+	elseif mode == "1d" then
+		return 86400
+	elseif mode == "2d" then
+		return 172800
+	elseif mode == "3d" then
+		return 259200
+	else
+		return 604800 -- 7 in-game days
+	end
+end
+
+local function format_cooldown_string(remain_sec)
+	local days = math.floor(remain_sec / 86400)
+	local hours = math.floor((remain_sec % 86400) / 3600)
+	if days > 0 then
+		return string.format("%dd %dh", days, hours)
+	else
+		local mins = math.floor((remain_sec % 3600) / 60)
+		return string.format("%dh %dm", hours, mins)
+	end
+end
+
+function ctime_to_table(ct)
+	if not ct then return nil end
+	local Y, M, D, h, m, s, ms
+	if utils_data and utils_data.CTime_to_table then
+		local t = utils_data.CTime_to_table(ct)
+		if t and (t.Y or t.y or 0) >= 2000 then
+			Y = t.Y or t.y
+			M = t.M or t.mo or 1
+			D = t.D or t.d or 1
+			h = t.h or 0
+			m = t.m or t.mi or 0
+			s = t.s or 0
+			ms = t.ms or 0
+		end
+	end
+	if not Y or Y < 2000 then
+		local y, mo, d, hr, mi, sec, msec = ct:get(0, 0, 0, 0, 0, 0, 0)
+		Y = y or 0
+		M = mo or 1
+		D = d or 1
+		h = hr or 0
+		m = mi or 0
+		s = sec or 0
+		ms = msec or 0
+	end
+	if Y < 2000 then
+		return nil
+	end
+	return {
+		Y = Y,
+		M = M,
+		D = D,
+		h = h,
+		m = m,
+		s = s,
+		ms = ms,
+		y = Y,
+		mo = M,
+		d = D,
+		mi = m
+	}
+end
+
+function table_to_ctime(t)
+	if not t or type(t) ~= "table" then return nil end
+	local Y = t.Y or t.y or 0
+	if Y < 2000 then
+		return nil
+	end
+	local M = t.M or t.mo or 1
+	local D = t.D or t.d or 1
+	local h = t.h or 0
+	local m = t.m or t.mi or 0
+	local s = t.s or 0
+	local ms = t.ms or 0
+	
+	if utils_data and utils_data.CTime_from_table then
+		local ct = utils_data.CTime_from_table(t)
+		if ct then return ct end
+	end
+	
+	local ct = game.CTime()
+	ct:set(Y, M, D, h, m, s, ms)
+	return ct
+end
+
+function get_round_cooldown_remaining(category, round_id)
+	local is_comp = is_round_completed(category, round_id)
+	if not is_comp then
+		return 0, ""
+	end
+
+	local dur = get_cooldown_duration_sec()
+	if dur == 0 then
+		return 0, ""
+	elseif dur < 0 then
+		return -1, ""
+	end
+
+	local comp_table = (category == "mutant") and tournament_mutant_completed_time or tournament_stalker_completed_time
+	local saved_time_t = comp_table and comp_table[round_id]
+	if not saved_time_t then
+		return 0, ""
+	end
+
+	local saved_ct = table_to_ctime(saved_time_t)
+	if not saved_ct then
+		comp_table[round_id] = nil
+		return 0, ""
+	end
+
+	local cur_ct = game.get_game_time()
+	local elapsed_sec = cur_ct:diffSec(saved_ct)
+	if elapsed_sec < 0 or elapsed_sec >= dur then
+		return 0, ""
+	end
+
+	local remain_sec = math.min(math.floor(dur - elapsed_sec), dur)
+	return remain_sec, format_cooldown_string(remain_sec)
+end
+
+function is_round_unlocked(category, round_id)
+	if practice_mode_active == true then
+		return true
+	end
+	local tier = math.ceil(round_id / 3)
+	if not is_tier_unlocked_by_rank(tier) then
+		return false
+	end
+	local unl = get_unlocked_round(category)
+	return round_id <= unl
+end
+
+function is_round_completed(category, round_id)
+	if category == "mutant" then
+		return tournament_mutant_completed[round_id] == true
+	else
+		return tournament_stalker_completed[round_id] == true
+	end
+end
+
+function get_player_tier(category)
+	local unl = get_unlocked_round(category)
+	return math.min(5, math.ceil(unl / 3))
+end
+
+--------------------------------------------------------------------------------
+-- PERSISTENCE
+--------------------------------------------------------------------------------
+
+function save_state(m_data)
+	m_data.xcvb_arena_main_t = arena_main_t
+	m_data.xcvb_arena_current_period = current_period
+	m_data.xcvb_arena_spec_filter = current_spec_filter
+	m_data.xcvb_arena_selected_bout = selected_spec_bout
+	m_data.xcvb_arena_team_bet = team_bet
+	m_data.xcvb_arena_bet_amount = bet_amount
+	m_data.xcvb_arena_cur_reward = cur_reward
+	m_data.xcvb_arena_mod_t1 = selected_modifier_team1
+	m_data.xcvb_arena_mod_tier_t1 = selected_modifier_tier_team1
+	m_data.xcvb_arena_mod_t2 = selected_modifier_team2
+	m_data.xcvb_arena_mod_tier_t2 = selected_modifier_tier_team2
+
+	m_data.xcvb_tournament_stalker_unlocked = tournament_stalker_unlocked_round
+	m_data.xcvb_tournament_stalker_completed = tournament_stalker_completed
+	m_data.xcvb_tournament_stalker_comp_time = tournament_stalker_completed_time
+
+	m_data.xcvb_tournament_mutant_unlocked = tournament_mutant_unlocked_round
+	m_data.xcvb_tournament_mutant_completed = tournament_mutant_completed
+	m_data.xcvb_tournament_mutant_comp_time = tournament_mutant_completed_time
+
+	m_data.xcvb_tournament_wins = tournament_wins
+	m_data.xcvb_tournament_losses = tournament_losses
+	m_data.xcvb_best_endless_wave = best_endless_wave
+	m_data.xcvb_endless_checkpoint_wave = endless_checkpoint_wave
+	m_data.xcvb_endless_checkpoint_type = endless_checkpoint_type
+	m_data.xcvb_endless_difficulty = endless_difficulty
+	m_data.xcvb_endless_artigrok_ammo = endless_artigrok_ammo
+	m_data.xcvb_endless_3dssg = endless_3dssg
+	m_data.xcvb_practice_mode_active = (practice_mode_active == true)
+	m_data.xcvb_night_mode_active = (night_mode_active == true)
+	m_data.xcvb_night_mode_saved_time = night_mode_saved_time
+	m_data.xcvb_night_mode_saved_needs = night_mode_saved_needs
+	m_data.xcvb_night_mode_saved_render = night_mode_saved_render
+	m_data.xcvb_night_mode_device = night_mode_device
+end
+
+function load_state(m_data)
+	xcvb_arena_utils.reset_arena_object_cache()
+	endless_3dssg = m_data.xcvb_endless_3dssg == true
+	night_mode_active = (m_data.xcvb_night_mode_active == true)
+	night_mode_saved_time = m_data.xcvb_night_mode_saved_time
+	night_mode_saved_needs = m_data.xcvb_night_mode_saved_needs
+	night_mode_saved_render = m_data.xcvb_night_mode_saved_render
+	night_mode_device = m_data.xcvb_night_mode_device or "device_torch_dummy"
+	arena_main_t = m_data.xcvb_arena_main_t or arena_main_t
+	current_period = m_data.xcvb_arena_current_period or 0
+	current_spec_filter = m_data.xcvb_arena_spec_filter or "all"
+	selected_spec_bout = m_data.xcvb_arena_selected_bout or 1
+	team_bet = m_data.xcvb_arena_team_bet or 0
+	bet_amount = m_data.xcvb_arena_bet_amount or 1000
+	cur_reward = m_data.xcvb_arena_cur_reward or 0
+
+	selected_modifier_team1 = m_data.xcvb_arena_mod_t1 or "none"
+	selected_modifier_tier_team1 = m_data.xcvb_arena_mod_tier_t1 or 3
+	selected_modifier_team2 = m_data.xcvb_arena_mod_t2 or "none"
+	selected_modifier_tier_team2 = m_data.xcvb_arena_mod_tier_t2 or 3
+	selected_modifier = selected_modifier_team1
+	selected_modifier_tier = selected_modifier_tier_team1
+
+	tournament_stalker_unlocked_round = m_data.xcvb_tournament_stalker_unlocked or 1
+	tournament_stalker_completed = m_data.xcvb_tournament_stalker_completed or {}
+	tournament_stalker_completed_time = m_data.xcvb_tournament_stalker_comp_time or {}
+	for k, v in pairs(tournament_stalker_completed_time) do
+		if type(v) ~= "table" or ((v.y or v.Y or 0) < 2000) then
+			tournament_stalker_completed_time[k] = nil
+		end
+	end
+
+	tournament_mutant_unlocked_round = m_data.xcvb_tournament_mutant_unlocked or 1
+	tournament_mutant_completed = m_data.xcvb_tournament_mutant_completed or {}
+	tournament_mutant_completed_time = m_data.xcvb_tournament_mutant_comp_time or {}
+	for k, v in pairs(tournament_mutant_completed_time) do
+		if type(v) ~= "table" or ((v.y or v.Y or 0) < 2000) then
+			tournament_mutant_completed_time[k] = nil
+		end
+	end
+
+	tournament_wins = m_data.xcvb_tournament_wins or 0
+	tournament_losses = m_data.xcvb_tournament_losses or 0
+	best_endless_wave = m_data.xcvb_best_endless_wave or 0
+	endless_checkpoint_wave = m_data.xcvb_endless_checkpoint_wave or (best_endless_wave > 0 and best_endless_wave or 1)
+	endless_checkpoint_type = m_data.xcvb_endless_checkpoint_type or "stalkers"
+	if endless_checkpoint_type == "random" then endless_checkpoint_type = "stalkers" end
+	endless_difficulty = m_data.xcvb_endless_difficulty or "medium"
+	if m_data.xcvb_endless_artigrok_ammo ~= nil then
+		endless_artigrok_ammo = m_data.xcvb_endless_artigrok_ammo
+	end
+	if m_data.xcvb_practice_mode_active ~= nil then
+		practice_mode_active = (m_data.xcvb_practice_mode_active == true)
+	end
+end
+
+--------------------------------------------------------------------------------
+-- SPECTATOR BOUT GENERATION
+--------------------------------------------------------------------------------
+
+function generate_spectator_fights(filter_type)
+	filter_type = filter_type or current_spec_filter or "all"
+	current_spec_filter = filter_type
+
+	for i = 1, 6 do
+		local m_type = "svsm"
+		if filter_type == "svsm" then
+			m_type = "svsm"
+		elseif filter_type == "svss" then
+			m_type = "svss"
+		elseif filter_type == "mvsm" then
+			m_type = "mvsm"
+		else -- "all"
+			if i == 1 or i == 2 then
+				m_type = "svsm"
+			elseif i == 3 or i == 4 then
+				m_type = "svss"
+			else
+				m_type = "mvsm"
+			end
+		end
+
+		arena_main_t[i] = arena_main_t[i] or {}
+		arena_main_t[i].match_type = m_type
+		arena_main_t[i].team1 = {}
+		arena_main_t[i].team2 = {}
+		arena_main_t[i].pwrs = {}
+		arena_main_t[i].mult1 = 1
+		arena_main_t[i].mult2 = 1
+
+		local amt1 = math.random(2, 4)
+		local amt2 = math.random(2, 4)
+
+		if m_type == "svsm" then
+			local t2, p2, m_k = xcvb_arena_utils.get_mutant_team(amt2)
+			if not t2 or #t2 == 0 then
+				t2, p2, m_k = xcvb_arena_utils.get_mutant_team(1)
+				amt2 = #t2
+			end
+			local single_pwr = amt2 > 0 and p2 / amt2 or 0
+			
+			local t1, p1
+			if single_pwr >= 8 then
+				t2 = { t2[1] }
+				p2 = single_pwr
+				
+				amt1 = math.random(4, 5)
+				t1 = {}
+				p1 = 0
+				local facs = {"stalker", "bandit", "killer", "duty", "freedom", "army"}
+				local s_fac = facs[math.random(#facs)]
+				for _ = 1, amt1 do
+					local fac_sec = s_fac
+					if fac_sec == "army" then fac_sec = "military" elseif fac_sec == "dolg" then fac_sec = "duty" end
+					t1[#t1 + 1] = "sim_default_" .. fac_sec .. "_4"
+					p1 = p1 + 10
+				end
+			else
+				t1, p1 = xcvb_arena_utils.get_stalker_team(amt1)
+			end
+			
+			arena_main_t[i].team1 = t1
+			arena_main_t[i].team2 = t2
+			arena_main_t[i].pwrs = { p1, p2 }
+		elseif m_type == "svss" then
+			local t1, p1, fac1 = xcvb_arena_utils.get_stalker_team(amt1)
+			local t2, p2 = xcvb_arena_utils.get_stalker_team(amt2, fac1)
+			arena_main_t[i].team1 = t1
+			arena_main_t[i].team2 = t2
+			arena_main_t[i].pwrs = { p1, p2 }
+		elseif m_type == "mvsm" then
+			local t1, p1, mut1 = xcvb_arena_utils.get_mutant_team(amt1)
+			local t2, p2 = xcvb_arena_utils.get_mutant_team(amt2, mut1)
+			if (not t2) or #t2 == 0 then
+				t2, p2 = xcvb_arena_utils.get_mutant_team(amt2)
+			end
+			arena_main_t[i].team1 = t1
+			arena_main_t[i].team2 = t2
+			arena_main_t[i].pwrs = { p1, p2 }
+		end
+	end
+end
+
+local function has_invalid_matchups()
+	if not arena_main_t or #arena_main_t < 6 then return true end
+
+	local function has_invalid_sections(team)
+		for _, section in ipairs(team) do
+			if not section or not ini_sys:section_exist(section) then
+				return true
+			end
+		end
+		return false
+	end
+
+	for i = 1, 6 do
+		local bout = arena_main_t[i]
+		if not (bout and bout.team1 and bout.team2 and #bout.team1 > 0 and #bout.team2 > 0) then
+			return true
+		end
+		if has_invalid_sections(bout.team1) or has_invalid_sections(bout.team2) then
+			return true
+		end
+		if bout.match_type == "svss" then
+			local fac1 = xcvb_arena_utils.get_team_str(bout.team1)
+			local fac2 = xcvb_arena_utils.get_team_str(bout.team2)
+			if fac1 and fac2 and not xcvb_arena_utils.is_enemy_faction(fac1, fac2) then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function init_arena_main_t()
+	if has_invalid_matchups() then
+		generate_spectator_fights("all")
+	end
+end
+
+local next_board_check = 0
+function actor_on_update()
+	local tg = time_global()
+	if tg > next_board_check then
+		next_board_check = tg + 4000
+		if level and level.name and level.name() == "l05_bar" then
+			xcvb_arena_utils.check_and_spawn_board()
+		end
+	end
+end
+
+function actor_on_first_update()
+	pcall(function() if xcvb_arena_utils and xcvb_arena_utils.init_sr_light_hook then xcvb_arena_utils.init_sr_light_hook() end end)
+	xcvb_arena_utils.check_and_spawn_board()
+	xcvb_arena_utils.handle_removed_teams()
+
+	local in_fight = false
+	if xcvb_arena_fight then
+		pcall(function()
+			if xcvb_arena_fight.is_endless_active() or has_alife_info("xcvb_tournament_started") or has_alife_info("xcvb_endless_started") or has_alife_info("xcvb_battle_royale_started") then
+				in_fight = true
+			end
+		end)
+	end
+
+	if night_mode_active and in_fight then
+		xcvb_arena_utils.enter_arena_night_mode()
+	else
+		xcvb_arena_utils.exit_arena_night_mode()
+	end
+end
+
+local function apply_arena_combat_ai()
+	if not get_console then return end
+
+	local console = get_console()
+	if not console then return end
+
+	-- The bodycam fork exposes these cvars. They improve target acquisition and
+	local commands = {
+		"ai_use_smart_covers 1",
+		"ai_move_to_cover_run 1",
+	}
+
+	for _, command in ipairs(commands) do
+		console:execute(command)
+	end
+end
+
+function on_game_start()
+	pcall(function() if xcvb_arena_utils and xcvb_arena_utils.init_sr_light_hook then xcvb_arena_utils.init_sr_light_hook() end end)
+	RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
+	RegisterScriptCallback("actor_on_update", actor_on_update)
+	RegisterScriptCallback("save_state", save_state)
+	RegisterScriptCallback("load_state", load_state)
+	apply_arena_combat_ai()
+	init_arena_main_t()
+
+	if xr_effects and not xr_effects.open_arena_gui then
+		xr_effects.open_arena_gui = function(actor, npc)
+			if xcvb_arena_gui and xcvb_arena_gui.open_gui then
+				xcvb_arena_gui.open_gui()
+			end
+		end
+	end
+end

@@ -1,0 +1,3237 @@
+-- Arena GUI Controller (Tournament & Spectator Mode)
+local gt = game.translate_string
+local endless_types = { "stalkers", "mutants", "chaos" }
+
+GUI = nil
+
+function open_gui()
+	if not GUI then
+		GUI = UIXcvbArena()
+	end
+
+	if GUI and not GUI:IsShown() then
+		GUI:ShowDialog(true)
+		Register_UI("UIXcvbArena", "xcvb_arena_gui")
+		GUI:reset_loadout_selection()
+		GUI:update_view_mode()
+	elseif GUI and GUI:IsShown() then
+		GUI:reset_loadout_selection()
+		GUI:update_view_mode()
+	end
+end
+
+function on_game_start()
+	if xr_effects then
+		xr_effects.open_arena_gui = function(actor, npc)
+			open_gui()
+		end
+	end
+end
+
+class "UIXcvbArena" (CUIScriptWnd)
+
+function UIXcvbArena:__init() super()
+	self.current_mode = "tournament" -- "tournament" or "spectator"
+	self.current_category = "stalker" -- "stalker" or "mutant"
+	self.current_tier = 1
+	self.selected_round_id = 1
+	self.selected_loadout_class = "random"
+	self.selected_loadout_tier = 0
+	self.selected_loadout_ammo = "auto"
+	self.selected_3dssg_mode = "off"
+	self.selected_3dssg_scope = nil
+	self.selected_3dssg_entry_list = {}
+	self.arr_3dssg_page = 1
+	self.selected_weapon_sec = nil
+	self.selected_special_ammo_sec = nil
+	self.available_weapons_cache = {}
+	self.spec_ammo_page = 1
+	self.rows = {}
+
+	-- Batalla Campal & Monster vs Monster (Beta Testing) state
+	self.bc_submode = "factions" -- "factions" or "mutants"
+	self.bc_num_teams = 4
+	self.bc_teams = {
+		[1] = { faction = "dolg", mult = 1 },
+		[2] = { faction = "freedom", mult = 1 },
+		[3] = { faction = "killer", mult = 1 },
+		[4] = { faction = "army", mult = 1 },
+	}
+	self.bc_bet_team = 0
+	self.bc_bet_amount = 1000
+	self.bc_reward = 0
+
+	self.bc_monster_teams = {
+		[1] = { mutant = "chimera", mult = 1 },
+		[2] = { mutant = "snork", mult = 1 },
+		[3] = { mutant = "boar", mult = 1 },
+		[4] = { mutant = "bloodsucker", mult = 1 },
+	}
+	self.bc_monster_bet_team = 0
+	self.bc_monster_bet_amount = 1000
+	self.bc_monster_reward = 0
+
+	-- Endless Mode (Modo Infinito) state
+	self.beta_subview = "br" -- "br" or "endless"
+	self.endless_enemy_type = "stalkers" -- "stalkers", "mutants", "chaos"
+
+	self:InitControls()
+	self:InitCallbacks()
+	self:update_view_mode()
+	self:update_modifier_buttons()
+end
+
+function UIXcvbArena:__finalize()
+end
+
+function UIXcvbArena:InitControls()
+	self:SetWndRect(Frect():set(0, 0, 1024, 768))
+	self:SetAutoDelete(true)
+	self:Enable(true)
+
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_xcvb_arena.xml")
+
+	-- Main background
+	self.bg = xml:InitStatic("bg", self)
+
+	-- Header
+	self.title_main = xml:InitTextWnd("title_main", self.bg)
+	self.player_rank = xml:InitTextWnd("player_rank", self.bg)
+	self.player_record = xml:InitTextWnd("player_record", self.bg)
+
+	-- Mode Switch Buttons
+	self.btn_practice = xml:Init3tButton("practice_btn", self.bg)
+	self:Register(self.btn_practice, "btn_practice")
+
+	self.btn_mode = xml:Init3tButton("mode_btn", self.bg)
+	self:Register(self.btn_mode, "btn_mode")
+
+	self.btn_beta = xml:Init3tButton("beta_btn", self.bg)
+	self:Register(self.btn_beta, "btn_beta")
+
+	self.btn_night_mode = xml:Init3tButton("btn_night_mode", self.bg)
+	if self.btn_night_mode then
+		self:Register(self.btn_night_mode, "btn_night_mode")
+	end
+
+	self.btn_night_device = xml:Init3tButton("btn_night_device", self.bg)
+	if self.btn_night_device then
+		self:Register(self.btn_night_device, "btn_night_device")
+		self.btn_night_device:Show(xcvb_arena_main.night_mode_active == true)
+	end
+
+	-- ==============================================
+	-- TOURNAMENT CONTAINER
+	-- ==============================================
+	self.tournament_cont = xml:InitStatic("tournament_cont", self.bg)
+
+	-- Category Buttons (Stalkers vs Mutantes)
+	self.btn_cat_stalkers = xml:Init3tButton("tournament_cont:cat_stalkers_btn", self.tournament_cont)
+	self:Register(self.btn_cat_stalkers, "btn_cat_stalkers")
+
+	self.btn_cat_mutants = xml:Init3tButton("tournament_cont:cat_mutants_btn", self.tournament_cont)
+	self:Register(self.btn_cat_mutants, "btn_cat_mutants")
+
+	-- Tier Buttons
+	self.tier_btns = {}
+	for t = 1, 5 do
+		local btn = xml:Init3tButton("tournament_cont:tier_btn_" .. t, self.tournament_cont)
+		self.tier_btns[t] = btn
+		self:Register(btn, "btn_tier_" .. t)
+	end
+
+	-- 3 Tournament Bout Rows
+	self.tourn_rows = {}
+	for r = 1, 3 do
+		local row = {}
+		row.frame = xml:InitStatic("tournament_cont:tourn_row_" .. r, self.tournament_cont)
+		row.name = xml:InitTextWnd("tournament_cont:tourn_row_" .. r .. ":name", row.frame)
+		row.diff = xml:InitTextWnd("tournament_cont:tourn_row_" .. r .. ":diff", row.frame)
+		row.enemies = xml:InitTextWnd("tournament_cont:tourn_row_" .. r .. ":enemies", row.frame)
+		row.reward = xml:InitTextWnd("tournament_cont:tourn_row_" .. r .. ":reward", row.frame)
+		row.action_btn = xml:Init3tButton("tournament_cont:tourn_row_" .. r .. ":action_btn", row.frame)
+		self:Register(row.action_btn, "btn_action_" .. r)
+		self.tourn_rows[r] = row
+	end
+
+	-- Details Lore Box
+	self.details_box = xml:InitStatic("tournament_cont:details_box", self.tournament_cont)
+	self.detail_title = xml:InitTextWnd("tournament_cont:details_box:detail_title", self.details_box)
+	self.detail_desc = xml:InitTextWnd("tournament_cont:details_box:detail_desc", self.details_box)
+
+	-- Loadout Class Selection Controls
+	self.loadout_class_title = xml:InitTextWnd("tournament_cont:loadout_class_title", self.tournament_cont)
+	self.loadout_class_btns = {}
+	local classes = { "random", "pistol", "shotgun", "rifle", "smg", "sniper" }
+	for _, cls in ipairs(classes) do
+		local btn = xml:Init3tButton("tournament_cont:loadout_btn_" .. cls, self.tournament_cont)
+		self.loadout_class_btns[cls] = btn
+		self:Register(btn, "btn_loadout_" .. cls)
+	end
+
+	-- Loadout Tier Selection Controls
+	self.loadout_tier_title = xml:InitTextWnd("tournament_cont:loadout_tier_title", self.tournament_cont)
+	self.loadout_tier_btns = {}
+	for t = 0, 5 do
+		local btn = xml:Init3tButton("tournament_cont:loadout_tier_btn_" .. t, self.tournament_cont)
+		self.loadout_tier_btns[t] = btn
+		self:Register(btn, "btn_loadout_tier_" .. t)
+	end
+
+	-- Loadout Ammo Selection Controls
+	self.loadout_ammo_title = xml:InitTextWnd("tournament_cont:loadout_ammo_title", self.tournament_cont)
+	self.loadout_ammo_btns = {}
+	local ammo_types = { "auto", "fmj", "ap", "hp", "special" }
+	for _, at in ipairs(ammo_types) do
+		local btn = xml:Init3tButton("tournament_cont:loadout_ammo_btn_" .. at, self.tournament_cont)
+		self.loadout_ammo_btns[at] = btn
+		self:Register(btn, "btn_loadout_ammo_" .. at)
+	end
+
+	self.btn_3dssg = xml:Init3tButton("tournament_cont:btn_3dssg", self.tournament_cont)
+	self:Register(self.btn_3dssg, "btn_3dssg")
+
+	-- Magazine Controls (Center Column)
+	self.btn_mag_prev = xml:Init3tButton("tournament_cont:btn_mag_prev", self.tournament_cont)
+	self:Register(self.btn_mag_prev, "btn_mag_prev")
+	self.btn_mag = xml:Init3tButton("tournament_cont:btn_mag", self.tournament_cont)
+	self:Register(self.btn_mag, "btn_mag")
+	self.btn_mag_next = xml:Init3tButton("tournament_cont:btn_mag_next", self.tournament_cont)
+	self:Register(self.btn_mag_next, "btn_mag_next")
+
+	-- Ammo Quantity Controls (Center Column)
+	self.btn_ammo_prev = xml:Init3tButton("tournament_cont:btn_ammo_prev", self.tournament_cont)
+	self:Register(self.btn_ammo_prev, "btn_ammo_prev")
+	self.btn_ammo_qty = xml:Init3tButton("tournament_cont:btn_ammo_qty", self.tournament_cont)
+	self:Register(self.btn_ammo_qty, "btn_ammo_qty")
+	self.btn_ammo_next = xml:Init3tButton("tournament_cont:btn_ammo_next", self.tournament_cont)
+	self:Register(self.btn_ammo_next, "btn_ammo_next")
+
+	-- Loadout Summary Frame (Left Side)
+	self.loadout_summary_frame = xml:InitStatic("tournament_cont:loadout_summary_frame", self.tournament_cont)
+	self.summary_title = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_title", self.loadout_summary_frame)
+	self.summary_round = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_round", self.loadout_summary_frame)
+	self.btn_weapon_prev = xml:Init3tButton("tournament_cont:loadout_summary_frame:btn_weapon_prev", self.loadout_summary_frame)
+	self:Register(self.btn_weapon_prev, "btn_weapon_prev")
+	self.summary_weapon = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_weapon", self.loadout_summary_frame)
+	self.btn_weapon_next = xml:Init3tButton("tournament_cont:loadout_summary_frame:btn_weapon_next", self.loadout_summary_frame)
+	self:Register(self.btn_weapon_next, "btn_weapon_next")
+	self.summary_ammo = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_ammo", self.loadout_summary_frame)
+	self.summary_outfit = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_outfit", self.loadout_summary_frame)
+	self.summary_helmet = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_helmet", self.loadout_summary_frame)
+	self.summary_scope = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_scope", self.loadout_summary_frame)
+	self.summary_cost = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_cost", self.loadout_summary_frame)
+
+	-- Main Action Button
+	self.btn_tourn_start = xml:Init3tButton("tournament_cont:tourn_start_btn", self.tournament_cont)
+	self:Register(self.btn_tourn_start, "btn_tourn_start")
+
+	-- Quick Endless Mode Button (Bottom Right)
+	self.btn_endless = xml:Init3tButton("tournament_cont:endless_btn", self.tournament_cont)
+	self:Register(self.btn_endless, "btn_endless")
+
+	-- Continue Endless Mode Button (Bottom Right, below Endless Mode)
+	self.btn_endless_cont = xml:Init3tButton("tournament_cont:endless_cont_btn", self.tournament_cont)
+	self:Register(self.btn_endless_cont, "btn_endless_cont")
+
+	-- ArtiGrok Special Ammo Toggle Button (Main Screen)
+	self.endless_arti_btn_main = xml:Init3tButton("tournament_cont:endless_arti_btn_main", self.tournament_cont)
+	self:Register(self.endless_arti_btn_main, "btn_endless_arti_main")
+
+	-- Special Ammo Selection Menu (Right Side, 8 buttons grid + pagination)
+	self.spec_menu_title = xml:InitTextWnd("tournament_cont:spec_menu_title", self.tournament_cont)
+	self.spec_page_prev = xml:Init3tButton("tournament_cont:spec_page_prev", self.tournament_cont)
+	self:Register(self.spec_page_prev, "btn_spec_page_prev")
+	self.spec_page_info = xml:InitTextWnd("tournament_cont:spec_page_info", self.tournament_cont)
+	self.spec_page_next = xml:Init3tButton("tournament_cont:spec_page_next", self.tournament_cont)
+	self:Register(self.spec_page_next, "btn_spec_page_next")
+
+	self.spec_ammo_btns = {}
+	for i = 1, 8 do
+		local btn = xml:Init3tButton("tournament_cont:spec_ammo_btn_" .. i, self.tournament_cont)
+		self.spec_ammo_btns[i] = btn
+		self:Register(btn, "btn_spec_ammo_" .. i)
+	end
+
+	-- ==============================================
+	-- SPECTATOR CONTAINER
+	-- ==============================================
+	self.spectator_cont = xml:InitStatic("spectator_cont", self.bg)
+
+	-- Combat Modifiers Team 1 (Red / Left)
+	self.mod_title_t1 = xml:InitTextWnd("spectator_cont:mod_title_t1", self.spectator_cont)
+	self.mod_btns_t1 = {}
+	local modifiers = { "none", "pistols", "shotguns", "ar", "smg", "sniper" }
+	for _, m in ipairs(modifiers) do
+		local btn = xml:Init3tButton("spectator_cont:mod_btn_t1_" .. m, self.spectator_cont)
+		self.mod_btns_t1[m] = btn
+		self:Register(btn, "btn_mod_t1_" .. m)
+	end
+	self.mod_tier_title_t1 = xml:InitTextWnd("spectator_cont:mod_tier_title_t1", self.spectator_cont)
+	self.mod_tier_btns_t1 = {}
+	for t = 1, 5 do
+		local btn = xml:Init3tButton("spectator_cont:mod_tier_t1_" .. t, self.spectator_cont)
+		self.mod_tier_btns_t1[t] = btn
+		self:Register(btn, "btn_mod_tier_t1_" .. t)
+	end
+
+	-- Center Separator Line
+	self.mod_separator = xml:InitStatic("spectator_cont:mod_separator", self.spectator_cont)
+
+	-- Combat Modifiers Team 2 (Blue / Right)
+	self.mod_title_t2 = xml:InitTextWnd("spectator_cont:mod_title_t2", self.spectator_cont)
+	self.mod_btns_t2 = {}
+	for _, m in ipairs(modifiers) do
+		local btn = xml:Init3tButton("spectator_cont:mod_btn_t2_" .. m, self.spectator_cont)
+		self.mod_btns_t2[m] = btn
+		self:Register(btn, "btn_mod_t2_" .. m)
+	end
+	self.mod_tier_title_t2 = xml:InitTextWnd("spectator_cont:mod_tier_title_t2", self.spectator_cont)
+	self.mod_tier_btns_t2 = {}
+	for t = 1, 5 do
+		local btn = xml:Init3tButton("spectator_cont:mod_tier_t2_" .. t, self.spectator_cont)
+		self.mod_tier_btns_t2[t] = btn
+		self:Register(btn, "btn_mod_tier_t2_" .. t)
+	end
+
+	-- Filter Buttons (All, Stalker vs Mutant, Stalker vs Stalker, Mutant vs Mutant)
+	self.spec_filter_btns = {}
+	local spec_filters = { "all", "svsm", "svss", "mvsm" }
+	for _, f_name in ipairs(spec_filters) do
+		local btn = xml:Init3tButton("spectator_cont:filter_" .. f_name, self.spectator_cont)
+		self.spec_filter_btns[f_name] = btn
+		self:Register(btn, "btn_spec_filter_" .. f_name)
+	end
+
+	-- Refresh bouts button
+	self.btn_spec_refresh = xml:Init3tButton("spectator_cont:refresh_btn", self.spectator_cont)
+	self:Register(self.btn_spec_refresh, "btn_spec_refresh")
+
+	-- Start / Go to balcony button
+	self.start_btn = xml:Init3tButton("spectator_cont:start_btn", self.spectator_cont)
+	self:Register(self.start_btn, "start_btn")
+	self.title_cont = xml:InitStatic("spectator_cont:title_cont", self.spectator_cont)
+
+	-- Spectator table rows
+	for i = 1, 6 do
+		local row_cont = xml:InitStatic("spectator_cont:row_cont", self.spectator_cont)
+		row_cont:SetWndPos(vector2():set(70, 172 + (i - 1) * 49))
+
+		local row = {}
+		row.time = xml:InitTextWnd("spectator_cont:row_cont:time", row_cont)
+		row.team_1_bg = xml:InitStatic("spectator_cont:row_cont:team_1_bg", row_cont)
+		row.team_1 = xml:InitStatic("spectator_cont:row_cont:team_1", row_cont)
+		row.btn_mult1 = xml:Init3tButton("spectator_cont:row_cont:mult_btn1", row_cont)
+		self:Register(row.btn_mult1, "btn_mult1_" .. i)
+
+		row.team_2_bg = xml:InitStatic("spectator_cont:row_cont:team_2_bg", row_cont)
+		row.team_2 = xml:InitStatic("spectator_cont:row_cont:team_2", row_cont)
+		row.btn_mult2 = xml:Init3tButton("spectator_cont:row_cont:mult_btn2", row_cont)
+		self:Register(row.btn_mult2, "btn_mult2_" .. i)
+
+		row.bet_cont = xml:InitStatic("spectator_cont:row_cont:bet_cont", row_cont)
+
+		row.btn_min1 = xml:Init3tButton("spectator_cont:row_cont:bet_cont:bet_btn_min1", row.bet_cont)
+		self:Register(row.btn_min1, "btn_min1_" .. i)
+		row.btn_plus1 = xml:Init3tButton("spectator_cont:row_cont:bet_cont:bet_btn_plus1", row.bet_cont)
+		self:Register(row.btn_plus1, "btn_plus1_" .. i)
+		row.bet1 = xml:InitTextWnd("spectator_cont:row_cont:bet_cont:bet1", row.bet_cont)
+
+		row.btn_min2 = xml:Init3tButton("spectator_cont:row_cont:bet_cont:bet_btn_min2", row.bet_cont)
+		self:Register(row.btn_min2, "btn_min2_" .. i)
+		row.btn_plus2 = xml:Init3tButton("spectator_cont:row_cont:bet_cont:bet_btn_plus2", row.bet_cont)
+		self:Register(row.btn_plus2, "btn_plus2_" .. i)
+		row.bet2 = xml:InitTextWnd("spectator_cont:row_cont:bet_cont:bet2", row.bet_cont)
+
+		row.reward = xml:InitTextWnd("spectator_cont:row_cont:reward", row_cont)
+		self.rows[i] = row
+	end
+
+	-- ==============================================
+	-- BETA TESTING CONTAINER (Battle Royale & Modo Infinito)
+	-- ==============================================
+	self.beta_cont = xml:InitStatic("beta_cont", self.bg)
+
+	-- Beta Navigation Tabs
+	self.beta_tab_br = xml:Init3tButton("beta_cont:beta_tab_br", self.beta_cont)
+	self:Register(self.beta_tab_br, "beta_tab_br")
+	self.beta_tab_endless = xml:Init3tButton("beta_cont:beta_tab_endless", self.beta_cont)
+	self:Register(self.beta_tab_endless, "beta_tab_endless")
+
+	-- Battle Royale Controls
+	self.bc_btn_3teams = xml:Init3tButton("beta_cont:bc_btn_3teams", self.beta_cont)
+	self:Register(self.bc_btn_3teams, "bc_btn_3teams")
+
+	self.bc_btn_4teams = xml:Init3tButton("beta_cont:bc_btn_4teams", self.beta_cont)
+	self:Register(self.bc_btn_4teams, "bc_btn_4teams")
+
+	self.bc_btn_random = xml:Init3tButton("beta_cont:bc_btn_random", self.beta_cont)
+	self:Register(self.bc_btn_random, "bc_btn_random")
+
+	self.bc_desc = xml:InitTextWnd("beta_cont:bc_desc", self.beta_cont)
+
+	self.bc_cards = {}
+	for c = 1, 4 do
+		local card = {}
+		card.frame = xml:InitStatic("beta_cont:bc_team_card_" .. c, self.beta_cont)
+		card.title = xml:InitTextWnd("beta_cont:bc_team_card_" .. c .. ":title", card.frame)
+		card.btn_faction = xml:Init3tButton("beta_cont:bc_team_card_" .. c .. ":btn_faction", card.frame)
+		self:Register(card.btn_faction, "bc_btn_faction_" .. c)
+		card.members_label = xml:InitTextWnd("beta_cont:bc_team_card_" .. c .. ":members_label", card.frame)
+		card.mult_btn = xml:Init3tButton("beta_cont:bc_team_card_" .. c .. ":mult_btn", card.frame)
+		self:Register(card.mult_btn, "bc_mult_btn_" .. c)
+		card.btn_bet = xml:Init3tButton("beta_cont:bc_team_card_" .. c .. ":btn_bet", card.frame)
+		self:Register(card.btn_bet, "bc_btn_bet_" .. c)
+		self.bc_cards[c] = card
+	end
+
+	self.bc_bet_panel = xml:InitStatic("beta_cont:bc_bet_panel", self.beta_cont)
+	self.bc_bet_status = xml:InitTextWnd("beta_cont:bc_bet_panel:bet_status", self.bc_bet_panel)
+	self.bc_btn_bet_min = xml:Init3tButton("beta_cont:bc_bet_panel:btn_bet_min", self.bc_bet_panel)
+	self:Register(self.bc_btn_bet_min, "bc_btn_bet_min")
+	self.bc_bet_amount_wnd = xml:InitTextWnd("beta_cont:bc_bet_panel:bet_amount", self.bc_bet_panel)
+	self.bc_btn_bet_plus = xml:Init3tButton("beta_cont:bc_bet_panel:btn_bet_plus", self.bc_bet_panel)
+	self:Register(self.bc_btn_bet_plus, "bc_btn_bet_plus")
+	self.bc_reward_label = xml:InitTextWnd("beta_cont:bc_bet_panel:reward_label", self.bc_bet_panel)
+
+	self.bc_start_btn = xml:Init3tButton("beta_cont:bc_start_btn", self.beta_cont)
+	self:Register(self.bc_start_btn, "bc_start_btn")
+
+	self.bc_submode_btn = xml:Init3tButton("beta_cont:bc_submode_btn", self.beta_cont)
+	self:Register(self.bc_submode_btn, "bc_submode_btn")
+
+	-- Endless Mode Controls
+	self.endless_stats_frame = xml:InitStatic("beta_cont:endless_stats_frame", self.beta_cont)
+	self.endless_record_label = xml:InitTextWnd("beta_cont:endless_stats_frame:record_label", self.endless_stats_frame)
+	self.endless_reward_info = xml:InitTextWnd("beta_cont:endless_stats_frame:reward_info", self.endless_stats_frame)
+
+	self.endless_type_frame = xml:InitStatic("beta_cont:endless_type_frame", self.beta_cont)
+	self.endless_type_desc = xml:InitTextWnd("beta_cont:endless_type_frame:type_desc", self.endless_type_frame)
+	self.endless_btns = {}
+	for _, et in ipairs(endless_types) do
+		local btn = xml:Init3tButton("beta_cont:endless_type_frame:endless_btn_" .. et, self.endless_type_frame)
+		self.endless_btns[et] = btn
+		self:Register(btn, "btn_endless_type_" .. et)
+	end
+
+	self.endless_rules_frame = xml:InitStatic("beta_cont:endless_rules_frame", self.beta_cont)
+
+	self.endless_start_btn = xml:Init3tButton("beta_cont:endless_start_btn", self.beta_cont)
+	self:Register(self.endless_start_btn, "btn_endless_start")
+
+	-- ArtiGrok Special Ammo Toggle Button (Endless Mode Screen)
+	self.endless_arti_btn = xml:Init3tButton("beta_cont:endless_arti_btn", self.beta_cont)
+	self:Register(self.endless_arti_btn, "btn_endless_arti")
+
+	-- Endless Mode Difficulty Selection Modal Window
+	self.endless_diff_menu = xml:InitStatic("endless_diff_menu", self.bg)
+	self.endless_diff_menu:Show(false)
+
+	self.btn_diff_easy = xml:Init3tButton("endless_diff_menu:btn_diff_easy", self.endless_diff_menu)
+	self:Register(self.btn_diff_easy, "btn_diff_easy")
+	if self.btn_diff_easy:TextControl() then
+		self.btn_diff_easy:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+	end
+
+	self.btn_diff_medium = xml:Init3tButton("endless_diff_menu:btn_diff_medium", self.endless_diff_menu)
+	self:Register(self.btn_diff_medium, "btn_diff_medium")
+	if self.btn_diff_medium:TextControl() then
+		self.btn_diff_medium:TextControl():SetTextColor(GetARGB(255, 255, 220, 130))
+	end
+
+	self.btn_diff_hard = xml:Init3tButton("endless_diff_menu:btn_diff_hard", self.endless_diff_menu)
+	self:Register(self.btn_diff_hard, "btn_diff_hard")
+	if self.btn_diff_hard:TextControl() then
+		self.btn_diff_hard:TextControl():SetTextColor(GetARGB(255, 255, 110, 110))
+	end
+
+	self.btn_diff_3dssg = xml:Init3tButton("endless_diff_menu:btn_diff_3dssg", self.endless_diff_menu)
+	self:Register(self.btn_diff_3dssg, "btn_diff_3dssg")
+
+	self.btn_diff_cancel = xml:Init3tButton("endless_diff_menu:btn_diff_cancel", self.endless_diff_menu)
+	self:Register(self.btn_diff_cancel, "btn_diff_cancel")
+	if self.btn_diff_cancel:TextControl() then
+		self.btn_diff_cancel:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+	end
+
+	-- 3DSSG Selection Popup Menu (Mirrors + Kits)
+	self.dssg_menu = xml:InitStatic("dssg_menu", self.bg)
+	self.dssg_menu:Show(false)
+	self.dssg_menu_title = xml:InitTextWnd("dssg_menu:title", self.dssg_menu)
+	self.dssg_menu_subtitle = xml:InitTextWnd("dssg_menu:subtitle", self.dssg_menu)
+	self.btn_3dssg_off = xml:Init3tButton("dssg_menu:btn_3dssg_off", self.dssg_menu)
+	self:Register(self.btn_3dssg_off, "btn_3dssg_off")
+	if self.btn_3dssg_off:TextControl() then
+		self.btn_3dssg_off:TextControl():SetTextColor(GetARGB(255, 200, 200, 200))
+	end
+	self.btn_3dssg_random = xml:Init3tButton("dssg_menu:btn_3dssg_random", self.dssg_menu)
+	self:Register(self.btn_3dssg_random, "btn_3dssg_random")
+	if self.btn_3dssg_random:TextControl() then
+		self.btn_3dssg_random:TextControl():SetTextColor(GetARGB(255, 200, 200, 200))
+	end
+	self.arr_3dssg_rows = {}
+	for i = 1, 7 do
+		local btn = xml:Init3tButton("dssg_menu:dssg_row_" .. i, self.dssg_menu)
+		self.arr_3dssg_rows[i] = btn
+		self:Register(btn, "btn_arr_3dssg_" .. i)
+	end
+	self.arr_3dssg_page_prev = xml:Init3tButton("dssg_menu:dssg_page_prev", self.dssg_menu)
+	self:Register(self.arr_3dssg_page_prev, "btn_arr_3dssg_prev")
+	self.arr_3dssg_page_info = xml:InitTextWnd("dssg_menu:dssg_page_info", self.dssg_menu)
+	self.arr_3dssg_page_next = xml:Init3tButton("dssg_menu:dssg_page_next", self.dssg_menu)
+	self:Register(self.arr_3dssg_page_next, "btn_arr_3dssg_next")
+	self.btn_dssg_close = xml:Init3tButton("dssg_menu:dssg_close_btn", self.dssg_menu)
+	self:Register(self.btn_dssg_close, "btn_dssg_close")
+
+	-- Magazine & Ammo Selection Modal Window
+	self.mag_menu = xml:InitStatic("mag_menu", self.bg)
+	if self.mag_menu then
+		self.mag_menu:Show(false)
+		self.mag_menu_title = xml:InitTextWnd("mag_menu:title", self.mag_menu)
+		self.mag_menu_subtitle = xml:InitTextWnd("mag_menu:subtitle", self.mag_menu)
+
+		self.mag_count_minus = xml:Init3tButton("mag_menu:mag_count_minus", self.mag_menu)
+		self:Register(self.mag_count_minus, "btn_mag_count_minus")
+		self.mag_count_text = xml:InitTextWnd("mag_menu:mag_count_text", self.mag_menu)
+		self.mag_count_plus = xml:Init3tButton("mag_menu:mag_count_plus", self.mag_menu)
+		self:Register(self.mag_count_plus, "btn_mag_count_plus")
+
+		self.ammo_count_minus = xml:Init3tButton("mag_menu:ammo_count_minus", self.mag_menu)
+		self:Register(self.ammo_count_minus, "btn_ammo_count_minus")
+		self.ammo_count_text = xml:InitTextWnd("mag_menu:ammo_count_text", self.mag_menu)
+		self.ammo_count_plus = xml:Init3tButton("mag_menu:ammo_count_plus", self.mag_menu)
+		self:Register(self.ammo_count_plus, "btn_ammo_count_plus")
+
+		self.arr_mag_rows = {}
+		for i = 1, 7 do
+			local btn = xml:Init3tButton("mag_menu:mag_row_" .. i, self.mag_menu)
+			self.arr_mag_rows[i] = btn
+			self:Register(btn, "btn_arr_mag_" .. i)
+		end
+
+		self.mag_page_prev = xml:Init3tButton("mag_menu:mag_page_prev", self.mag_menu)
+		self:Register(self.mag_page_prev, "btn_mag_page_prev")
+		self.mag_page_info = xml:InitTextWnd("mag_menu:mag_page_info", self.mag_menu)
+		self.mag_page_next = xml:Init3tButton("mag_menu:mag_page_next", self.mag_menu)
+		self:Register(self.mag_page_next, "btn_mag_page_next")
+
+		self.mag_summary_cost = xml:InitTextWnd("mag_menu:mag_summary_cost", self.mag_menu)
+		self.mag_close_btn = xml:Init3tButton("mag_menu:mag_close_btn", self.mag_menu)
+		self:Register(self.mag_close_btn, "btn_mag_close")
+	end
+
+	-- Night Equipment Selection Modal Window
+	self.night_device_menu = xml:InitStatic("night_device_menu", self.bg)
+	if self.night_device_menu then
+		self.night_device_menu:Show(false)
+		self.btn_dev_torch = xml:Init3tButton("night_device_menu:btn_device_torch", self.night_device_menu)
+		self:Register(self.btn_dev_torch, "btn_dev_torch")
+
+		self.btn_dev_nvg1 = xml:Init3tButton("night_device_menu:btn_device_nvg1", self.night_device_menu)
+		self:Register(self.btn_dev_nvg1, "btn_dev_nvg1")
+
+		self.btn_dev_nvg2 = xml:Init3tButton("night_device_menu:btn_device_nvg2", self.night_device_menu)
+		self:Register(self.btn_dev_nvg2, "btn_dev_nvg2")
+
+		self.btn_dev_nvg3 = xml:Init3tButton("night_device_menu:btn_device_nvg3", self.night_device_menu)
+		self:Register(self.btn_dev_nvg3, "btn_dev_nvg3")
+
+		self.btn_dev_none = xml:Init3tButton("night_device_menu:btn_device_none", self.night_device_menu)
+		self:Register(self.btn_dev_none, "btn_dev_none")
+
+		self.btn_dev_close = xml:Init3tButton("night_device_menu:btn_device_close", self.night_device_menu)
+		self:Register(self.btn_dev_close, "btn_dev_close")
+	end
+
+	xml:InitStatic("vert_line1", self.bg)
+	xml:InitStatic("vert_line2", self.bg)
+	xml:InitStatic("vert_line3", self.bg)
+end
+
+function UIXcvbArena:InitCallbacks()
+	self:AddCallback("btn_practice", ui_events.BUTTON_CLICKED, self.on_click_practice_toggle, self)
+	self:AddCallback("btn_mode", ui_events.BUTTON_CLICKED, self.on_click_mode, self)
+	self:AddCallback("btn_endless", ui_events.BUTTON_CLICKED, self.on_click_quick_endless, self)
+	self:AddCallback("btn_endless_cont", ui_events.BUTTON_CLICKED, self.on_click_continue_endless, self)
+	self:AddCallback("btn_endless_arti", ui_events.BUTTON_CLICKED, self.on_click_endless_arti_toggle, self)
+	self:AddCallback("btn_endless_arti_main", ui_events.BUTTON_CLICKED, self.on_click_endless_arti_toggle, self)
+	self:AddCallback("btn_beta", ui_events.BUTTON_CLICKED, self.on_click_beta_mode, self)
+
+	-- Endless Mode Difficulty callbacks
+	self:AddCallback("btn_diff_easy", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("easy") end, self)
+	self:AddCallback("btn_diff_medium", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("medium") end, self)
+	self:AddCallback("btn_diff_hard", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("hard") end, self)
+	self:AddCallback("btn_diff_3dssg", ui_events.BUTTON_CLICKED, self.on_click_endless_3dssg, self)
+	self:AddCallback("btn_diff_cancel", ui_events.BUTTON_CLICKED, function() self:show_endless_difficulty_menu(false) end, self)
+
+	-- Beta Testing tabs
+	self:AddCallback("beta_tab_br", ui_events.BUTTON_CLICKED, function() self:on_click_beta_tab("br") end, self)
+	self:AddCallback("beta_tab_endless", ui_events.BUTTON_CLICKED, function() self:on_click_beta_tab("endless") end, self)
+	self:AddCallback("btn_night_mode", ui_events.BUTTON_CLICKED, self.on_click_night_mode, self)
+
+	-- Night Equipment Callbacks
+	self:AddCallback("btn_night_device", ui_events.BUTTON_CLICKED, self.on_click_night_device, self)
+	self:AddCallback("btn_dev_torch", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_dummy") end, self)
+	self:AddCallback("btn_dev_nvg1", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_nv_1") end, self)
+	self:AddCallback("btn_dev_nvg2", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_nv_2") end, self)
+	self:AddCallback("btn_dev_nvg3", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_nv_3") end, self)
+	self:AddCallback("btn_dev_none", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("none") end, self)
+	self:AddCallback("btn_dev_close", ui_events.BUTTON_CLICKED, function() if self.night_device_menu then self.night_device_menu:Show(false) end end, self)
+
+	-- Beta Testing Battle Royale callbacks
+	self:AddCallback("bc_btn_3teams", ui_events.BUTTON_CLICKED, function() self:on_click_bc_teams_count(3) end, self)
+	self:AddCallback("bc_btn_4teams", ui_events.BUTTON_CLICKED, function() self:on_click_bc_teams_count(4) end, self)
+	self:AddCallback("bc_btn_random", ui_events.BUTTON_CLICKED, self.on_click_bc_randomize, self)
+
+	for c = 1, 4 do
+		self:AddCallback("bc_btn_faction_" .. c, ui_events.BUTTON_CLICKED, function() self:on_click_bc_faction(c) end, self)
+		self:AddCallback("bc_mult_btn_" .. c, ui_events.BUTTON_CLICKED, function() self:on_click_bc_mult(c) end, self)
+		self:AddCallback("bc_btn_bet_" .. c, ui_events.BUTTON_CLICKED, function() self:on_click_bc_bet(c) end, self)
+	end
+
+	self:AddCallback("bc_btn_bet_min", ui_events.BUTTON_CLICKED, function() self:on_click_bc_bet_amount(-1) end, self)
+	self:AddCallback("bc_btn_bet_plus", ui_events.BUTTON_CLICKED, function() self:on_click_bc_bet_amount(1) end, self)
+	self:AddCallback("bc_start_btn", ui_events.BUTTON_CLICKED, self.on_click_bc_start, self)
+	self:AddCallback("bc_submode_btn", ui_events.BUTTON_CLICKED, self.on_click_bc_submode, self)
+
+	-- Endless Mode callbacks
+	for _, et in ipairs(endless_types) do
+		self:AddCallback("btn_endless_type_" .. et, ui_events.BUTTON_CLICKED, function() self:on_click_endless_type(et) end, self)
+	end
+	self:AddCallback("btn_endless_start", ui_events.BUTTON_CLICKED, self.on_click_endless_start, self)
+
+	-- Category callbacks
+	self:AddCallback("btn_cat_stalkers", ui_events.BUTTON_CLICKED, self.on_click_cat_stalkers, self)
+	self:AddCallback("btn_cat_mutants", ui_events.BUTTON_CLICKED, self.on_click_cat_mutants, self)
+
+	-- Tier callbacks
+	for t = 1, 5 do
+		self:AddCallback("btn_tier_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_tier(t) end, self)
+	end
+
+	-- Row action callbacks
+	for r = 1, 3 do
+		self:AddCallback("btn_action_" .. r, ui_events.BUTTON_CLICKED, function() self:on_click_action(r) end, self)
+	end
+
+	-- Loadout Class Callbacks
+	local classes = { "random", "pistol", "shotgun", "rifle", "smg", "sniper" }
+	for _, cls in ipairs(classes) do
+		self:AddCallback("btn_loadout_" .. cls, ui_events.BUTTON_CLICKED, function() self:on_click_loadout_class(cls) end, self)
+	end
+
+	-- Loadout Tier Callbacks
+	for t = 0, 5 do
+		self:AddCallback("btn_loadout_tier_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_loadout_tier(t) end, self)
+	end
+
+	-- Loadout Ammo Callbacks
+	local ammo_types = { "auto", "fmj", "ap", "hp", "special" }
+	for _, at in ipairs(ammo_types) do
+		self:AddCallback("btn_loadout_ammo_" .. at, ui_events.BUTTON_CLICKED, function() self:on_click_loadout_ammo(at) end, self)
+	end
+	self:AddCallback("btn_3dssg", ui_events.BUTTON_CLICKED, self.on_click_3dssg, self)
+
+	-- 3DSSG Selection Menu callbacks
+	self:AddCallback("btn_3dssg_off", ui_events.BUTTON_CLICKED, self.on_click_3dssg_menu_off, self)
+	self:AddCallback("btn_3dssg_random", ui_events.BUTTON_CLICKED, self.on_click_3dssg_menu_random, self)
+	self:AddCallback("btn_dssg_close", ui_events.BUTTON_CLICKED, function() self:show_dssg_menu(false) end, self)
+	self:AddCallback("btn_arr_3dssg_prev", ui_events.BUTTON_CLICKED, function() self:on_click_dssg_page(-1) end, self)
+	self:AddCallback("btn_arr_3dssg_next", ui_events.BUTTON_CLICKED, function() self:on_click_dssg_page(1) end, self)
+	for i = 1, 7 do
+		local row = i
+		self:AddCallback("btn_arr_3dssg_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_dssg_row(row) end, self)
+	end
+
+	-- Magazine & Ammo Quick Controls Callbacks
+	self:AddCallback("btn_mag_prev", ui_events.BUTTON_CLICKED, function() self:on_click_mag_cycle(-1) end, self)
+	self:AddCallback("btn_mag", ui_events.BUTTON_CLICKED, self.on_click_mag_btn, self)
+	self:AddCallback("btn_mag_next", ui_events.BUTTON_CLICKED, function() self:on_click_mag_cycle(1) end, self)
+
+	self:AddCallback("btn_ammo_prev", ui_events.BUTTON_CLICKED, function() self:on_click_ammo_qty(-1) end, self)
+	self:AddCallback("btn_ammo_qty", ui_events.BUTTON_CLICKED, function() self:on_click_ammo_qty(1) end, self)
+	self:AddCallback("btn_ammo_next", ui_events.BUTTON_CLICKED, function() self:on_click_ammo_qty(1) end, self)
+
+	-- Magazine Menu Callbacks
+	self:AddCallback("btn_mag_count_minus", ui_events.BUTTON_CLICKED, function() self:on_click_mag_count(-1) end, self)
+	self:AddCallback("btn_mag_count_plus", ui_events.BUTTON_CLICKED, function() self:on_click_mag_count(1) end, self)
+	self:AddCallback("btn_ammo_count_minus", ui_events.BUTTON_CLICKED, function() self:on_click_ammo_qty(-1) end, self)
+	self:AddCallback("btn_ammo_count_plus", ui_events.BUTTON_CLICKED, function() self:on_click_ammo_qty(1) end, self)
+	self:AddCallback("btn_mag_page_prev", ui_events.BUTTON_CLICKED, function() self:on_click_mag_page(-1) end, self)
+	self:AddCallback("btn_mag_page_next", ui_events.BUTTON_CLICKED, function() self:on_click_mag_page(1) end, self)
+	self:AddCallback("btn_mag_close", ui_events.BUTTON_CLICKED, function() self:show_mag_menu(false) end, self)
+	for i = 1, 7 do
+		local r = i
+		self:AddCallback("btn_arr_mag_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_mag_row(r) end, self)
+	end
+
+	-- Main enter button callback
+	self:AddCallback("btn_tourn_start", ui_events.BUTTON_CLICKED, self.on_click_tourn_start, self)
+	self:AddCallback("btn_weapon_prev", ui_events.BUTTON_CLICKED, self.on_click_weapon_prev, self)
+	self:AddCallback("btn_weapon_next", ui_events.BUTTON_CLICKED, self.on_click_weapon_next, self)
+	self:AddCallback("btn_spec_page_prev", ui_events.BUTTON_CLICKED, function() self:on_click_spec_page(-1) end, self)
+	self:AddCallback("btn_spec_page_next", ui_events.BUTTON_CLICKED, function() self:on_click_spec_page(1) end, self)
+	for i = 1, 8 do
+		local slot_idx = i
+		self:AddCallback("btn_spec_ammo_" .. slot_idx, ui_events.BUTTON_CLICKED, function() self:on_click_spec_ammo_btn(slot_idx) end, self)
+	end
+
+	-- Spectator callbacks
+	local spec_filters = { "all", "svsm", "svss", "mvsm" }
+	for _, f_name in ipairs(spec_filters) do
+		self:AddCallback("btn_spec_filter_" .. f_name, ui_events.BUTTON_CLICKED, function() self:on_click_spec_filter(f_name) end, self)
+	end
+
+	self:AddCallback("btn_spec_refresh", ui_events.BUTTON_CLICKED, self.on_click_refresh_bouts, self)
+	self:AddCallback("start_btn", ui_events.BUTTON_CLICKED, self.on_click_spectator_start, self)
+
+	for i = 1, 6 do
+		self:AddCallback("btn_min1_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_bet(i, 1, -1) end, self)
+		self:AddCallback("btn_plus1_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_bet(i, 1, 1) end, self)
+		self:AddCallback("btn_min2_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_bet(i, 2, -1) end, self)
+		self:AddCallback("btn_plus2_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_bet(i, 2, 1) end, self)
+		self:AddCallback("btn_mult1_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_mult(i, 1) end, self)
+		self:AddCallback("btn_mult2_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_mult(i, 2) end, self)
+	end
+	
+	local modifiers = { "none", "pistols", "shotguns", "ar", "smg", "sniper" }
+	for _, m in ipairs(modifiers) do
+		self:AddCallback("btn_mod_t1_" .. m, ui_events.BUTTON_CLICKED, function() self:on_click_mod(1, m) end, self)
+		self:AddCallback("btn_mod_t2_" .. m, ui_events.BUTTON_CLICKED, function() self:on_click_mod(2, m) end, self)
+	end
+	for t = 1, 5 do
+		self:AddCallback("btn_mod_tier_t1_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_mod_tier(1, t) end, self)
+		self:AddCallback("btn_mod_tier_t2_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_mod_tier(2, t) end, self)
+	end
+end
+
+function UIXcvbArena:on_click_mod(team_idx, mod_name)
+	if team_idx == 1 then
+		if xcvb_arena_main.selected_modifier_team1 == mod_name and mod_name ~= "none" then
+			xcvb_arena_main.selected_modifier_team1 = "none"
+		else
+			xcvb_arena_main.selected_modifier_team1 = mod_name
+		end
+		xcvb_arena_main.selected_modifier = xcvb_arena_main.selected_modifier_team1
+	else
+		if xcvb_arena_main.selected_modifier_team2 == mod_name and mod_name ~= "none" then
+			xcvb_arena_main.selected_modifier_team2 = "none"
+		else
+			xcvb_arena_main.selected_modifier_team2 = mod_name
+		end
+	end
+	self:update_modifier_buttons()
+end
+
+function UIXcvbArena:on_click_mod_tier(team_idx, tier)
+	if team_idx == 1 then
+		xcvb_arena_main.selected_modifier_tier_team1 = tier
+		xcvb_arena_main.selected_modifier_tier = tier
+	else
+		xcvb_arena_main.selected_modifier_tier_team2 = tier
+	end
+	self:update_modifier_buttons()
+end
+
+function UIXcvbArena:update_modifier_buttons()
+	local cur_f = xcvb_arena_main.current_spec_filter or "all"
+
+	local show_t1 = false
+	local show_t2 = false
+	local show_sep = false
+
+	if cur_f == "svsm" then
+		show_t1 = true
+		show_t2 = false
+		show_sep = false
+	elseif cur_f == "svss" then
+		show_t1 = true
+		show_t2 = true
+		show_sep = true
+	end
+
+	local mod_names = {
+		none = gt("st_arena_mod_none"),
+		pistols = gt("st_arena_class_pistol"),
+		shotguns = gt("st_arena_class_shotgun"),
+		ar = gt("st_arena_class_rifle"),
+		smg = gt("st_arena_class_smg"),
+		sniper = gt("st_arena_class_sniper")
+	}
+
+	-- ==================== Team 1 (Red / Left) ====================
+	local cur_mod1 = xcvb_arena_main.selected_modifier_team1 or "none"
+	local sel_tier1 = xcvb_arena_main.selected_modifier_tier_team1 or 3
+
+	if self.mod_title_t1 then
+		self.mod_title_t1:Show(show_t1)
+		if cur_mod1 == "none" then
+			self.mod_title_t1:SetText(gt("st_arena_team1_build_title") .. " " .. gt("st_arena_mod_none"):upper() .. " [OFF]")
+			self.mod_title_t1:SetTextColor(GetARGB(255, 200, 160, 160))
+		else
+			local m_name = mod_names[cur_mod1] or cur_mod1
+			self.mod_title_t1:SetText(gt("st_arena_team1_build_title") .. " " .. m_name:upper() .. " [ON]")
+			self.mod_title_t1:SetTextColor(GetARGB(255, 255, 120, 120))
+		end
+	end
+
+	for m, btn in pairs(self.mod_btns_t1) do
+		btn:Show(show_t1)
+		local base_name = mod_names[m] or m
+		if m == cur_mod1 then
+			btn:TextControl():SetText(base_name .. " [ON]")
+			btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+		else
+			btn:TextControl():SetText(base_name .. " [OFF]")
+			btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+		end
+	end
+
+	if self.mod_tier_title_t1 then
+		self.mod_tier_title_t1:Show(show_t1)
+		self.mod_tier_title_t1:SetText(gt("st_arena_team1_tier_title") .. " TIER " .. sel_tier1 .. " [ON]")
+		self.mod_tier_title_t1:SetTextColor(GetARGB(255, 255, 180, 180))
+	end
+
+	for tier = 1, 5 do
+		local btn = self.mod_tier_btns_t1[tier]
+		if btn then
+			btn:Show(show_t1)
+			local t_label = "T" .. tier
+			if tier == sel_tier1 then
+				btn:TextControl():SetText(t_label .. " [ON]")
+				btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+			else
+				btn:TextControl():SetText(t_label .. " [OFF]")
+				btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+			end
+		end
+	end
+
+	-- Center Separator
+	if self.mod_separator then
+		self.mod_separator:Show(show_sep)
+	end
+
+	-- ==================== Team 2 (Blue / Right) ====================
+	local cur_mod2 = xcvb_arena_main.selected_modifier_team2 or "none"
+	local sel_tier2 = xcvb_arena_main.selected_modifier_tier_team2 or 3
+
+	if self.mod_title_t2 then
+		self.mod_title_t2:Show(show_t2)
+		if cur_mod2 == "none" then
+			self.mod_title_t2:SetText(gt("st_arena_team2_build_title") .. " " .. gt("st_arena_mod_none"):upper() .. " [OFF]")
+			self.mod_title_t2:SetTextColor(GetARGB(255, 160, 190, 200))
+		else
+			local m_name = mod_names[cur_mod2] or cur_mod2
+			self.mod_title_t2:SetText(gt("st_arena_team2_build_title") .. " " .. m_name:upper() .. " [ON]")
+			self.mod_title_t2:SetTextColor(GetARGB(255, 100, 220, 255))
+		end
+	end
+
+	for m, btn in pairs(self.mod_btns_t2) do
+		btn:Show(show_t2)
+		local base_name = mod_names[m] or m
+		if m == cur_mod2 then
+			btn:TextControl():SetText(base_name .. " [ON]")
+			btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+		else
+			btn:TextControl():SetText(base_name .. " [OFF]")
+			btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+		end
+	end
+
+	if self.mod_tier_title_t2 then
+		self.mod_tier_title_t2:Show(show_t2)
+		self.mod_tier_title_t2:SetText(gt("st_arena_team2_tier_title") .. " TIER " .. sel_tier2 .. " [ON]")
+		self.mod_tier_title_t2:SetTextColor(GetARGB(255, 160, 220, 255))
+	end
+
+	for tier = 1, 5 do
+		local btn = self.mod_tier_btns_t2[tier]
+		if btn then
+			btn:Show(show_t2)
+			local t_label = "T" .. tier
+			if tier == sel_tier2 then
+				btn:TextControl():SetText(t_label .. " [ON]")
+				btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+			else
+				btn:TextControl():SetText(t_label .. " [OFF]")
+				btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+			end
+		end
+	end
+end
+
+--------------------------------------------------------------------------------
+-- MODE AND CATEGORY SWITCHING
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:on_click_mode()
+	if self.current_mode == "tournament" then
+		self.current_mode = "spectator"
+	else
+		self.current_mode = "tournament"
+		xcvb_arena_main.selected_modifier = "none"
+		xcvb_arena_main.selected_modifier_team1 = "none"
+		xcvb_arena_main.selected_modifier_team2 = "none"
+	end
+	self:update_view_mode()
+end
+
+function UIXcvbArena:on_click_practice_toggle()
+	xcvb_arena_main.practice_mode_active = not (xcvb_arena_main.practice_mode_active == true)
+	self:update_practice_button()
+	self:update_view_mode()
+end
+
+function UIXcvbArena:update_practice_button()
+	if not self.btn_practice then return end
+	local is_on = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
+	if is_on then
+		self.btn_practice:TextControl():SetFont(GetFontLetterica18Russian())
+		self.btn_practice:TextControl():SetText(gt("st_arena_btn_practice_on"))
+		self.btn_practice:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+	else
+		self.btn_practice:TextControl():SetFont(GetFontLetterica16Russian())
+		self.btn_practice:TextControl():SetText(gt("st_arena_btn_practice"))
+		self.btn_practice:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+	end
+end
+
+function UIXcvbArena:on_click_beta_mode()
+	if self.current_mode == "beta" then
+		self.current_mode = "tournament"
+	else
+		self.current_mode = "beta"
+	end
+	self:update_view_mode()
+end
+
+function UIXcvbArena:on_click_night_mode()
+	pcall(function()
+		local snd = sound_object([[interface\inv_torch]]) or sound_object([[device\torch_click]])
+		if snd then snd:play(db.actor, 0, sound_object.s2d) end
+	end)
+
+	xcvb_arena_main.night_mode_active = not (xcvb_arena_main.night_mode_active == true)
+
+	if not xcvb_arena_main.night_mode_active then
+		if self.night_device_menu then
+			self.night_device_menu:Show(false)
+		end
+	end
+
+	self:update_view_mode()
+end
+
+function UIXcvbArena:on_click_night_device()
+	if self.night_device_menu then
+		local show = not self.night_device_menu:IsShown()
+		self.night_device_menu:Show(show)
+		if show then
+			self:update_night_device_menu()
+		end
+	end
+end
+
+function UIXcvbArena:on_select_night_device(sec)
+	xcvb_arena_main.night_mode_device = sec
+	if self.night_device_menu then
+		self.night_device_menu:Show(false)
+	end
+	self:update_night_device_btn()
+end
+
+function UIXcvbArena:update_night_device_btn()
+	if not self.btn_night_device then return end
+	local is_night = (xcvb_arena_main.night_mode_active == true)
+	self.btn_night_device:Show(is_night)
+	if not is_night then return end
+
+	local dev = xcvb_arena_main.night_mode_device or "device_torch_dummy"
+	local text = gt("st_arena_dev_btn_torch")
+
+	if dev == "device_torch_nv_1" then
+		text = gt("st_arena_dev_btn_nvg1")
+	elseif dev == "device_torch_nv_2" then
+		text = gt("st_arena_dev_btn_nvg2")
+	elseif dev == "device_torch_nv_3" then
+		text = gt("st_arena_dev_btn_nvg3")
+	elseif dev == "none" then
+		text = gt("st_arena_dev_btn_none")
+	else
+		text = gt("st_arena_dev_btn_torch")
+	end
+
+	local prefix = gt("st_arena_btn_night_device") or "Equipo"
+	local full_text = string.format("%s: %s", prefix, text)
+	local clr = GetARGB(255, 255, 80, 80)
+
+	if self.btn_night_device:TextControl() then
+		self.btn_night_device:TextControl():SetFont(GetFontLetterica16Russian())
+		self.btn_night_device:TextControl():SetText(full_text)
+		self.btn_night_device:TextControl():SetTextColor(clr)
+	end
+end
+
+function UIXcvbArena:update_night_device_menu()
+	if not self.night_device_menu then return end
+	local dev = xcvb_arena_main.night_mode_device or "device_torch_dummy"
+
+	local function highlight(btn, is_sel, normal_clr)
+		if not (btn and btn:TextControl()) then return end
+		if is_sel then
+			btn:TextControl():SetTextColor(GetARGB(255, 255, 60, 60))
+		else
+			btn:TextControl():SetTextColor(normal_clr)
+		end
+	end
+
+	highlight(self.btn_dev_torch, dev == "device_torch_dummy", GetARGB(255, 255, 220, 140))
+	highlight(self.btn_dev_nvg1, dev == "device_torch_nv_1", GetARGB(255, 140, 255, 140))
+	highlight(self.btn_dev_nvg2, dev == "device_torch_nv_2", GetARGB(255, 100, 240, 255))
+	highlight(self.btn_dev_nvg3, dev == "device_torch_nv_3", GetARGB(255, 255, 140, 255))
+	highlight(self.btn_dev_none, dev == "none", GetARGB(255, 180, 180, 180))
+end
+
+function UIXcvbArena:reset_loadout_selection()
+	self.selected_loadout_class = "random"
+	self.selected_loadout_tier = 0
+	self.selected_loadout_ammo = "auto"
+	self.selected_3dssg_mode = "off"
+	self.selected_3dssg_scope = nil
+	self.selected_3dssg_entry_list = {}
+	self.arr_3dssg_page = 1
+	self.selected_weapon_sec = nil
+	self.selected_special_ammo_sec = nil
+	self.available_weapons_cache = {}
+	self.spec_ammo_page = 1
+	self.selected_loadout_mag = nil
+	self.selected_mag_count = "auto"
+	self.selected_ammo_count = "auto"
+	self.arr_mag_page = 1
+	self:show_dssg_menu(false)
+	self:show_mag_menu(false)
+	if self.loadout_class_btns then
+		self:update_loadout_buttons()
+	end
+end
+
+function UIXcvbArena:auto_select_current_round()
+	local cat = self.current_category or "stalker"
+	local unl = xcvb_arena_main.get_unlocked_round(cat)
+	local tier = math.min(5, math.ceil(unl / 3))
+	self.current_tier = tier
+	local start_round = (tier - 1) * 3 + 1
+	local target_round = start_round
+	for r = 0, 2 do
+		local cand = start_round + r
+		if xcvb_arena_main.is_round_unlocked(cat, cand) and not xcvb_arena_main.is_round_completed(cat, cand) then
+			target_round = cand
+			break
+		end
+	end
+	self.selected_round_id = target_round
+end
+
+function UIXcvbArena:on_click_cat_stalkers()
+	self.current_category = "stalker"
+	self:auto_select_current_round()
+	self:reset_loadout_selection()
+	self:update_tournament_display()
+end
+
+function UIXcvbArena:on_click_cat_mutants()
+	self.current_category = "mutant"
+	self:auto_select_current_round()
+	self:reset_loadout_selection()
+	self:update_tournament_display()
+end
+
+function UIXcvbArena:on_click_tier(tier)
+	self.current_tier = tier
+	local start_round = (tier - 1) * 3 + 1
+	local target_round = start_round
+	for r = 0, 2 do
+		local cand = start_round + r
+		if xcvb_arena_main.is_round_unlocked(self.current_category, cand) and not xcvb_arena_main.is_round_completed(self.current_category, cand) then
+			target_round = cand
+			break
+		end
+	end
+	self.selected_round_id = target_round
+	self:reset_loadout_selection()
+	self:update_tournament_display()
+end
+
+function UIXcvbArena:on_click_action(row_idx)
+	local round_id = (self.current_tier - 1) * 3 + row_idx
+	local prev_selected = self.selected_round_id
+	self.selected_round_id = round_id
+
+	local is_practice = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
+	local tier = math.ceil(round_id / 3)
+	local rank_ok = is_practice or xcvb_arena_main.is_tier_unlocked_by_rank(tier)
+	local unl = is_practice or xcvb_arena_main.is_round_unlocked(self.current_category, round_id)
+	local comp = xcvb_arena_main.is_round_completed(self.current_category, round_id)
+	local remain_sec = xcvb_arena_main.get_round_cooldown_remaining(self.current_category, round_id)
+
+	if prev_selected ~= round_id then
+		-- Si cambia a otra ronda, reiniciar la selección de arma y mostrar los detalles
+		self:reset_loadout_selection()
+		self:update_tournament_display()
+	else
+		-- Si hace clic en la ronda que ya estaba seleccionada, iniciar combate si cumple condiciones
+		self:update_tournament_display()
+		if is_practice or (rank_ok and unl and (not comp or remain_sec >= 0)) then
+			self:on_click_tourn_start()
+		end
+	end
+end
+
+function UIXcvbArena:update_view_mode()
+	self:show_endless_difficulty_menu(false)
+	self:show_dssg_menu(false)
+	self:update_practice_button()
+	if self.btn_practice then
+		self.btn_practice:Show(self.current_mode == "tournament")
+	end
+	if self.current_mode == "tournament" then
+		self.tournament_cont:Show(true)
+		self.spectator_cont:Show(false)
+		if self.beta_cont then self.beta_cont:Show(false) end
+		self.title_main:SetText(gt("st_arena_title"))
+		self.btn_mode:TextControl():SetText(gt("st_arena_mode_spectator"))
+		self.btn_mode:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		if self.btn_beta then self.btn_beta:TextControl():SetTextColor(GetARGB(255, 180, 180, 180)) end
+		self:update_tournament_display()
+		self:update_modifier_buttons()
+	elseif self.current_mode == "spectator" then
+		self.tournament_cont:Show(false)
+		self.spectator_cont:Show(true)
+		if self.beta_cont then self.beta_cont:Show(false) end
+		self.title_main:SetText(gt("st_arena_spectator_title"))
+		self.btn_mode:TextControl():SetText(gt("st_arena_mode_tournament"))
+		self.btn_mode:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+		if self.btn_beta then self.btn_beta:TextControl():SetTextColor(GetARGB(255, 180, 180, 180)) end
+		self:update_spectator_display()
+		self:update_modifier_buttons()
+	elseif self.current_mode == "beta" then
+		self.tournament_cont:Show(false)
+		self.spectator_cont:Show(false)
+		if self.beta_cont then self.beta_cont:Show(true) end
+		if self.beta_subview == "endless" then
+			self.title_main:SetText(gt("st_arena_endless_header_title"))
+			self.player_rank:SetText(gt("st_arena_endless_header_subtitle"))
+			self.player_record:SetText(string.format(gt("st_arena_endless_stats_record"), tostring(xcvb_arena_main.best_endless_wave or 0)))
+		elseif self.bc_submode == "mutants" then
+			self.title_main:SetText(gt("st_arena_btn_beta") .. " - " .. gt("st_arena_btn_mvm"))
+			self.player_rank:SetText(gt("st_arena_mvm_desc"))
+			self.player_record:SetText("")
+		else
+			self.title_main:SetText(gt("st_arena_btn_beta") .. " - " .. gt("st_arena_beta_tab_br"))
+			self.player_rank:SetText(gt("st_arena_bc_desc"))
+			self.player_record:SetText("")
+		end
+		self.btn_mode:TextControl():SetText(gt("st_arena_mode_tournament"))
+		self.btn_mode:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		if self.btn_beta then self.btn_beta:TextControl():SetTextColor(GetARGB(255, 255, 220, 140)) end
+		self:update_beta_display()
+	end
+
+	-- Night Mode Testing Banner and Button refresh
+	if self.night_mode_banner then
+		self.night_mode_banner:Show(xcvb_arena_main.night_mode_active == true)
+	end
+	self:update_night_device_btn()
+	if self.btn_night_mode then
+		self.btn_night_mode:TextControl():SetFont(GetFontLetterica16Russian())
+		if xcvb_arena_main.night_mode_active then
+			self.btn_night_mode:TextControl():SetText(gt("st_arena_btn_night_mode_active"))
+			self.btn_night_mode:TextControl():SetTextColor(GetARGB(255, 255, 60, 60))
+		else
+			self.btn_night_mode:TextControl():SetText(gt("st_arena_btn_night_mode"))
+			self.btn_night_mode:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		end
+	end
+end
+
+--------------------------------------------------------------------------------
+-- TOURNAMENT DISPLAY REFRESH
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:update_tournament_display()
+	local cat = self.current_category
+	local p_tier = xcvb_arena_main.get_player_tier(cat)
+	local tiers_table = xcvb_arena_main.get_category_tiers(cat)
+	local tier_name = tiers_table[p_tier] and gt(tiers_table[p_tier].name) or ""
+	local cat_tag = (cat == "mutant") and (" " .. gt("st_arena_tab_tag_mutants")) or (" " .. gt("st_arena_tab_tag_stalkers"))
+
+	-- Header texts
+	self.player_rank:SetText(gt("st_arena_rank_label") .. " " .. tier_name .. cat_tag)
+	self.player_record:SetText(string.format(gt("st_arena_record_label"), xcvb_arena_main.tournament_wins, xcvb_arena_main.tournament_losses))
+
+	-- Highlight Category Buttons
+	if cat == "stalker" then
+		self.btn_cat_stalkers:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+		self.btn_cat_mutants:TextControl():SetTextColor(GetARGB(255, 170, 170, 170))
+	else
+		self.btn_cat_stalkers:TextControl():SetTextColor(GetARGB(255, 170, 170, 170))
+		self.btn_cat_mutants:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+	end
+
+	-- Tier tabs highlight
+	for t = 1, 5 do
+		local btn = self.tier_btns[t]
+		local t_rank_ok = xcvb_arena_main.practice_mode_active or xcvb_arena_main.is_tier_unlocked_by_rank(t)
+		if t == self.current_tier then
+			btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+		elseif not t_rank_ok then
+			btn:TextControl():SetTextColor(GetARGB(255, 120, 100, 100))
+		else
+			btn:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		end
+	end
+
+	-- Populate 3 rows
+	local tier_data = tiers_table[self.current_tier]
+	if not tier_data then return end
+
+	local rank_ok = xcvb_arena_main.is_tier_unlocked_by_rank(self.current_tier)
+
+	for r = 1, 3 do
+		local round_id = (self.current_tier - 1) * 3 + r
+		local r_data = tier_data.rounds[round_id]
+		local row = self.tourn_rows[r]
+
+		if r_data then
+			local is_unlocked = xcvb_arena_main.is_round_unlocked(cat, round_id)
+			local is_comp = xcvb_arena_main.is_round_completed(cat, round_id)
+			local remain_sec, remain_str = xcvb_arena_main.get_round_cooldown_remaining(cat, round_id)
+
+			local enemy_label = gt(r_data.enemies_str)
+			if r_data.id == 5 and cat == "stalker" then
+				local a_fac = xcvb_arena_utils.get_actor_faction()
+				if a_fac == "stalker" or a_fac == "csky" or a_fac == "ecolog" then
+					enemy_label = gt("st_arena_s_round_5_enemies_bandit")
+				end
+			end
+
+						row.name:SetText(gt(r_data.name))
+			row.diff:SetText(gt("st_arena_difficulty_label") .. " " .. gt(r_data.diff_str))
+			row.enemies:SetText(gt("st_arena_enemies_label") .. " " .. enemy_label)
+			row.reward:SetText(gt("st_arena_reward_label") .. " " .. gt(r_data.reward_str))
+
+			if round_id == self.selected_round_id then
+				row.name:SetTextColor(GetARGB(255, 255, 230, 90))
+			else
+				row.name:SetTextColor(GetARGB(255, 210, 210, 210))
+			end
+
+			if xcvb_arena_main.practice_mode_active then
+				row.action_btn:TextControl():SetText(gt("st_arena_btn_practice_action"))
+				row.action_btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+				row.action_btn:Enable(true)
+			elseif not rank_ok then
+				row.action_btn:TextControl():SetText(gt("st_arena_status_locked_rank"))
+				row.action_btn:TextControl():SetTextColor(GetARGB(255, 180, 100, 100))
+				row.action_btn:Enable(true)
+			elseif is_comp then
+				if remain_sec > 0 then
+					row.action_btn:TextControl():SetText(gt("st_arena_btn_replay_no_reward"))
+					row.action_btn:TextControl():SetTextColor(GetARGB(255, 200, 160, 100))
+					row.action_btn:Enable(true)
+				elseif remain_sec < 0 then
+					row.action_btn:TextControl():SetText(gt("st_arena_status_completed"))
+					row.action_btn:TextControl():SetTextColor(GetARGB(255, 140, 220, 140))
+					row.action_btn:Enable(true)
+				else
+					row.action_btn:TextControl():SetText(gt("st_arena_btn_replay"))
+					row.action_btn:TextControl():SetTextColor(GetARGB(255, 140, 220, 140))
+					row.action_btn:Enable(true)
+				end
+			elseif is_unlocked then
+				row.action_btn:TextControl():SetText(gt("st_arena_status_ready"))
+				row.action_btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+				row.action_btn:Enable(true)
+			else
+				row.action_btn:TextControl():SetText(gt("st_arena_status_locked"))
+				row.action_btn:TextControl():SetTextColor(GetARGB(255, 160, 160, 160))
+				row.action_btn:Enable(true)
+			end
+		end
+	end
+
+	-- Details lore box
+	local sel_data = xcvb_arena_main.get_round_data(cat, self.selected_round_id)
+	if sel_data then
+		local sel_desc = gt(sel_data.desc)
+		if sel_data.id == 5 and cat == "stalker" then
+			local a_fac = xcvb_arena_utils.get_actor_faction()
+			if a_fac == "stalker" or a_fac == "csky" or a_fac == "ecolog" then
+				sel_desc = gt("st_arena_s_round_5_desc_bandit")
+			end
+		end
+
+		local sel_tier = math.ceil(self.selected_round_id / 3)
+		local sel_rank_ok = xcvb_arena_main.is_tier_unlocked_by_rank(sel_tier)
+		local sel_unlocked = xcvb_arena_main.is_round_unlocked(cat, self.selected_round_id)
+		local sel_comp = xcvb_arena_main.is_round_completed(cat, self.selected_round_id)
+		local sel_remain_sec, sel_remain_str = xcvb_arena_main.get_round_cooldown_remaining(cat, self.selected_round_id)
+
+		if xcvb_arena_main.practice_mode_active then
+			sel_desc = sel_desc .. "\\n\\n" .. gt("st_arena_practice_mode_active_desc")
+		elseif not sel_rank_ok then
+			local req_rank = xcvb_arena_main.get_tier_required_rank_name(sel_tier)
+			sel_desc = sel_desc .. "\\n\\n" .. string.format(gt("st_arena_rank_required_tip"), req_rank)
+		elseif sel_comp then
+			if sel_remain_sec > 0 then
+				sel_desc = sel_desc .. "\\n\\n" .. string.format(gt("st_arena_cooldown_tip"), sel_remain_str)
+			end
+		end
+
+		self:update_tourn_start_button()
+
+		self.detail_title:SetText(gt(sel_data.name) .. " - " .. gt(sel_data.diff_str))
+		self.detail_desc:SetText(sel_desc)
+	end
+
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:get_current_loadout_rental_fee()
+	return xcvb_arena_utils.get_loadout_rental_fee(
+		self.selected_round_id,
+		self.selected_loadout_class,
+		self.selected_loadout_tier,
+		self.selected_loadout_ammo,
+		self.selected_weapon_sec,
+		self.selected_3dssg_scope,
+		self.selected_loadout_mag,
+		self.selected_mag_count,
+		self.selected_ammo_count
+	)
+end
+
+function UIXcvbArena:update_tourn_start_button()
+	if not self.btn_tourn_start then return end
+	local cat = self.current_category or "stalker"
+	local sel_tier = math.ceil(self.selected_round_id / 3)
+	local is_practice = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
+	local sel_rank_ok = is_practice or xcvb_arena_main.is_tier_unlocked_by_rank(sel_tier)
+	local sel_unlocked = is_practice or xcvb_arena_main.is_round_unlocked(cat, self.selected_round_id)
+	local sel_comp = xcvb_arena_main.is_round_completed(cat, self.selected_round_id)
+	local sel_remain_sec = xcvb_arena_main.get_round_cooldown_remaining(cat, self.selected_round_id)
+
+	local fee = self:get_current_loadout_rental_fee()
+	local actor_money = db.actor and db.actor:money() or 0
+
+	if is_practice then
+		self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_practice_action"))
+		self.btn_tourn_start:Enable(true)
+	elseif not sel_rank_ok then
+		self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_locked_rank"))
+		self.btn_tourn_start:Enable(false)
+	elseif sel_comp then
+		if sel_remain_sec > 0 then
+			if fee > 0 and actor_money < fee then
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_insufficient_funds"))
+				self.btn_tourn_start:Enable(false)
+			elseif fee > 0 then
+				self.btn_tourn_start:TextControl():SetText(string.format(gt("st_arena_btn_replay_fee"), tostring(fee)))
+				self.btn_tourn_start:Enable(true)
+			else
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay_no_reward"))
+				self.btn_tourn_start:Enable(true)
+			end
+		elseif sel_remain_sec < 0 then
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_status_completed"))
+			self.btn_tourn_start:Enable(false)
+		else
+			if fee > 0 and actor_money < fee then
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_insufficient_funds"))
+				self.btn_tourn_start:Enable(false)
+			elseif fee > 0 then
+				self.btn_tourn_start:TextControl():SetText(string.format(gt("st_arena_btn_replay_fee"), tostring(fee)))
+				self.btn_tourn_start:Enable(true)
+			else
+				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay"))
+				self.btn_tourn_start:Enable(true)
+			end
+		end
+	elseif sel_unlocked then
+		if fee > 0 and actor_money < fee then
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_insufficient_funds"))
+			self.btn_tourn_start:Enable(false)
+		elseif fee > 0 then
+			self.btn_tourn_start:TextControl():SetText(string.format(gt("st_arena_btn_enter_with_fee"), tostring(fee)))
+			self.btn_tourn_start:Enable(true)
+		else
+			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_enter"))
+			self.btn_tourn_start:Enable(true)
+		end
+	else
+		self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_locked"))
+		self.btn_tourn_start:Enable(false)
+	end
+end
+
+local function is_in_list(tbl, val)
+	if not tbl then return false end
+	for _, v in ipairs(tbl) do
+		if v == val then return true end
+	end
+	return false
+end
+
+function UIXcvbArena:on_click_weapon_prev()
+	local wlist = self.available_weapons_cache
+	if not wlist or #wlist <= 1 then return end
+	local cur_idx = 1
+	for i, sec in ipairs(wlist) do
+		if sec == self.selected_weapon_sec then
+			cur_idx = i
+			break
+		end
+	end
+	cur_idx = cur_idx - 1
+	if cur_idx < 1 then cur_idx = #wlist end
+	self.selected_weapon_sec = wlist[cur_idx]
+	self.selected_special_ammo_sec = nil
+	self.spec_ammo_page = 1
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_weapon_next()
+	local wlist = self.available_weapons_cache
+	if not wlist or #wlist <= 1 then return end
+	local cur_idx = 1
+	for i, sec in ipairs(wlist) do
+		if sec == self.selected_weapon_sec then
+			cur_idx = i
+			break
+		end
+	end
+	cur_idx = cur_idx + 1
+	if cur_idx > #wlist then cur_idx = 1 end
+	self.selected_weapon_sec = wlist[cur_idx]
+	self.selected_special_ammo_sec = nil
+	self.spec_ammo_page = 1
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_spec_page(delta)
+	if not self.selected_weapon_sec then return end
+	local spec_ammos = xcvb_arena_utils.get_weapon_special_ammos(self.selected_weapon_sec)
+	local total = spec_ammos and #spec_ammos or 0
+	local total_pages = math.max(1, math.ceil(total / 8))
+	local cur = self.spec_ammo_page or 1
+	cur = cur + delta
+	if cur < 1 then cur = total_pages end
+	if cur > total_pages then cur = 1 end
+	self.spec_ammo_page = cur
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_spec_ammo_btn(slot_idx)
+	if not self.selected_weapon_sec then return end
+	local spec_ammos = xcvb_arena_utils.get_weapon_special_ammos(self.selected_weapon_sec)
+	local page = self.spec_ammo_page or 1
+	local actual_idx = (page - 1) * 8 + slot_idx
+	if spec_ammos and spec_ammos[actual_idx] then
+		self.selected_special_ammo_sec = spec_ammos[actual_idx]
+		self.selected_loadout_ammo = "special"
+		self:update_loadout_buttons()
+	end
+end
+
+function UIXcvbArena:on_click_loadout_class(cls)
+	if self.selected_loadout_class == cls and cls ~= "random" then
+		self.selected_loadout_class = "random"
+	else
+		self.selected_loadout_class = cls
+	end
+	self.selected_weapon_sec = nil
+	self.selected_special_ammo_sec = nil
+	self.spec_ammo_page = 1
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_loadout_tier(tier)
+	if self.selected_loadout_tier == tier and tier ~= 0 then
+		self.selected_loadout_tier = 0
+	else
+		self.selected_loadout_tier = tier
+	end
+	self.selected_weapon_sec = nil
+	self.selected_special_ammo_sec = nil
+	self.spec_ammo_page = 1
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_loadout_ammo(at)
+	if self.selected_loadout_ammo == at and at ~= "auto" then
+		self.selected_loadout_ammo = "auto"
+	else
+		self.selected_loadout_ammo = at
+	end
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_3dssg()
+	if not self.selected_weapon_sec then
+		if self.selected_3dssg_mode == "off" then
+			self.selected_3dssg_mode = "random"
+		else
+			self.selected_3dssg_mode = "off"
+		end
+		self:update_loadout_buttons()
+		return
+	end
+	self:open_dssg_menu()
+end
+
+function UIXcvbArena:update_loadout_buttons()
+	local class_names = {
+		random = gt("st_arena_class_random"),
+		pistol = gt("st_arena_class_pistol"),
+		shotgun = gt("st_arena_class_shotgun"),
+		rifle = gt("st_arena_class_rifle"),
+		smg = gt("st_arena_class_smg"),
+		sniper = gt("st_arena_class_sniper")
+	}
+	for _, cls in ipairs({ "random", "pistol", "shotgun", "rifle", "smg", "sniper" }) do
+		local btn = self.loadout_class_btns and self.loadout_class_btns[cls]
+		if btn then
+			local c_name = class_names[cls] or cls
+			if cls == self.selected_loadout_class then
+				btn:TextControl():SetText(c_name .. " [ON]")
+				btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+			else
+				btn:TextControl():SetText(c_name .. " [OFF]")
+				btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+			end
+		end
+	end
+
+	local tier_names = {
+		[0] = gt("st_arena_tier_auto"),
+		[1] = gt("st_arena_tier_1_btn"),
+		[2] = gt("st_arena_tier_2_btn"),
+		[3] = gt("st_arena_tier_3_btn"),
+		[4] = gt("st_arena_tier_4_btn"),
+		[5] = gt("st_arena_tier_5_btn")
+	}
+	for t = 0, 5 do
+		local btn = self.loadout_tier_btns and self.loadout_tier_btns[t]
+		if btn then
+			local t_name = tier_names[t] or ("Tier " .. t)
+			if t == self.selected_loadout_tier then
+				btn:TextControl():SetText(t_name .. " [ON]")
+				btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+			else
+				btn:TextControl():SetText(t_name .. " [OFF]")
+				btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+			end
+		end
+	end
+
+	-- Determine effective tier for weapon / gear preview
+	local eff_tier = self.selected_loadout_tier
+	if not eff_tier or eff_tier == 0 then
+		eff_tier = math.floor((self.selected_round_id - 1) / 3) + 1
+	end
+	if eff_tier < 1 then eff_tier = 1 end
+	if eff_tier > 5 then eff_tier = 5 end
+
+	-- Refresh available weapons cache
+	if self.selected_loadout_class ~= "random" then
+		self.available_weapons_cache = xcvb_arena_utils.get_available_weapons(eff_tier, self.selected_loadout_class)
+		if (not self.selected_weapon_sec) or (not is_in_list(self.available_weapons_cache, self.selected_weapon_sec)) then
+			self.selected_weapon_sec = self.available_weapons_cache and self.available_weapons_cache[1] or nil
+		end
+	else
+		self.available_weapons_cache = xcvb_arena_utils.get_available_weapons(eff_tier, "random")
+		self.selected_weapon_sec = nil
+	end
+
+	-- Determine whether selected weapon is a shotgun
+	local is_shotgun = false
+	if self.selected_loadout_class == "shotgun" then
+		is_shotgun = true
+	elseif self.selected_weapon_sec then
+		local ammo_cls = ini_sys:r_string_ex(self.selected_weapon_sec, "ammo_class") or ""
+		if string.find(ammo_cls, "12x70") or string.find(ammo_cls, "12x76") or string.find(ammo_cls, "23x75") then
+			is_shotgun = true
+		end
+	end
+
+	local ammo_names = {
+		auto = gt("st_arena_ammo_auto"),
+		fmj  = is_shotgun and gt("st_arena_ammo_buck") or gt("st_arena_ammo_fmj"),
+		ap   = is_shotgun and gt("st_arena_ammo_dart") or gt("st_arena_ammo_ap"),
+		hp   = is_shotgun and gt("st_arena_ammo_slug") or gt("st_arena_ammo_hp"),
+		special = "SPEC",
+	}
+
+	local ammo_keys = { "auto", "fmj", "ap", "hp", "special" }
+	local w = 132
+	local step = 137
+	for idx, at in ipairs(ammo_keys) do
+		local btn = self.loadout_ammo_btns and self.loadout_ammo_btns[at]
+		if btn then
+			btn:Show(true)
+			btn:SetWndPos(vector2():set((idx - 1) * step, 360))
+			btn:SetWndSize(vector2():set(w, 22))
+			local a_name = ammo_names[at] or at:upper()
+			if at == self.selected_loadout_ammo then
+				btn:TextControl():SetText(a_name .. " [ON]")
+				btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+			else
+				btn:TextControl():SetText(a_name .. " [OFF]")
+				btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
+			end
+		end
+	end
+
+	if self.loadout_class_title then
+		local active_cls = class_names[self.selected_loadout_class] or gt("st_arena_class_random")
+		self.loadout_class_title:SetText(gt("st_arena_loadout_class_title") .. " " .. active_cls:upper() .. " [ON]")
+		self.loadout_class_title:SetTextColor(GetARGB(255, 255, 220, 80))
+	end
+
+	if self.loadout_tier_title then
+		local active_tier = tier_names[self.selected_loadout_tier] or gt("st_arena_tier_auto")
+		self.loadout_tier_title:SetText(gt("st_arena_loadout_tier_title") .. " " .. active_tier:upper() .. " [ON]")
+		self.loadout_tier_title:SetTextColor(GetARGB(255, 255, 220, 80))
+	end
+
+	if self.loadout_ammo_title then
+		local active_ammo = ammo_names[self.selected_loadout_ammo] or gt("st_arena_ammo_auto")
+		self.loadout_ammo_title:SetText(gt("st_arena_loadout_ammo_title") .. " " .. active_ammo:upper() .. " [ON]")
+		self.loadout_ammo_title:SetTextColor(GetARGB(255, 255, 220, 80))
+	end
+
+	local scope_list = self.selected_weapon_sec and xcvb_arena_utils.get_weapon_scopes(self.selected_weapon_sec) or {}
+	if self.selected_3dssg_scope and not is_in_list(scope_list, self.selected_3dssg_scope) then
+		self.selected_3dssg_scope = scope_list[1]
+	end
+	if self.selected_3dssg_mode == "custom" and not self.selected_3dssg_scope then
+		self.selected_3dssg_mode = "random"
+	end
+	if self.btn_3dssg then
+		local has_3dssg = next(scope_list) ~= nil
+		if not has_3dssg then
+			self.selected_3dssg_scope = nil
+			self.selected_3dssg_mode = "off"
+		end
+		local mode_text = self.selected_3dssg_mode == "random" and "3DSSG [ON] [RANDOM]"
+			or self.selected_3dssg_mode == "custom" and "3DSSG [ON] [CUSTOM]" or "3DSSG [OFF]"
+		self.btn_3dssg:TextControl():SetText(has_3dssg and mode_text or "3DSSG [OFF]")
+		self.btn_3dssg:Enable(has_3dssg)
+		self.btn_3dssg:TextControl():SetTextColor(has_3dssg
+			and (self.selected_3dssg_mode == "off" and GetARGB(255, 150, 150, 150) or GetARGB(255, 100, 255, 100))
+			or GetARGB(255, 90, 90, 90))
+	end
+
+	-- Query compatible magazines for currently selected weapon
+	-- Determine effective ammo section and box size
+	local eff_ammo = xcvb_arena_utils.get_loadout_effective_ammo_sec(self.selected_weapon_sec, self.selected_loadout_ammo, self.selected_special_ammo_sec, eff_tier)
+	local box_size = xcvb_arena_utils.get_ammo_box_size(eff_ammo)
+
+	-- Query compatible magazines for currently selected weapon
+	local comp_mags = self.selected_weapon_sec and xcvb_arena_utils.get_weapon_compatible_mags(self.selected_weapon_sec) or {}
+	local has_mags = #comp_mags > 0
+	if has_mags then
+		if (not self.selected_loadout_mag) or (not is_in_list(comp_mags, self.selected_loadout_mag)) then
+			self.selected_loadout_mag = xcvb_arena_utils.get_weapon_basic_mag(self.selected_weapon_sec) or comp_mags[1]
+		end
+	else
+		self.selected_loadout_mag = nil
+	end
+
+	if self.selected_mag_count ~= "auto" and (not self.selected_mag_count or tonumber(self.selected_mag_count) == nil or self.selected_mag_count < 1) then
+		self.selected_mag_count = "auto"
+	end
+	if self.selected_ammo_count ~= "auto" and (not self.selected_ammo_count or tonumber(self.selected_ammo_count) == nil or self.selected_ammo_count < 1) then
+		self.selected_ammo_count = "auto"
+	end
+
+	-- Update Magazine Quick Controls
+	if self.btn_mag then
+		if self.selected_weapon_sec == nil then
+			self.btn_mag:TextControl():SetText(gt("st_arena_loadout_mags_auto") or "1-3 mags (Basic)")
+			self.btn_mag:Enable(false)
+			self.btn_mag:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+		elseif has_mags and self.selected_loadout_mag then
+			local cap = xcvb_arena_utils.get_mag_capacity(self.selected_loadout_mag)
+			local short_m = xcvb_arena_utils.get_mag_name(self.selected_loadout_mag)
+			if string.len(short_m) > 16 then
+				short_m = string.sub(short_m, 1, 14) .. ".."
+			end
+			local basic_short = gt("st_arena_mag_basic_short") or " (1-3x Basic)"
+			local count_str = (self.selected_mag_count == "auto") and basic_short or (" (" .. tostring(self.selected_mag_count) .. "x)")
+			self.btn_mag:TextControl():SetText(short_m .. count_str)
+			self.btn_mag:Enable(true)
+			self.btn_mag:TextControl():SetTextColor(GetARGB(255, 255, 230, 140))
+		else
+			self.btn_mag:TextControl():SetText(gt("st_arena_loadout_mag_none") or "Sin Cargador")
+			self.btn_mag:Enable(false)
+			self.btn_mag:TextControl():SetTextColor(GetARGB(255, 120, 120, 120))
+		end
+	end
+	if self.btn_mag_prev then self.btn_mag_prev:Enable(self.selected_weapon_sec ~= nil and has_mags and #comp_mags > 1) end
+	if self.btn_mag_next then self.btn_mag_next:Enable(self.selected_weapon_sec ~= nil and has_mags and #comp_mags > 1) end
+
+	-- Update Ammo Quantity Quick Controls
+	if self.btn_ammo_qty then
+		if self.selected_ammo_count == "auto" then
+			self.btn_ammo_qty:TextControl():SetText(gt("st_arena_loadout_boxes_auto") or "1-3 cajas (Auto)")
+			self.btn_ammo_qty:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+		elseif self.selected_ammo_count == 1 then
+			local r_total = 1 * box_size
+			local box_str = string.format(gt("st_arena_loadout_box_singular") or "1 caja (%s balas)", tostring(r_total))
+			self.btn_ammo_qty:TextControl():SetText(box_str)
+			self.btn_ammo_qty:TextControl():SetTextColor(GetARGB(255, 220, 240, 160))
+		else
+			local r_total = self.selected_ammo_count * box_size
+			local box_str = string.format(gt("st_arena_loadout_boxes") or "%s cajas (%s balas)", tostring(self.selected_ammo_count), tostring(r_total))
+			self.btn_ammo_qty:TextControl():SetText(box_str)
+			self.btn_ammo_qty:TextControl():SetTextColor(GetARGB(255, 220, 240, 160))
+		end
+	end
+	if self.btn_ammo_prev then self.btn_ammo_prev:Enable(self.selected_ammo_count ~= "auto") end
+	if self.btn_ammo_next then self.btn_ammo_next:Enable(self.selected_ammo_count ~= 8) end
+
+	-- Query special ammunition for currently selected weapon
+	local spec_ammos = self.selected_weapon_sec and xcvb_arena_utils.get_weapon_special_ammos(self.selected_weapon_sec) or {}
+	if (not self.selected_special_ammo_sec) or (not is_in_list(spec_ammos, self.selected_special_ammo_sec)) then
+		self.selected_special_ammo_sec = spec_ammos and spec_ammos[1] or nil
+	end
+
+	local total_ammos = spec_ammos and #spec_ammos or 0
+	local total_pages = math.max(1, math.ceil(total_ammos / 8))
+	if (not self.spec_ammo_page) or self.spec_ammo_page > total_pages or self.spec_ammo_page < 1 then
+		self.spec_ammo_page = 1
+	end
+
+	-- Special Ammo Grid Display (Right side, 8 buttons + pagination)
+	if self.selected_loadout_ammo == "special" then
+		if self.btn_endless then self.btn_endless:Show(false) end
+		if self.btn_endless_cont then self.btn_endless_cont:Show(false) end
+		if self.endless_arti_btn_main then self.endless_arti_btn_main:Show(false) end
+		if self.spec_menu_title then
+			self.spec_menu_title:Show(true)
+			if not self.selected_weapon_sec then
+				self.spec_menu_title:SetText(gt("st_arena_spec_ammo_none"))
+			elseif total_ammos == 0 then
+				self.spec_menu_title:SetText(gt("st_arena_spec_ammo_none"))
+			else
+				self.spec_menu_title:SetText(gt("st_arena_spec_ammo_title"))
+			end
+		end
+
+		local show_pagination = (total_pages > 1) and (self.selected_weapon_sec ~= nil)
+		if self.spec_page_prev then self.spec_page_prev:Show(show_pagination) end
+		if self.spec_page_next then self.spec_page_next:Show(show_pagination) end
+		if self.spec_page_info then
+			self.spec_page_info:Show(show_pagination)
+			if show_pagination then
+				self.spec_page_info:SetText(tostring(self.spec_ammo_page) .. "/" .. tostring(total_pages))
+			end
+		end
+
+		if self.spec_ammo_btns then
+			for slot = 1, 8 do
+				local btn = self.spec_ammo_btns[slot]
+				if btn then
+					local actual_idx = (self.spec_ammo_page - 1) * 8 + slot
+					local a_sec = spec_ammos[actual_idx]
+					if a_sec and self.selected_weapon_sec then
+						btn:Show(true)
+						local s_name = xcvb_arena_utils.get_item_short_name(a_sec)
+						if string.len(s_name) > 13 then
+							s_name = string.sub(s_name, 1, 11) .. ".."
+						end
+						if a_sec == self.selected_special_ammo_sec then
+							btn:TextControl():SetText(s_name .. " [x]")
+							btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+						else
+							btn:TextControl():SetText(s_name)
+							btn:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+						end
+					else
+						btn:Show(false)
+					end
+				end
+			end
+		end
+	else
+		if self.btn_endless then self.btn_endless:Show(true) end
+		if self.btn_endless_cont then
+			self.btn_endless_cont:Show(true)
+			local cp = xcvb_arena_main.endless_checkpoint_wave or 1
+			local diff = xcvb_arena_main.endless_difficulty or "medium"
+			local diff_name = gt("st_arena_endless_diff_" .. diff)
+			if not diff_name or diff_name == "" or string.find(diff_name, "^st_") then
+				diff_name = (diff == "easy" and "Easy") or (diff == "hard" and "Hard") or "Medium"
+			end
+
+			local text
+			if cp > 1 then
+				text = gt("st_arena_endless_cont_btn") .. ": " .. diff_name .. " (" .. tostring(cp) .. ")"
+			else
+				text = gt("st_arena_endless_cont_btn") .. ": " .. diff_name
+			end
+			self.btn_endless_cont:TextControl():SetText(text)
+
+			if diff == "easy" then
+				self.btn_endless_cont:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+			elseif diff == "hard" then
+				self.btn_endless_cont:TextControl():SetTextColor(GetARGB(255, 255, 120, 120))
+			else
+				self.btn_endless_cont:TextControl():SetTextColor(GetARGB(255, 255, 220, 130))
+			end
+		end
+		if self.endless_arti_btn_main then self.endless_arti_btn_main:Show(true) end
+		if self.spec_menu_title then self.spec_menu_title:Show(false) end
+		if self.spec_page_prev then self.spec_page_prev:Show(false) end
+		if self.spec_page_next then self.spec_page_next:Show(false) end
+		if self.spec_page_info then self.spec_page_info:Show(false) end
+		if self.spec_ammo_btns then
+			for i = 1, 8 do
+				if self.spec_ammo_btns[i] then self.spec_ammo_btns[i]:Show(false) end
+			end
+		end
+	end
+
+	self:update_endless_arti_btn()
+
+	local function format_label(prefix, val)
+		local clean_p = string.gsub(prefix or "", ":+$", "")
+		return clean_p .. ": " .. (val or "")
+	end
+
+	-- Loadout Summary Panel Display (Left side)
+	if self.loadout_summary_frame then
+		if self.summary_title then
+			self.summary_title:SetText(gt("st_arena_loadout_summary_title"))
+		end
+
+		if self.summary_round then
+			local r_data = xcvb_arena_main.get_round_data(self.current_category, self.selected_round_id)
+			local r_name = r_data and gt(r_data.name) or (gt("st_arena_loadout_sum_round") .. " " .. tostring(self.selected_round_id))
+			if string.len(r_name) > 22 then
+				r_name = string.sub(r_name, 1, 20) .. ".."
+			end
+			self.summary_round:SetText(format_label(gt("st_arena_loadout_sum_round"), r_name))
+		end
+
+		local can_cycle = self.available_weapons_cache and (#self.available_weapons_cache > 1) and (self.selected_weapon_sec ~= nil)
+		if self.btn_weapon_prev then self.btn_weapon_prev:Show(can_cycle == true) end
+		if self.btn_weapon_next then self.btn_weapon_next:Show(can_cycle == true) end
+
+		if self.summary_weapon then
+			local w_display = ""
+			if self.selected_weapon_sec then
+				w_display = xcvb_arena_utils.get_item_name(self.selected_weapon_sec)
+			else
+				w_display = class_names[self.selected_loadout_class] or gt("st_arena_class_random")
+			end
+			if string.len(w_display) > 24 then
+				w_display = string.sub(w_display, 1, 22) .. ".."
+			end
+			self.summary_weapon:SetText(w_display)
+		end
+
+		if self.summary_ammo then
+			local a_display = ""
+			if self.selected_loadout_ammo == "special" then
+				if self.selected_special_ammo_sec then
+					a_display = xcvb_arena_utils.get_item_short_name(self.selected_special_ammo_sec)
+				else
+					a_display = "SPEC"
+				end
+			else
+				a_display = ammo_names[self.selected_loadout_ammo] or gt("st_arena_ammo_auto")
+			end
+
+			local a_boxes_str = ""
+			if self.selected_ammo_count == "auto" or not self.selected_ammo_count then
+				a_boxes_str = "1-3x"
+			else
+				local total_rounds = self.selected_ammo_count * box_size
+				a_boxes_str = tostring(self.selected_ammo_count) .. "x (" .. tostring(total_rounds) .. "b)"
+			end
+
+			local sum_str = a_display .. " (" .. a_boxes_str .. ")"
+			if has_mags and self.selected_loadout_mag then
+				local cap = xcvb_arena_utils.get_mag_capacity(self.selected_loadout_mag)
+				local m_str = (self.selected_mag_count == "auto") and "1-3x" or (tostring(self.selected_mag_count) .. "x")
+				sum_str = sum_str .. " | " .. tostring(cap) .. "r (" .. m_str .. ")"
+			elseif self.selected_weapon_sec == nil then
+				local b_tag = gt("st_arena_mag_basic_tag") or "Basic (1-3x)"
+				sum_str = sum_str .. " | " .. b_tag
+			end
+			if string.len(sum_str) > 28 then
+				sum_str = string.sub(sum_str, 1, 26) .. ".."
+			end
+			self.summary_ammo:SetText(format_label(gt("st_arena_loadout_sum_ammo"), sum_str))
+		end
+
+		local outfit_sec, helmet_sec = xcvb_arena_utils.get_tier_preview_gear(eff_tier)
+		local none_str = gt("st_none")
+		if (not none_str) or none_str == "st_none" then none_str = "---" end
+
+		if self.summary_outfit then
+			local o_name = outfit_sec and xcvb_arena_utils.get_item_name(outfit_sec) or none_str
+			if string.len(o_name) > 22 then o_name = string.sub(o_name, 1, 20) .. ".." end
+			self.summary_outfit:SetText(format_label(gt("st_arena_loadout_sum_outfit"), o_name))
+		end
+
+		if self.summary_helmet then
+			local h_name = helmet_sec and xcvb_arena_utils.get_item_name(helmet_sec) or none_str
+			if string.len(h_name) > 22 then h_name = string.sub(h_name, 1, 20) .. ".." end
+			self.summary_helmet:SetText(format_label(gt("st_arena_loadout_sum_helmet"), h_name))
+		end
+
+		if self.summary_scope then
+			local s_name = self.selected_3dssg_scope and xcvb_arena_utils.get_item_short_name(self.selected_3dssg_scope) or none_str
+			if string.len(s_name) > 22 then s_name = string.sub(s_name, 1, 20) .. ".." end
+			self.summary_scope:SetText(format_label("3DSSG", s_name))
+		end
+
+		if self.summary_cost then
+			local cost_label = gt("st_arena_loadout_cost_label")
+			local fee = self:get_current_loadout_rental_fee()
+			if fee == 0 then
+				self.summary_cost:SetText(format_label(cost_label, gt("st_arena_cost_free")))
+				self.summary_cost:SetTextColor(GetARGB(255, 120, 240, 120))
+			else
+				local actor_money = db.actor and db.actor:money() or 0
+				self.summary_cost:SetText(format_label(cost_label, tostring(fee) .. " RU"))
+				if actor_money >= fee then
+					self.summary_cost:SetTextColor(GetARGB(255, 255, 220, 100))
+				else
+					self.summary_cost:SetTextColor(GetARGB(255, 255, 100, 100))
+				end
+			end
+		end
+	end
+
+	self:update_tourn_start_button()
+end
+
+function UIXcvbArena:on_click_tourn_start()
+	local cat = self.current_category
+	local is_practice = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
+	local sel_tier = math.ceil(self.selected_round_id / 3)
+	local rank_ok = is_practice or xcvb_arena_main.is_tier_unlocked_by_rank(sel_tier)
+	local unl = is_practice or xcvb_arena_main.is_round_unlocked(cat, self.selected_round_id)
+	local comp = xcvb_arena_main.is_round_completed(cat, self.selected_round_id)
+	local remain_sec = xcvb_arena_main.get_round_cooldown_remaining(cat, self.selected_round_id)
+
+	if not is_practice then
+		if not rank_ok or not unl then
+			return
+		end
+		if comp and remain_sec < 0 then
+			return
+		end
+	end
+
+	local fee = self:get_current_loadout_rental_fee()
+	if (not is_practice) and fee > 0 then
+		local actor_money = db.actor and db.actor:money() or 0
+		if actor_money < fee then
+			local msg = string.format(gt("st_arena_err_insufficient_funds"), fee)
+			if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
+			return
+		end
+		if db.actor then
+			db.actor:give_money(-fee)
+			local fee_msg = string.format(gt("st_arena_fee_deducted_tip"), fee)
+			news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000)
+		end
+	end
+
+	local chosen_cls = self.selected_loadout_class
+	local chosen_tier = self.selected_loadout_tier
+	local chosen_ammo = self.selected_loadout_ammo
+	local chosen_weapon = self.selected_weapon_sec
+	local chosen_forced_ammo = (chosen_ammo == "special") and self.selected_special_ammo_sec or nil
+	local chosen_3dssg_mode = self.selected_3dssg_mode
+	local chosen_3dssg_scope = self.selected_3dssg_scope
+	local chosen_mag = self.selected_loadout_mag
+	local chosen_mag_count = self.selected_mag_count
+	local chosen_ammo_count = self.selected_ammo_count
+
+	-- Reset loadout selection so it does not persist into future rounds
+	self:reset_loadout_selection()
+	xcvb_arena_main.selected_modifier = "none"
+	xcvb_arena_main.selected_modifier_team1 = "none"
+	xcvb_arena_main.selected_modifier_team2 = "none"
+
+	self:Close()
+	local started = xcvb_arena_fight.start_tournament_fight(cat, self.selected_round_id, chosen_cls, chosen_tier, chosen_ammo, chosen_weapon, chosen_forced_ammo, chosen_3dssg_mode, chosen_3dssg_scope, chosen_mag, chosen_mag_count, chosen_ammo_count)
+	if started == false and not is_practice and fee > 0 and db.actor then
+		db.actor:give_money(fee)
+	end
+end
+
+--------------------------------------------------------------------------------
+-- SPECTATOR MODE LOGIC (Betting & Arena Bouts)
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:on_click_spec_filter(filter_name)
+	xcvb_arena_main.current_spec_filter = filter_name
+	xcvb_arena_main.generate_spectator_fights(filter_name)
+	xcvb_arena_main.team_bet = 0
+	xcvb_arena_main.cur_reward = 0
+	self:update_spectator_display()
+	self:update_modifier_buttons()
+end
+
+function UIXcvbArena:on_click_refresh_bouts()
+	xcvb_arena_main.generate_spectator_fights(xcvb_arena_main.current_spec_filter)
+	xcvb_arena_main.team_bet = 0
+	xcvb_arena_main.cur_reward = 0
+	self:update_spectator_display()
+end
+
+function UIXcvbArena:on_click_mult(row_idx, team_idx)
+	local main_t = xcvb_arena_main.arena_main_t[row_idx]
+	if not main_t or not main_t.team1 or #main_t.team1 == 0 or not main_t.team2 or #main_t.team2 == 0 then
+		return
+	end
+
+	if team_idx == 1 then
+		local cur = main_t.mult1 or 1
+		local next_val = cur + 1
+		if next_val > 5 then
+			next_val = 1
+		end
+		main_t.mult1 = next_val
+	else
+		local cur = main_t.mult2 or 1
+		local next_val = cur + 1
+		if next_val > 5 then
+			next_val = 1
+		end
+		main_t.mult2 = next_val
+	end
+
+	if xcvb_arena_main.selected_spec_bout == row_idx and xcvb_arena_main.team_bet > 0 and (xcvb_arena_main.bet_amount or 0) > 0 then
+		local pwr1 = (main_t.pwrs and main_t.pwrs[1] and main_t.pwrs[1] > 0) and main_t.pwrs[1] or 1
+		local pwr2 = (main_t.pwrs and main_t.pwrs[2] and main_t.pwrs[2] > 0) and main_t.pwrs[2] or 1
+		pwr1 = pwr1 * (main_t.mult1 or 1)
+		pwr2 = pwr2 * (main_t.mult2 or 1)
+		local coef = (xcvb_arena_main.team_bet == 1) and (pwr2 / (pwr1 + pwr2)) or (pwr1 / (pwr1 + pwr2))
+		xcvb_arena_main.cur_reward = math.ceil(xcvb_arena_main.bet_amount + xcvb_arena_main.bet_amount * coef * 2)
+	end
+
+	self:update_spectator_display()
+end
+
+function UIXcvbArena:on_click_bet(row_idx, team_idx, dir)
+	local main_t = xcvb_arena_main.arena_main_t[row_idx]
+	if not main_t or not main_t.team1 or #main_t.team1 == 0 or not main_t.team2 or #main_t.team2 == 0 then
+		return
+	end
+
+	if xcvb_arena_main.selected_spec_bout ~= row_idx or xcvb_arena_main.team_bet ~= team_idx then
+		if dir > 0 and db.actor:money() < 1000 then return end
+		xcvb_arena_main.selected_spec_bout = row_idx
+		xcvb_arena_main.team_bet = team_idx
+		xcvb_arena_main.bet_amount = 1000
+	else
+		local cur_bet = xcvb_arena_main.bet_amount or 1000
+		local step = cur_bet >= 5000 and 2500 or 500
+		local new_bet = cur_bet + dir * step
+		if new_bet < 500 then
+			new_bet = 0
+			xcvb_arena_main.team_bet = 0
+		elseif new_bet > 50000 then
+			new_bet = 50000
+		end
+		if dir > 0 and db.actor:money() < new_bet then
+			return
+		end
+		xcvb_arena_main.bet_amount = new_bet
+	end
+
+	if xcvb_arena_main.team_bet > 0 and xcvb_arena_main.bet_amount > 0 then
+		local pwr1 = (main_t.pwrs and main_t.pwrs[1] and main_t.pwrs[1] > 0) and main_t.pwrs[1] or 1
+		local pwr2 = (main_t.pwrs and main_t.pwrs[2] and main_t.pwrs[2] > 0) and main_t.pwrs[2] or 1
+		pwr1 = pwr1 * (main_t.mult1 or 1)
+		pwr2 = pwr2 * (main_t.mult2 or 1)
+		local coef = (team_idx == 1) and (pwr2 / (pwr1 + pwr2)) or (pwr1 / (pwr1 + pwr2))
+		xcvb_arena_main.cur_reward = math.ceil(xcvb_arena_main.bet_amount + xcvb_arena_main.bet_amount * coef * 2)
+	else
+		xcvb_arena_main.cur_reward = 0
+	end
+
+	self:update_spectator_display()
+	self:update_modifier_buttons()
+end
+
+function UIXcvbArena:update_spectator_display()
+	local cur_f = xcvb_arena_main.current_spec_filter or "all"
+	for f_name, btn in pairs(self.spec_filter_btns) do
+		if f_name == cur_f then
+			btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 80))
+		else
+			btn:TextControl():SetTextColor(GetARGB(255, 175, 175, 175))
+		end
+	end
+
+	local main_t = xcvb_arena_main.arena_main_t
+	if not main_t or not main_t[1] or not main_t[1].team1 or #main_t[1].team1 == 0 then
+		xcvb_arena_main.generate_spectator_fights()
+		main_t = xcvb_arena_main.arena_main_t
+	end
+	for i = 1, 6 do
+		local bout = main_t[i]
+		if bout and bout.team1 and #bout.team1 > 0 and bout.team2 and #bout.team2 > 0 then
+			local m_label = "st_arena_label_" .. (bout.match_type or "svsm")
+			self.rows[i].time:SetText(gt(m_label))
+
+			local team1_str = xcvb_arena_utils.get_team_str(bout.team1) or "st_arena_team1"
+			local team2_str = xcvb_arena_utils.get_team_str(bout.team2) or "st_arena_team2"
+			local count1 = #bout.team1
+			local count2 = #bout.team2
+			
+			local team1_rank = xcvb_arena_utils.get_team_rank_string(bout.team1)
+			local team2_rank = xcvb_arena_utils.get_team_rank_string(bout.team2)
+			local text1 = gt(team1_str) .. " [" .. count1 .. "]"
+			if team1_rank then text1 = text1 .. "\\n" .. team1_rank end
+			local text2 = gt(team2_str) .. " [" .. count2 .. "]"
+			if team2_rank then text2 = text2 .. "\\n" .. team2_rank end
+			
+			self.rows[i].team_1:TextControl():SetText(text1)
+			self.rows[i].team_2:TextControl():SetText(text2)
+
+			local mult1 = bout.mult1 or 1
+			local mult2 = bout.mult2 or 1
+			self.rows[i].btn_mult1:Show(true)
+			self.rows[i].btn_mult2:Show(true)
+			self.rows[i].btn_mult1:TextControl():SetText("X" .. mult1)
+			self.rows[i].btn_mult2:TextControl():SetText("X" .. mult2)
+			if mult1 > 1 then
+				self.rows[i].btn_mult1:TextControl():SetTextColor(GetARGB(255, 255, 220, 80))
+			else
+				self.rows[i].btn_mult1:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+			end
+			if mult2 > 1 then
+				self.rows[i].btn_mult2:TextControl():SetTextColor(GetARGB(255, 255, 220, 80))
+			else
+				self.rows[i].btn_mult2:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+			end
+
+			local is_sel_bout = (i == xcvb_arena_main.selected_spec_bout)
+			local bet1_val = (is_sel_bout and xcvb_arena_main.team_bet == 1) and xcvb_arena_main.bet_amount or 0
+			local bet2_val = (is_sel_bout and xcvb_arena_main.team_bet == 2) and xcvb_arena_main.bet_amount or 0
+			self.rows[i].bet1:SetText(tostring(bet1_val))
+			self.rows[i].bet2:SetText(tostring(bet2_val))
+
+			local rew = is_sel_bout and xcvb_arena_main.cur_reward or 0
+			self.rows[i].reward:SetText(tostring(rew))
+
+			if is_sel_bout and xcvb_arena_main.team_bet > 0 then
+				self.rows[i].reward:SetTextColor(GetARGB(255, 120, 240, 120))
+			else
+				self.rows[i].reward:SetTextColor(GetARGB(255, 190, 190, 190))
+			end
+		else
+			self.rows[i].time:SetText("")
+			self.rows[i].team_1:TextControl():SetText("")
+			self.rows[i].team_2:TextControl():SetText("")
+			self.rows[i].bet1:SetText("0")
+			self.rows[i].bet2:SetText("0")
+			self.rows[i].reward:SetText("0")
+			self.rows[i].btn_mult1:Show(false)
+			self.rows[i].btn_mult2:Show(false)
+		end
+	end
+
+	local has_bet = (xcvb_arena_main.team_bet > 0 and (xcvb_arena_main.bet_amount or 0) > 0)
+	self.start_btn:Enable(has_bet)
+end
+
+function UIXcvbArena:on_click_spectator_start()
+	local bet = xcvb_arena_main.bet_amount or 0
+	local team = xcvb_arena_main.team_bet or 0
+	local bout_idx = xcvb_arena_main.selected_spec_bout or 1
+
+	if team <= 0 or bet <= 0 then
+		news_manager.send_tip(db.actor, gt("st_arena_no_bet_selected"), 0, nil, 6000)
+		return
+	end
+
+	if db.actor:money() < bet then
+		return
+	end
+
+	db.actor:give_money(-bet)
+	self:Close()
+
+	xcvb_arena_utils.arena_fade_in_out(1)
+	CreateTimeEvent("xcvb_start_arena_fight_e", "xcvb_start_arena_fight_a", 2, function()
+		xcvb_arena_fight.start_arena_fight(bout_idx)
+		return true
+	end)
+end
+
+--------------------------------------------------------------------------------
+-- BATALLA CAMPAL MULTIBANDO & MONSTER VS MONSTER (BETA TESTING)
+--------------------------------------------------------------------------------
+
+local bc_available_factions = {
+	"dolg", "freedom", "killer", "army",
+	"stalker", "bandit", "csky", "ecolog", "renegade", "zombied"
+}
+
+local bc_faction_power = {
+	army = 16,
+	military = 16,
+	killer = 15,
+	dolg = 14,
+	duty = 14,
+	freedom = 14,
+	csky = 12,
+	mutant = 12,
+	ecolog = 10,
+	stalker = 10,
+	zombied = 10,
+	bandit = 8,
+	renegade = 8,
+}
+
+local bc_available_mutants = {
+	"chimera", "gigant", "bloodsucker", "burer", "psysucker",
+	"psy_dog", "snork", "lurker", "pseudodog", "boar",
+	"cat", "fracture", "flesh", "dog", "zombie", "tushkano"
+}
+
+local bc_mutant_power = {
+	gigant = 18,
+	chimera = 16,
+	burer = 12,
+	psysucker = 10,
+	bloodsucker = 9,
+	psy_dog = 9,
+	snork = 7,
+	lurker = 7,
+	pseudodog = 6,
+	boar = 5,
+	cat = 5,
+	fracture = 5,
+	flesh = 4,
+	dog = 3,
+	zombie = 3,
+	tushkano = 2,
+}
+
+function UIXcvbArena:on_click_bc_submode()
+	if self.bc_submode == "factions" then
+		self.bc_submode = "mutants"
+	else
+		self.bc_submode = "factions"
+	end
+
+	if self.current_mode == "beta" then
+		if self.bc_submode == "mutants" then
+			self.title_main:SetText(gt("st_arena_mvm_title"))
+			self.player_rank:SetText(gt("st_arena_mvm_desc"))
+		else
+			self.title_main:SetText(gt("st_arena_bc_title"))
+			self.player_rank:SetText(gt("st_arena_bc_desc"))
+		end
+	end
+
+	self:update_bc_display()
+end
+
+function UIXcvbArena:on_click_bc_teams_count(num)
+	self.bc_num_teams = num
+	if self.bc_submode == "mutants" then
+		if self.bc_num_teams == 3 and self.bc_monster_bet_team == 4 then
+			self.bc_monster_bet_team = 0
+		end
+	else
+		if self.bc_num_teams == 3 and self.bc_bet_team == 4 then
+			self.bc_bet_team = 0
+		end
+	end
+	self:update_bc_display()
+end
+
+function UIXcvbArena:on_click_bc_randomize()
+	if self.bc_submode == "mutants" then
+		local pool = {}
+		for _, m in ipairs(bc_available_mutants) do
+			pool[#pool + 1] = m
+		end
+		for i = #pool, 2, -1 do
+			local j = math.random(1, i)
+			pool[i], pool[j] = pool[j], pool[i]
+		end
+		for i = 1, 4 do
+			self.bc_monster_teams[i].mutant = pool[i] or "snork"
+		end
+	else
+		local pool = {}
+		for _, f in ipairs(bc_available_factions) do
+			pool[#pool + 1] = f
+		end
+		for i = #pool, 2, -1 do
+			local j = math.random(1, i)
+			pool[i], pool[j] = pool[j], pool[i]
+		end
+
+		local selected = {}
+		for _, faction in ipairs(pool) do
+			local candidate = {}
+			for i = 1, #selected do
+				candidate[i] = selected[i]
+			end
+			candidate[#candidate + 1] = faction
+			if #selected == 0 or xcvb_arena_utils.are_battle_royale_factions_hostile(candidate) then
+				selected[#selected + 1] = faction
+			end
+			if #selected >= self.bc_num_teams then break end
+		end
+
+		if #selected < self.bc_num_teams then
+			self.bc_num_teams = #selected
+			if self.bc_num_teams == 4 then
+				self.bc_num_teams = 3
+			end
+		end
+		for i = 1, 4 do
+			self.bc_teams[i].faction = selected[i] or "stalker"
+		end
+	end
+	self:update_bc_display()
+end
+
+function UIXcvbArena:on_click_bc_faction(team_idx)
+	if self.bc_submode == "mutants" then
+		local cur_m = self.bc_monster_teams[team_idx].mutant
+		local cur_idx = 1
+		for i, m in ipairs(bc_available_mutants) do
+			if m == cur_m then
+				cur_idx = i
+				break
+			end
+		end
+		local next_idx = (cur_idx % #bc_available_mutants) + 1
+		self.bc_monster_teams[team_idx].mutant = bc_available_mutants[next_idx]
+	else
+		local cur_f = self.bc_teams[team_idx].faction
+		local cur_idx = 1
+		for i, f in ipairs(bc_available_factions) do
+			if f == cur_f then
+				cur_idx = i
+				break
+			end
+		end
+		local next_idx = (cur_idx % #bc_available_factions) + 1
+		self.bc_teams[team_idx].faction = bc_available_factions[next_idx]
+	end
+	self:update_bc_display()
+end
+
+function UIXcvbArena:on_click_bc_mult(team_idx)
+	if self.bc_submode == "mutants" then
+		local cur_m = self.bc_monster_teams[team_idx].mult or 1
+		cur_m = cur_m + 1
+		if cur_m > 5 then
+			cur_m = 1
+		end
+		self.bc_monster_teams[team_idx].mult = cur_m
+	else
+		local cur_m = self.bc_teams[team_idx].mult or 1
+		cur_m = cur_m + 1
+		if cur_m > 5 then
+			cur_m = 1
+		end
+		self.bc_teams[team_idx].mult = cur_m
+	end
+	self:update_bc_display()
+end
+
+function UIXcvbArena:on_click_bc_bet(team_idx)
+	if self.bc_submode == "mutants" then
+		if self.bc_monster_bet_team == team_idx then
+			self.bc_monster_bet_team = 0
+		else
+			self.bc_monster_bet_team = team_idx
+		end
+	else
+		if self.bc_bet_team == team_idx then
+			self.bc_bet_team = 0
+		else
+			self.bc_bet_team = team_idx
+		end
+	end
+	self:update_bc_display()
+end
+
+function UIXcvbArena:on_click_bc_bet_amount(dir)
+	local step = 500
+	if self.bc_submode == "mutants" then
+		local cur = self.bc_monster_bet_amount or 1000
+		cur = cur + (dir * step)
+		if cur < 500 then cur = 500 end
+		if cur > 50000 then cur = 50000 end
+		self.bc_monster_bet_amount = cur
+	else
+		local cur = self.bc_bet_amount or 1000
+		cur = cur + (dir * step)
+		if cur < 500 then cur = 500 end
+		if cur > 50000 then cur = 50000 end
+		self.bc_bet_amount = cur
+	end
+	self:update_bc_display()
+end
+
+function UIXcvbArena:calculate_bc_reward()
+	local is_mutants = (self.bc_submode == "mutants")
+	local bet_team = is_mutants and self.bc_monster_bet_team or self.bc_bet_team
+	local bet_amount = is_mutants and self.bc_monster_bet_amount or self.bc_bet_amount
+	local teams = is_mutants and self.bc_monster_teams or self.bc_teams
+	local power_table = is_mutants and bc_mutant_power or bc_faction_power
+
+	if bet_team <= 0 or bet_amount <= 0 then
+		return 0
+	end
+
+	local total_power = 0
+	local team_power = {}
+	for i = 1, self.bc_num_teams do
+		local key = is_mutants and teams[i].mutant or teams[i].faction
+		local base_p = power_table[key] or 10
+		local m = teams[i].mult or 1
+		local p = base_p * m
+		team_power[i] = p
+		total_power = total_power + p
+	end
+
+	local bet_p = team_power[bet_team] or 10
+	if total_power <= 0 or bet_p <= 0 then return 0 end
+
+	local odds = (total_power / bet_p) * 0.85
+	if odds < 1.2 then odds = 1.2 end
+	if odds > 10.0 then odds = 10.0 end
+
+	return math.floor(bet_amount * odds)
+end
+
+function UIXcvbArena:update_bc_display()
+	if not self.beta_cont or not self.beta_cont:IsShown() then return end
+
+	local is_mutants = (self.bc_submode == "mutants")
+
+	-- Header buttons / labels according to submode
+	if is_mutants then
+		self.bc_btn_3teams:TextControl():SetText(gt("st_arena_mvm_3teams"))
+		self.bc_btn_4teams:TextControl():SetText(gt("st_arena_mvm_4teams"))
+		self.bc_btn_random:TextControl():SetText(gt("st_arena_mvm_randomize"))
+		self.bc_desc:SetText(gt("st_arena_mvm_desc"))
+		self.bc_start_btn:TextControl():SetText(gt("st_arena_mvm_start_btn"))
+		self.bc_submode_btn:TextControl():SetText(gt("st_arena_bc_title"))
+	else
+		self.bc_btn_3teams:TextControl():SetText(gt("st_arena_bc_3teams"))
+		self.bc_btn_4teams:TextControl():SetText(gt("st_arena_bc_4teams"))
+		self.bc_btn_random:TextControl():SetText(gt("st_arena_bc_randomize"))
+		self.bc_desc:SetText(gt("st_arena_bc_desc"))
+		self.bc_start_btn:TextControl():SetText(gt("st_arena_bc_start_btn"))
+		self.bc_submode_btn:TextControl():SetText(gt("st_arena_btn_mvm"))
+	end
+
+	-- 3 vs 4 teams button highlight
+	if self.bc_num_teams == 3 then
+		self.bc_btn_3teams:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+		self.bc_btn_4teams:TextControl():SetTextColor(GetARGB(255, 170, 170, 170))
+	else
+		self.bc_btn_3teams:TextControl():SetTextColor(GetARGB(255, 170, 170, 170))
+		self.bc_btn_4teams:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+	end
+
+	local teams = is_mutants and self.bc_monster_teams or self.bc_teams
+	local bet_team = is_mutants and self.bc_monster_bet_team or self.bc_bet_team
+	local bet_amount = is_mutants and (self.bc_monster_bet_amount or 1000) or (self.bc_bet_amount or 1000)
+
+	-- Update team cards
+	for c = 1, 4 do
+		local card = self.bc_cards[c]
+		if card then
+			if c > self.bc_num_teams then
+				card.frame:Show(false)
+			else
+				card.frame:Show(true)
+				-- Header title
+				if self.bc_num_teams == 3 then
+					card.title:SetText(gt("st_arena_bc_team" .. c .. "_3_header"))
+				else
+					card.title:SetText(gt("st_arena_bc_team" .. c .. "_header"))
+				end
+
+				-- Faction / Mutant Species button
+				local name_display
+				if is_mutants then
+					local mut = teams[c].mutant
+					name_display = xcvb_arena_utils.get_mutant_name(mut)
+				else
+					local fac = teams[c].faction
+					name_display = xcvb_arena_utils.get_faction_name(fac)
+				end
+				card.btn_faction:TextControl():SetText(name_display)
+
+				-- Multiplier button
+				local mult = teams[c].mult or 1
+				card.mult_btn:TextControl():SetText("X" .. mult)
+				if mult > 1 then
+					card.mult_btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 80))
+				else
+					card.mult_btn:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+				end
+
+				-- Bet button
+				if bet_team == c then
+					card.btn_bet:TextControl():SetText("[V] " .. gt("st_arena_bc_bet_btn"))
+					card.btn_bet:TextControl():SetTextColor(GetARGB(255, 120, 255, 120))
+				else
+					card.btn_bet:TextControl():SetText(gt("st_arena_bc_bet_btn"))
+					card.btn_bet:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+				end
+			end
+		end
+	end
+
+	-- Betting Panel
+	local calc_reward = self:calculate_bc_reward()
+	if is_mutants then
+		self.bc_monster_reward = calc_reward
+	else
+		self.bc_reward = calc_reward
+	end
+	self.bc_bet_amount_wnd:SetText(tostring(bet_amount))
+
+	if bet_team > 0 and bet_team <= self.bc_num_teams then
+		local bet_name
+		if is_mutants then
+			bet_name = xcvb_arena_utils.get_mutant_name(teams[bet_team].mutant)
+		else
+			bet_name = xcvb_arena_utils.get_faction_name(teams[bet_team].faction)
+		end
+		local bet_text = string.format(gt("st_arena_bc_bet_selected"), bet_name .. " (" .. bet_team .. ")", tostring(bet_amount))
+		self.bc_bet_status:SetText(bet_text)
+		self.bc_bet_status:SetTextColor(GetARGB(255, 255, 220, 140))
+		local rew_text = string.format(gt("st_arena_bc_reward_gain"), tostring(calc_reward))
+		self.bc_reward_label:SetText(rew_text)
+		self.bc_reward_label:SetTextColor(GetARGB(255, 130, 240, 130))
+	else
+		self.bc_bet_status:SetText(gt("st_arena_bc_no_bet"))
+		self.bc_bet_status:SetTextColor(GetARGB(255, 180, 180, 180))
+		self.bc_reward_label:SetText("")
+	end
+
+	-- Start Button state
+	local actor_m = db.actor and db.actor:money() or 0
+	if bet_team > 0 and bet_team <= self.bc_num_teams then
+		if actor_m >= bet_amount then
+			self.bc_start_btn:Enable(true)
+			self.bc_start_btn:TextControl():SetTextColor(GetARGB(255, 255, 255, 255))
+		else
+			self.bc_start_btn:Enable(false)
+			self.bc_start_btn:TextControl():SetTextColor(GetARGB(255, 160, 160, 160))
+		end
+	else
+		self.bc_start_btn:Enable(false)
+		self.bc_start_btn:TextControl():SetTextColor(GetARGB(255, 160, 160, 160))
+	end
+end
+
+function UIXcvbArena:on_click_bc_start()
+	local is_mutants = (self.bc_submode == "mutants")
+	local bet_team = is_mutants and self.bc_monster_bet_team or self.bc_bet_team
+	local bet_amount = is_mutants and (self.bc_monster_bet_amount or 0) or (self.bc_bet_amount or 0)
+
+	if not bet_team or bet_team <= 0 or bet_team > self.bc_num_teams then
+		return
+	end
+
+	local bet = bet_amount or 0
+	if bet <= 0 or db.actor:money() < bet then
+		return
+	end
+
+	if not is_mutants then
+		local factions = {}
+		for i = 1, self.bc_num_teams do
+			factions[i] = self.bc_teams[i].faction
+		end
+		if not xcvb_arena_utils.are_battle_royale_factions_hostile(factions) then
+			news_manager.send_tip(db.actor, gt("st_arena_bc_invalid_factions"), 0, nil, 8000)
+			return
+		end
+	end
+	db.actor:give_money(-bet)
+
+	local br_data = {
+		submode = is_mutants and "mutants" or "factions",
+		num_teams = self.bc_num_teams,
+		teams = is_mutants and self.bc_monster_teams or self.bc_teams,
+		bet_team = bet_team,
+		bet_amount = bet,
+		reward = is_mutants and self.bc_monster_reward or self.bc_reward
+	}
+
+	self:Close()
+	xcvb_arena_utils.arena_fade_in_out(1)
+	CreateTimeEvent("xcvb_start_br_fight_e", "xcvb_start_br_fight_a", 2, function()
+		xcvb_arena_fight.start_battle_royale_fight(br_data)
+		return true
+	end)
+end
+
+function UIXcvbArena:on_click_beta_tab(tab)
+	self.beta_subview = tab
+	self:update_view_mode()
+end
+
+function UIXcvbArena:update_beta_display()
+	if not self.beta_cont or not self.beta_cont:IsShown() then return end
+
+	local is_endless = (self.beta_subview == "endless")
+
+	-- Highlight Tab Buttons
+	if self.beta_tab_br then
+		self.beta_tab_br:TextControl():SetTextColor(is_endless and GetARGB(255, 170, 170, 170) or GetARGB(255, 255, 220, 140))
+	end
+	if self.beta_tab_endless then
+		self.beta_tab_endless:TextControl():SetTextColor(is_endless and GetARGB(255, 255, 220, 140) or GetARGB(255, 170, 170, 170))
+	end
+	if self.btn_night_mode then
+		self.btn_night_mode:TextControl():SetFont(GetFontLetterica16Russian())
+		if xcvb_arena_main.night_mode_active then
+			self.btn_night_mode:TextControl():SetText(gt("st_arena_btn_night_mode_active"))
+			self.btn_night_mode:TextControl():SetTextColor(GetARGB(255, 255, 60, 60))
+		else
+			self.btn_night_mode:TextControl():SetText(gt("st_arena_btn_night_mode"))
+			self.btn_night_mode:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		end
+	end
+
+	-- Toggle visibility of Battle Royale vs Endless controls
+	if self.bc_btn_3teams then self.bc_btn_3teams:Show(not is_endless) end
+	if self.bc_btn_4teams then self.bc_btn_4teams:Show(not is_endless) end
+	if self.bc_btn_random then self.bc_btn_random:Show(not is_endless) end
+	if self.bc_desc then self.bc_desc:Show(not is_endless) end
+	for c = 1, 4 do
+		if self.bc_cards[c] and self.bc_cards[c].frame then
+			self.bc_cards[c].frame:Show((not is_endless) and (c <= self.bc_num_teams))
+		end
+	end
+	if self.bc_bet_panel then self.bc_bet_panel:Show(not is_endless) end
+	if self.bc_start_btn then self.bc_start_btn:Show(not is_endless) end
+	if self.bc_submode_btn then self.bc_submode_btn:Show(not is_endless) end
+
+	if self.endless_stats_frame then self.endless_stats_frame:Show(is_endless) end
+	if self.endless_type_frame then self.endless_type_frame:Show(is_endless) end
+	if self.endless_rules_frame then self.endless_rules_frame:Show(is_endless) end
+	if self.endless_start_btn then self.endless_start_btn:Show(is_endless) end
+	if self.endless_arti_btn then self.endless_arti_btn:Show(is_endless) end
+
+	if is_endless then
+		self:update_endless_display()
+	else
+		self:update_bc_display()
+	end
+end
+
+function UIXcvbArena:update_endless_display()
+	if not self.beta_cont or not self.beta_cont:IsShown() then return end
+
+	local best = xcvb_arena_main.best_endless_wave or 0
+	if self.endless_record_label then
+		self.endless_record_label:SetText(string.format(gt("st_arena_endless_stats_record"), tostring(best)))
+	end
+	if self.endless_reward_info then
+		self.endless_reward_info:SetText(gt("st_arena_endless_stats_reward"))
+	end
+
+	local cur_type = self.endless_enemy_type or "stalkers"
+	for t_key, btn in pairs(self.endless_btns or {}) do
+		if t_key == cur_type then
+			btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+		else
+			btn:TextControl():SetTextColor(GetARGB(255, 170, 170, 170))
+		end
+	end
+
+	if self.endless_type_desc then
+		local desc_str = gt("st_arena_endless_desc_" .. cur_type)
+		self.endless_type_desc:SetText(desc_str)
+	end
+
+	self:update_endless_arti_btn()
+end
+
+function UIXcvbArena:on_click_endless_type(t)
+	self.endless_enemy_type = t
+	self:update_endless_display()
+end
+
+function UIXcvbArena:open_dssg_menu()
+	if not self.selected_weapon_sec then return end
+	local entries = xcvb_arena_utils.get_weapon_scopes(self.selected_weapon_sec) or {}
+	if #entries == 0 then return end
+	local kits, scopes = {}, {}
+	for _, sec in ipairs(entries) do
+		if ini_sys:section_exist(sec) and ini_sys:r_bool_ex(sec, "weapon_kit", false) then
+			table.insert(kits, sec)
+		else
+			table.insert(scopes, sec)
+		end
+	end
+	self.selected_3dssg_entry_list = {}
+	for _, sec in ipairs(kits) do table.insert(self.selected_3dssg_entry_list, sec) end
+	for _, sec in ipairs(scopes) do table.insert(self.selected_3dssg_entry_list, sec) end
+	self.arr_3dssg_page = 1
+	self:show_dssg_menu(true)
+end
+
+function UIXcvbArena:show_dssg_menu(show)
+    if not self.dssg_menu then return end
+    
+    local is_show = (show == true)
+    
+    -- Mostrar/Ocultar el fondo principal
+    self.dssg_menu:Show(is_show)
+    
+    -- Sincronizar botones estáticos explícitamente para evitar bloqueos
+    if self.btn_3dssg_off then self.btn_3dssg_off:Show(is_show) end
+    if self.btn_3dssg_random then self.btn_3dssg_random:Show(is_show) end
+    if self.btn_dssg_close then self.btn_dssg_close:Show(is_show) end
+    
+    if is_show then
+        self:update_dssg_menu()
+    else
+        -- Matar forzosamente los hitboxes invisibles de la paginación y las filas
+        if self.arr_3dssg_page_prev then self.arr_3dssg_page_prev:Show(false) end
+        if self.arr_3dssg_page_next then self.arr_3dssg_page_next:Show(false) end
+        
+        if self.arr_3dssg_rows then
+            for i = 1, 7 do
+                if self.arr_3dssg_rows[i] then
+                    self.arr_3dssg_rows[i]:Show(false)
+                end
+            end
+        end
+    end
+end
+
+function UIXcvbArena:update_dssg_menu()
+	if not self.dssg_menu or not self.dssg_menu:IsShown() then return end
+	local entries = self.selected_3dssg_entry_list or {}
+	local total = #entries
+	local per_page = 7
+	local total_pages = math.max(1, math.ceil(total / per_page))
+	if (not self.arr_3dssg_page) or self.arr_3dssg_page > total_pages then self.arr_3dssg_page = 1 end
+	if self.arr_3dssg_page < 1 then self.arr_3dssg_page = 1 end
+
+	local w_name = ""
+	if self.selected_weapon_sec then
+		w_name = xcvb_arena_utils.get_item_name(self.selected_weapon_sec) or ""
+	end
+	if self.dssg_menu_title then
+		self.dssg_menu_title:SetText("3DSSG: " .. w_name)
+	end
+	if self.dssg_menu_subtitle then
+		local lbl_sk = gt("st_arena_dssg_scopes_kits")
+		if not lbl_sk or lbl_sk == "" or string.find(lbl_sk, "^st_") then
+			lbl_sk = "Scopes / Kits"
+		end
+		self.dssg_menu_subtitle:SetText(lbl_sk .. ": " .. tostring(total))
+	end
+
+	-- Mode buttons
+	local cur_mode = self.selected_3dssg_mode
+	local cur_scope = self.selected_3dssg_scope
+	if self.btn_3dssg_off then
+		if cur_mode == "off" then
+			self.btn_3dssg_off:TextControl():SetText("3DSSG [OFF] [x]")
+			self.btn_3dssg_off:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+		else
+			self.btn_3dssg_off:TextControl():SetText("3DSSG [OFF]")
+			self.btn_3dssg_off:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		end
+	end
+	if self.btn_3dssg_random then
+		if cur_mode == "random" then
+			self.btn_3dssg_random:TextControl():SetText("3DSSG [RANDOM] [x]")
+			self.btn_3dssg_random:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+		else
+			self.btn_3dssg_random:TextControl():SetText("3DSSG [RANDOM]")
+			self.btn_3dssg_random:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		end
+	end
+
+	-- Scope/kit rows
+	local start_idx = (self.arr_3dssg_page - 1) * per_page
+	for i = 1, per_page do
+		local btn = self.arr_3dssg_rows and self.arr_3dssg_rows[i]
+		if btn then
+			local entry = entries[start_idx + i]
+			if entry then
+				btn:Show(true)
+				local kit_flag = ini_sys:section_exist(entry) and ini_sys:r_bool_ex(entry, "weapon_kit", false)
+				local e_name = xcvb_arena_utils.get_item_short_name(entry) or entry
+				if string.len(e_name) > 28 then
+					e_name = string.sub(e_name, 1, 26) .. ".."
+				end
+				local prefix = (kit_flag == true) and "[KIT] " or ""
+				local mark = (cur_mode == "custom" and entry == cur_scope) and " [x]" or ""
+				btn:TextControl():SetText(prefix .. e_name .. mark)
+				if cur_mode == "custom" and entry == cur_scope then
+					btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+				elseif kit_flag == true then
+					btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 255))
+				else
+					btn:TextControl():SetTextColor(GetARGB(255, 200, 200, 200))
+				end
+			else
+				btn:Show(false)
+			end
+		end
+	end
+
+	-- Pagination
+	if self.arr_3dssg_page_prev then self.arr_3dssg_page_prev:Show(total_pages > 1) end
+	if self.arr_3dssg_page_next then self.arr_3dssg_page_next:Show(total_pages > 1) end
+	if self.arr_3dssg_page_info then
+		self.arr_3dssg_page_info:SetText(tostring(self.arr_3dssg_page) .. "/" .. tostring(total_pages))
+	end
+end
+
+function UIXcvbArena:on_click_dssg_row(row_idx)
+	local entries = self.selected_3dssg_entry_list or {}
+	local actual_idx = (self.arr_3dssg_page - 1) * 7 + row_idx
+	local entry = entries[actual_idx]
+	if not entry then return end
+	self.selected_3dssg_scope = entry
+	self.selected_3dssg_mode = "custom"
+	self:show_dssg_menu(false)
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_3dssg_menu_off()
+	self.selected_3dssg_mode = "off"
+	self.selected_3dssg_scope = nil
+	self:show_dssg_menu(false)
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_3dssg_menu_random()
+	self.selected_3dssg_mode = "random"
+	self.selected_3dssg_scope = nil
+	self:show_dssg_menu(false)
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_dssg_page(dir)
+	local entries = self.selected_3dssg_entry_list or {}
+	local total_pages = math.max(1, math.ceil(#entries / 7))
+	local target = (self.arr_3dssg_page or 1) + dir
+	if target < 1 then target = total_pages end
+	if target > total_pages then target = 1 end
+	self.arr_3dssg_page = target
+	self:update_dssg_menu()
+end
+
+--------------------------------------------------------------------------------
+-- MAGAZINE & AMMO SELECTION MODAL LOGIC
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:on_click_mag_cycle(dir)
+	if not self.selected_weapon_sec then return end
+	local comp_mags = xcvb_arena_utils.get_weapon_compatible_mags(self.selected_weapon_sec) or {}
+	if #comp_mags <= 1 then return end
+	local cur_idx = 1
+	for idx, m_sec in ipairs(comp_mags) do
+		if m_sec == self.selected_loadout_mag then
+			cur_idx = idx
+			break
+		end
+	end
+	local next_idx = cur_idx + dir
+	if next_idx < 1 then next_idx = #comp_mags end
+	if next_idx > #comp_mags then next_idx = 1 end
+	self.selected_loadout_mag = comp_mags[next_idx]
+	self:update_loadout_buttons()
+	if self.mag_menu and self.mag_menu:IsShown() then
+		self:update_mag_menu()
+	end
+end
+
+function UIXcvbArena:on_click_mag_btn()
+	if not self.selected_weapon_sec then
+		if db.actor then
+			local msg = gt("st_arena_loadout_mags_auto") or "1-3 cargadores (Basico)"
+			news_manager.send_tip(db.actor, msg, 0, nil, 3000)
+		end
+		return
+	end
+	local comp_mags = xcvb_arena_utils.get_weapon_compatible_mags(self.selected_weapon_sec) or {}
+	if #comp_mags == 0 then return end
+	self:open_mag_menu()
+end
+
+function UIXcvbArena:on_click_mag_count(dir)
+	local cur = self.selected_mag_count
+	if dir > 0 then
+		if cur == "auto" or not cur then
+			self.selected_mag_count = 1
+		else
+			self.selected_mag_count = math.min(8, cur + 1)
+		end
+	elseif dir < 0 then
+		if cur == "auto" or not cur then
+			-- stays auto
+		elseif cur <= 1 then
+			self.selected_mag_count = "auto"
+		else
+			self.selected_mag_count = cur - 1
+		end
+	end
+	self:update_loadout_buttons()
+	if self.mag_menu and self.mag_menu:IsShown() then
+		self:update_mag_menu()
+	end
+end
+
+function UIXcvbArena:on_click_ammo_qty(dir)
+	local cur = self.selected_ammo_count
+	if dir > 0 then
+		if cur == "auto" or not cur then
+			self.selected_ammo_count = 1
+		else
+			self.selected_ammo_count = math.min(8, cur + 1)
+		end
+	elseif dir < 0 then
+		if cur == "auto" or not cur then
+			-- stays auto
+		elseif cur <= 1 then
+			self.selected_ammo_count = "auto"
+		else
+			self.selected_ammo_count = cur - 1
+		end
+	end
+	self:update_loadout_buttons()
+	if self.mag_menu and self.mag_menu:IsShown() then
+		self:update_mag_menu()
+	end
+end
+
+function UIXcvbArena:open_mag_menu()
+	if not self.selected_weapon_sec then return end
+	local comp_mags = xcvb_arena_utils.get_weapon_compatible_mags(self.selected_weapon_sec) or {}
+	if #comp_mags == 0 then return end
+	self.selected_mag_entry_list = comp_mags
+	self.arr_mag_page = 1
+	self:show_mag_menu(true)
+end
+
+function UIXcvbArena:show_mag_menu(show)
+	if not self.mag_menu then return end
+	local is_show = (show == true)
+	self.mag_menu:Show(is_show)
+
+	if self.mag_count_minus then self.mag_count_minus:Show(is_show) end
+	if self.mag_count_plus then self.mag_count_plus:Show(is_show) end
+	if self.ammo_count_minus then self.ammo_count_minus:Show(is_show) end
+	if self.ammo_count_plus then self.ammo_count_plus:Show(is_show) end
+	if self.mag_close_btn then self.mag_close_btn:Show(is_show) end
+
+	if is_show then
+		self:update_mag_menu()
+	else
+		if self.mag_page_prev then self.mag_page_prev:Show(false) end
+		if self.mag_page_next then self.mag_page_next:Show(false) end
+		if self.arr_mag_rows then
+			for i = 1, 7 do
+				if self.arr_mag_rows[i] then self.arr_mag_rows[i]:Show(false) end
+			end
+		end
+	end
+
+	if self.tournament_cont then
+		self.tournament_cont:Enable(not is_show)
+	end
+	if self.beta_cont then
+		self.beta_cont:Enable(not is_show)
+	end
+	if self.btn_mode then self.btn_mode:Enable(not is_show) end
+	if self.btn_beta then self.btn_beta:Enable(not is_show) end
+	if self.btn_practice then self.btn_practice:Enable(not is_show) end
+end
+
+function UIXcvbArena:update_mag_menu()
+	if not self.mag_menu or not self.mag_menu:IsShown() then return end
+	local entries = self.selected_mag_entry_list or (self.selected_weapon_sec and xcvb_arena_utils.get_weapon_compatible_mags(self.selected_weapon_sec)) or {}
+	local total = #entries
+	local per_page = 7
+	local total_pages = math.max(1, math.ceil(total / per_page))
+	if (not self.arr_mag_page) or self.arr_mag_page > total_pages then self.arr_mag_page = 1 end
+	if self.arr_mag_page < 1 then self.arr_mag_page = 1 end
+
+	local w_name = self.selected_weapon_sec and xcvb_arena_utils.get_item_name(self.selected_weapon_sec) or ""
+	if self.mag_menu_title then
+		self.mag_menu_title:SetText((gt("st_arena_mag_menu_title") or "MAGAZINES") .. ": " .. w_name)
+	end
+	if self.mag_menu_subtitle then
+		self.mag_menu_subtitle:SetText((gt("st_arena_loadout_mag_title") or "MAGAZINE") .. " (" .. tostring(total) .. ")")
+	end
+
+	-- Counters
+	local m_cnt = self.selected_mag_count or "auto"
+	local a_cnt = self.selected_ammo_count or "auto"
+	if self.mag_count_text then
+		local m_str = (m_cnt == "auto") and (gt("st_arena_loadout_mags_auto") or "1-3 (Basico)") or (tostring(m_cnt) .. "x")
+		self.mag_count_text:SetText((gt("st_arena_mag_menu_mags") or "Cargadores: ") .. m_str)
+	end
+	if self.ammo_count_text then
+		local a_str = ""
+		if a_cnt == "auto" then
+			a_str = (gt("st_arena_loadout_boxes_auto") or "1-3 (Auto)")
+		elseif a_cnt == 1 then
+			local eff_tier = self.selected_loadout_tier or 1
+			if eff_tier == 0 then eff_tier = math.floor((self.selected_round_id - 1) / 3) + 1 end
+			local eff_ammo = xcvb_arena_utils.get_loadout_effective_ammo_sec(self.selected_weapon_sec, self.selected_loadout_ammo, self.selected_special_ammo_sec, eff_tier)
+			local b_size = xcvb_arena_utils.get_ammo_box_size(eff_ammo)
+			local total_b = 1 * b_size
+			a_str = string.format(gt("st_arena_loadout_box_singular") or "1 caja (%s balas)", tostring(total_b))
+		else
+			local eff_tier = self.selected_loadout_tier or 1
+			if eff_tier == 0 then eff_tier = math.floor((self.selected_round_id - 1) / 3) + 1 end
+			local eff_ammo = xcvb_arena_utils.get_loadout_effective_ammo_sec(self.selected_weapon_sec, self.selected_loadout_ammo, self.selected_special_ammo_sec, eff_tier)
+			local b_size = xcvb_arena_utils.get_ammo_box_size(eff_ammo)
+			local total_b = a_cnt * b_size
+			a_str = string.format(gt("st_arena_loadout_boxes") or "%s cajas (%s balas)", tostring(a_cnt), tostring(total_b))
+		end
+		self.ammo_count_text:SetText((gt("st_arena_mag_menu_ammo") or "Cajas: ") .. a_str)
+	end
+	if self.mag_count_minus then self.mag_count_minus:Enable(m_cnt ~= "auto") end
+	if self.mag_count_plus then self.mag_count_plus:Enable(m_cnt ~= 8) end
+	if self.ammo_count_minus then self.ammo_count_minus:Enable(a_cnt ~= "auto") end
+	if self.ammo_count_plus then self.ammo_count_plus:Enable(a_cnt ~= 8) end
+
+	-- Magazine Rows
+	local cur_mag = self.selected_loadout_mag
+	local start_idx = (self.arr_mag_page - 1) * per_page
+	for i = 1, per_page do
+		local btn = self.arr_mag_rows and self.arr_mag_rows[i]
+		if btn then
+			local entry = entries[start_idx + i]
+			if entry then
+				btn:Show(true)
+				local cap = xcvb_arena_utils.get_mag_capacity(entry)
+				local m_name = xcvb_arena_utils.get_mag_name(entry)
+				local is_sel = (entry == cur_mag)
+				local mark = is_sel and " [x]" or ""
+				local text = string.format("%s (%sr)%s", m_name, tostring(cap), mark)
+				if string.len(text) > 34 then
+					text = string.sub(text, 1, 32) .. ".."
+				end
+				btn:TextControl():SetText(text)
+				if is_sel then
+					btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+				else
+					btn:TextControl():SetTextColor(GetARGB(255, 200, 200, 200))
+				end
+			else
+				btn:Show(false)
+			end
+		end
+	end
+
+	-- Pagination
+	if self.mag_page_prev then self.mag_page_prev:Show(total_pages > 1) end
+	if self.mag_page_next then self.mag_page_next:Show(total_pages > 1) end
+	if self.mag_page_info then
+		self.mag_page_info:Show(total_pages > 1)
+		self.mag_page_info:SetText(tostring(self.arr_mag_page) .. "/" .. tostring(total_pages))
+	end
+
+	-- Summary cost in modal
+	if self.mag_summary_cost then
+		local fee = self:get_current_loadout_rental_fee()
+		local actor_money = db.actor and db.actor:money() or 0
+		local cost_str = string.format("%s: %s RU", gt("st_arena_loadout_sum_cost") or "Rental Fee", tostring(fee))
+		self.mag_summary_cost:SetText(cost_str)
+		if actor_money >= fee then
+			self.mag_summary_cost:SetTextColor(GetARGB(255, 255, 220, 100))
+		else
+			self.mag_summary_cost:SetTextColor(GetARGB(255, 255, 100, 100))
+		end
+	end
+end
+
+function UIXcvbArena:on_click_mag_row(row_idx)
+	local entries = self.selected_mag_entry_list or (self.selected_weapon_sec and xcvb_arena_utils.get_weapon_compatible_mags(self.selected_weapon_sec)) or {}
+	local actual_idx = (self.arr_mag_page - 1) * 7 + row_idx
+	local entry = entries[actual_idx]
+	if not entry then return end
+	self.selected_loadout_mag = entry
+	self:update_mag_menu()
+	self:update_loadout_buttons()
+end
+
+function UIXcvbArena:on_click_mag_page(dir)
+	local entries = self.selected_mag_entry_list or (self.selected_weapon_sec and xcvb_arena_utils.get_weapon_compatible_mags(self.selected_weapon_sec)) or {}
+	local total_pages = math.max(1, math.ceil(#entries / 7))
+	local target = (self.arr_mag_page or 1) + dir
+	if target < 1 then target = total_pages end
+	if target > total_pages then target = 1 end
+	self.arr_mag_page = target
+	self:update_mag_menu()
+end
+
+function UIXcvbArena:show_endless_difficulty_menu(show)
+	if self.endless_diff_menu then
+		self.endless_diff_menu:Show(show == true)
+	end
+	if show then
+		self:update_endless_3dssg_button()
+	end
+	if self.tournament_cont then
+		self.tournament_cont:Enable(not show)
+	end
+	if self.beta_cont then
+		self.beta_cont:Enable(not show)
+	end
+	if self.btn_mode then self.btn_mode:Enable(not show) end
+	if self.btn_beta then self.btn_beta:Enable(not show) end
+	if self.btn_practice then self.btn_practice:Enable(not show) end
+end
+
+function UIXcvbArena:on_select_endless_difficulty(diff)
+	self:show_endless_difficulty_menu(false)
+	local e_type = self.endless_target_enemy_type or "stalkers"
+	if xcvb_arena_main then
+		xcvb_arena_main.endless_difficulty = diff
+		xcvb_arena_main.endless_checkpoint_wave = 1
+		xcvb_arena_main.endless_checkpoint_type = e_type
+	end
+	self:Close()
+	xcvb_arena_utils.arena_fade_in_out(1)
+	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
+		xcvb_arena_fight.start_endless_fight(e_type, 1, diff, xcvb_arena_main.endless_3dssg == true)
+		return true
+	end)
+end
+
+function UIXcvbArena:on_click_endless_3dssg()
+	xcvb_arena_main.endless_3dssg = not (xcvb_arena_main.endless_3dssg == true)
+	self:update_endless_3dssg_button()
+end
+
+function UIXcvbArena:update_endless_3dssg_button()
+	if not self.btn_diff_3dssg then return end
+	local is_on = xcvb_arena_main and xcvb_arena_main.endless_3dssg == true
+	self.btn_diff_3dssg:TextControl():SetText(is_on and "3DSSG [ON] [RANDOM]" or "3DSSG [OFF]")
+	self.btn_diff_3dssg:TextControl():SetTextColor(is_on and GetARGB(255, 100, 255, 100) or GetARGB(255, 180, 180, 180))
+end
+
+function UIXcvbArena:on_click_endless_start()
+	self.endless_target_enemy_type = self.endless_enemy_type or "stalkers"
+	self:show_endless_difficulty_menu(true)
+end
+
+function UIXcvbArena:on_click_quick_endless()
+	self.endless_target_enemy_type = "stalkers"
+	self:show_endless_difficulty_menu(true)
+end
+
+function UIXcvbArena:on_click_continue_endless()
+	local cp_wave = xcvb_arena_main.endless_checkpoint_wave or xcvb_arena_main.best_endless_wave or 1
+	local e_type = xcvb_arena_main.endless_checkpoint_type or "stalkers"
+	if e_type == "random" then e_type = "stalkers" end
+	local diff = xcvb_arena_main.endless_difficulty or "medium"
+	self:Close()
+	xcvb_arena_utils.arena_fade_in_out(1)
+	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
+		xcvb_arena_fight.start_endless_fight(e_type, cp_wave, diff, xcvb_arena_main.endless_3dssg == true)
+		return true
+	end)
+end
+
+function UIXcvbArena:on_click_endless_arti_toggle()
+	xcvb_arena_main.endless_artigrok_ammo = not xcvb_arena_main.endless_artigrok_ammo
+	self:update_endless_arti_btn()
+end
+
+function UIXcvbArena:update_endless_arti_btn()
+	local is_on = (xcvb_arena_main and xcvb_arena_main.endless_artigrok_ammo) == true
+	local base_str = gt("st_arena_endless_artigrok_ammo") or "ARTIGROK AMMO"
+	local text = base_str .. (is_on and ": ON" or ": OFF")
+	local col = is_on and GetARGB(255, 100, 255, 100) or GetARGB(255, 180, 180, 180)
+
+	if self.endless_arti_btn then
+		self.endless_arti_btn:TextControl():SetText(text)
+		self.endless_arti_btn:TextControl():SetTextColor(col)
+	end
+	if self.endless_arti_btn_main then
+		self.endless_arti_btn_main:TextControl():SetText(text)
+		self.endless_arti_btn_main:TextControl():SetTextColor(col)
+	end
+end
+
+--------------------------------------------------------------------------------
+-- WINDOW LIFECYCLE
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:OnKeyboard(dik, keyboard_action)
+	local res = CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
+	if res == false then
+		local bind = dik_to_bind(dik)
+		if bind == key_bindings.kQUIT or dik == DIK_keys.DIK_ESCAPE then
+			if self.mag_menu and self.mag_menu:IsShown() then
+				self:show_mag_menu(false)
+				return true
+			end
+			if self.dssg_menu and self.dssg_menu:IsShown() then
+				self:show_dssg_menu(false)
+				return true
+			end
+			if self.endless_diff_menu and self.endless_diff_menu:IsShown() then
+				self:show_endless_difficulty_menu(false)
+				return true
+			end
+			self:Close()
+		end
+	end
+	return res
+end
+
+function UIXcvbArena:Close()
+	if self.mag_menu and self.mag_menu:IsShown() then
+		self:show_mag_menu(false)
+	end
+	if self.endless_diff_menu and self.endless_diff_menu:IsShown() then
+		self:show_endless_difficulty_menu(false)
+	end
+	if self.dssg_menu and self.dssg_menu:IsShown() then
+		self:show_dssg_menu(false)
+	end
+	if self:IsShown() then
+		self:HideDialog()
+		Unregister_UI("UIXcvbArena")
+	end
+	GUI = nil
+end
