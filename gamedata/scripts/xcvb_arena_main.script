@@ -18,6 +18,11 @@ endless_difficulty = "medium"
 endless_artigrok_ammo = false
 endless_3dssg = false
 practice_mode_active = false
+night_mode_active = false
+night_mode_saved_time = nil
+night_mode_saved_needs = nil
+night_mode_saved_render = nil
+night_mode_device = "device_torch_dummy"
 
 -- Spectator Mode State Variables
 arena_main_t = {}
@@ -546,12 +551,14 @@ end
 
 local function get_cooldown_duration_sec()
 	local mode = xcvb_arena_mcm.get_config("allow_replay")
-	if mode == "disabled" or mode == false then
+	if mode == "disabled" or mode == "never" or mode == false then
 		return -1
-	elseif mode == "instant" then
+	elseif mode == "instant" or mode == "always" then
 		return 0
 	elseif mode == "1d" then
 		return 86400
+	elseif mode == "2d" then
+		return 172800
 	elseif mode == "3d" then
 		return 259200
 	else
@@ -559,16 +566,89 @@ local function get_cooldown_duration_sec()
 	end
 end
 
-local function t2c(t)
-	if not t then return nil end
-	local y = t.y or t.Y or 0
-	if y < 2000 then return nil end
+local function format_cooldown_string(remain_sec)
+	local days = math.floor(remain_sec / 86400)
+	local hours = math.floor((remain_sec % 86400) / 3600)
+	if days > 0 then
+		return string.format("%dd %dh", days, hours)
+	else
+		local mins = math.floor((remain_sec % 3600) / 60)
+		return string.format("%dh %dm", hours, mins)
+	end
+end
+
+function ctime_to_table(ct)
+	if not ct then return nil end
+	local Y, M, D, h, m, s, ms
+	if utils_data and utils_data.CTime_to_table then
+		local t = utils_data.CTime_to_table(ct)
+		if t and (t.Y or t.y or 0) >= 2000 then
+			Y = t.Y or t.y
+			M = t.M or t.mo or 1
+			D = t.D or t.d or 1
+			h = t.h or 0
+			m = t.m or t.mi or 0
+			s = t.s or 0
+			ms = t.ms or 0
+		end
+	end
+	if not Y or Y < 2000 then
+		local y, mo, d, hr, mi, sec, msec = ct:get(0, 0, 0, 0, 0, 0, 0)
+		Y = y or 0
+		M = mo or 1
+		D = d or 1
+		h = hr or 0
+		m = mi or 0
+		s = sec or 0
+		ms = msec or 0
+	end
+	if Y < 2000 then
+		return nil
+	end
+	return {
+		Y = Y,
+		M = M,
+		D = D,
+		h = h,
+		m = m,
+		s = s,
+		ms = ms,
+		y = Y,
+		mo = M,
+		d = D,
+		mi = m
+	}
+end
+
+function table_to_ctime(t)
+	if not t or type(t) ~= "table" then return nil end
+	local Y = t.Y or t.y or 0
+	if Y < 2000 then
+		return nil
+	end
+	local M = t.M or t.mo or 1
+	local D = t.D or t.d or 1
+	local h = t.h or 0
+	local m = t.m or t.mi or 0
+	local s = t.s or 0
+	local ms = t.ms or 0
+	
+	if utils_data and utils_data.CTime_from_table then
+		local ct = utils_data.CTime_from_table(t)
+		if ct then return ct end
+	end
+	
 	local ct = game.CTime()
-	ct:set(y, t.mo or t.M or 1, t.d or t.D or 1, t.h or 0, t.mi or t.m or 0, t.s or 0, t.ms or 0)
+	ct:set(Y, M, D, h, m, s, ms)
 	return ct
 end
 
 function get_round_cooldown_remaining(category, round_id)
+	local is_comp = is_round_completed(category, round_id)
+	if not is_comp then
+		return 0, ""
+	end
+
 	local dur = get_cooldown_duration_sec()
 	if dur == 0 then
 		return 0, ""
@@ -582,7 +662,7 @@ function get_round_cooldown_remaining(category, round_id)
 		return 0, ""
 	end
 
-	local saved_ct = t2c(saved_time_t)
+	local saved_ct = table_to_ctime(saved_time_t)
 	if not saved_ct then
 		comp_table[round_id] = nil
 		return 0, ""
@@ -595,16 +675,7 @@ function get_round_cooldown_remaining(category, round_id)
 	end
 
 	local remain_sec = math.min(math.floor(dur - elapsed_sec), dur)
-	local days = math.floor(remain_sec / 86400)
-	local hours = math.floor((remain_sec % 86400) / 3600)
-	local time_str = ""
-	if days > 0 then
-		time_str = string.format("%dd %dh", days, hours)
-	else
-		local mins = math.floor((remain_sec % 3600) / 60)
-		time_str = string.format("%dh %dm", hours, mins)
-	end
-	return remain_sec, time_str
+	return remain_sec, format_cooldown_string(remain_sec)
 end
 
 function is_round_unlocked(category, round_id)
@@ -665,9 +736,19 @@ function save_state(m_data)
 	m_data.xcvb_endless_difficulty = endless_difficulty
 	m_data.xcvb_endless_artigrok_ammo = endless_artigrok_ammo
 	m_data.xcvb_practice_mode_active = (practice_mode_active == true)
+	m_data.xcvb_night_mode_active = (night_mode_active == true)
+	m_data.xcvb_night_mode_saved_time = night_mode_saved_time
+	m_data.xcvb_night_mode_saved_needs = night_mode_saved_needs
+	m_data.xcvb_night_mode_saved_render = night_mode_saved_render
+	m_data.xcvb_night_mode_device = night_mode_device
 end
 
 function load_state(m_data)
+	night_mode_active = (m_data.xcvb_night_mode_active == true)
+	night_mode_saved_time = m_data.xcvb_night_mode_saved_time
+	night_mode_saved_needs = m_data.xcvb_night_mode_saved_needs
+	night_mode_saved_render = m_data.xcvb_night_mode_saved_render
+	night_mode_device = m_data.xcvb_night_mode_device or "device_torch_dummy"
 	arena_main_t = m_data.xcvb_arena_main_t or arena_main_t
 	current_period = m_data.xcvb_arena_current_period or 0
 	current_spec_filter = m_data.xcvb_arena_spec_filter or "all"
@@ -687,7 +768,7 @@ function load_state(m_data)
 	tournament_stalker_completed = m_data.xcvb_tournament_stalker_completed or {}
 	tournament_stalker_completed_time = m_data.xcvb_tournament_stalker_comp_time or {}
 	for k, v in pairs(tournament_stalker_completed_time) do
-		if type(v) ~= "table" or (v.y or v.Y or 0) < 2000 then
+		if type(v) ~= "table" or ((v.y or v.Y or 0) < 2000) then
 			tournament_stalker_completed_time[k] = nil
 		end
 	end
@@ -696,7 +777,7 @@ function load_state(m_data)
 	tournament_mutant_completed = m_data.xcvb_tournament_mutant_completed or {}
 	tournament_mutant_completed_time = m_data.xcvb_tournament_mutant_comp_time or {}
 	for k, v in pairs(tournament_mutant_completed_time) do
-		if type(v) ~= "table" or (v.y or v.Y or 0) < 2000 then
+		if type(v) ~= "table" or ((v.y or v.Y or 0) < 2000) then
 			tournament_mutant_completed_time[k] = nil
 		end
 	end
@@ -852,8 +933,24 @@ function actor_on_update()
 end
 
 function actor_on_first_update()
+	pcall(function() if xcvb_arena_utils and xcvb_arena_utils.init_sr_light_hook then xcvb_arena_utils.init_sr_light_hook() end end)
 	xcvb_arena_utils.check_and_spawn_board()
 	xcvb_arena_utils.handle_removed_teams()
+
+	local in_fight = false
+	if xcvb_arena_fight then
+		pcall(function()
+			if xcvb_arena_fight.is_endless_mode or has_alife_info("xcvb_tournament_started") or has_alife_info("xcvb_endless_started") or has_alife_info("xcvb_battle_royale_started") then
+				in_fight = true
+			end
+		end)
+	end
+
+	if night_mode_active and in_fight then
+		xcvb_arena_utils.enter_arena_night_mode()
+	else
+		xcvb_arena_utils.exit_arena_night_mode()
+	end
 end
 
 local function apply_arena_combat_ai()
@@ -874,6 +971,7 @@ local function apply_arena_combat_ai()
 end
 
 function on_game_start()
+	pcall(function() if xcvb_arena_utils and xcvb_arena_utils.init_sr_light_hook then xcvb_arena_utils.init_sr_light_hook() end end)
 	RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
 	RegisterScriptCallback("actor_on_update", actor_on_update)
 	RegisterScriptCallback("save_state", save_state)

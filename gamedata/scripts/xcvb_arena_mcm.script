@@ -9,15 +9,24 @@ local defaults = {
 	["allow_replay"] = "7d",
 	["special_ammo_support"] = true,
 	["rental_fee_mult"] = 1.0,
+	["auto_reopen_gui"] = false,
 	["panic_key"] = DIK_keys.DIK_F,
+	["night_vision_base_dist"] = 24,
+	["night_vision_mult"] = 1.0,
+	["night_elite_nvg"] = true,
 }
 
 function get_config(key)
+	local val
 	if ui_mcm then
-		return ui_mcm.get("xcvb_arena/" .. key)
-	else
-		return defaults[key]
+		pcall(function()
+			val = ui_mcm.get("xcvb_arena/" .. key)
+		end)
 	end
+	if val ~= nil then
+		return val
+	end
+	return defaults[key]
 end
 
 function on_mcm_load()
@@ -44,12 +53,20 @@ function on_mcm_load()
 			},
 			{ id = "special_ammo_support", type = "check", val = 1, def = true },
 			{ id = "rental_fee_mult", type = "track", val = 2, min = 0.0, max = 3.0, step = 0.1, def = 1.0 },
+			{ id = "auto_reopen_gui", type = "check", val = 1, def = false },
 
 			{ id = "line", type = "line" },
 
 			-- Endless Mode & Controls Settings
 			{ id = "panic_key", type = "key_bind", val = 2, def = DIK_keys.DIK_F },
 			{ id = "endless_reward_mult", type = "track", val = 2, min = 0.5, max = 3.0, step = 0.1, def = 1.0 },
+
+			{ id = "line", type = "line" },
+
+			-- Night Mode Settings
+			{ id = "night_vision_base_dist", type = "track", val = 2, min = 15, max = 45, step = 1, def = 24 },
+			{ id = "night_vision_mult", type = "track", val = 2, min = 0.5, max = 2.0, step = 0.05, def = 1.0 },
+			{ id = "night_elite_nvg", type = "check", val = 1, def = true },
 		}
 	}
 	return op

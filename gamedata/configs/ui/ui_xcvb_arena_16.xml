@@ -32,6 +32,16 @@
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 	</beta_btn>
 
+	<!-- Night Mode Testing Button (Main Screen) & Device Selector (Side by side) -->
+	<btn_night_mode x="305" y="88" width="215" height="26" check_mode="0">
+		<text font="letterica16" align="c" vert_align="c">st_arena_btn_night_mode</text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</btn_night_mode>
+	<btn_night_device x="525" y="88" width="225" height="26" check_mode="0">
+		<text font="letterica16" align="c" vert_align="c">st_arena_btn_night_device</text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</btn_night_device>
+
 	<!-- ============================================== -->
 	<!-- TOURNAMENT CONTAINER -->
 	<!-- ============================================== -->
@@ -918,6 +928,41 @@
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</dssg_close_btn>
 	</dssg_menu>
+
+	<!-- Night Equipment Selection Modal Window -->
+	<night_device_menu x="180" y="140" width="460" height="370" stretch="1">
+		<texture>ui_table_back</texture>
+		<title x="15" y="14" width="430" height="24">
+			<text r="255" g="220" b="140" font="graffiti22" align="c" vert_align="c">st_arena_night_menu_title</text>
+		</title>
+		<subtitle x="15" y="40" width="430" height="18">
+			<text r="180" g="180" b="180" font="letterica16" align="c" vert_align="c">st_arena_night_menu_desc</text>
+		</subtitle>
+		<btn_device_torch x="30" y="68" width="400" height="38" check_mode="0">
+			<text font="letterica18">st_arena_dev_torch</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_device_torch>
+		<btn_device_nvg1 x="30" y="114" width="400" height="38" check_mode="0">
+			<text font="letterica18">st_arena_dev_nvg1</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_device_nvg1>
+		<btn_device_nvg2 x="30" y="160" width="400" height="38" check_mode="0">
+			<text font="letterica18">st_arena_dev_nvg2</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_device_nvg2>
+		<btn_device_nvg3 x="30" y="206" width="400" height="38" check_mode="0">
+			<text font="letterica18">st_arena_dev_nvg3</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_device_nvg3>
+		<btn_device_none x="30" y="252" width="400" height="38" check_mode="0">
+			<text font="letterica18">st_arena_dev_none</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_device_none>
+		<btn_device_close x="130" y="308" width="200" height="34" check_mode="0">
+			<text font="letterica18">st_arena_btn_close</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_device_close>
+	</night_device_menu>
 
 	<!-- Row vertical lines (Direct children of <w> as expected by CUIXmlInit) -->
 	<vert_line1 x="80" y="0" width="1" height="48" stretch="1">

@@ -1,0 +1,356 @@
+-- ==============================================================================
+-- xcvb_arena_night.script
+-- Night Mode (Modo Noche) para Arena Tournament en S.T.A.L.K.E.R. GAMMA / Anomaly
+-- ==============================================================================
+
+local is_night_active = false
+local saved_time_hours = nil
+local saved_time_mins = nil
+local saved_cvars = {}
+local turned_off_lamps = {}
+
+local CVAR_LIST = {
+    { name = "r2_sun_lumscale",     night = "0.0" },
+    { name = "r2_sun_lumscale_amb", night = "0.0" },
+    { name = "r2_tonemap_lowlum",   night = "0.8" },
+}
+
+local ARENA_CENTER_X = 152.0
+local ARENA_CENTER_Y = -15.0
+local ARENA_CENTER_Z = 105.0
+local ARENA_RADIUS = 65.0
+
+local NIGHT_RANGE = 12.0
+local NIGHT_FOV   = 65.0
+
+--------------------------------------------------------------------------------
+-- CONSULTA DE ESTADO
+--------------------------------------------------------------------------------
+function is_active()
+    return is_night_active == true
+end
+
+--------------------------------------------------------------------------------
+-- PROTECCIÓN DE NECESIDADES (GAMMA SURVIVAL SYSTEM: HAMBRE, SUEÑO, SED)
+--------------------------------------------------------------------------------
+local function apply_survival_protection(saved_satiety)
+    if not db.actor then return end
+
+    -- 1. Hambre (db.actor.satiety)
+    pcall(function()
+        local target_satiety = math.max(saved_satiety or 1.0, 0.95)
+        db.actor.satiety = target_satiety
+        db.actor.radiation = 0
+        db.actor.bleeding = 1.0
+        db.actor.power = 1.0
+    end)
+
+    -- 2. Sueño y Deprivación de Sueño (actor_status_sleep)
+    pcall(function()
+        if actor_status_sleep then
+            local now = game.get_game_time()
+            actor_status_sleep.last_sleep = now
+            if actor_status_sleep.caff_factor ~= nil then
+                actor_status_sleep.caff_factor = 0
+            end
+            if actor_status_sleep.sleep_deprived ~= nil then
+                actor_status_sleep.sleep_deprived = false
+            end
+            if type(actor_status_sleep.reset_sleep) == "function" then
+                actor_status_sleep.reset_sleep()
+            end
+        end
+    end)
+
+    -- 3. Sed (actor_status_thirst / gamma_thirst)
+    pcall(function()
+        if actor_status_thirst then
+            local now = game.get_game_time()
+            actor_status_thirst.last_drink = now
+            if actor_status_thirst.thirst_level ~= nil then
+                actor_status_thirst.thirst_level = 0
+            end
+        end
+        if item_actor_effects and item_actor_effects.is_thirst_active ~= nil then
+            if type(item_actor_effects.reset_thirst) == "function" then
+                item_actor_effects.reset_thirst()
+            end
+        end
+    end)
+
+    -- 4. Monolith/DXML Engine properties si aplican
+    pcall(function()
+        if db.actor.thirst ~= nil then
+            db.actor.thirst = 0
+        end
+        if db.actor.alcohol ~= nil then
+            db.actor.alcohol = 0
+        end
+    end)
+end
+
+local function protect_vitals_continuous(saved_satiety)
+    apply_survival_protection(saved_satiety)
+
+    -- Mantener la protección activa durante los primeros 2 segundos tras el salto temporal
+    -- para neutralizar cualquier tick o callback rezagado del motor X-Ray / scripts
+    local ticks = 0
+    local event_id = "xcvb_night_protect_vitals_e"
+    local action_id = "xcvb_night_protect_vitals_a"
+    RemoveTimeEvent(event_id, action_id)
+    CreateTimeEvent(event_id, action_id, 0.3, function()
+        ticks = ticks + 1
+        apply_survival_protection(saved_satiety)
+        if ticks >= 6 then
+            return true
+        end
+        ResetTimeEvent(event_id, action_id, 0.3)
+        return false
+    end)
+end
+
+--------------------------------------------------------------------------------
+-- SALTO EN EL TIEMPO (HACIA LAS 02:30 AM)
+--------------------------------------------------------------------------------
+local function jump_to_target_time(target_h, target_m)
+    local curr_time = game.get_game_time()
+local Y, M, D, cur_h, cur_m, s, ms = curr_time:get()
+    local current_total_m = (cur_h * 60) + cur_m
+    local target_total_m  = (target_h * 60) + target_m
+
+    local diff_m = target_total_m - current_total_m
+    if diff_m <= 0 then
+        diff_m = diff_m + (24 * 60)
+    end
+
+    local add_hours = math.floor(diff_m / 60)
+    local add_mins  = diff_m % 60
+
+    local saved_satiety = 1.0
+    if db.actor and db.actor.satiety then
+        saved_satiety = db.actor.satiety
+    end
+
+    pcall(function()
+        level.change_game_time(0, add_hours, add_mins)
+    end)
+
+    protect_vitals_continuous(saved_satiety)
+end
+
+--------------------------------------------------------------------------------
+-- APAGADO Y RESTAURACIÓN DE LUCES DENTRO DE LA ARENA
+--------------------------------------------------------------------------------
+local function is_within_arena_bounds(pos)
+    if not pos then return false end
+    local arena_center = vector():set(ARENA_CENTER_X, ARENA_CENTER_Y, ARENA_CENTER_Z)
+    local d = pos:distance_to(arena_center)
+    return d <= ARENA_RADIUS
+end
+
+function turn_off_arena_lamps()
+    turned_off_lamps = turned_off_lamps or {}
+    for id = 1, 65534 do
+        local obj = level.object_by_id(id)
+        if obj then
+            local lamp = nil
+            pcall(function() lamp = obj:get_hanging_lamp() end)
+            if lamp then
+                local pos = obj:position()
+                if is_within_arena_bounds(pos) then
+                    local was_on = true
+                    pcall(function()
+                        if lamp.is_on then
+                            was_on = lamp:is_on()
+                        end
+                    end)
+                    if was_on then
+                        turned_off_lamps[id] = true
+                        pcall(function() lamp:turn_off() end)
+                    end
+                end
+            end
+        end
+    end
+end
+
+function restore_arena_lamps()
+    if turned_off_lamps then
+        for id, was_on in pairs(turned_off_lamps) do
+            if was_on then
+                local obj = level.object_by_id(id)
+                if obj then
+                    local lamp = nil
+                    pcall(function() lamp = obj:get_hanging_lamp() end)
+                    if lamp then
+                        pcall(function() lamp:turn_on() end)
+                    end
+                end
+            end
+        end
+    end
+    turned_off_lamps = {}
+end
+
+--------------------------------------------------------------------------------
+-- GESTIÓN DE CVARS DE ILUMINACIÓN
+--------------------------------------------------------------------------------
+local function save_and_apply_cvars()
+    saved_cvars = {}
+    local con = get_console()
+    if not con then return end
+
+    for _, entry in ipairs(CVAR_LIST) do
+        local val = nil
+        pcall(function() val = con:get_string(entry.name) end)
+        if val ~= nil and val ~= "" then
+            saved_cvars[entry.name] = val
+        end
+        pcall(function() con:execute(entry.name .. " " .. entry.night) end)
+    end
+end
+
+local function restore_saved_cvars()
+    local con = get_console()
+    if not con or not saved_cvars then return end
+
+    for _, entry in ipairs(CVAR_LIST) do
+        local orig_val = saved_cvars[entry.name]
+        if orig_val ~= nil and orig_val ~= "" then
+            pcall(function() con:execute(entry.name .. " " .. orig_val) end)
+        end
+    end
+    saved_cvars = {}
+end
+
+--------------------------------------------------------------------------------
+-- SIGILO Y ADAPTACIÓN DE IA ENEMIGA
+--------------------------------------------------------------------------------
+function configure_npc_night_stealth(npc)
+    if not npc or not npc:alive() then return end
+    pcall(function() npc:set_range(NIGHT_RANGE) end)
+    pcall(function() npc:set_fov(NIGHT_FOV) end)
+    pcall(function() npc:set_mental_state(anim.danger) end)
+end
+
+--------------------------------------------------------------------------------
+-- ACTIVAR / DESACTIVAR / CONMUTAR MODO NOCHE
+--------------------------------------------------------------------------------
+function enable()
+    if is_night_active then return end
+    is_night_active = true
+
+    -- 1. Guardar hora original
+    local curr_time = game.get_game_time()
+local Y, M, D, h, m, s, ms = curr_time:get()
+    saved_time_hours = h
+    saved_time_mins  = m
+
+    -- 2. Guardar y aplicar cvars
+    save_and_apply_cvars()
+
+    -- 3. Avanzar tiempo a las 02:30 AM con protección total de necesidades
+    jump_to_target_time(2, 30)
+
+    -- 4. Apagar luces de la arena
+    turn_off_arena_lamps()
+    CreateTimeEvent("xcvb_night_lamps_recheck_e", "xcvb_night_lamps_recheck_a", 0.5, function()
+        if is_night_active then
+            turn_off_arena_lamps()
+        end
+        return true
+    end)
+
+    -- 5. Notificación al jugador
+    if db.actor and news_manager and news_manager.send_tip then
+        local tip_txt = game.translate_string("st_arena_night_mode_tip_on")
+        if not tip_txt or tip_txt == "" or tip_txt == "st_arena_night_mode_tip_on" then
+            tip_txt = "MODO NOCHE activado (02:30) - Luces apagadas."
+        end
+        news_manager.send_tip(db.actor, tip_txt, 0, nil, 6000)
+    end
+end
+
+function disable()
+    if not is_night_active then return end
+    is_night_active = false
+
+    -- 1. Restaurar hora del día previa (avanzar hacia la hora original para mantener sincronía)
+    if saved_time_hours ~= nil and saved_time_mins ~= nil then
+        jump_to_target_time(saved_time_hours, saved_time_mins)
+        saved_time_hours = nil
+        saved_time_mins  = nil
+    end
+
+    -- 2. Restaurar luces de la arena
+    restore_arena_lamps()
+
+    -- 3. Restaurar cvars
+    restore_saved_cvars()
+
+    -- 4. Cancelar eventos pendientes de modo noche
+    pcall(function() RemoveTimeEvent("xcvb_night_lamps_recheck_e", "xcvb_night_lamps_recheck_a") end)
+
+    -- 5. Notificación al jugador
+    if db.actor and news_manager and news_manager.send_tip then
+        local tip_txt = game.translate_string("st_arena_night_mode_tip_off")
+        if not tip_txt or tip_txt == "" or tip_txt == "st_arena_night_mode_tip_off" then
+            tip_txt = "Modo normal restaurado - Luces encendidas."
+        end
+        news_manager.send_tip(db.actor, tip_txt, 0, nil, 6000)
+    end
+end
+
+function toggle()
+    if is_night_active then
+        disable()
+    else
+        enable()
+    end
+    return is_night_active
+end
+
+--------------------------------------------------------------------------------
+-- CICLO DE FINALIZACIÓN DE COMBATE
+--------------------------------------------------------------------------------
+function on_fight_ended(is_endless, voluntary_leave)
+    if not is_night_active then return end
+    disable()
+end
+
+--------------------------------------------------------------------------------
+-- PERSISTENCIA (SAVE / LOAD)
+--------------------------------------------------------------------------------
+local function on_save_state(m_data)
+    m_data.xcvb_arena_night = m_data.xcvb_arena_night or {}
+    m_data.xcvb_arena_night.active = is_night_active
+    m_data.xcvb_arena_night.saved_h = saved_time_hours
+    m_data.xcvb_arena_night.saved_m = saved_time_mins
+    m_data.xcvb_arena_night.saved_cvars = saved_cvars
+    m_data.xcvb_arena_night.turned_off_lamps = turned_off_lamps
+end
+
+local function on_load_state(m_data)
+    if not m_data.xcvb_arena_night then return end
+    is_night_active = (m_data.xcvb_arena_night.active == true)
+    saved_time_hours = m_data.xcvb_arena_night.saved_h
+    saved_time_mins  = m_data.xcvb_arena_night.saved_m
+    if type(m_data.xcvb_arena_night.saved_cvars) == "table" then
+        saved_cvars = m_data.xcvb_arena_night.saved_cvars
+    end
+    if type(m_data.xcvb_arena_night.turned_off_lamps) == "table" then
+        turned_off_lamps = m_data.xcvb_arena_night.turned_off_lamps
+    end
+
+    if is_night_active then
+        CreateTimeEvent("xcvb_night_load_reapply_e", "xcvb_night_load_reapply_a", 1.0, function()
+            turn_off_arena_lamps()
+            return true
+        end)
+    end
+end
+
+function on_game_start()
+    RegisterScriptCallback("save_state", on_save_state)
+    RegisterScriptCallback("load_state", on_load_state)
+end

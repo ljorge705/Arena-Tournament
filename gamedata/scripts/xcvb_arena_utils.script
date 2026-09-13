@@ -734,7 +734,7 @@ function spawn_tournament_squad(round_data)
     
 	squad.scripted_target = "actor"
     squad.assigned_target_id = 0
-    squad.rush_to_target = true
+    squad.rush_to_target = not (xcvb_arena_main.night_mode_active == true)
 
     local a_fac = get_actor_faction()
     for _, sec in ipairs(round_data.sections) do
@@ -835,8 +835,1199 @@ function apply_combat_modifier_inventory(npc, team_idx)
     end
 end
 
+--------------------------------------------------------------------------------
+-- NIGHT MODE & ARENA LIGHTING SYSTEM
+--------------------------------------------------------------------------------
+
 function toggle_arena_lights(turn_on)
-    -- Disabled for now
+    -- Arena 3D volume bounding box (covers arena floor y=-20, side walls, overhead beams y=-10.8, and roof rafters y=4.0)
+    local x_min, x_max = 120, 185
+    local z_min, z_max = 65, 145
+    local y_min, y_max = -26, 25
+
+    local count = 0
+    for id = 1, 65534 do
+        local obj = level.object_by_id(id)
+        if obj then
+            local is_lamp = false
+            pcall(function()
+                local c = obj:clsid()
+                local sec = obj:section()
+                if (clsid and (c == clsid.hlamp_s or c == clsid.hanging_lamp)) or (sec == "lights_hanging_lamp" or sec == "lights_signal_light") then
+                    is_lamp = true
+                end
+            end)
+
+            if is_lamp then
+                pcall(function()
+                    local lamp = obj:get_hanging_lamp()
+                    if lamp then
+                        local pos = obj:position()
+                        local in_arena_box = (pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max and pos.y >= y_min and pos.y <= y_max)
+                        local name = obj:name() or ""
+                        local is_arena_named = string.find(name, "light_big_glass_")
+                            or string.find(name, "light_alarm_glass_")
+                            or string.find(name, "light_galogen_")
+                            or (string.find(name, "bar_lights_hanging_lamp_") and pos.z >= z_min)
+
+                        if in_arena_box or (is_arena_named and pos.z >= 60) then
+                            if turn_on then
+                                lamp:turn_on()
+                            else
+                                lamp:turn_off()
+                            end
+                            count = count + 1
+                        end
+                    end
+                end)
+            end
+
+            local is_proj = false
+            pcall(function()
+                if clsid and clsid.projector and obj:clsid() == clsid.projector then
+                    is_proj = true
+                end
+            end)
+
+            if is_proj then
+                pcall(function()
+                    local proj = obj:get_projector()
+                    if proj then
+                        local pos = obj:position()
+                        if pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max then
+                            proj:Action(CProjector.eSwitch, turn_on and 1 or 0, "")
+                        end
+                    end
+                end)
+            end
+        end
+    end
+    printf("[ARENA_LIGHTS] Toggled %d arena lamps to %s", count, turn_on and "ON" or "OFF")
+    pcall(function()
+        local snd = sound_object([[device\light_switch]]) or sound_object([[interface\inv_torch]])
+        if snd and db.actor then snd:play(db.actor, 0, sound_object.s2d) end
+    end)
+end
+
+local VIDEO_RENDER_COMMANDS = {
+    -- Sun & Sky Lighting
+    "r2_sun",
+    "r2_sun_lumscale",
+    "r2_sun_lumscale_amb",
+    "r2_sun_lumscale_hemi",
+    "r2_sun_depth_near_scale",
+    "r2_sun_depth_far_scale",
+    "r2_sun_depth_near_bias",
+    "r2_sun_depth_far_bias",
+    "r2_sun_far",
+    "r2_sun_near",
+    "r2_sun_near_border",
+    "r2_sun_tsm_bias",
+    "r2_sun_tsm_proj",
+    "r2_sunshafts_min",
+    "r2_sunshafts_value",
+    -- Tonemapping & Color
+    "r2_tonemap",
+    "r2_tonemap_amount",
+    "r2_tonemap_adaptation",
+    "r2_tonemap_lowlum",
+    "r2_tonemap_middlegray",
+    "rs_c_brightness",
+    "rs_c_contrast",
+    "rs_c_gamma",
+    "r__gamma",
+    "r__exposure",
+    "r__saturation",
+    "r__color_grading",
+    -- Screen Space Shaders & Fog
+    "ssfx_is_underground",
+    "ssfx_fog_scattering",
+    "ssfx_fog",
+    "ssfx_hud_hemi",
+    "ssfx_shadow_bias",
+    "ssfx_water",
+    "ssfx_bloom_use_presets",
+    "ssfx_ao",
+    "ssfx_ao_quality",
+    "ssfx_florafixes_enable",
+    -- Details & Volumetrics
+    "r2_gloss_factor",
+    "r2_gloss_min",
+    "r2_steep_parallax",
+    "r2_detail_bump",
+    "r2_volumetric_lights",
+    "scope_factor",
+    -- Custom Shader Params
+    "shader_param_1",
+    "shader_param_2",
+    "shader_param_3",
+    "shader_param_4",
+    "shader_param_5",
+    "shader_param_6",
+    "shader_param_7",
+    "shader_param_8",
+}
+
+local DEFAULT_DAYLIGHT_SETTINGS = {
+    ["r2_sun_lumscale"]      = "1.0",
+    ["r2_sun_lumscale_amb"]  = "1.0",
+    ["r2_sun_lumscale_hemi"] = "1.0",
+    ["r2_tonemap_lowlum"]    = "0.0001",
+    ["r2_tonemap_middlegray"]= "1.0",
+    ["ssfx_is_underground"]  = "0",
+    ["ssfx_fog_scattering"]  = "1",
+    ["ssfx_fog"]             = "(1,1,1,1)",
+}
+
+local function get_console_val(cmd_name)
+    local val = nil
+    local con = nil
+    pcall(function() if get_console then con = get_console() end end)
+    if con then
+        pcall(function()
+            if con.get_string then
+                val = con:get_string(cmd_name)
+            end
+        end)
+        if val ~= nil and val ~= "" then return tostring(val) end
+        pcall(function()
+            if con.get_float then
+                val = con:get_float(cmd_name)
+            end
+        end)
+        if val ~= nil then return tostring(val) end
+        pcall(function()
+            if con.get_bool then
+                val = con:get_bool(cmd_name)
+            end
+        end)
+        if val ~= nil then return val and "1" or "0" end
+        pcall(function()
+            if con.get then
+                val = con:get(cmd_name)
+            end
+        end)
+        if val ~= nil and val ~= "" then return tostring(val) end
+    end
+    if get_console_cmd then
+        pcall(function() val = get_console_cmd(0, cmd_name) end)
+        if val ~= nil and val ~= "" then return tostring(val) end
+        pcall(function() val = get_console_cmd(2, cmd_name) end)
+        if val ~= nil and val ~= "" then return tostring(val) end
+        pcall(function() val = get_console_cmd(1, cmd_name) end)
+        if val ~= nil and val ~= "" then return tostring(val) end
+    end
+    return nil
+end
+
+function apply_night_mode_lighting(enable)
+    if enable then
+        -- 1. Save original render settings if not already saved
+        if not xcvb_arena_main.night_mode_saved_render then
+            -- Save file-level backup in appdata/arena_night_backup.ltx
+            pcall(function() exec_console_cmd("cfg_save arena_night_backup") end)
+
+            local orig = {}
+            for _, cmd in ipairs(VIDEO_RENDER_COMMANDS) do
+                local v = get_console_val(cmd)
+                -- Avoid saving darkness values as original daylight values
+                if DEFAULT_DAYLIGHT_SETTINGS[cmd] and (v == nil or v == "" or v == "0" or v == "0.0" or v == "(0,0,0,0)") then
+                    orig[cmd] = DEFAULT_DAYLIGHT_SETTINGS[cmd]
+                elseif v ~= nil and v ~= "" then
+                    orig[cmd] = tostring(v)
+                end
+            end
+            pcall(function() orig.__weather = level.get_weather and level.get_weather() end)
+            xcvb_arena_main.night_mode_saved_render = orig
+        end
+
+        -- 2. Apply darkness settings
+        -- Cut ambient & hemi sky lighting so sunlight/moonlight doesn't flood the indoor arena
+        pcall(function() exec_console_cmd("r2_sun_lumscale 0.0") end)
+        pcall(function() exec_console_cmd("r2_sun_lumscale_amb 0.0") end)
+        pcall(function() exec_console_cmd("r2_sun_lumscale_hemi 0.0") end)
+        -- Prevent tonemapper from artificially boosting pitch dark rooms into glowing washed-out blue/grey
+        pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.8") end)
+        pcall(function() exec_console_cmd("r2_tonemap_middlegray 0.4") end)
+        -- Tell Screen Space Shaders to treat the area as underground (disables outdoor sky bounce & SSR reflections)
+        pcall(function() exec_console_cmd("ssfx_is_underground 1") end)
+        -- Eliminate glowing volumetric fog in dark arena
+        pcall(function() exec_console_cmd("ssfx_fog_scattering 0") end)
+        pcall(function() exec_console_cmd("ssfx_fog (0,0,0,0)") end)
+
+        -- Directly clamp engine fog & ambient colors to absolute pitch black
+        if weather and weather.set_value_vector then
+            pcall(weather.set_value_vector, "fog_color", 0, 0, 0)
+            pcall(weather.set_value_numric, "fog_density", 0.0)
+            pcall(weather.set_value_numric, "fog_distance", 1000.0)
+            pcall(weather.set_value_numric, "far_plane", 1000.0)
+            pcall(weather.set_value_vector, "sky_color", 0, 0, 0)
+            pcall(weather.set_value_vector, "ambient_color", 0, 0, 0)
+            pcall(weather.set_value_vector, "hemisphere_color", 0, 0, 0, 0)
+            pcall(weather.set_value_vector, "clouds_color", 0, 0, 0, 0)
+            pcall(weather.pause, true)
+        end
+    else
+        -- Restore exact original video settings saved before night mode was activated
+        pcall(function() exec_console_cmd("cfg_load arena_night_backup") end)
+
+        local saved = xcvb_arena_main.night_mode_saved_render or {}
+
+        -- Guaranteed restore of all core lighting and tonemap cvars with fallback defaults
+        for cmd, default_val in pairs(DEFAULT_DAYLIGHT_SETTINGS) do
+            local val = saved[cmd]
+            if not val or val == "" or val == "0" or val == "0.0" or val == "(0,0,0,0)" then
+                val = default_val
+            end
+            pcall(function() exec_console_cmd(cmd .. " " .. val) end)
+        end
+
+        -- Also restore any other extra commands that were saved in orig
+        for cmd, val in pairs(saved) do
+            if cmd ~= "__weather" and not DEFAULT_DAYLIGHT_SETTINGS[cmd] and val and val ~= "" then
+                pcall(function() exec_console_cmd(cmd .. " " .. val) end)
+            end
+        end
+
+        if saved.__weather and weather and weather.set_weather then
+            pcall(weather.pause, false)
+            pcall(weather.set_weather, saved.__weather, true)
+            pcall(weather.reload)
+        end
+
+        if ssfx_fog and ssfx_fog.apply_fog_settings then
+            pcall(ssfx_fog.apply_fog_settings)
+        end
+
+        if weather then
+            pcall(weather.pause, false)
+            pcall(weather.reload)
+        end
+
+        pcall(function()
+            if level_weathers and level_weathers.get_weather_manager then
+                local wm = level_weathers.get_weather_manager()
+                if wm then
+                    wm:forced_weather_change()
+                    wm:select_weather(true)
+                end
+            end
+        end)
+
+        -- Only clear saved render backup if night mode is officially inactive
+        if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then
+            xcvb_arena_main.night_mode_saved_render = nil
+            npc_night_gear = {}
+        end
+
+        -- Save clean daylight settings into user.ltx so closing/restarting the game never stays pitch dark
+        pcall(function() exec_console_cmd("cfg_save") end)
+    end
+end
+
+function activate_actor_torch()
+    if not db.actor then return end
+    local torch = db.actor:item_in_slot(10)
+    if not torch then return end
+
+    pcall(function()
+        if torch.set_condition and torch:condition() < 0.2 then
+            torch:set_condition(1.0)
+        end
+        if torch.enable_torch then
+            torch:enable_torch(true)
+        end
+    end)
+
+    if item_device then
+        pcall(function()
+            if item_device.is_torch_active and not item_device.is_torch_active() then
+                if item_device.toggle_torch then
+                    item_device.toggle_torch()
+                end
+            end
+        end)
+    end
+end
+
+function turn_off_actor_torch()
+    if not db.actor then return end
+    local torch = db.actor:item_in_slot(10)
+    if torch and torch.enable_torch then
+        pcall(function()
+            torch:enable_torch(false)
+        end)
+    end
+    if item_device then
+        pcall(function()
+            if item_device.is_torch_active and item_device.is_torch_active() then
+                if item_device.toggle_torch then
+                    item_device.toggle_torch()
+                end
+            end
+        end)
+    end
+end
+
+function activate_actor_nightvision(sec)
+    if not db.actor then return end
+    -- First, guarantee flashlight is turned OFF so torch and NVG are not on together
+    turn_off_actor_torch()
+
+    local torch = db.actor:item_in_slot(10)
+    local s = sec or (torch and torch:section()) or "device_torch_nv_1"
+
+    pcall(function()
+        if db.actor.enable_night_vision then
+            db.actor:enable_night_vision(true)
+        end
+    end)
+
+    if item_device then
+        pcall(function()
+            if item_device.set_nightvision then
+                item_device.set_nightvision(s, true)
+            end
+            item_device.nv_state = true
+        end)
+    end
+    if z_beefs_nvgs and z_beefs_nvgs.update_nvgs then
+        pcall(function()
+            z_beefs_nvgs.update_nvgs()
+        end)
+    end
+
+    -- Safety check after 0.1s to ensure engine did not turn on torch light upon equipping slot 10
+    CreateTimeEvent("arena_nvg_torch_off_e", "arena_nvg_torch_off_a", 0.1, function()
+        turn_off_actor_torch()
+        return true
+    end)
+end
+
+function turn_off_actor_nightvision(sec)
+    if not db.actor then return end
+    pcall(function()
+        if db.actor.enable_night_vision then
+            db.actor:enable_night_vision(false)
+        end
+    end)
+    local torch = db.actor:item_in_slot(10)
+    local s = sec or (torch and torch:section()) or "device_torch_nv_1"
+    if item_device then
+        pcall(function()
+            if item_device.set_nightvision then
+                item_device.set_nightvision(s, false)
+            end
+            item_device.nv_state = false
+        end)
+    end
+    pcall(function()
+        get_console():execute("r__nightvision 0")
+        get_console():execute("shader_param_8 (0,0,0,0)")
+    end)
+end
+
+function is_actor_flashlight_active()
+    if not db.actor then return false end
+    local torch = db.actor:item_in_slot(10)
+    local active = false
+    if torch and torch.torch_enabled then
+        pcall(function()
+            if torch:torch_enabled() then
+                active = true
+            end
+        end)
+    end
+    if not active and item_device then
+        pcall(function()
+            if item_device.is_torch_active and item_device.is_torch_active() then
+                active = true
+            end
+        end)
+    end
+    return active
+end
+
+function is_actor_nvg_active()
+    if not db.actor then return false end
+    local active = false
+    pcall(function()
+        if db.actor.night_vision_enabled and db.actor:night_vision_enabled() then
+            active = true
+        end
+    end)
+    if not active and item_device then
+        pcall(function()
+            if item_device.is_nv_active and item_device.is_nv_active() then
+                active = true
+            elseif item_device.nv_state == true then
+                active = true
+            end
+        end)
+    end
+    return active
+end
+
+function get_current_arena_vision_level()
+    local tier = 1
+    local diff_mult = 1.0
+    local fov_mult = 1.0
+
+    if xcvb_arena_fight then
+        local is_endless = false
+        pcall(function()
+            if xcvb_arena_fight.is_endless_mode == true then
+                is_endless = true
+            elseif has_alife_info and has_alife_info("xcvb_endless_started") then
+                is_endless = true
+            elseif db.actor and db.actor.has_info and db.actor:has_info("xcvb_endless_started") then
+                is_endless = true
+            end
+        end)
+
+        if is_endless then
+            local diff = "medium"
+            pcall(function()
+                diff = xcvb_arena_fight.endless_difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
+            end)
+            local wave = 1
+            pcall(function()
+                wave = xcvb_arena_fight.endless_wave or 1
+            end)
+            local base_tier = math.min(5, math.max(1, math.ceil(wave / 2)))
+
+            if diff == "easy" then
+                tier = math.max(1, base_tier - 1)
+                diff_mult = 0.90
+                fov_mult = 0.90
+            elseif diff == "hard" then
+                tier = math.min(5, base_tier + 1)
+                diff_mult = 1.25
+                fov_mult = 1.15
+            else
+                tier = base_tier
+                diff_mult = 1.00
+                fov_mult = 1.00
+            end
+            return tier, diff_mult, fov_mult
+        end
+
+        local round_id = nil
+        pcall(function()
+            round_id = xcvb_arena_fight.current_tournament_round_id
+        end)
+        if round_id and round_id > 0 then
+            tier = math.min(5, math.max(1, math.ceil(round_id / 3)))
+            return tier, 1.0, 1.0
+        end
+    end
+
+    if xcvb_arena_main then
+        pcall(function()
+            local cat = "stalker"
+            if xcvb_arena_gui and xcvb_arena_gui.GUI then
+                cat = xcvb_arena_gui.GUI.current_category or "stalker"
+            end
+            tier = xcvb_arena_main.get_player_tier(cat) or 1
+        end)
+    end
+
+    return tier or 1, diff_mult, fov_mult
+end
+
+function is_actor_crouching_night()
+    if not (db.actor and db.actor:alive()) then return false end
+    local crouching = false
+    pcall(function()
+        if IsMoveState and move_state then
+            if IsMoveState("mcCrouch") or (move_state.crouch and IsMoveState(move_state.crouch)) or (move_state.crawl and IsMoveState(move_state.crawl)) then
+                crouching = true
+                return
+            end
+        end
+    end)
+    if crouching then return true end
+
+    pcall(function()
+        if key_state and bind_to_dik and key_bindings then
+            local crouch_dik = bind_to_dik(key_bindings.kCROUCH)
+            local accel_dik = bind_to_dik(key_bindings.kACCEL)
+            if (crouch_dik and key_state(crouch_dik) ~= 0) or (accel_dik and key_state(accel_dik) ~= 0) then
+                crouching = true
+                return
+            end
+        end
+    end)
+    if crouching then return true end
+
+    pcall(function()
+        if db.actor.is_crouching and db.actor:is_crouching() then
+            crouching = true
+        end
+    end)
+    return crouching
+end
+
+local npc_night_gear = {}
+local night_mode_combat_running = false
+
+function is_arena_night_combat_active()
+    return night_mode_combat_running == true
+end
+
+function is_npc_elite_night(npc)
+    if not (npc and npc:alive() and IsStalker and IsStalker(npc)) then return false, nil end
+
+    -- Check MCM toggle
+    if xcvb_arena_mcm and xcvb_arena_mcm.get_config then
+        if xcvb_arena_mcm.get_config("night_elite_nvg") == false then
+            return false, nil
+        end
+    end
+
+    -- 1. Check if NPC already carries an NVG device
+    for _, sec in ipairs({ "device_torch_nv_3", "device_torch_nv_2", "device_torch_nv_1" }) do
+        if npc:object(sec) then
+            return true, sec
+        end
+    end
+
+    -- 2. Check arena tier / round
+    local tier, diff_mult = get_current_arena_vision_level()
+    if tier >= 4 then
+        return true, (tier >= 5 and "device_torch_nv_3" or "device_torch_nv_2")
+    end
+
+    -- 3. Check character rank
+    local rank = ranks and ranks.get_obj_rank_name and ranks.get_obj_rank_name(npc)
+    if rank == "legend" then
+        return true, "device_torch_nv_3"
+    elseif rank == "master" or rank == "expert" then
+        return true, "device_torch_nv_2"
+    end
+
+    -- 4. Check faction + veteran status
+    local comm = npc.character_community and npc:character_community()
+    if comm == "monolith" or comm == "killer" or comm == "isg" then
+        if rank == "veteran" or tier >= 3 then
+            return true, "device_torch_nv_2"
+        end
+    end
+
+    return false, nil
+end
+
+function apply_realistic_night_vision(npc)
+    if not (npc and npc:alive()) then return end
+    if not (xcvb_arena_main and xcvb_arena_main.night_mode_active and night_mode_combat_running) then return end
+
+    local n_id = npc:id()
+    local torch_on = is_actor_flashlight_active()
+    local is_crouching = is_actor_crouching_night()
+
+    local tier, diff_mult, fov_mult = get_current_arena_vision_level()
+    local is_monster = IsMonster and IsMonster(npc)
+    local is_elite = (not is_monster) and (npc_night_gear[n_id] == "nvg" or is_npc_elite_night(npc))
+
+    -- MCM Options
+    local mcm_base_dist = 24
+    local mcm_mult = 1.0
+    if xcvb_arena_mcm and xcvb_arena_mcm.get_config then
+        mcm_base_dist = xcvb_arena_mcm.get_config("night_vision_base_dist") or 24
+        mcm_mult = xcvb_arena_mcm.get_config("night_vision_mult") or 1.0
+    end
+
+    -- Per-tier vision profiles (Tier 1 Rookie -> Tier 5 Master/Legend)
+    -- Easy standing range uses configurable mcm_base_dist (default 24m)
+    local stalker_profiles = {
+        [1] = { torch_r = 38.0, stand_r = mcm_base_dist, crouch_r = mcm_base_dist * 0.58, torch_fov = 90.0,  stand_fov = 65.0,  crouch_fov = 45.0 },
+        [2] = { torch_r = 45.0, stand_r = mcm_base_dist * 1.20, crouch_r = mcm_base_dist * 0.72, torch_fov = 100.0, stand_fov = 75.0,  crouch_fov = 55.0 },
+        [3] = { torch_r = 52.0, stand_r = mcm_base_dist * 1.45, crouch_r = mcm_base_dist * 0.90, torch_fov = 110.0, stand_fov = 85.0,  crouch_fov = 65.0 },
+        [4] = { torch_r = 60.0, stand_r = mcm_base_dist * 1.70, crouch_r = mcm_base_dist * 1.08, torch_fov = 120.0, stand_fov = 95.0,  crouch_fov = 75.0 },
+        [5] = { torch_r = 70.0, stand_r = mcm_base_dist * 2.00, crouch_r = mcm_base_dist * 1.25, torch_fov = 135.0, stand_fov = 105.0, crouch_fov = 85.0 },
+    }
+
+    local monster_profiles = {
+        [1] = { torch_r = 32.0, stand_r = mcm_base_dist * 0.95, crouch_r = mcm_base_dist * 0.58, torch_fov = 80.0,  stand_fov = 60.0,  crouch_fov = 55.0 },
+        [2] = { torch_r = 38.0, stand_r = mcm_base_dist * 1.15, crouch_r = mcm_base_dist * 0.72, torch_fov = 90.0,  stand_fov = 70.0,  crouch_fov = 65.0 },
+        [3] = { torch_r = 45.0, stand_r = mcm_base_dist * 1.40, crouch_r = mcm_base_dist * 0.90, torch_fov = 100.0, stand_fov = 80.0,  crouch_fov = 75.0 },
+        [4] = { torch_r = 52.0, stand_r = mcm_base_dist * 1.65, crouch_r = mcm_base_dist * 1.08, torch_fov = 110.0, stand_fov = 90.0,  crouch_fov = 85.0 },
+        [5] = { torch_r = 60.0, stand_r = mcm_base_dist * 1.95, crouch_r = mcm_base_dist * 1.25, torch_fov = 120.0, stand_fov = 100.0, crouch_fov = 95.0 },
+    }
+
+    local prof = is_monster and (monster_profiles[tier] or monster_profiles[3]) or (stalker_profiles[tier] or stalker_profiles[3])
+    local target_range
+    local target_fov
+
+    if torch_on then
+        target_range = prof.torch_r * diff_mult * (is_elite and 1.25 or 1.0)
+        target_fov   = math.min(150.0, prof.torch_fov * fov_mult)
+    elseif is_crouching then
+        target_range = prof.crouch_r * diff_mult * (is_elite and 1.20 or 1.0)
+        target_fov   = math.min(125.0, prof.crouch_fov * fov_mult)
+    else
+        target_range = prof.stand_r * diff_mult * (is_elite and 1.30 or 1.0)
+        target_fov   = math.min(135.0, prof.stand_fov * fov_mult)
+    end
+
+    -- Apply MCM global multiplier
+    target_range = target_range * mcm_mult
+
+    pcall(function()
+        if npc.set_range then
+            npc:set_range(target_range)
+        end
+        if npc.set_fov then
+            npc:set_fov(target_fov)
+        end
+        if db.actor and db.actor:alive() then
+            local npc_pos = npc:position()
+            local actor_pos = db.actor:position()
+            local dist = npc_pos:distance_to(actor_pos)
+
+            if dist <= target_range then
+                -- Direction and forward field-of-view angle to actor
+                local npc_dir = npc:direction()
+                local to_actor = vector():sub(actor_pos, npc_pos)
+                to_actor:normalize()
+                local dot = npc_dir:dotproduct(to_actor) -- cos(angle): 1.0 = dead ahead, 0 = 90 deg sideways
+
+                local has_torch = (npc_night_gear[n_id] == "torch") or (npc:object("device_torch") ~= nil)
+                local detected = false
+
+                -- 1. Engine sight confirmation
+                if npc.see and npc:see(db.actor) then
+                    detected = true
+                -- 2. Point blank range (within 7m, cannot be missed even in total dark)
+                elseif dist <= 7.0 then
+                    detected = true
+                -- 3. Walking/running in close quarters (within 13m): heard by footsteps
+                elseif (not is_crouching) and dist <= 13.0 then
+                    detected = true
+                -- 4. Player's flashlight or device illuminates them across the arena
+                elseif torch_on and dist <= target_range * 1.05 then
+                    detected = true
+                -- 5. Elite enemy with NVG looking in player's general direction (within ~80 deg)
+                elseif is_elite and dot >= 0.15 and dist <= target_range * (is_crouching and 0.70 or 0.95) then
+                    detected = true
+                -- 6. Standard enemy: Player is in front of the enemy (dot >= 0.35 = ~70 deg cone), illuminated by enemy's flashlight beam!
+                elseif has_torch and dot >= 0.35 and dist <= target_range then
+                    detected = true
+                -- 7. Mutant night senses (smell & hearing)
+                elseif is_monster and dist <= target_range * (is_crouching and 0.65 or 0.90) then
+                    detected = true
+                end
+
+                if detected then
+                    if npc.set_enemy then
+                        pcall(function() npc:set_enemy(db.actor) end)
+                    end
+                    if npc.make_enemy_visible then
+                        pcall(function() npc:make_enemy_visible(db.actor) end)
+                    end
+                    if npc.set_sight and db.actor then
+                        pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                    end
+                    if npc.register_in_combat then
+                        pcall(function() npc:register_in_combat() end)
+                    end
+
+                    -- Check if enemy already has db.actor actively targeted
+                    local has_live_target = false
+                    pcall(function()
+                        local be = npc:best_enemy()
+                        if be and be:id() == db.actor:id() and be:alive() then
+                            has_live_target = true
+                        end
+                    end)
+
+                    if not has_live_target then
+                        -- Awaken AI combat reaction without delay (hit.wound stimulus)
+                        xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
+                    end
+
+                    -- Alert squad to move toward player
+                    local se_stk = alife_object(n_id)
+                    if se_stk and se_stk.group_id then
+                        local sq = alife_object(se_stk.group_id)
+                        if sq then sq.rush_to_target = true end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+function is_stalker_in_arena(stalker)
+    if not (stalker and stalker:alive()) then return false end
+    local id = stalker:id()
+
+    -- 1. Registered in active night gear table
+    if npc_night_gear[id] ~= nil then
+        return true
+    end
+
+    -- 2. Has arena restrictor
+    local has_restr = false
+    pcall(function()
+        local in_r = stalker:in_restrictions() or ""
+        local out_r = stalker:out_restrictions() or ""
+        if string.find(in_r, "bar_arena_restrictor") or string.find(out_r, "bar_arena_restrictor") then
+            has_restr = true
+        end
+    end)
+    if has_restr then return true end
+
+    -- 3. Stalker belongs to an active arena squad
+    if xcvb_arena_fight then
+        local squad_id = nil
+        local se_stk = alife_object(id)
+        if se_stk and se_stk.group_id then
+            squad_id = se_stk.group_id
+        end
+
+        if squad_id then
+            if xcvb_arena_fight.tournament_enemy_squad_id == squad_id then return true end
+            if xcvb_arena_fight.endless_enemy_squad_ids then
+                for _, eid in ipairs(xcvb_arena_fight.endless_enemy_squad_ids) do
+                    if eid == squad_id then return true end
+                end
+            end
+            if xcvb_arena_fight.battle_royale_squad_ids then
+                for _, eid in pairs(xcvb_arena_fight.battle_royale_squad_ids) do
+                    if eid == squad_id then return true end
+                end
+            end
+        end
+    end
+
+    -- 4. 3D Coordinates check: inside the Arena combat pit (z >= 68, x 120..185, y -26..0)
+    local l_name = level and level.name and level.name()
+    if l_name == "l05_bar" then
+        local pos = stalker:position()
+        if pos and pos.x >= 120 and pos.x <= 185 and pos.z >= 68 and pos.z <= 145 and pos.y >= -26 and pos.y <= 0 then
+            return true
+        end
+    end
+
+    return false
+end
+
+function handle_arena_stalker_light(stalker)
+    if not (stalker and stalker:alive()) then return end
+    if not (IsStalker and IsStalker(stalker)) then return end
+
+    local n_id = stalker:id()
+    local is_elite, nvg_sec = is_npc_elite_night(stalker)
+
+    if is_elite then
+        -- ELITE ENEMY: Flashlight MUST BE STRICTLY OFF! Uses NVG.
+        npc_night_gear[n_id] = "nvg"
+        local torch = stalker:object("device_torch") or stalker:item_in_slot(10)
+        if torch then
+            if torch.enable_attachable_item and torch:attachable_item_enabled() then
+                pcall(function() torch:enable_attachable_item(false) end)
+            end
+            if torch.enable_torch then
+                pcall(function() torch:enable_torch(false) end)
+            end
+            local se_torch = alife_object(torch:id())
+            if se_torch then
+                pcall(function() alife_release_id(torch:id()) end)
+            end
+        end
+
+        local has_nvg = stalker:object("device_torch_nv_3") or stalker:object("device_torch_nv_2") or stalker:object("device_torch_nv_1")
+        if not has_nvg and nvg_sec then
+            alife_create_item(nvg_sec, stalker)
+        end
+        return
+    else
+        -- STANDARD ENEMY: Flashlight MUST BE TURNED ON! "Tienen que creer que es de noche"
+        npc_night_gear[n_id] = "torch"
+
+        -- Respect special non-headlamp animations if any (wounded, sleep, guitar)
+        local anm = state_mgr and state_mgr.get_state and state_mgr.get_state(stalker)
+        if anm == "zat_b106_wounded_idle" or anm == "sleep" or anm == "play_guitar" or (anm and string.find(anm, "animpoint")) or (anm and string.find(anm, "sneak")) then
+            local torch = stalker:object("device_torch")
+            if torch and torch.enable_attachable_item and torch:attachable_item_enabled() then
+                pcall(function() torch:enable_attachable_item(false) end)
+            end
+            return
+        end
+
+        local torch = stalker:object("device_torch")
+        if torch then
+            if torch.set_condition and torch:condition() < 0.2 then
+                pcall(function() torch:set_condition(1.0) end)
+            end
+            if torch.enable_attachable_item and not torch:attachable_item_enabled() then
+                pcall(function() torch:enable_attachable_item(true) end)
+            end
+            if torch.enable_torch then
+                pcall(function() torch:enable_torch(true) end)
+            end
+        else
+            local se_torch = alife_create_item("device_torch", stalker)
+            if se_torch then
+                CreateTimeEvent("arena_stk_torch_e_" .. tostring(n_id), "act_" .. tostring(n_id), 0.1, function()
+                    local s = level.object_by_id(n_id)
+                    if s and s:alive() then
+                        local t = s:object("device_torch")
+                        if t then
+                            if t.set_condition and t:condition() < 0.2 then
+                                pcall(function() t:set_condition(1.0) end)
+                            end
+                            if t.enable_attachable_item and not t:attachable_item_enabled() then
+                                pcall(function() t:enable_attachable_item(true) end)
+                            end
+                            if t.enable_torch then
+                                pcall(function() t:enable_torch(true) end)
+                            end
+                        end
+                    end
+                    return true
+                end)
+            end
+        end
+    end
+end
+
+local orig_sr_light_check_light = nil
+
+function init_sr_light_hook()
+    if sr_light and sr_light.check_light and not orig_sr_light_check_light then
+        orig_sr_light_check_light = sr_light.check_light
+        sr_light.check_light = function(stalker)
+            if night_mode_combat_running and stalker and stalker:alive() and is_stalker_in_arena(stalker) then
+                handle_arena_stalker_light(stalker)
+                return
+            end
+            return orig_sr_light_check_light(stalker)
+        end
+    end
+end
+
+function equip_and_enable_npc_torch(npc)
+    if not (npc and npc:alive()) then return end
+    if not (IsStalker and IsStalker(npc)) then return end
+    if not (xcvb_arena_main and xcvb_arena_main.night_mode_active and night_mode_combat_running) then return end
+
+    init_sr_light_hook()
+    handle_arena_stalker_light(npc)
+end
+
+function ensure_actor_torch_active()
+    if not db.actor then return end
+    local target_sec = xcvb_arena_main.night_mode_device or "device_torch_dummy"
+    local is_nvg = (target_sec == "device_torch_nv_1" or target_sec == "device_torch_nv_2" or target_sec == "device_torch_nv_3")
+
+    if target_sec == "none" then
+        turn_off_actor_torch()
+        turn_off_actor_nightvision()
+        local current = db.actor:item_in_slot(10)
+        if current and temporary_arena_item_ids[current:id()] then
+            if db.actor.move_to_ruck then
+                pcall(function() db.actor:move_to_ruck(current) end)
+            end
+        end
+        return
+    end
+
+    local torch = db.actor:item_in_slot(10)
+    if torch and torch:section() == target_sec then
+        if is_nvg then
+            activate_actor_nightvision(target_sec)
+        else
+            turn_off_actor_nightvision()
+            activate_actor_torch()
+        end
+        return
+    end
+
+    -- If another torch is in slot 10 and we need target_sec:
+    if torch and torch:section() ~= target_sec then
+        if db.actor.move_to_ruck then
+            pcall(function() db.actor:move_to_ruck(torch) end)
+        end
+    end
+
+    -- Search if actor has target_sec in ruck
+    local found_item = nil
+    db.actor:iterate_inventory(function(owner, item)
+        if not found_item and item and item:section() == target_sec then
+            found_item = item
+            if db.actor.move_to_slot then
+                pcall(function() db.actor:move_to_slot(item, 10) end)
+            end
+        end
+    end, db.actor)
+
+    if not found_item then
+        local se_torch = alife_create_item(target_sec, db.actor)
+        if se_torch then
+            temporary_arena_item_ids[se_torch.id] = true
+            CreateTimeEvent("arena_equip_torch_e", "arena_equip_torch_a", 0.3, function()
+                local t_obj = level.object_by_id(se_torch.id)
+                if t_obj and db.actor then
+                    if db.actor.move_to_slot then
+                        pcall(function() db.actor:move_to_slot(t_obj, 10) end)
+                    end
+                end
+                CreateTimeEvent("arena_activate_torch_sub_e", "arena_activate_torch_sub_a", 0.2, function()
+                    if is_nvg then
+                        activate_actor_nightvision(target_sec)
+                    else
+                        turn_off_actor_nightvision()
+                        activate_actor_torch()
+                    end
+                    return true
+                end)
+                return true
+            end)
+            return
+        end
+    else
+        CreateTimeEvent("arena_activate_torch_found_e", "arena_activate_torch_found_a", 0.2, function()
+            if is_nvg then
+                activate_actor_nightvision(target_sec)
+            else
+                turn_off_actor_nightvision()
+                activate_actor_torch()
+            end
+            return true
+        end)
+    end
+end
+
+function save_actor_survival_needs()
+    local needs = {}
+    
+    -- Health
+    needs.health = (db.actor and db.actor:alive()) and db.actor.health or 1.0
+
+    -- Satiety (hunger)
+    local actor_cond = db.actor and db.actor:cast_Actor() and db.actor:cast_Actor():conditions()
+    if actor_cond and actor_cond.GetSatiety then
+        needs.satiety = actor_cond:GetSatiety()
+    elseif db.actor and db.actor.satiety then
+        needs.satiety = db.actor.satiety
+    else
+        needs.satiety = 1.0
+    end
+
+    -- Thirst (actor_status_thirst)
+    if actor_status_thirst and actor_status_thirst.get_last_drink then
+        needs.drink = actor_status_thirst.get_last_drink()
+    else
+        needs.drink = 0
+    end
+
+    -- Sleep (actor_status_sleep)
+    if actor_status_sleep and actor_status_sleep.get_last_sleep then
+        needs.sleep = actor_status_sleep.get_last_sleep()
+    else
+        needs.sleep = 0
+    end
+
+    -- Godmode console state
+    pcall(function()
+        needs.was_god = get_console_cmd(1, "g_god")
+    end)
+
+    return needs
+end
+
+function restore_actor_survival_needs(saved_needs)
+    if not (db.actor and db.actor:alive()) then return end
+    saved_needs = saved_needs or {}
+    local cur_t = game.get_game_time()
+
+    -- 1. Restore Health & remove any bleeding
+    if saved_needs.health then
+        pcall(function()
+            db.actor.health = saved_needs.health
+        end)
+    end
+    pcall(function()
+        local actor_cond = db.actor:cast_Actor() and db.actor:cast_Actor():conditions()
+        if actor_cond and actor_cond.ChangeBleeding then
+            actor_cond:ChangeBleeding(-10.0)
+        end
+    end)
+
+    -- 2. Restore Satiety (hunger)
+    local target_satiety = saved_needs.satiety or 1.0
+    pcall(function()
+        local actor_cond = db.actor:cast_Actor() and db.actor:cast_Actor():conditions()
+        if actor_cond and actor_cond.GetSatiety and actor_cond.ChangeSatiety then
+            local cur_satiety = actor_cond:GetSatiety()
+            actor_cond:ChangeSatiety(target_satiety - cur_satiety)
+        end
+        if db.actor.satiety then
+            db.actor.satiety = target_satiety
+        end
+    end)
+
+    -- 3. Restore Thirst (actor_status_thirst) & advance check time to prevent sudden thirst burst
+    if actor_status_thirst then
+        pcall(function()
+            if actor_status_thirst.load_state and utils_data and utils_data.CTime_to_table then
+                actor_status_thirst.load_state({
+                    drink = {
+                        last_drink = saved_needs.drink or 0,
+                        chk_drink = utils_data.CTime_to_table(cur_t)
+                    }
+                })
+            end
+            if actor_status_thirst.test_blur then
+                actor_status_thirst.test_blur()
+            end
+        end)
+    end
+
+    -- 4. Restore Sleep (actor_status_sleep) & advance check time to prevent sudden sleepiness burst
+    if actor_status_sleep then
+        pcall(function()
+            if actor_status_sleep.load_state and utils_data and utils_data.CTime_to_table then
+                actor_status_sleep.load_state({
+                    sleep = {
+                        last_sleep = saved_needs.sleep or 0,
+                        chk_sleep = utils_data.CTime_to_table(cur_t)
+                    }
+                })
+            end
+            if actor_status_sleep.test_blur then
+                actor_status_sleep.test_blur()
+            end
+        end)
+    end
+
+    -- 5. Remove post-process blur effector (from sleep/thirst)
+    pcall(function()
+        level.remove_pp_effector(39568)
+    end)
+
+    -- 6. Restore full stamina
+    pcall(function()
+        if db.actor then db.actor.power = 1 end
+    end)
+end
+
+local function apply_time_jump_safely(add_h, add_m, saved_needs)
+    saved_needs = saved_needs or save_actor_survival_needs()
+    
+    -- Temporarily activate god mode to block engine starvation damage and thirst/sleep update
+    pcall(function() exec_console_cmd("g_god on") end)
+    
+    -- Change game time
+    level.change_game_time(0, add_h, add_m)
+    
+    -- Immediately apply first restore
+    restore_actor_survival_needs(saved_needs)
+    
+    -- Multi-frame watchdog (runs across the first few engine ticks until delta_time stabilizes)
+    local ticks = 0
+    local function on_tick_restore()
+        ticks = ticks + 1
+        if db.actor and db.actor:alive() then
+            restore_actor_survival_needs(saved_needs)
+        end
+        if ticks >= 6 then
+            UnregisterScriptCallback("actor_on_update", on_tick_restore)
+            pcall(function()
+                if not saved_needs.was_god then
+                    exec_console_cmd("g_god off")
+                end
+            end)
+        end
+    end
+    RegisterScriptCallback("actor_on_update", on_tick_restore)
+    
+    -- Also fallback timer event at 0.3s
+    CreateTimeEvent("arena_night_mode_protect", "restore_actor_full", 0.3, function()
+        if db.actor and db.actor:alive() then
+            restore_actor_survival_needs(saved_needs)
+        end
+        pcall(function()
+            if not saved_needs.was_god then
+                exec_console_cmd("g_god off")
+            end
+        end)
+        return true
+    end)
+end
+
+function advance_time_to_night(saved_needs)
+    local cur_h = level.get_time_hours()
+    local cur_m = level.get_time_minutes()
+    
+    local cur_total_m = cur_h * 60 + cur_m
+    local target_total_m = 2 * 60 + 30 -- 02:30 AM
+    local diff_m = target_total_m - cur_total_m
+    if diff_m <= 0 then
+        diff_m = diff_m + 24 * 60
+    end
+    
+    local add_h = math.floor(diff_m / 60)
+    local add_m = diff_m % 60
+    apply_time_jump_safely(add_h, add_m, saved_needs)
+end
+
+function restore_time_from_night(saved_time, saved_needs)
+    if not saved_time then return end
+    local cur_h = level.get_time_hours()
+    local cur_m = level.get_time_minutes()
+    
+    local cur_total_m = cur_h * 60 + cur_m
+    local target_total_m = (saved_time.h or cur_h) * 60 + (saved_time.m or cur_m)
+    local diff_m = target_total_m - cur_total_m
+    if diff_m <= 0 then
+        diff_m = diff_m + 24 * 60
+    end
+    
+    local add_h = math.floor(diff_m / 60)
+    local add_m = diff_m % 60
+    apply_time_jump_safely(add_h, add_m, saved_needs)
+end
+
+function enter_arena_night_mode()
+    if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then return end
+    night_mode_combat_running = true
+
+    -- Initialize stalker flashlight hook so combatants keep their lights ON
+    pcall(init_sr_light_hook)
+
+    -- 1. Turn off all lights in arena (ground, walls, ceiling floodlights and overhead rafters)
+    toggle_arena_lights(false)
+
+    -- 2. Apply pitch black lighting and weather (extinguishes sun, sky, ambient, tonemap, ssfx underground)
+    apply_night_mode_lighting(true)
+
+    -- 3. Equip actor with chosen night device
+    ensure_actor_torch_active()
+end
+
+function exit_arena_night_mode()
+    if not night_mode_combat_running then
+        -- Guarantee lights and daylight are clean just in case
+        toggle_arena_lights(true)
+        apply_night_mode_lighting(false)
+        return
+    end
+    night_mode_combat_running = false
+
+    -- 1. Turn off actor nightvision and torch
+    turn_off_actor_nightvision()
+
+    -- 2. Turn arena lights back on
+    toggle_arena_lights(true)
+
+    -- 3. Restore original daytime lighting & weather
+    apply_night_mode_lighting(false)
+
+    -- 4. Clear NPC night gear cache
+    npc_night_gear = {}
 end
 
 function setup_tournament_squad_aggro(squad_id)
@@ -846,6 +2037,9 @@ function setup_tournament_squad_aggro(squad_id)
     local squad = squad_id and alife_object(squad_id)
     if not (squad and squad.commander_id) then return end
     
+    local is_night = (xcvb_arena_main.night_mode_active == true)
+    squad.rush_to_target = not is_night
+
     for m in squad:squad_members() do
         local npc = level.object_by_id(m.id)
         if npc and npc:alive() then
@@ -853,20 +2047,24 @@ function setup_tournament_squad_aggro(squad_id)
             pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
             pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
             
-            if npc.set_enemy then
-                pcall(function() npc:set_enemy(db.actor) end)
+            if is_night then
+                apply_realistic_night_vision(npc)
+                equip_and_enable_npc_torch(npc)
+            else
+                if npc.set_enemy then
+                    pcall(function() npc:set_enemy(db.actor) end)
+                end
+                if npc.set_sight and db.actor then
+                    pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                end
+                if npc.make_enemy_visible and db.actor then
+                    pcall(function() npc:make_enemy_visible(db.actor) end)
+                end
+                if npc.register_in_combat then
+                    pcall(function() npc:register_in_combat() end)
+                end
+                xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
             end
-            if npc.set_sight and db.actor then
-                pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
-            end
-            if npc.make_enemy_visible and db.actor then
-                pcall(function() npc:make_enemy_visible(db.actor) end)
-            end
-            if npc.register_in_combat then
-                pcall(function() npc:register_in_combat() end)
-            end
-            
-            xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
             
             if IsMonster and IsMonster(npc) then
                 pcall(function() npc:berserk() end)
@@ -887,13 +2085,14 @@ function setup_endless_squads_aggro(squad_ids)
     local all_npcs = {}
     local total_members = 0
     local online_members = 0
+    local is_night = (xcvb_arena_main.night_mode_active == true)
 
     for _, s_id in ipairs(squad_ids) do
         local squad = s_id and alife_object(s_id)
         if squad then
             squad.scripted_target = "actor"
             squad.assigned_target_id = 0
-            squad.rush_to_target = true
+            squad.rush_to_target = not is_night
             for m in squad:squad_members() do
                 total_members = total_members + 1
                 local npc = level.object_by_id(m.id)
@@ -904,20 +2103,24 @@ function setup_endless_squads_aggro(squad_ids)
                     pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
                     pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
                     
-                    if npc.set_enemy then
-                        pcall(function() npc:set_enemy(db.actor) end)
+                    if is_night then
+                        apply_realistic_night_vision(npc)
+                        equip_and_enable_npc_torch(npc)
+                    else
+                        if npc.set_enemy then
+                            pcall(function() npc:set_enemy(db.actor) end)
+                        end
+                        if npc.set_sight and db.actor then
+                            pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                        end
+                        if npc.make_enemy_visible and db.actor then
+                            pcall(function() npc:make_enemy_visible(db.actor) end)
+                        end
+                        if npc.register_in_combat then
+                            pcall(function() npc:register_in_combat() end)
+                        end
+                        xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
                     end
-                    if npc.set_sight and db.actor then
-                        pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
-                    end
-                    if npc.make_enemy_visible and db.actor then
-                        pcall(function() npc:make_enemy_visible(db.actor) end)
-                    end
-                    if npc.register_in_combat then
-                        pcall(function() npc:register_in_combat() end)
-                    end
-                    
-                    xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
                     
                     if IsMonster and IsMonster(npc) then
                         pcall(function() npc:berserk() end)
@@ -1405,7 +2608,7 @@ function store_actor_inventory()
     db.actor:iterate_inventory(function(owner, item)
         if not item then return end
         local sec = item:section()
-        if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+        if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
             return
         end
         saved_actor_item_ids[item:id()] = true
@@ -1883,6 +3086,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
 end
 
 function restore_actor_inventory()
+    pcall(turn_off_actor_nightvision)
     for item_id, _ in pairs(temporary_arena_item_ids) do
         local se_item = alife_object(item_id)
         if se_item then
@@ -1899,7 +3103,7 @@ function restore_actor_inventory()
     db.actor:iterate_inventory(function(owner, item)
         if not item then return end
         local sec = item:section()
-        if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+        if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
             return
         end
         if saved_actor_item_ids and saved_actor_item_ids[item:id()] then
@@ -2882,19 +4086,19 @@ local faction_names_t = {
 }
 
 local faction_names_fallback = {
-    stalker = "Solitarios",
-    bandit = "Bandidos",
-    dolg = "Deber",
-    duty = "Deber",
-    freedom = "Libertad",
-    killer = "Mercenarios",
-    army = "Militares",
-    military = "Militares",
-    csky = "Cielo Limpio",
-    ecolog = "Ecologistas",
-    renegade = "Renegados",
-    zombied = "Zombificados",
-    mutant = "Mutantes",
+    stalker = "Loners",
+    bandit = "Bandits",
+    dolg = "Duty",
+    duty = "Duty",
+    freedom = "Freedom",
+    killer = "Mercenaries",
+    army = "Military",
+    military = "Military",
+    csky = "Clear Sky",
+    ecolog = "Ecologists",
+    renegade = "Renegades",
+    zombied = "Zombified",
+    mutant = "Mutants",
 }
 
 function get_faction_name(fac_key)
@@ -2929,22 +4133,22 @@ local mutant_names_t = {
 }
 
 local mutant_names_fallback = {
-    chimera = "Quimera",
-    gigant = "Pseudogigante",
-    bloodsucker = "Sanguijuela",
+    chimera = "Chimera",
+    gigant = "Pseudogiant",
+    bloodsucker = "Bloodsucker",
     burer = "Burer",
     psysucker = "Psysucker",
-    psy_dog = "Perro Psiquico",
+    psy_dog = "Psy-dog",
     snork = "Snork",
-    lurker = "Acechador",
-    pseudodog = "Pseudoperro",
-    boar = "Jabali",
-    cat = "Gato de la Zona",
-    fracture = "Izlom",
-    flesh = "Cerdo Mutante",
-    dog = "Perros Ciegos",
-    zombie = "Zombis",
-    tushkano = "Roedores",
+    lurker = "Lurker",
+    pseudodog = "Pseudodog",
+    boar = "Boar",
+    cat = "Zone Cat",
+    fracture = "Fracture",
+    flesh = "Flesh",
+    dog = "Blind Dogs",
+    zombie = "Zombies",
+    tushkano = "Rodents",
 }
 
 function get_mutant_name(mut_key)
@@ -3213,7 +4417,7 @@ function spawn_endless_squad(wave, enemy_type, difficulty)
             if sq then
                 sq.scripted_target = "actor"
                 sq.assigned_target_id = 0
-                sq.rush_to_target = true
+                sq.rush_to_target = not (xcvb_arena_main.night_mode_active == true)
                 sq:add_squad_member(sec, m_pos, m_lvid, m_gvid)
                 sq:set_squad_relation()
                 sq:refresh()
@@ -3245,18 +4449,24 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
         end, db.actor)
     end
 
-    -- 2. Release all previously recorded temporary arena items
+    -- 2. Release all previously recorded temporary arena items (except night device if night mode is active)
+    local kept_temp_items = {}
     for item_id, _ in pairs(temporary_arena_item_ids) do
         local se_item = alife_object(item_id)
         if se_item then
-            if safe_release_manager and safe_release_manager.release then
-                safe_release_manager.release({ id = item_id })
+            local sec = se_item:section_name()
+            if xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
+                kept_temp_items[item_id] = true
             else
-                alife_release(se_item)
+                if safe_release_manager and safe_release_manager.release then
+                    safe_release_manager.release({ id = item_id })
+                else
+                    alife_release(se_item)
+                end
             end
         end
     end
-    temporary_arena_item_ids = {}
+    temporary_arena_item_ids = kept_temp_items
 
     -- 3. Sweep actor inventory and purge all remaining arena items (loose ammo, magazines, weapons, outfits, helmets, meds, loot)
     if db.actor then
@@ -3265,7 +4475,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             if not item then return end
             local sec = item:section()
             -- Never touch essential actor items or quest items
-            if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+            if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
                 return
             end
             -- Never touch original actor items stored in the arena box
@@ -3486,7 +4696,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             db.actor:iterate_inventory(function(_, itm)
                 if not itm then return end
                 local sec = itm:section()
-                if sec == "device_pda" or sec == "device_torch" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+                if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
                     return
                 end
                 if saved_actor_item_ids and saved_actor_item_ids[itm:id()] then
@@ -3589,6 +4799,14 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             return true
         end)
     end
+
+    if xcvb_arena_main.night_mode_active then
+        pcall(ensure_actor_torch_active)
+        CreateTimeEvent("arena_endless_torch_recheck_e", "arena_endless_torch_recheck_a", 0.5, function()
+            pcall(ensure_actor_torch_active)
+            return true
+        end)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -3672,3 +4890,5 @@ function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_a
 
     return total_fee
 end
+
+pcall(init_sr_light_hook)

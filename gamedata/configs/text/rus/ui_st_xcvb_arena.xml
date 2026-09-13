@@ -682,6 +682,69 @@
 	<string id="st_arena_group_strong">
 		<text>Сильная группа</text>
 	</string>
+	<string id="st_arena_btn_night_mode">
+		<text>Night Mode [OFF]</text>
+	</string>
+	<string id="st_arena_btn_night_mode_active">
+		<text>Night Mode [ON]</text>
+	</string>
+	<string id="st_arena_night_mode_banner">
+		<text>Night Mode [OFF]</text>
+	</string>
+	<string id="st_arena_night_mode_desc">
+		<text>Ночной бой на арене. Все прожекторы и фонари выключены.</text>
+	</string>
+	<string id="st_arena_btn_night_device">
+		<text>Снаряжение для ночи</text>
+	</string>
+	<string id="st_arena_night_menu_title">
+		<text>СНАРЯЖЕНИЕ НОЧНОГО РЕЖИМА</text>
+	</string>
+	<string id="st_arena_night_menu_desc">
+		<text>Выберите фонарь или прибор ночного видения для боя</text>
+	</string>
+	<string id="st_arena_dev_torch">
+		<text>Налобный фонарь (Стандартный)</text>
+	</string>
+	<string id="st_arena_dev_nvg1">
+		<text>Прибор ночного видения Пок 1 (ПНВ-57Е)</text>
+	</string>
+	<string id="st_arena_dev_nvg2">
+		<text>Прибор ночного видения Пок 2 (1ПН93)</text>
+	</string>
+	<string id="st_arena_dev_nvg3">
+		<text>Прибор ночного видения Пок 3 (GPNVG-18)</text>
+	</string>
+	<string id="st_arena_dev_none">
+		<text>Без прибора (Полная тьма)</text>
+	</string>
+	<string id="st_arena_dev_btn_torch">
+		<text>[ Налобный фонарь ]</text>
+	</string>
+	<string id="st_arena_dev_btn_nvg1">
+		<text>[ ПНВ Пок 1 ]</text>
+	</string>
+	<string id="st_arena_dev_btn_nvg2">
+		<text>[ ПНВ Пок 2 ]</text>
+	</string>
+	<string id="st_arena_dev_btn_nvg3">
+		<text>[ ПНВ Пок 3 ]</text>
+	</string>
+	<string id="st_arena_dev_btn_none">
+		<text>[ Без прибора ]</text>
+	</string>
+	<string id="st_arena_tab_tag_stalkers">
+		<text>[СТАЛКЕРЫ]</text>
+	</string>
+	<string id="st_arena_tab_tag_mutants">
+		<text>[МУТАНТЫ]</text>
+	</string>
+	<string id="st_arena_dssg_scopes_kits">
+		<text>Прицелы / Модификации</text>
+	</string>
+	<string id="st_arena_reward_claimed_status">
+		<text>ПОЛУЧЕНО</text>
+	</string>
 	<string id="st_arena_btn_beta">
 		<text>Бета-режимы</text>
 	</string>
@@ -1144,7 +1207,7 @@
 	<string id="ui_mcm_xcvb_arena_endless_reward_mult_desc">
 		<text>Настройка множителя денежного вознаграждения за волны в Бесконечном режиме.</text>
 	</string>
-	<string id="st_arena_loadout_cost_label">
+<string id="st_arena_loadout_cost_label">
 		<text>Стоимость аренды</text>
 	</string>
 	<string id="st_arena_cost_free">
@@ -1170,5 +1233,29 @@
 	</string>
 	<string id="ui_mcm_xcvb_arena_rental_fee_mult_desc">
 		<text>Регулирует стоимость выбора конкретного оружия, тира или патронов (0 = Бесплатно, 1.0 = По умолчанию).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_auto_reopen_gui">
+		<text>Автооткрытие меню после боя</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_auto_reopen_gui_desc">
+		<text>Автоматически открывать интерфейс Арены после завершения турнирного или бесконечного боя.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_base_dist">
+		<text>Base Night Vision Distance (Easy)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_base_dist_desc">
+		<text>Distance in meters at which rookie or easy enemies spot you standing in darkness (default: 24m).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_mult">
+		<text>Night Vision Global Multiplier</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_mult_desc">
+		<text>Globally scales vision range for all enemies and mutants in Night Mode (0.5x to 2.0x).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_elite_nvg">
+		<text>NVG on Elite Enemies</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_elite_nvg_desc">
+		<text>Elite enemies (Masters, Legends, Monolith, and veterans) equip Night Vision goggles and DO NOT turn on flashlights.</text>
 	</string>
 </string_table>

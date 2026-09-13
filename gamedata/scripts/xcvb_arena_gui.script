@@ -13,7 +13,9 @@ function open_gui()
 		GUI:ShowDialog(true)
 		Register_UI("UIXcvbArena", "xcvb_arena_gui")
 		GUI:reset_loadout_selection()
-		GUI:auto_select_current_round()
+		GUI:update_view_mode()
+	elseif GUI and GUI:IsShown() then
+		GUI:reset_loadout_selection()
 		GUI:update_view_mode()
 	end
 end
@@ -107,6 +109,17 @@ function UIXcvbArena:InitControls()
 
 	self.btn_beta = xml:Init3tButton("beta_btn", self.bg)
 	self:Register(self.btn_beta, "btn_beta")
+
+	self.btn_night_mode = xml:Init3tButton("btn_night_mode", self.bg)
+	if self.btn_night_mode then
+		self:Register(self.btn_night_mode, "btn_night_mode")
+	end
+
+	self.btn_night_device = xml:Init3tButton("btn_night_device", self.bg)
+	if self.btn_night_device then
+		self:Register(self.btn_night_device, "btn_night_device")
+		self.btn_night_device:Show(xcvb_arena_main.night_mode_active == true)
+	end
 
 	-- ==============================================
 	-- TOURNAMENT CONTAINER
@@ -455,6 +468,29 @@ function UIXcvbArena:InitControls()
 	self.btn_dssg_close = xml:Init3tButton("dssg_menu:dssg_close_btn", self.dssg_menu)
 	self:Register(self.btn_dssg_close, "btn_dssg_close")
 
+	-- Night Equipment Selection Modal Window
+	self.night_device_menu = xml:InitStatic("night_device_menu", self.bg)
+	if self.night_device_menu then
+		self.night_device_menu:Show(false)
+		self.btn_dev_torch = xml:Init3tButton("night_device_menu:btn_device_torch", self.night_device_menu)
+		self:Register(self.btn_dev_torch, "btn_dev_torch")
+
+		self.btn_dev_nvg1 = xml:Init3tButton("night_device_menu:btn_device_nvg1", self.night_device_menu)
+		self:Register(self.btn_dev_nvg1, "btn_dev_nvg1")
+
+		self.btn_dev_nvg2 = xml:Init3tButton("night_device_menu:btn_device_nvg2", self.night_device_menu)
+		self:Register(self.btn_dev_nvg2, "btn_dev_nvg2")
+
+		self.btn_dev_nvg3 = xml:Init3tButton("night_device_menu:btn_device_nvg3", self.night_device_menu)
+		self:Register(self.btn_dev_nvg3, "btn_dev_nvg3")
+
+		self.btn_dev_none = xml:Init3tButton("night_device_menu:btn_device_none", self.night_device_menu)
+		self:Register(self.btn_dev_none, "btn_dev_none")
+
+		self.btn_dev_close = xml:Init3tButton("night_device_menu:btn_device_close", self.night_device_menu)
+		self:Register(self.btn_dev_close, "btn_dev_close")
+	end
+
 	xml:InitStatic("vert_line1", self.bg)
 	xml:InitStatic("vert_line2", self.bg)
 	xml:InitStatic("vert_line3", self.bg)
@@ -479,6 +515,16 @@ function UIXcvbArena:InitCallbacks()
 	-- Beta Testing tabs
 	self:AddCallback("beta_tab_br", ui_events.BUTTON_CLICKED, function() self:on_click_beta_tab("br") end, self)
 	self:AddCallback("beta_tab_endless", ui_events.BUTTON_CLICKED, function() self:on_click_beta_tab("endless") end, self)
+	self:AddCallback("btn_night_mode", ui_events.BUTTON_CLICKED, self.on_click_night_mode, self)
+
+	-- Night Equipment Callbacks
+	self:AddCallback("btn_night_device", ui_events.BUTTON_CLICKED, self.on_click_night_device, self)
+	self:AddCallback("btn_dev_torch", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_dummy") end, self)
+	self:AddCallback("btn_dev_nvg1", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_nv_1") end, self)
+	self:AddCallback("btn_dev_nvg2", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_nv_2") end, self)
+	self:AddCallback("btn_dev_nvg3", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_nv_3") end, self)
+	self:AddCallback("btn_dev_none", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("none") end, self)
+	self:AddCallback("btn_dev_close", ui_events.BUTTON_CLICKED, function() if self.night_device_menu then self.night_device_menu:Show(false) end end, self)
 
 	-- Beta Testing Battle Royale callbacks
 	self:AddCallback("bc_btn_3teams", ui_events.BUTTON_CLICKED, function() self:on_click_bc_teams_count(3) end, self)
@@ -788,6 +834,93 @@ function UIXcvbArena:on_click_beta_mode()
 	self:update_view_mode()
 end
 
+function UIXcvbArena:on_click_night_mode()
+	pcall(function()
+		local snd = sound_object([[interface\inv_torch]]) or sound_object([[device\torch_click]])
+		if snd then snd:play(db.actor, 0, sound_object.s2d) end
+	end)
+
+	xcvb_arena_main.night_mode_active = not (xcvb_arena_main.night_mode_active == true)
+
+	if not xcvb_arena_main.night_mode_active then
+		if self.night_device_menu then
+			self.night_device_menu:Show(false)
+		end
+	end
+
+	self:update_view_mode()
+end
+
+function UIXcvbArena:on_click_night_device()
+	if self.night_device_menu then
+		local show = not self.night_device_menu:IsShown()
+		self.night_device_menu:Show(show)
+		if show then
+			self:update_night_device_menu()
+		end
+	end
+end
+
+function UIXcvbArena:on_select_night_device(sec)
+	xcvb_arena_main.night_mode_device = sec
+	if self.night_device_menu then
+		self.night_device_menu:Show(false)
+	end
+	self:update_night_device_btn()
+end
+
+function UIXcvbArena:update_night_device_btn()
+	if not self.btn_night_device then return end
+	local is_night = (xcvb_arena_main.night_mode_active == true)
+	self.btn_night_device:Show(is_night)
+	if not is_night then return end
+
+	local dev = xcvb_arena_main.night_mode_device or "device_torch_dummy"
+	local text = gt("st_arena_dev_btn_torch")
+
+	if dev == "device_torch_nv_1" then
+		text = gt("st_arena_dev_btn_nvg1")
+	elseif dev == "device_torch_nv_2" then
+		text = gt("st_arena_dev_btn_nvg2")
+	elseif dev == "device_torch_nv_3" then
+		text = gt("st_arena_dev_btn_nvg3")
+	elseif dev == "none" then
+		text = gt("st_arena_dev_btn_none")
+	else
+		text = gt("st_arena_dev_btn_torch")
+	end
+
+	local prefix = gt("st_arena_btn_night_device") or "Equipo"
+	local full_text = string.format("%s: %s", prefix, text)
+	local clr = GetARGB(255, 255, 80, 80)
+
+	if self.btn_night_device:TextControl() then
+		self.btn_night_device:TextControl():SetFont(GetFontLetterica16Russian())
+		self.btn_night_device:TextControl():SetText(full_text)
+		self.btn_night_device:TextControl():SetTextColor(clr)
+	end
+end
+
+function UIXcvbArena:update_night_device_menu()
+	if not self.night_device_menu then return end
+	local dev = xcvb_arena_main.night_mode_device or "device_torch_dummy"
+
+	local function highlight(btn, is_sel, normal_clr)
+		if not (btn and btn:TextControl()) then return end
+		if is_sel then
+			btn:TextControl():SetTextColor(GetARGB(255, 255, 60, 60))
+		else
+			btn:TextControl():SetTextColor(normal_clr)
+		end
+	end
+
+	highlight(self.btn_dev_torch, dev == "device_torch_dummy", GetARGB(255, 255, 220, 140))
+	highlight(self.btn_dev_nvg1, dev == "device_torch_nv_1", GetARGB(255, 140, 255, 140))
+	highlight(self.btn_dev_nvg2, dev == "device_torch_nv_2", GetARGB(255, 100, 240, 255))
+	highlight(self.btn_dev_nvg3, dev == "device_torch_nv_3", GetARGB(255, 255, 140, 255))
+	highlight(self.btn_dev_none, dev == "none", GetARGB(255, 180, 180, 180))
+end
+
 function UIXcvbArena:reset_loadout_selection()
 	self.selected_loadout_class = "random"
 	self.selected_loadout_tier = 0
@@ -927,6 +1060,22 @@ function UIXcvbArena:update_view_mode()
 		if self.btn_beta then self.btn_beta:TextControl():SetTextColor(GetARGB(255, 255, 220, 140)) end
 		self:update_beta_display()
 	end
+
+	-- Night Mode Testing Banner and Button refresh
+	if self.night_mode_banner then
+		self.night_mode_banner:Show(xcvb_arena_main.night_mode_active == true)
+	end
+	self:update_night_device_btn()
+	if self.btn_night_mode then
+		self.btn_night_mode:TextControl():SetFont(GetFontLetterica16Russian())
+		if xcvb_arena_main.night_mode_active then
+			self.btn_night_mode:TextControl():SetText(gt("st_arena_btn_night_mode_active"))
+			self.btn_night_mode:TextControl():SetTextColor(GetARGB(255, 255, 60, 60))
+		else
+			self.btn_night_mode:TextControl():SetText(gt("st_arena_btn_night_mode"))
+			self.btn_night_mode:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		end
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -938,7 +1087,7 @@ function UIXcvbArena:update_tournament_display()
 	local p_tier = xcvb_arena_main.get_player_tier(cat)
 	local tiers_table = xcvb_arena_main.get_category_tiers(cat)
 	local tier_name = tiers_table[p_tier] and gt(tiers_table[p_tier].name) or ""
-	local cat_tag = (cat == "mutant") and " [MUTANTES]" or " [STALKERS]"
+	local cat_tag = (cat == "mutant") and (" " .. gt("st_arena_tab_tag_mutants")) or (" " .. gt("st_arena_tab_tag_stalkers"))
 
 	-- Header texts
 	self.player_rank:SetText(gt("st_arena_rank_label") .. " " .. tier_name .. cat_tag)
@@ -990,7 +1139,7 @@ function UIXcvbArena:update_tournament_display()
 				end
 			end
 
-			row.name:SetText(gt(r_data.name))
+						row.name:SetText(gt(r_data.name))
 			row.diff:SetText(gt("st_arena_difficulty_label") .. " " .. gt(r_data.diff_str))
 			row.enemies:SetText(gt("st_arena_enemies_label") .. " " .. enemy_label)
 			row.reward:SetText(gt("st_arena_reward_label") .. " " .. gt(r_data.reward_str))
@@ -1488,7 +1637,7 @@ function UIXcvbArena:update_loadout_buttons()
 			local diff = xcvb_arena_main.endless_difficulty or "medium"
 			local diff_name = gt("st_arena_endless_diff_" .. diff)
 			if not diff_name or diff_name == "" or string.find(diff_name, "^st_") then
-				diff_name = (diff == "easy" and "Facil") or (diff == "hard" and "Dificil") or "Intermedio"
+				diff_name = (diff == "easy" and "Easy") or (diff == "hard" and "Hard") or "Medium"
 			end
 
 			local text
@@ -2304,6 +2453,16 @@ function UIXcvbArena:update_beta_display()
 	if self.beta_tab_endless then
 		self.beta_tab_endless:TextControl():SetTextColor(is_endless and GetARGB(255, 255, 220, 140) or GetARGB(255, 170, 170, 170))
 	end
+	if self.btn_night_mode then
+		self.btn_night_mode:TextControl():SetFont(GetFontLetterica16Russian())
+		if xcvb_arena_main.night_mode_active then
+			self.btn_night_mode:TextControl():SetText(gt("st_arena_btn_night_mode_active"))
+			self.btn_night_mode:TextControl():SetTextColor(GetARGB(255, 255, 60, 60))
+		else
+			self.btn_night_mode:TextControl():SetText(gt("st_arena_btn_night_mode"))
+			self.btn_night_mode:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+		end
+	end
 
 	-- Toggle visibility of Battle Royale vs Endless controls
 	if self.bc_btn_3teams then self.bc_btn_3teams:Show(not is_endless) end
@@ -2431,7 +2590,11 @@ function UIXcvbArena:update_dssg_menu()
 		self.dssg_menu_title:SetText("3DSSG: " .. w_name)
 	end
 	if self.dssg_menu_subtitle then
-		self.dssg_menu_subtitle:SetText("Miras / Kits: " .. tostring(total))
+		local lbl_sk = gt("st_arena_dssg_scopes_kits")
+		if not lbl_sk or lbl_sk == "" or string.find(lbl_sk, "^st_") then
+			lbl_sk = "Scopes / Kits"
+		end
+		self.dssg_menu_subtitle:SetText(lbl_sk .. ": " .. tostring(total))
 	end
 
 	-- Mode buttons

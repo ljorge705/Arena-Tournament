@@ -685,6 +685,69 @@
 	<string id="st_arena_btn_beta">
 		<text>Beta Modes</text>
 	</string>
+	<string id="st_arena_btn_night_mode">
+		<text>Night Mode [OFF]</text>
+	</string>
+	<string id="st_arena_btn_night_mode_active">
+		<text>Night Mode [ON]</text>
+	</string>
+	<string id="st_arena_night_mode_banner">
+		<text>NIGHT MODE ACTIVE</text>
+	</string>
+	<string id="st_arena_night_mode_desc">
+		<text>Pitch black arena battle. All arena and overhead floodlights extinguished.</text>
+	</string>
+	<string id="st_arena_btn_night_device">
+		<text>Night Gear</text>
+	</string>
+	<string id="st_arena_night_menu_title">
+		<text>NIGHT MODE EQUIPMENT</text>
+	</string>
+	<string id="st_arena_night_menu_desc">
+		<text>Select flashlight or night vision device for the fight</text>
+	</string>
+	<string id="st_arena_dev_torch">
+		<text>Headlamp (Standard)</text>
+	</string>
+	<string id="st_arena_dev_nvg1">
+		<text>Night Vision Gen 1 (PNV-57E)</text>
+	</string>
+	<string id="st_arena_dev_nvg2">
+		<text>Night Vision Gen 2 (1PN93)</text>
+	</string>
+	<string id="st_arena_dev_nvg3">
+		<text>Night Vision Gen 3 (GPNVG-18)</text>
+	</string>
+	<string id="st_arena_dev_none">
+		<text>No Device (Total Darkness)</text>
+	</string>
+	<string id="st_arena_dev_btn_torch">
+		<text>[ Headlamp ]</text>
+	</string>
+	<string id="st_arena_dev_btn_nvg1">
+		<text>[ NVG Gen 1 ]</text>
+	</string>
+	<string id="st_arena_dev_btn_nvg2">
+		<text>[ NVG Gen 2 ]</text>
+	</string>
+	<string id="st_arena_dev_btn_nvg3">
+		<text>[ NVG Gen 3 ]</text>
+	</string>
+	<string id="st_arena_dev_btn_none">
+		<text>[ No Device ]</text>
+	</string>
+	<string id="st_arena_tab_tag_stalkers">
+		<text>[STALKERS]</text>
+	</string>
+	<string id="st_arena_tab_tag_mutants">
+		<text>[MUTANTS]</text>
+	</string>
+	<string id="st_arena_dssg_scopes_kits">
+		<text>Scopes / Kits</text>
+	</string>
+	<string id="st_arena_reward_claimed_status">
+		<text>CLAIMED</text>
+	</string>
 	<string id="st_arena_bc_title">
 		<text>Battle Royale</text>
 	</string>
@@ -1170,5 +1233,29 @@
 	</string>
 	<string id="ui_mcm_xcvb_arena_rental_fee_mult_desc">
 		<text>Adjusts the fee when selecting specific weapons, tiers, or ammo types (0 = Free, 1.0 = Default).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_auto_reopen_gui">
+		<text>Auto-reopen Menu after Bout</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_auto_reopen_gui_desc">
+		<text>Automatically reopen the Arena board interface upon finishing a Tournament or Endless Mode fight.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_base_dist">
+		<text>Base Night Vision Distance (Easy)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_base_dist_desc">
+		<text>Distance in meters at which rookie or easy enemies spot you standing in darkness (default: 24m).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_mult">
+		<text>Night Vision Global Multiplier</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_mult_desc">
+		<text>Globally scales vision range for all enemies and mutants in Night Mode (0.5x to 2.0x).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_elite_nvg">
+		<text>NVG on Elite Enemies</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_elite_nvg_desc">
+		<text>Elite enemies (Masters, Legends, Monolith, and veterans) equip Night Vision goggles and DO NOT turn on flashlights.</text>
 	</string>
 </string_table>

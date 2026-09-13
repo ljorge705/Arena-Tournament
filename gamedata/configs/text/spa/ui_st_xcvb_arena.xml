@@ -685,6 +685,69 @@
 	<string id="st_arena_btn_beta">
 		<text>Modos Beta</text>
 	</string>
+	<string id="st_arena_btn_night_mode">
+		<text>Modo Noche [OFF]</text>
+	</string>
+	<string id="st_arena_btn_night_mode_active">
+		<text>Modo Noche [ON]</text>
+	</string>
+	<string id="st_arena_night_mode_banner">
+		<text>MODO NOCHE ACTIVO</text>
+	</string>
+	<string id="st_arena_night_mode_desc">
+		<text>Combate a oscuras en la arena. Todas las luces y focos superiores apagados.</text>
+	</string>
+	<string id="st_arena_btn_night_device">
+		<text>Equipo</text>
+	</string>
+	<string id="st_arena_night_menu_title">
+		<text>EQUIPAMIENTO PARA NIGHT MODE</text>
+	</string>
+	<string id="st_arena_night_menu_desc">
+		<text>Selecciona la linterna o visor nocturno para el combate</text>
+	</string>
+	<string id="st_arena_dev_torch">
+		<text>Linterna Frontal (Estándar)</text>
+	</string>
+	<string id="st_arena_dev_nvg1">
+		<text>Visor Nocturno Gen 1 (PNV-57E)</text>
+	</string>
+	<string id="st_arena_dev_nvg2">
+		<text>Visor Nocturno Gen 2 (1PN93)</text>
+	</string>
+	<string id="st_arena_dev_nvg3">
+		<text>Visor Nocturno Gen 3 (GPNVG-18)</text>
+	</string>
+	<string id="st_arena_dev_none">
+		<text>Sin Dispositivo (Oscuridad Total)</text>
+	</string>
+	<string id="st_arena_dev_btn_torch">
+		<text>[ Linterna Frontal ]</text>
+	</string>
+	<string id="st_arena_dev_btn_nvg1">
+		<text>[ Visor NVG Gen 1 ]</text>
+	</string>
+	<string id="st_arena_dev_btn_nvg2">
+		<text>[ Visor NVG Gen 2 ]</text>
+	</string>
+	<string id="st_arena_dev_btn_nvg3">
+		<text>[ Visor NVG Gen 3 ]</text>
+	</string>
+	<string id="st_arena_dev_btn_none">
+		<text>[ Sin Dispositivo ]</text>
+	</string>
+	<string id="st_arena_tab_tag_stalkers">
+		<text>[STALKERS]</text>
+	</string>
+	<string id="st_arena_tab_tag_mutants">
+		<text>[MUTANTES]</text>
+	</string>
+	<string id="st_arena_dssg_scopes_kits">
+		<text>Miras / Kits</text>
+	</string>
+	<string id="st_arena_reward_claimed_status">
+		<text>RECLAMADO</text>
+	</string>
 	<string id="st_arena_bc_title">
 		<text>Batalla Campal</text>
 	</string>
@@ -1170,5 +1233,29 @@
 	</string>
 	<string id="ui_mcm_xcvb_arena_rental_fee_mult_desc">
 		<text>Ajusta el coste al elegir armas, niveles o municiones especificas (0 = Gratis, 1.0 = Predeterminado).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_auto_reopen_gui">
+		<text>Reabrir menú tras combate</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_auto_reopen_gui_desc">
+		<text>Abre automáticamente el panel de la Arena al finalizar un combate del torneo o modo infinito.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_base_dist">
+		<text>Distancia de Visión Nocturna Base (Fácil)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_base_dist_desc">
+		<text>Distancia en metros a la que los enemigos novatos o en dificultad fácil te ven de pie en la oscuridad (predeterminado: 24m).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_mult">
+		<text>Multiplicador General de Visión Nocturna</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_vision_mult_desc">
+		<text>Ajusta globalmente el alcance de visión de todos los enemigos y mutantes en Modo Noche (0.5x a 2.0x).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_elite_nvg">
+		<text>NVG en Enemigos de Élite</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_night_elite_nvg_desc">
+		<text>Los enemigos de élite (Maestros, Leyendas, Monolith y veteranos) equipan visores nocturnos y NO encienden linternas para mantener el sigilo.</text>
 	</string>
 </string_table>
