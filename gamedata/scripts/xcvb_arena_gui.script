@@ -141,7 +141,7 @@ function UIXcvbArena:InitControls()
 
 	-- Tier Buttons
 	self.tier_btns = {}
-	for t = 1, 6 do
+	for t = 1, 5 do
 		local btn = xml:Init3tButton("tournament_cont:tier_btn_" .. t, self.tournament_cont)
 		self.tier_btns[t] = btn
 		self:Register(btn, "btn_tier_" .. t)
@@ -696,7 +696,7 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_cat_mutants", ui_events.BUTTON_CLICKED, self.on_click_cat_mutants, self)
 
 	-- Tier callbacks
-	for t = 1, 6 do
+	for t = 1, 5 do
 		self:AddCallback("btn_tier_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_tier(t) end, self)
 	end
 
@@ -1273,7 +1273,7 @@ function UIXcvbArena:update_tournament_display()
 	end
 
 	-- Tier tabs highlight
-	for t = 1, 6 do
+	for t = 1, 5 do
 		local btn = self.tier_btns[t]
 		local t_rank_ok = xcvb_arena_main.practice_mode_active or xcvb_arena_main.is_tier_unlocked_by_rank(t)
 		if t == self.current_tier then

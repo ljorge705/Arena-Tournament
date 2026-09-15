@@ -19,14 +19,6 @@ end
 
 temporary_arena_item_ids = {}
 arena_spawned_combatant_ids = {}
-local arena_boss_equipped_ids = {}
-function save_boss_equipment_state()
-    return arena_boss_equipped_ids
-end
-
-function load_boss_equipment_state(state)
-    arena_boss_equipped_ids = type(state) == "table" and state or {}
-end
 xcvb_arena_storage_box_id = nil
 saved_equipped_slots = {}
 saved_belt_items = {}
@@ -418,11 +410,12 @@ cfg = scripts\arena_board_logic.ltx
 end
 
 local balcony_respawned = false
+local board_respawned = false
 local board_id, balcony_id
 
 function reset_arena_object_cache()
-    arena_boss_equipped_ids = {}
     board_id, balcony_id = nil, nil
+    board_respawned = false
     balcony_respawned = false
 end
 
@@ -471,15 +464,15 @@ function check_and_spawn_board()
         if se then
             local sec = se:section_name()
             if sec == "xcvb_arena_board" then
-                pcall(function()
-                    local data = utils_stpk.get_physic_data(se)
-                    if data and (not data.custom_data or not string.find(data.custom_data, "arena_board_logic")) then
-                        data.custom_data = "[collide]\nignore_static\nignore_small_objects\n\n[logic]\ncfg = scripts\\arena_board_logic.ltx\n"
-                        utils_stpk.set_physic_data(data, se)
-                    end
-                end)
-                board_found = true
-                board_id = i
+                -- A saved physics binder may retain a disabled use scheme.
+                -- Changing server custom_data cannot reinitialize that binder.
+                -- Recreate this static prop once after load, including old duplicates.
+                if not board_respawned or board_found then
+                    alife_release(se)
+                else
+                    board_found = true
+                    board_id = i
+                end
             elseif sec == "xcvb_arena_balcony" then
                 -- Al cargar partida, elimina el balcon viejo atascado en el savegame
                 if not balcony_respawned then
@@ -495,6 +488,7 @@ function check_and_spawn_board()
     if not board_found then
         local obj = spawn_board()
         board_id = obj and obj.id
+        board_respawned = obj ~= nil
     end
 
     -- Genera el balcon limpio una sola vez por sesion para no tirarte al vacio durante el loop de 4 segundos
@@ -897,17 +891,6 @@ end
 
 function spawn_tournament_squad(round_data)
     if not round_data then return nil end
-    if round_data.boss_weapon then
-        if not ini_sys:section_exist(round_data.boss_weapon) then
-            printe("! xcvb arena: Missing boss weapon: %s", round_data.boss_weapon)
-            return nil
-        end
-        local ammo = get_weapon_ammo(round_data.boss_weapon)
-        if not ammo or not ini_sys:section_exist(ammo) then
-            printe("! xcvb arena: Missing boss weapon/ammo: %s", round_data.boss_weapon)
-            return nil
-        end
-    end
     local sections = {}
     local a_fac = get_actor_faction()
     for _, sec in ipairs(round_data.sections or {}) do
@@ -943,7 +926,6 @@ function spawn_tournament_squad(round_data)
     end
     for m in squad:squad_members() do
         arena_spawned_combatant_ids[m.id] = true
-        arena_boss_equipped_ids[m.id] = nil
     end
     return squad
 end
@@ -2228,30 +2210,6 @@ function exit_arena_night_mode()
     npc_night_gear = {}
 end
 
--- Configure only the current tournament's human boss, once per spawned NPC.
-function equip_tournament_boss(npc)
-    if not (npc and IsStalker(npc)) or arena_boss_equipped_ids[npc:id()] then return end
-    local fight = xcvb_arena_fight
-    if not (fight and fight.current_tournament_round_id) then return end
-    local data = xcvb_arena_main.get_round_data(fight.current_tournament_category, fight.current_tournament_round_id)
-    if not (data and data.boss_weapon) then return end
-    local old_weapons = {}
-    npc:iterate_inventory(function(owner, item)
-        if item and IsWeapon(nil, item:clsid()) then old_weapons[#old_weapons + 1] = item:id() end
-    end, npc)
-    local weapon = alife_create_item(data.boss_weapon, npc)
-    if not weapon then return end
-    arena_boss_equipped_ids[npc:id()] = true
-    for _, id in ipairs(old_weapons) do alife_release_id(id) end
-    local ammo = get_weapon_ammo(data.boss_weapon)
-    if ammo and ini_sys:section_exist(ammo) then
-        for i = 1, 10 do alife_create_item(ammo, npc) end
-    end
-    if npc.set_character_name then
-        pcall(function() npc:set_character_name(game.translate_string(data.boss_name)) end)
-    end
-end
-
 function setup_tournament_squad_aggro(squad_id)
     if type(squad_id) == "table" then
         return setup_endless_squads_aggro(squad_id)
@@ -2265,7 +2223,6 @@ function setup_tournament_squad_aggro(squad_id)
     for m in squad:squad_members() do
         local npc = level.object_by_id(m.id)
         if npc and npc:alive() then
-            equip_tournament_boss(npc)
             pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
             pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
             pcall(function() npc:set_relation(game_object.enemy, db.actor) end)

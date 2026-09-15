@@ -78,10 +78,6 @@
 			<text font="letterica16">st_arena_tier_5_name</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</tier_btn_5>
-        <tier_btn_6 x="570" y="28" width="110" height="22" check_mode="0">
-            <text font="letterica16">st_arena_bosses</text>
-            <texture>ui_inGame2_Mp_bigbuttone</texture>
-        </tier_btn_6>
 
 		<!-- 3 Round Rows in selected Tier -->
 		<tourn_row_1 x="0" y="52" width="680" height="52" stretch="1">

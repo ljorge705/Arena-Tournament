@@ -1509,7 +1509,6 @@ function actor_on_update()
                     for m in squad:squad_members() do
                         local npc = level.object_by_id(m.id)
                         if npc and npc:alive() then
-                            xcvb_arena_utils.equip_tournament_boss(npc)
                             if is_npc_wounded(npc) then
                                 pcall(function()
                                     if npc.bleeding and npc.bleeding < 0.3 then
