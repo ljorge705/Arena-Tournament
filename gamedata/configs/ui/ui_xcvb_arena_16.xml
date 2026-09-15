@@ -58,26 +58,30 @@
 		</cat_mutants_btn>
 
 		<!-- Tier Tab Buttons -->
-		<tier_btn_1 x="0" y="28" width="132" height="22" check_mode="0">
+		<tier_btn_1 x="0" y="28" width="110" height="22" check_mode="0">
 			<text font="letterica16">st_arena_tier_1_name</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</tier_btn_1>
-		<tier_btn_2 x="137" y="28" width="132" height="22" check_mode="0">
+		<tier_btn_2 x="114" y="28" width="110" height="22" check_mode="0">
 			<text font="letterica16">st_arena_tier_2_name</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</tier_btn_2>
-		<tier_btn_3 x="274" y="28" width="132" height="22" check_mode="0">
+		<tier_btn_3 x="228" y="28" width="110" height="22" check_mode="0">
 			<text font="letterica16">st_arena_tier_3_name</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</tier_btn_3>
-		<tier_btn_4 x="411" y="28" width="132" height="22" check_mode="0">
+		<tier_btn_4 x="342" y="28" width="110" height="22" check_mode="0">
 			<text font="letterica16">st_arena_tier_4_name</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</tier_btn_4>
-		<tier_btn_5 x="548" y="28" width="132" height="22" check_mode="0">
+		<tier_btn_5 x="456" y="28" width="110" height="22" check_mode="0">
 			<text font="letterica16">st_arena_tier_5_name</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</tier_btn_5>
+        <tier_btn_6 x="570" y="28" width="110" height="22" check_mode="0">
+            <text font="letterica16">st_arena_bosses</text>
+            <texture>ui_inGame2_Mp_bigbuttone</texture>
+        </tier_btn_6>
 
 		<!-- 3 Round Rows in selected Tier -->
 		<tourn_row_1 x="0" y="52" width="680" height="52" stretch="1">

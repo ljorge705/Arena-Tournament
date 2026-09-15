@@ -469,6 +469,64 @@ tournament_mutant_tiers_t = {
 -- HELPER FUNCTIONS
 --------------------------------------------------------------------------------
 
+
+-- BOSSES: final exhibition tier; equipment remains tier 5.
+tournament_stalker_tiers_t[6] = { name = "st_arena_bosses", rounds = {
+    [16] = { id = 16, tier = 5, category = "stalker", squad_type = "stalker",
+        name = "st_arena_boss_hunter_name",
+        enemies_str = "st_arena_boss_hunter_enemies",
+        desc = "st_arena_boss_hunter_desc",
+        reward_str = "st_arena_boss_hunter_reward",
+        diff_str = "st_arena_diff_legendary", reward_money = 35000, reward_items = { "medkit_scientic" },
+        sections = { "sim_default_bandit_4" },
+        boss_name = "st_arena_boss_hunter_name", boss_weapon = "wpn_spas12",
+    },
+    [17] = { id = 17, tier = 5, category = "stalker", squad_type = "stalker",
+        name = "st_arena_boss_ghost_name",
+        enemies_str = "st_arena_boss_ghost_enemies",
+        desc = "st_arena_boss_ghost_desc",
+        reward_str = "st_arena_boss_ghost_reward",
+        diff_str = "st_arena_diff_legendary", reward_money = 45000, reward_items = { "medkit_scientic" },
+        sections = { "sim_default_killer_4" },
+        boss_name = "st_arena_boss_ghost_name", boss_weapon = "wpn_svd",
+    },
+    [18] = { id = 18, tier = 5, category = "stalker", squad_type = "stalker",
+        name = "st_arena_boss_executioner_name",
+        enemies_str = "st_arena_boss_executioner_enemies",
+        desc = "st_arena_boss_executioner_desc",
+        reward_str = "st_arena_boss_executioner_reward",
+        diff_str = "st_arena_diff_legendary", reward_money = 65000, reward_items = { "medkit_scientic" },
+        sections = { "sim_default_killer_4" },
+        boss_name = "st_arena_boss_executioner_name", boss_weapon = "wpn_pkm",
+    },
+} }
+tournament_mutant_tiers_t[6] = { name = "st_arena_bosses", rounds = {
+    [16] = { id = 16, tier = 5, category = "mutant", squad_type = "mutant",
+        name = "st_arena_boss_matriarch_name",
+        enemies_str = "st_arena_boss_matriarch_enemies",
+        desc = "st_arena_boss_matriarch_desc",
+        reward_str = "st_arena_boss_matriarch_reward",
+        diff_str = "st_arena_diff_legendary", reward_money = 35000, reward_items = { "medkit_scientic" },
+        sections = { "chimera_strong", "pseudodog_grey_strong", "pseudodog_grey_strong" },
+    },
+    [17] = { id = 17, tier = 5, category = "mutant", squad_type = "mutant",
+        name = "st_arena_boss_whisper_name",
+        enemies_str = "st_arena_boss_whisper_enemies",
+        desc = "st_arena_boss_whisper_desc",
+        reward_str = "st_arena_boss_whisper_reward",
+        diff_str = "st_arena_diff_legendary", reward_money = 45000, reward_items = { "medkit_scientic" },
+        sections = { "m_controller_normal", "zombie_strong", "zombie_strong" },
+    },
+    [18] = { id = 18, tier = 5, category = "mutant", squad_type = "mutant",
+        name = "st_arena_boss_colossus_name",
+        enemies_str = "st_arena_boss_colossus_enemies",
+        desc = "st_arena_boss_colossus_desc",
+        reward_str = "st_arena_boss_colossus_reward",
+        diff_str = "st_arena_diff_legendary", reward_money = 65000, reward_items = { "medkit_scientic" },
+        sections = { "gigant_strong", "snork_normal", "snork_normal" },
+    },
+} }
+
 function get_category_tiers(category)
 	if category == "mutant" then
 		return tournament_mutant_tiers_t
@@ -534,7 +592,7 @@ function is_tier_unlocked_by_rank(tier)
 	if practice_mode_active == true then
 		return true
 	end
-	return get_actor_rank_num() >= tier
+	return get_actor_rank_num() >= math.min(5, tier)
 end
 
 function get_tier_required_rank_name(tier)
@@ -545,7 +603,7 @@ function get_tier_required_rank_name(tier)
 		[4] = "st_rank_master",
 		[5] = "st_rank_legend",
 	}
-	local id = tier_rank_ids[tier] or "st_rank_novice"
+	local id = tier_rank_ids[math.min(5, tier)] or "st_rank_novice"
 	return game.translate_string(id)
 end
 
@@ -700,7 +758,7 @@ end
 
 function get_player_tier(category)
 	local unl = get_unlocked_round(category)
-	return math.min(5, math.ceil(unl / 3))
+	return math.min(6, math.ceil(unl / 3))
 end
 
 --------------------------------------------------------------------------------
@@ -708,6 +766,7 @@ end
 --------------------------------------------------------------------------------
 
 function save_state(m_data)
+    m_data.xcvb_boss_equipment_state = xcvb_arena_utils.save_boss_equipment_state()
 	m_data.xcvb_arena_main_t = arena_main_t
 	m_data.xcvb_arena_current_period = current_period
 	m_data.xcvb_arena_spec_filter = current_spec_filter
@@ -746,6 +805,7 @@ end
 
 function load_state(m_data)
 	xcvb_arena_utils.reset_arena_object_cache()
+    xcvb_arena_utils.load_boss_equipment_state(m_data.xcvb_boss_equipment_state)
 	endless_3dssg = m_data.xcvb_endless_3dssg == true
 	night_mode_active = (m_data.xcvb_night_mode_active == true)
 	night_mode_saved_time = m_data.xcvb_night_mode_saved_time
@@ -783,6 +843,14 @@ function load_state(m_data)
 		if type(v) ~= "table" or ((v.y or v.Y or 0) < 2000) then
 			tournament_mutant_completed_time[k] = nil
 		end
+	end
+
+	-- Existing saves stopped progression at round 15. Preserve all results.
+	if tournament_stalker_completed[15] then
+		tournament_stalker_unlocked_round = math.max(16, tournament_stalker_unlocked_round)
+	end
+	if tournament_mutant_completed[15] then
+		tournament_mutant_unlocked_round = math.max(16, tournament_mutant_unlocked_round)
 	end
 
 	tournament_wins = m_data.xcvb_tournament_wins or 0

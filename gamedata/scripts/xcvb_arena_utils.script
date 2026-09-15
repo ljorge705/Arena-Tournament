@@ -1,6 +1,32 @@
 local ini_rel = ini_file("creatures\\game_relations.ltx")
+
+function sound_if_exists(path)
+    if getFS():exist("$game_sounds$", path .. ".ogg") then
+        return sound_object(path)
+    end
+    return nil
+end
+
+-- The Lua binding exists on all game objects, but set_enemy only supports
+-- bloodsuckers. Other combatants use relations, squad targets and hit memory.
+function set_bloodsucker_enemy(npc, target)
+    if not (npc and target and clsid and clsid.bloodsucker_s) then return end
+    if npc:clsid() ~= clsid.bloodsucker_s then return end
+    if npc.set_enemy then
+        pcall(function() npc:set_enemy(target) end)
+    end
+end
+
 temporary_arena_item_ids = {}
 arena_spawned_combatant_ids = {}
+local arena_boss_equipped_ids = {}
+function save_boss_equipment_state()
+    return arena_boss_equipped_ids
+end
+
+function load_boss_equipment_state(state)
+    arena_boss_equipped_ids = type(state) == "table" and state or {}
+end
 xcvb_arena_storage_box_id = nil
 saved_equipped_slots = {}
 saved_belt_items = {}
@@ -395,6 +421,7 @@ local balcony_respawned = false
 local board_id, balcony_id
 
 function reset_arena_object_cache()
+    arena_boss_equipped_ids = {}
     board_id, balcony_id = nil, nil
     balcony_respawned = false
 end
@@ -444,6 +471,13 @@ function check_and_spawn_board()
         if se then
             local sec = se:section_name()
             if sec == "xcvb_arena_board" then
+                pcall(function()
+                    local data = utils_stpk.get_physic_data(se)
+                    if data and (not data.custom_data or not string.find(data.custom_data, "arena_board_logic")) then
+                        data.custom_data = "[collide]\nignore_static\nignore_small_objects\n\n[logic]\ncfg = scripts\\arena_board_logic.ltx\n"
+                        utils_stpk.set_physic_data(data, se)
+                    end
+                end)
                 board_found = true
                 board_id = i
             elseif sec == "xcvb_arena_balcony" then
@@ -863,6 +897,17 @@ end
 
 function spawn_tournament_squad(round_data)
     if not round_data then return nil end
+    if round_data.boss_weapon then
+        if not ini_sys:section_exist(round_data.boss_weapon) then
+            printe("! xcvb arena: Missing boss weapon: %s", round_data.boss_weapon)
+            return nil
+        end
+        local ammo = get_weapon_ammo(round_data.boss_weapon)
+        if not ammo or not ini_sys:section_exist(ammo) then
+            printe("! xcvb arena: Missing boss weapon/ammo: %s", round_data.boss_weapon)
+            return nil
+        end
+    end
     local sections = {}
     local a_fac = get_actor_faction()
     for _, sec in ipairs(round_data.sections or {}) do
@@ -898,6 +943,7 @@ function spawn_tournament_squad(round_data)
     end
     for m in squad:squad_members() do
         arena_spawned_combatant_ids[m.id] = true
+        arena_boss_equipped_ids[m.id] = nil
     end
     return squad
 end
@@ -1054,9 +1100,9 @@ function toggle_arena_lights(turn_on)
             end
         end
     end
-    printf("[ARENA_LIGHTS] Toggled %d arena lamps to %s", count, turn_on and "ON" or "OFF")
+    printf(string.format("[ARENA_LIGHTS] Toggled %d arena lamps to %s", count, turn_on and "ON" or "OFF"))
     pcall(function()
-        local snd = sound_object([[device\light_switch]]) or sound_object([[interface\inv_torch]])
+        local snd = sound_if_exists([[device\light_switch]]) or sound_if_exists([[interface\inv_torch]])
         if snd and db.actor then snd:play(db.actor, 0, sound_object.s2d) end
     end)
 end
@@ -1117,7 +1163,6 @@ local VIDEO_RENDER_COMMANDS = {
     "shader_param_5",
     "shader_param_6",
     "shader_param_7",
-    "shader_param_8",
 }
 
 local DEFAULT_DAYLIGHT_SETTINGS = {
@@ -1220,8 +1265,11 @@ function apply_night_mode_lighting(enable)
             pcall(weather.pause, true)
         end
     else
+        if not xcvb_arena_main.night_mode_saved_render then return end
         -- Restore exact original video settings saved before night mode was activated
-        pcall(function() exec_console_cmd("cfg_load arena_night_backup") end)
+        if getFS():exist("$app_data_root$", "arena_night_backup.ltx") then
+            pcall(function() exec_console_cmd("cfg_load arena_night_backup") end)
+        end
 
         local saved = xcvb_arena_main.night_mode_saved_render or {}
 
@@ -1236,7 +1284,7 @@ function apply_night_mode_lighting(enable)
 
         -- Also restore any other extra commands that were saved in orig
         for cmd, val in pairs(saved) do
-            if cmd ~= "__weather" and not DEFAULT_DAYLIGHT_SETTINGS[cmd] and val and val ~= "" then
+            if cmd ~= "__weather" and cmd ~= "shader_param_8" and not DEFAULT_DAYLIGHT_SETTINGS[cmd] and val and val ~= "" then
                 pcall(function() exec_console_cmd(cmd .. " " .. val) end)
             end
         end
@@ -1375,7 +1423,6 @@ function turn_off_actor_nightvision(sec)
     end
     pcall(function()
         get_console():execute("r__nightvision 0")
-        get_console():execute("shader_param_8 (0,0,0,0)")
     end)
 end
 
@@ -1671,9 +1718,7 @@ function apply_realistic_night_vision(npc)
                 end
 
                 if detected then
-                    if npc.set_enemy then
-                        pcall(function() npc:set_enemy(db.actor) end)
-                    end
+                    set_bloodsucker_enemy(npc, db.actor)
                     if npc.make_enemy_visible then
                         pcall(function() npc:make_enemy_visible(db.actor) end)
                     end
@@ -2004,7 +2049,7 @@ function restore_actor_survival_needs(saved_needs)
     pcall(function()
         local actor_cond = db.actor:cast_Actor() and db.actor:cast_Actor():conditions()
         if actor_cond and actor_cond.ChangeBleeding then
-            actor_cond:ChangeBleeding(-10.0)
+            actor_cond:ChangeBleeding(1.0)
         end
     end)
 
@@ -2162,7 +2207,8 @@ end
 
 function exit_arena_night_mode()
     if not night_mode_combat_running then
-        -- Guarantee lights and daylight are clean just in case
+        -- Daytime fights and first update have no night settings to restore.
+        if not xcvb_arena_main.night_mode_saved_render then return end
         toggle_arena_lights(true)
         apply_night_mode_lighting(false)
         return
@@ -2182,6 +2228,30 @@ function exit_arena_night_mode()
     npc_night_gear = {}
 end
 
+-- Configure only the current tournament's human boss, once per spawned NPC.
+function equip_tournament_boss(npc)
+    if not (npc and IsStalker(npc)) or arena_boss_equipped_ids[npc:id()] then return end
+    local fight = xcvb_arena_fight
+    if not (fight and fight.current_tournament_round_id) then return end
+    local data = xcvb_arena_main.get_round_data(fight.current_tournament_category, fight.current_tournament_round_id)
+    if not (data and data.boss_weapon) then return end
+    local old_weapons = {}
+    npc:iterate_inventory(function(owner, item)
+        if item and IsWeapon(nil, item:clsid()) then old_weapons[#old_weapons + 1] = item:id() end
+    end, npc)
+    local weapon = alife_create_item(data.boss_weapon, npc)
+    if not weapon then return end
+    arena_boss_equipped_ids[npc:id()] = true
+    for _, id in ipairs(old_weapons) do alife_release_id(id) end
+    local ammo = get_weapon_ammo(data.boss_weapon)
+    if ammo and ini_sys:section_exist(ammo) then
+        for i = 1, 10 do alife_create_item(ammo, npc) end
+    end
+    if npc.set_character_name then
+        pcall(function() npc:set_character_name(game.translate_string(data.boss_name)) end)
+    end
+end
+
 function setup_tournament_squad_aggro(squad_id)
     if type(squad_id) == "table" then
         return setup_endless_squads_aggro(squad_id)
@@ -2195,6 +2265,7 @@ function setup_tournament_squad_aggro(squad_id)
     for m in squad:squad_members() do
         local npc = level.object_by_id(m.id)
         if npc and npc:alive() then
+            equip_tournament_boss(npc)
             pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
             pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
             pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
@@ -2203,9 +2274,7 @@ function setup_tournament_squad_aggro(squad_id)
                 apply_realistic_night_vision(npc)
                 equip_and_enable_npc_torch(npc)
             else
-                if npc.set_enemy then
-                    pcall(function() npc:set_enemy(db.actor) end)
-                end
+                set_bloodsucker_enemy(npc, db.actor)
                 if npc.set_sight and db.actor then
                     pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
                 end
@@ -2259,19 +2328,14 @@ function setup_endless_squads_aggro(squad_ids)
                         apply_realistic_night_vision(npc)
                         equip_and_enable_npc_torch(npc)
                     else
-                        if npc.set_enemy then
-                            pcall(function() npc:set_enemy(db.actor) end)
-                        end
-                        if npc.set_sight and db.actor then
-                            pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
-                        end
-                        if npc.make_enemy_visible and db.actor then
-                            pcall(function() npc:make_enemy_visible(db.actor) end)
-                        end
+                        set_bloodsucker_enemy(npc, db.actor)
                         if npc.register_in_combat then
                             pcall(function() npc:register_in_combat() end)
                         end
-                        xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
+                        -- Natural directional alert without wallhack:
+                        if db.actor then
+                            pcall(function() npc:set_sight(look.danger, db.actor:position()) end)
+                        end
                     end
                     
                     if IsMonster and IsMonster(npc) then
@@ -2280,6 +2344,7 @@ function setup_endless_squads_aggro(squad_ids)
                     elseif IsStalker and IsStalker(npc) then
                         pcall(function() npc:set_mental_state(anim.danger) end)
                         pcall(function() npc:set_custom_panic_threshold(0.05) end)
+                        ensure_npc_combat_loadout(npc)
                     end
                 end
             end
@@ -2676,24 +2741,36 @@ local function attach_arena_scope(weapon, requested_scope)
         if scope_item and source_weapon then
             local ok = pcall(item_weapon.attach_scope, scope_item, source_weapon)
             if ok then
+                local restore_attempts = 0
                 CreateTimeEvent("arena_3dssg_restore", "scope_restore_" .. tostring(weapon_id), 0.15, function()
+                    restore_attempts = restore_attempts + 1
                     if not db.actor then return true end
                     local attached_weapon = nil
                     db.actor:iterate_inventory(function(_, item)
-                        if item and item:section() == child_section and IsWeapon(nil, item:clsid()) then
-                            attached_weapon = item
-                            return true
+                        if item and IsWeapon(nil, item:clsid()) then
+                            if item:section() == child_section or item:id() == weapon_id then
+                                attached_weapon = item
+                                return true
+                            end
                         end
                     end, db.actor)
+                    if not attached_weapon then
+                        db.actor:iterate_inventory(function(_, item)
+                            if item and IsWeapon(nil, item:clsid()) and (not saved_actor_item_ids or not saved_actor_item_ids[item:id()]) then
+                                attached_weapon = item
+                                return true
+                            end
+                        end, db.actor)
+                    end
                     if attached_weapon then
                         temporary_arena_item_ids[attached_weapon:id()] = true
-                        db.actor:move_to_slot(attached_weapon, restore_slot or 2)
+                        pcall(function() db.actor:move_to_slot(attached_weapon, restore_slot or 2) end)
                         if was_active then
-                            db.actor:activate_slot(restore_slot or 2)
+                            pcall(function() db.actor:activate_slot(restore_slot or 2) end)
                         end
                         return true
                     end
-                    return false
+                    return restore_attempts >= 10
                 end)
                 return true
             end
@@ -2773,6 +2850,14 @@ function store_actor_inventory()
     RemoveTimeEvent("arena_restore_equip_e2", "arena_restore_equip_a2")
     RemoveTimeEvent("arena_restore_equip_e3", "arena_restore_equip_a3")
     RemoveTimeEvent("arena_restore_equip_e4", "arena_restore_equip_a4")
+
+    pcall(function() db.actor:activate_slot(0) end)
+    for s = 1, 15 do
+        local slot_itm = db.actor:item_in_slot(s)
+        if slot_itm and db.actor.move_to_ruck then
+            pcall(function() db.actor:move_to_ruck(slot_itm) end)
+        end
+    end
 
     local box = get_or_create_arena_box()
     if not box then
@@ -3319,6 +3404,13 @@ end
 
 function restore_actor_inventory(is_retry)
     if not inventory_stored or not db.actor then return false end
+    pcall(function() db.actor:activate_slot(0) end)
+    for s = 1, 15 do
+        local slot_itm = db.actor:item_in_slot(s)
+        if slot_itm and db.actor.move_to_ruck then
+            pcall(function() db.actor:move_to_ruck(slot_itm) end)
+        end
+    end
     -- Never destroy rental gear or contraband before the original items are accessible.
     local box = get_or_create_arena_box()
     if not box then
@@ -3550,9 +3642,7 @@ function set_teams_relation(squad_id1, squad_id2)
                         end
                         pcall(function() npc2:berserk() end)
                         pcall(function() npc2:set_custom_panic_threshold(0) end)
-                        if npc2.set_enemy then
-                            pcall(function() npc2:set_enemy(npc1) end)
-                        end
+                        set_bloodsucker_enemy(npc2, npc1)
                     end
                     if IsStalker and IsStalker(npc2) and IsMonster and IsMonster(npc1) then
                         pcall(function() npc2:force_set_goodwill(-9999, npc1) end)
@@ -3566,9 +3656,7 @@ function set_teams_relation(squad_id1, squad_id2)
                         end
                         pcall(function() npc1:berserk() end)
                         pcall(function() npc1:set_custom_panic_threshold(0) end)
-                        if npc1.set_enemy then
-                            pcall(function() npc1:set_enemy(npc2) end)
-                        end
+                        set_bloodsucker_enemy(npc1, npc2)
                     end
                     -- Mutant <-> mutant
                     if IsMonster and IsMonster(npc1) and IsMonster and IsMonster(npc2) then
@@ -3598,12 +3686,8 @@ function set_teams_relation(squad_id1, squad_id2)
                         if npc2.skip_transfer_enemy then
                             pcall(function() npc2:skip_transfer_enemy(false) end)
                         end
-                        if npc1.set_enemy then
-                            pcall(function() npc1:set_enemy(npc2) end)
-                        end
-                        if npc2.set_enemy then
-                            pcall(function() npc2:set_enemy(npc1) end)
-                        end
+                        set_bloodsucker_enemy(npc1, npc2)
+                        set_bloodsucker_enemy(npc2, npc1)
                         if db.actor then
                             pcall(function() npc1:set_relation(game_object.neutral, db.actor) end)
                             pcall(function() npc1:force_set_goodwill(5000, db.actor) end)
@@ -3767,12 +3851,8 @@ function force_mutant_aggro(squad_id1, squad_id2, initial_wake)
             if target.make_enemy_visible then
                 pcall(function() target:make_enemy_visible(mutant) end)
             end
-            if mutant.set_enemy then
-                pcall(function() mutant:set_enemy(target) end)
-            end
-            if target.set_enemy then
-                pcall(function() target:set_enemy(mutant) end)
-            end
+            set_bloodsucker_enemy(mutant, target)
+            set_bloodsucker_enemy(target, mutant)
             xcvb_arena_utils.scr_hit(target, mutant, initial_wake and 0.05 or 0.01)
             xcvb_arena_utils.scr_hit(mutant, target, initial_wake and 0.05 or 0.01)
         end
@@ -3861,9 +3941,6 @@ function force_stalker_aggro(squad_id1, squad_id2, initial_wake)
         end
         pcall(function() stalker:force_set_goodwill(-9999, target) end)
         pcall(function() stalker:set_relation(game_object.enemy, target) end)
-        if stalker.set_enemy then
-            pcall(function() stalker:set_enemy(target) end)
-        end
         if target_changed and stalker.register_in_combat then
             pcall(function() stalker:register_in_combat() end)
         end
@@ -3893,7 +3970,12 @@ end
 
 function is_npc_wounded(npc)
     if not (npc and npc:alive()) then return false end
-    if IsMonster and IsMonster(npc) then return false end
+    -- Anomaly's IsStalker includes script_actor/actor as well as human NPCs.
+    local npc_id = npc:id()
+    if npc_id == 0 or (db and db.actor and npc_id == db.actor:id()) then return false end
+    -- Wounded AI queries do not support the actor or mutants, even though
+    -- their Lua objects expose the same method names.
+    if not (IsStalker and IsStalker(npc)) then return false end
     local wounded = false
     pcall(function()
         if IsWounded and IsWounded(npc) then
@@ -4189,8 +4271,6 @@ function update_battle_royale_targets(squads)
                     if enemy and (not enemy:alive() or not enemy_squad_id or enemy_squad_id == own_squad_id) then
                         if npc.clear_enemy then
                             pcall(function() npc:clear_enemy() end)
-                        elseif npc.set_enemy then
-                            pcall(function() npc:set_enemy(nil) end)
                         end
                     end
                 end
@@ -4199,31 +4279,48 @@ function update_battle_royale_targets(squads)
     end
 end
 
-function ensure_battle_royale_ammo(npc)
-    if not npc or not IsStalker or not IsStalker(nil, npc:clsid()) then return end
-    local weapon_sec = nil
+function ensure_npc_combat_loadout(npc)
+    if not (npc and IsStalker and IsStalker(npc)) then return end
+    local weapons = {}
     npc:iterate_inventory(function(owner, item)
-        if not weapon_sec and item and IsWeapon and IsWeapon(nil, item:clsid()) then
-            weapon_sec = item:section()
+        if item and IsWeapon and IsWeapon(nil, item:clsid()) then
+            table.insert(weapons, item)
         end
     end, npc)
-    if not weapon_sec then return end
+    if #weapons == 0 then return end
 
-    local ammo_sec = get_weapon_ammo(weapon_sec, "auto")
-    if not ammo_sec or not ini_sys:section_exist(ammo_sec) then return end
-    for _ = 1, 12 do
-        alife_create_item(ammo_sec, npc)
+    for _, wpn in ipairs(weapons) do
+        local sec = wpn:section()
+        local mag_size = (ini_sys:r_u32(sec, "ammo_mag_size")) or 30
+        pcall(function()
+            if wpn:get_ammo_in_magazine() < mag_size then
+                wpn:set_ammo_elapsed(mag_size)
+            end
+        end)
+        local ammo_sec = get_weapon_ammo(sec, "auto")
+        if ammo_sec and ini_sys:section_exist(ammo_sec) then
+            if magazine_binder and magazine_binder.is_supported_weapon and magazine_binder.is_supported_weapon(sec) then
+                pcall(spawn_and_fill_mags, sec, ammo_sec, 3, wpn:id())
+            end
+            for _ = 1, 8 do
+                alife_create_item(ammo_sec, npc)
+            end
+        end
     end
+end
+
+function ensure_battle_royale_ammo(npc)
+    ensure_npc_combat_loadout(npc)
 end
 
 function protect_battle_royale_spectator(npc)
     if not (npc and db.actor) then return end
     pcall(function() npc:set_relation(game_object.neutral, db.actor) end)
     pcall(function() npc:force_set_goodwill(5000, db.actor) end)
-    if npc.clear_enemy then
-        pcall(function() npc:clear_enemy() end)
-    elseif npc.set_enemy then
-        pcall(function() npc:set_enemy(nil) end)
+    if IsStalker and IsStalker(npc) then
+        if npc.clear_enemy then
+            pcall(function() npc:clear_enemy() end)
+        end
     end
 end
 
@@ -4269,23 +4366,27 @@ function setup_battle_royale_relations(squad_ids)
 
     local now = time_global()
     local changed = now >= br_relation_refresh_at
-    for id, npc in pairs(members) do
-        if br_relation_members[id] ~= npc then changed = true end
+    for id, _ in pairs(members) do
+        if not br_relation_members[id] then changed = true end
     end
     for id in pairs(br_relation_members) do
         if not members[id] then changed = true end
     end
     for idx, sq in pairs(squads) do
-        if br_relation_squads[idx] ~= sq then changed = true end
+        if br_relation_squads[idx] ~= sq.id then changed = true end
     end
     for idx in pairs(br_relation_squads) do
         if not squads[idx] then changed = true end
     end
-    -- Invalid targets still get cleared promptly; pairwise goodwill is rebuilt
-    -- only after membership changes or during the slower compatibility refresh.
+
     update_battle_royale_targets(squad_lookup)
     if not changed then return end
-    br_relation_members, br_relation_squads = members, squads
+
+    local new_mem_set = {}
+    for id in pairs(members) do new_mem_set[id] = true end
+    local new_sq_set = {}
+    for idx, sq in pairs(squads) do new_sq_set[idx] = sq.id end
+    br_relation_members, br_relation_squads = new_mem_set, new_sq_set
     br_relation_refresh_at = now + 15000
     table.sort(alive_indices)
     
@@ -4332,21 +4433,20 @@ function setup_battle_royale_relations(squad_ids)
                 if db.actor then
                     protect_battle_royale_spectator(npc_i)
                 end
-                if needs_initialization then
-                    if IsMonster and IsMonster(npc_i) then
-                        pcall(function() npc_i:berserk() end)
-                        pcall(function() npc_i:set_custom_panic_threshold(0) end)
-                    elseif IsStalker and IsStalker(npc_i) then
-                        pcall(function() npc_i:set_mental_state(anim.danger) end)
-                        pcall(function() npc_i:set_custom_panic_threshold(0.05) end)
-                        ensure_battle_royale_ammo(npc_i)
-                        if npc_i.register_in_combat then
-                            pcall(function() npc_i:register_in_combat() end)
-                        end
+                -- Keep combat state active continuously (especially when 2 teams remain)
+                if IsMonster and IsMonster(npc_i) then
+                    pcall(function() npc_i:berserk() end)
+                    pcall(function() npc_i:set_custom_panic_threshold(0) end)
+                elseif IsStalker and IsStalker(npc_i) then
+                    pcall(function() npc_i:set_mental_state(anim.danger) end)
+                    pcall(function() npc_i:set_custom_panic_threshold(0.05) end)
+                    ensure_npc_combat_loadout(npc_i)
+                    if npc_i.register_in_combat then
+                        pcall(function() npc_i:register_in_combat() end)
                     end
-                    if xcvb_arena_fight and xcvb_arena_fight.mark_battle_royale_npc_initialized then
-                        xcvb_arena_fight.mark_battle_royale_npc_initialized(npc_i:id())
-                    end
+                end
+                if needs_initialization and xcvb_arena_fight and xcvb_arena_fight.mark_battle_royale_npc_initialized then
+                    xcvb_arena_fight.mark_battle_royale_npc_initialized(npc_i:id())
                 end
                 for _, j in ipairs(alive_indices) do
                     if i ~= j then
@@ -4731,8 +4831,14 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
     local cur_wave = wave or 1
     local diff = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
     
-    -- 1. Unload all weapons in actor possession and clear magazine binders to avoid dumping ammo/mags into backpack
     if db.actor then
+        pcall(function() db.actor:activate_slot(0) end)
+        for s = 1, 15 do
+            local slot_itm = db.actor:item_in_slot(s)
+            if slot_itm and db.actor.move_to_ruck then
+                pcall(function() db.actor:move_to_ruck(slot_itm) end)
+            end
+        end
         db.actor:iterate_inventory(function(owner, item)
             if not item then return end
             if IsWeapon(nil, item:clsid()) then

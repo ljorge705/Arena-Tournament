@@ -179,6 +179,7 @@ function heal_actor_completely()
     if not db.actor then return end
     pcall(function()
         db.actor.health = 1.0
+        -- This setter heals wounds by a fraction; zero leaves them unchanged.
         db.actor.bleeding = 1.0
         db.actor.radiation = 0
         db.actor.psy_health = 1.0
@@ -331,6 +332,13 @@ function end_tournament_fight(is_victory)
     pcall(xcvb_arena_utils.exit_arena_night_mode)
 
     if db.actor then
+        pcall(function() db.actor:activate_slot(0) end)
+        for s = 1, 15 do
+            local itm = db.actor:item_in_slot(s)
+            if itm and db.actor.move_to_ruck then
+                pcall(function() db.actor:move_to_ruck(itm) end)
+            end
+        end
         local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
         db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
         pcall(level.enable_input)
@@ -377,7 +385,7 @@ function end_tournament_fight(is_victory)
             if cat == "mutant" then
                 xcvb_arena_main.tournament_mutant_completed[current_tournament_round_id] = true
                 xcvb_arena_main.tournament_mutant_completed_time[current_tournament_round_id] = time_t
-                if current_tournament_round_id >= xcvb_arena_main.tournament_mutant_unlocked_round and current_tournament_round_id < 15 then
+                if current_tournament_round_id >= xcvb_arena_main.tournament_mutant_unlocked_round and current_tournament_round_id < 18 then
                     xcvb_arena_main.tournament_mutant_unlocked_round = current_tournament_round_id + 1
                     if current_tournament_round_id % 3 == 0 then
                         local new_tier = math.ceil((current_tournament_round_id + 1) / 3)
@@ -391,7 +399,7 @@ function end_tournament_fight(is_victory)
             else
                 xcvb_arena_main.tournament_stalker_completed[current_tournament_round_id] = true
                 xcvb_arena_main.tournament_stalker_completed_time[current_tournament_round_id] = time_t
-                if current_tournament_round_id >= xcvb_arena_main.tournament_stalker_unlocked_round and current_tournament_round_id < 15 then
+                if current_tournament_round_id >= xcvb_arena_main.tournament_stalker_unlocked_round and current_tournament_round_id < 18 then
                     xcvb_arena_main.tournament_stalker_unlocked_round = current_tournament_round_id + 1
                     if current_tournament_round_id % 3 == 0 then
                         local new_tier = math.ceil((current_tournament_round_id + 1) / 3)
@@ -1015,7 +1023,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
 end
 
 function advance_endless_wave(resume_pending)
-    if endless_ending or endless_transitioning or endless_fight_closed then return end
+    if endless_transitioning or endless_fight_closed or endless_ending or is_medic_rescuing then return end
     pcall(sync_night_mode_device_from_actor)
     endless_transitioning = true
 
@@ -1319,10 +1327,11 @@ function actor_on_hud_animation_play(anm_table, item)
 end
 
 function actor_on_weapon_zoom_in(wpn)
+    -- Weapon aim transitions are not scripted hand motions. Stopping a hand
+    -- motion here can use the engine's inactive part (255) or cancel another mod.
     cont_fire_aim_trans = true
     local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
     if key_state(fire_dik) ~= 0 and cont_fire_was_firing and wpn and IsWeapon(wpn) then
-        pcall(game.stop_hud_motion)
         level.release_action(fire_dik)
         level.press_action(fire_dik)
         pcall(function() wpn:switch_state(5) end)
@@ -1333,7 +1342,6 @@ function actor_on_weapon_zoom_out(wpn)
     cont_fire_aim_trans = true
     local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
     if key_state(fire_dik) ~= 0 and cont_fire_was_firing and wpn and IsWeapon(wpn) then
-        pcall(game.stop_hud_motion)
         level.release_action(fire_dik)
         level.press_action(fire_dik)
         pcall(function() wpn:switch_state(5) end)
@@ -1424,14 +1432,12 @@ local function continuous_fire_on_update()
         if ammo > 0 and not is_jammed and not is_lowered then
             local is_auto = is_weapon_auto_mode(wpn)
             if is_auto and cont_fire_was_firing then
-                pcall(game.stop_hud_motion)
                 level.release_action(fire_dik)
                 level.press_action(fire_dik)
                 pcall(function() wpn:switch_state(5) end)
             elseif cont_fire_aim_trans and not cont_fire_retriggered then
                 cont_fire_retriggered = true
                 cont_fire_aim_trans = false
-                pcall(game.stop_hud_motion)
                 level.release_action(fire_dik)
                 level.press_action(fire_dik)
                 pcall(function() wpn:switch_state(5) end)
@@ -1443,18 +1449,37 @@ local function continuous_fire_on_update()
     end
 end
 
+local ending_state_start = 0
+
 function actor_on_update()
     if tourn_ending or endless_ending then
+        local tg = time_global()
+        if ending_state_start == 0 then
+            ending_state_start = tg
+        elseif tg - ending_state_start > 5000 then
+            -- Failsafe timeout: never leave actor stuck in immortal ending state
+            tourn_ending = false
+            endless_ending = false
+            ending_state_start = 0
+        end
+
         if not HI("xcvb_tournament_started") and not HI("xcvb_endless_started") and not is_endless_mode then
             tourn_ending = false
             endless_ending = false
-        else
+            ending_state_start = 0
+        elseif tournament_fight_closed or endless_fight_closed or is_medic_rescuing then
             if db.actor then
                 db.actor.health = 1.0
-                db.actor.bleeding = 0
+                db.actor.bleeding = 1.0
             end
             return
+        else
+            tourn_ending = false
+            endless_ending = false
+            ending_state_start = 0
         end
+    else
+        ending_state_start = 0
     end
 
     continuous_fire_on_update()
@@ -1484,6 +1509,7 @@ function actor_on_update()
                     for m in squad:squad_members() do
                         local npc = level.object_by_id(m.id)
                         if npc and npc:alive() then
+                            xcvb_arena_utils.equip_tournament_boss(npc)
                             if is_npc_wounded(npc) then
                                 pcall(function()
                                     if npc.bleeding and npc.bleeding < 0.3 then
@@ -1538,14 +1564,10 @@ function actor_on_update()
                                     if not has_live_enemy(npc) then
                                         xcvb_arena_utils.scr_hit(db.actor, npc)
                                     end
-                                    if npc.set_enemy then
-                                        pcall(function() npc:set_enemy(db.actor) end)
-                                    end
-                                    if npc.set_sight and db.actor then
-                                        pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
-                                    end
-                                    if npc.make_enemy_visible and db.actor then
-                                        pcall(function() npc:make_enemy_visible(db.actor) end)
+                                    xcvb_arena_utils.set_bloodsucker_enemy(npc, db.actor)
+                                    -- Wallhack removed: natural AI line-of-sight engagement only
+                                    if IsStalker and IsStalker(npc) and npc.set_mental_state then
+                                        pcall(function() npc:set_mental_state(anim.danger) end)
                                     end
                                 end
                             end
@@ -1846,10 +1868,17 @@ function npc_on_before_hit(npc, s_hit)
 end
 
 function trigger_medic_rescue()
-    if tourn_ending or endless_ending then return end
-    if tournament_fight_closed or endless_fight_closed then return end
+    if is_medic_rescuing then return true end
+    if tourn_ending or endless_ending then return false end
+    if not db.actor then return false end
+    local in_endless = is_endless_mode or HI("xcvb_endless_started")
+    local in_tournament = HI("xcvb_tournament_started")
+    if not in_endless and not in_tournament then return false end
+    if in_endless and endless_fight_closed then return false end
+    if not in_endless and tournament_fight_closed then return false end
     is_medic_rescuing = true
-    if is_endless_mode or HI("xcvb_endless_started") then
+    cancel_player_combat_events()
+    if in_endless then
         endless_ending = true
         tourn_ending = false
         if xcvb_arena_main and endless_wave and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
@@ -1893,11 +1922,10 @@ function trigger_medic_rescue()
     end
 
     pcall(function()
-        local snd = sound_object([[characters_voice\human\actor\die]] .. math.random(0, 3))
+        local path = [[characters_voice\human\actor\die]] .. math.random(0, 3)
+        local snd = xcvb_arena_utils.sound_if_exists(path)
         if snd then
             snd:play(db.actor, 0, sound_object.s2d)
-        else
-            xr_sound.set_sound_play(db.actor:id(), "actor_die")
         end
     end)
 
@@ -1953,6 +1981,7 @@ function trigger_medic_rescue()
         end
         return true
     end)
+    return true
 end
 
 function actor_on_before_hit(s_hit, bone_id, flags)
@@ -1962,7 +1991,7 @@ function actor_on_before_hit(s_hit, bone_id, flags)
         return
     end
 
-    if (tourn_ending or endless_ending) and (HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode) then
+    if is_medic_rescuing then
         if s_hit then s_hit.power = 0 end
         if flags then flags.ret_value = false end
         return
@@ -1972,12 +2001,11 @@ function actor_on_before_hit(s_hit, bone_id, flags)
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false then
             local cur_health = db.actor and db.actor.health or 1.0
-            local dmg = (s_hit and s_hit.power) or 0
-            
-            if cur_health <= 0.01 or (cur_health - dmg <= 0.01) then
+            -- Hit power is not final health loss: armor, bones and other mods
+            -- still modify it. Let the engine apply it and rescue on death.
+            if cur_health <= 0.01 and trigger_medic_rescue() then
                 if s_hit then s_hit.power = 0 end
                 if flags then flags.ret_value = false end
-                trigger_medic_rescue()
             end
         end
     end
@@ -1992,10 +2020,9 @@ function actor_on_before_death(whoID, flags)
 
     if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
-        if rescue_enabled ~= false then
+        if rescue_enabled ~= false and trigger_medic_rescue() then
             if flags then flags.ret_value = false end
             if db.actor then db.actor.health = 1.0 end
-            trigger_medic_rescue()
         end
     end
 end

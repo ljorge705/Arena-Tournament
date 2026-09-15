@@ -20,6 +20,12 @@ function open_gui()
 	end
 end
 
+if rawget(_G, "xr_effects") then
+	_G.xr_effects.open_arena_gui = function(actor, npc)
+		open_gui()
+	end
+end
+
 function on_game_start()
 	if xr_effects then
 		xr_effects.open_arena_gui = function(actor, npc)
@@ -135,7 +141,7 @@ function UIXcvbArena:InitControls()
 
 	-- Tier Buttons
 	self.tier_btns = {}
-	for t = 1, 5 do
+	for t = 1, 6 do
 		local btn = xml:Init3tButton("tournament_cont:tier_btn_" .. t, self.tournament_cont)
 		self.tier_btns[t] = btn
 		self:Register(btn, "btn_tier_" .. t)
@@ -547,7 +553,91 @@ function UIXcvbArena:InitControls()
 	xml:InitStatic("vert_line1", self.bg)
 	xml:InitStatic("vert_line2", self.bg)
 	xml:InitStatic("vert_line3", self.bg)
+
+	self:set_modal_active("dssg", false)
+	self:set_modal_active("mag", false)
+	self:set_modal_active("endless_diff", false)
+	self:set_modal_active("night_device", false)
 end
+
+function UIXcvbArena:set_modal_active(modal_name, is_active)
+	local is_shown = (is_active == true)
+
+	if modal_name == "dssg" then
+		if self.dssg_menu then
+			self.dssg_menu:Show(is_shown)
+			self.dssg_menu:Enable(is_shown)
+		end
+		if self.btn_3dssg_off then self.btn_3dssg_off:Show(is_shown); self.btn_3dssg_off:Enable(is_shown) end
+		if self.btn_3dssg_random then self.btn_3dssg_random:Show(is_shown); self.btn_3dssg_random:Enable(is_shown) end
+		if self.btn_dssg_close then self.btn_dssg_close:Show(is_shown); self.btn_dssg_close:Enable(is_shown) end
+		if self.arr_3dssg_page_prev then self.arr_3dssg_page_prev:Show(is_shown); self.arr_3dssg_page_prev:Enable(is_shown) end
+		if self.arr_3dssg_page_next then self.arr_3dssg_page_next:Show(is_shown); self.arr_3dssg_page_next:Enable(is_shown) end
+		if self.arr_3dssg_rows then
+			for i = 1, 7 do
+				if self.arr_3dssg_rows[i] then
+					self.arr_3dssg_rows[i]:Show(is_shown)
+					self.arr_3dssg_rows[i]:Enable(is_shown)
+				end
+			end
+		end
+	elseif modal_name == "mag" then
+		if self.mag_menu then
+			self.mag_menu:Show(is_shown)
+			self.mag_menu:Enable(is_shown)
+		end
+		if self.mag_count_minus then self.mag_count_minus:Show(is_shown); self.mag_count_minus:Enable(is_shown) end
+		if self.mag_count_plus then self.mag_count_plus:Show(is_shown); self.mag_count_plus:Enable(is_shown) end
+		if self.ammo_count_minus then self.ammo_count_minus:Show(is_shown); self.ammo_count_minus:Enable(is_shown) end
+		if self.ammo_count_plus then self.ammo_count_plus:Show(is_shown); self.ammo_count_plus:Enable(is_shown) end
+		if self.mag_close_btn then self.mag_close_btn:Show(is_shown); self.mag_close_btn:Enable(is_shown) end
+		if self.mag_page_prev then self.mag_page_prev:Show(is_shown); self.mag_page_prev:Enable(is_shown) end
+		if self.mag_page_next then self.mag_page_next:Show(is_shown); self.mag_page_next:Enable(is_shown) end
+		if self.arr_mag_rows then
+			for i = 1, 7 do
+				if self.arr_mag_rows[i] then
+					self.arr_mag_rows[i]:Show(is_shown)
+					self.arr_mag_rows[i]:Enable(is_shown)
+				end
+			end
+		end
+	elseif modal_name == "endless_diff" then
+		if self.endless_diff_menu then
+			self.endless_diff_menu:Show(is_shown)
+			self.endless_diff_menu:Enable(is_shown)
+		end
+		if self.btn_diff_easy then self.btn_diff_easy:Show(is_shown); self.btn_diff_easy:Enable(is_shown) end
+		if self.btn_diff_medium then self.btn_diff_medium:Show(is_shown); self.btn_diff_medium:Enable(is_shown) end
+		if self.btn_diff_hard then self.btn_diff_hard:Show(is_shown); self.btn_diff_hard:Enable(is_shown) end
+		if self.btn_diff_3dssg then self.btn_diff_3dssg:Show(is_shown); self.btn_diff_3dssg:Enable(is_shown) end
+		if self.btn_diff_cancel then self.btn_diff_cancel:Show(is_shown); self.btn_diff_cancel:Enable(is_shown) end
+	elseif modal_name == "night_device" then
+		if self.night_device_menu then
+			self.night_device_menu:Show(is_shown)
+			self.night_device_menu:Enable(is_shown)
+		end
+		if self.btn_dev_torch then self.btn_dev_torch:Show(is_shown); self.btn_dev_torch:Enable(is_shown) end
+		if self.btn_dev_nvg1 then self.btn_dev_nvg1:Show(is_shown); self.btn_dev_nvg1:Enable(is_shown) end
+		if self.btn_dev_nvg2 then self.btn_dev_nvg2:Show(is_shown); self.btn_dev_nvg2:Enable(is_shown) end
+		if self.btn_dev_nvg3 then self.btn_dev_nvg3:Show(is_shown); self.btn_dev_nvg3:Enable(is_shown) end
+		if self.btn_dev_none then self.btn_dev_none:Show(is_shown); self.btn_dev_none:Enable(is_shown) end
+		if self.btn_dev_close then self.btn_dev_close:Show(is_shown); self.btn_dev_close:Enable(is_shown) end
+	end
+
+	local any_modal_open = (self.dssg_menu and self.dssg_menu:IsShown())
+		or (self.mag_menu and self.mag_menu:IsShown())
+		or (self.endless_diff_menu and self.endless_diff_menu:IsShown())
+		or (self.night_device_menu and self.night_device_menu:IsShown())
+
+	local allow_bg = not any_modal_open
+	if self.tournament_cont then self.tournament_cont:Enable(allow_bg) end
+	if self.beta_cont then self.beta_cont:Enable(allow_bg) end
+	if self.spectator_cont then self.spectator_cont:Enable(allow_bg) end
+	if self.btn_mode then self.btn_mode:Enable(allow_bg) end
+	if self.btn_beta then self.btn_beta:Enable(allow_bg) end
+	if self.btn_practice then self.btn_practice:Enable(allow_bg) end
+end
+
 
 function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_practice", ui_events.BUTTON_CLICKED, self.on_click_practice_toggle, self)
@@ -577,7 +667,7 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_dev_nvg2", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_nv_2") end, self)
 	self:AddCallback("btn_dev_nvg3", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_nv_3") end, self)
 	self:AddCallback("btn_dev_none", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("none") end, self)
-	self:AddCallback("btn_dev_close", ui_events.BUTTON_CLICKED, function() if self.night_device_menu then self.night_device_menu:Show(false) end end, self)
+	self:AddCallback("btn_dev_close", ui_events.BUTTON_CLICKED, function() self:set_modal_active("night_device", false) end, self)
 
 	-- Beta Testing Battle Royale callbacks
 	self:AddCallback("bc_btn_3teams", ui_events.BUTTON_CLICKED, function() self:on_click_bc_teams_count(3) end, self)
@@ -606,7 +696,7 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_cat_mutants", ui_events.BUTTON_CLICKED, self.on_click_cat_mutants, self)
 
 	-- Tier callbacks
-	for t = 1, 5 do
+	for t = 1, 6 do
 		self:AddCallback("btn_tier_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_tier(t) end, self)
 	end
 
@@ -929,7 +1019,7 @@ end
 function UIXcvbArena:on_click_night_device()
 	if self.night_device_menu then
 		local show = not self.night_device_menu:IsShown()
-		self.night_device_menu:Show(show)
+		self:set_modal_active("night_device", show)
 		if show then
 			self:update_night_device_menu()
 		end
@@ -938,9 +1028,7 @@ end
 
 function UIXcvbArena:on_select_night_device(sec)
 	xcvb_arena_main.night_mode_device = sec
-	if self.night_device_menu then
-		self.night_device_menu:Show(false)
-	end
+	self:set_modal_active("night_device", false)
 	self:update_night_device_btn()
 end
 
@@ -1022,7 +1110,7 @@ end
 function UIXcvbArena:auto_select_current_round()
 	local cat = self.current_category or "stalker"
 	local unl = xcvb_arena_main.get_unlocked_round(cat)
-	local tier = math.min(5, math.ceil(unl / 3))
+	local tier = math.min(6, math.ceil(unl / 3))
 	self.current_tier = tier
 	local start_round = (tier - 1) * 3 + 1
 	local target_round = start_round
@@ -1092,8 +1180,10 @@ function UIXcvbArena:on_click_action(row_idx)
 end
 
 function UIXcvbArena:update_view_mode()
-	self:show_endless_difficulty_menu(false)
-	self:show_dssg_menu(false)
+	self:set_modal_active("endless_diff", false)
+	self:set_modal_active("dssg", false)
+	self:set_modal_active("mag", false)
+	self:set_modal_active("night_device", false)
 	self:update_practice_button()
 	if self.btn_practice then
 		self.btn_practice:Show(self.current_mode == "tournament")
@@ -1183,7 +1273,7 @@ function UIXcvbArena:update_tournament_display()
 	end
 
 	-- Tier tabs highlight
-	for t = 1, 5 do
+	for t = 1, 6 do
 		local btn = self.tier_btns[t]
 		local t_rank_ok = xcvb_arena_main.practice_mode_active or xcvb_arena_main.is_tier_unlocked_by_rank(t)
 		if t == self.current_tier then
@@ -1505,6 +1595,8 @@ function UIXcvbArena:update_loadout_buttons()
 	for _, cls in ipairs({ "random", "pistol", "shotgun", "rifle", "smg", "sniper" }) do
 		local btn = self.loadout_class_btns and self.loadout_class_btns[cls]
 		if btn then
+			btn:Show(true)
+			btn:Enable(true)
 			local c_name = class_names[cls] or cls
 			if cls == self.selected_loadout_class then
 				btn:TextControl():SetText(c_name .. " [ON]")
@@ -1527,6 +1619,8 @@ function UIXcvbArena:update_loadout_buttons()
 	for t = 0, 5 do
 		local btn = self.loadout_tier_btns and self.loadout_tier_btns[t]
 		if btn then
+			btn:Show(true)
+			btn:Enable(true)
 			local t_name = tier_names[t] or ("Tier " .. t)
 			if t == self.selected_loadout_tier then
 				btn:TextControl():SetText(t_name .. " [ON]")
@@ -1541,7 +1635,7 @@ function UIXcvbArena:update_loadout_buttons()
 	-- Determine effective tier for weapon / gear preview
 	local eff_tier = self.selected_loadout_tier
 	if not eff_tier or eff_tier == 0 then
-		eff_tier = math.floor((self.selected_round_id - 1) / 3) + 1
+		eff_tier = math.min(5, math.floor((self.selected_round_id - 1) / 3) + 1)
 	end
 	if eff_tier < 1 then eff_tier = 1 end
 	if eff_tier > 5 then eff_tier = 5 end
@@ -2707,33 +2801,10 @@ function UIXcvbArena:open_dssg_menu()
 end
 
 function UIXcvbArena:show_dssg_menu(show)
-    if not self.dssg_menu then return end
-    
-    local is_show = (show == true)
-    
-    -- Mostrar/Ocultar el fondo principal
-    self.dssg_menu:Show(is_show)
-    
-    -- Sincronizar botones estáticos explícitamente para evitar bloqueos
-    if self.btn_3dssg_off then self.btn_3dssg_off:Show(is_show) end
-    if self.btn_3dssg_random then self.btn_3dssg_random:Show(is_show) end
-    if self.btn_dssg_close then self.btn_dssg_close:Show(is_show) end
-    
-    if is_show then
-        self:update_dssg_menu()
-    else
-        -- Matar forzosamente los hitboxes invisibles de la paginación y las filas
-        if self.arr_3dssg_page_prev then self.arr_3dssg_page_prev:Show(false) end
-        if self.arr_3dssg_page_next then self.arr_3dssg_page_next:Show(false) end
-        
-        if self.arr_3dssg_rows then
-            for i = 1, 7 do
-                if self.arr_3dssg_rows[i] then
-                    self.arr_3dssg_rows[i]:Show(false)
-                end
-            end
-        end
-    end
+	self:set_modal_active("dssg", show == true)
+	if show == true then
+		self:update_dssg_menu()
+	end
 end
 
 function UIXcvbArena:update_dssg_menu()
@@ -2948,37 +3019,10 @@ function UIXcvbArena:open_mag_menu()
 end
 
 function UIXcvbArena:show_mag_menu(show)
-	if not self.mag_menu then return end
-	local is_show = (show == true)
-	self.mag_menu:Show(is_show)
-
-	if self.mag_count_minus then self.mag_count_minus:Show(is_show) end
-	if self.mag_count_plus then self.mag_count_plus:Show(is_show) end
-	if self.ammo_count_minus then self.ammo_count_minus:Show(is_show) end
-	if self.ammo_count_plus then self.ammo_count_plus:Show(is_show) end
-	if self.mag_close_btn then self.mag_close_btn:Show(is_show) end
-
-	if is_show then
+	self:set_modal_active("mag", show == true)
+	if show == true then
 		self:update_mag_menu()
-	else
-		if self.mag_page_prev then self.mag_page_prev:Show(false) end
-		if self.mag_page_next then self.mag_page_next:Show(false) end
-		if self.arr_mag_rows then
-			for i = 1, 7 do
-				if self.arr_mag_rows[i] then self.arr_mag_rows[i]:Show(false) end
-			end
-		end
 	end
-
-	if self.tournament_cont then
-		self.tournament_cont:Enable(not is_show)
-	end
-	if self.beta_cont then
-		self.beta_cont:Enable(not is_show)
-	end
-	if self.btn_mode then self.btn_mode:Enable(not is_show) end
-	if self.btn_beta then self.btn_beta:Enable(not is_show) end
-	if self.btn_practice then self.btn_practice:Enable(not is_show) end
 end
 
 function UIXcvbArena:update_mag_menu()
@@ -3011,14 +3055,14 @@ function UIXcvbArena:update_mag_menu()
 			a_str = (gt("st_arena_loadout_boxes_auto") or "1-3 (Auto)")
 		elseif a_cnt == 1 then
 			local eff_tier = self.selected_loadout_tier or 1
-			if eff_tier == 0 then eff_tier = math.floor((self.selected_round_id - 1) / 3) + 1 end
+			if eff_tier == 0 then eff_tier = math.min(5, math.floor((self.selected_round_id - 1) / 3) + 1) end
 			local eff_ammo = xcvb_arena_utils.get_loadout_effective_ammo_sec(self.selected_weapon_sec, self.selected_loadout_ammo, self.selected_special_ammo_sec, eff_tier)
 			local b_size = xcvb_arena_utils.get_ammo_box_size(eff_ammo)
 			local total_b = 1 * b_size
 			a_str = string.format(gt("st_arena_loadout_box_singular") or "1 caja (%s balas)", tostring(total_b))
 		else
 			local eff_tier = self.selected_loadout_tier or 1
-			if eff_tier == 0 then eff_tier = math.floor((self.selected_round_id - 1) / 3) + 1 end
+			if eff_tier == 0 then eff_tier = math.min(5, math.floor((self.selected_round_id - 1) / 3) + 1) end
 			local eff_ammo = xcvb_arena_utils.get_loadout_effective_ammo_sec(self.selected_weapon_sec, self.selected_loadout_ammo, self.selected_special_ammo_sec, eff_tier)
 			local b_size = xcvb_arena_utils.get_ammo_box_size(eff_ammo)
 			local total_b = a_cnt * b_size
@@ -3103,21 +3147,10 @@ function UIXcvbArena:on_click_mag_page(dir)
 end
 
 function UIXcvbArena:show_endless_difficulty_menu(show)
-	if self.endless_diff_menu then
-		self.endless_diff_menu:Show(show == true)
-	end
-	if show then
+	self:set_modal_active("endless_diff", show == true)
+	if show == true then
 		self:update_endless_3dssg_button()
 	end
-	if self.tournament_cont then
-		self.tournament_cont:Enable(not show)
-	end
-	if self.beta_cont then
-		self.beta_cont:Enable(not show)
-	end
-	if self.btn_mode then self.btn_mode:Enable(not show) end
-	if self.btn_beta then self.btn_beta:Enable(not show) end
-	if self.btn_practice then self.btn_practice:Enable(not show) end
 end
 
 function UIXcvbArena:on_select_endless_difficulty(diff)

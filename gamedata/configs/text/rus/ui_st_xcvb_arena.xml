@@ -1258,4 +1258,29 @@
 	<string id="ui_mcm_xcvb_arena_night_elite_nvg_desc">
 		<text>Elite enemies (Masters, Legends, Monolith, and veterans) equip Night Vision goggles and DO NOT turn on flashlights.</text>
 	</string>
+    <string id="st_arena_bosses"><text>BOSSES</text></string>
+    <string id="st_arena_boss_hunter_name"><text>The Hunter</text></string>
+    <string id="st_arena_boss_hunter_desc"><text>Duel against a veteran with a SPAS-12 shotgun. Use cover to control the distance.</text></string>
+    <string id="st_arena_boss_hunter_enemies"><text>1x Veteran / SPAS-12</text></string>
+    <string id="st_arena_boss_hunter_reward"><text>35000 RU + Scientific medkit</text></string>
+    <string id="st_arena_boss_ghost_name"><text>The Ghost</text></string>
+    <string id="st_arena_boss_ghost_desc"><text>Duel against an SVD marksman. Avoid crossing the exposed center of the arena.</text></string>
+    <string id="st_arena_boss_ghost_enemies"><text>1x Marksman / SVD</text></string>
+    <string id="st_arena_boss_ghost_reward"><text>45000 RU + Scientific medkit</text></string>
+    <string id="st_arena_boss_executioner_name"><text>The Executioner: final duel</text></string>
+    <string id="st_arena_boss_executioner_desc"><text>The champion returns for a duel with a PKM. Use his reloads to move between cover.</text></string>
+    <string id="st_arena_boss_executioner_enemies"><text>1x Champion / PKM</text></string>
+    <string id="st_arena_boss_executioner_reward"><text>65000 RU + Scientific medkit</text></string>
+    <string id="st_arena_boss_matriarch_name"><text>The Matriarch</text></string>
+    <string id="st_arena_boss_matriarch_desc"><text>A strong chimera and two pseudodogs. Separate the pack before facing the Matriarch.</text></string>
+    <string id="st_arena_boss_matriarch_enemies"><text>1x Chimera + 2x Pseudodogs</text></string>
+    <string id="st_arena_boss_matriarch_reward"><text>35000 RU + Scientific medkit</text></string>
+    <string id="st_arena_boss_whisper_name"><text>The Whisper</text></string>
+    <string id="st_arena_boss_whisper_desc"><text>A controller protected by two zombies. Its escorts obstruct your approach to the boss.</text></string>
+    <string id="st_arena_boss_whisper_enemies"><text>1x Controller + 2x Zombies</text></string>
+    <string id="st_arena_boss_whisper_reward"><text>45000 RU + Scientific medkit</text></string>
+    <string id="st_arena_boss_colossus_name"><text>The Colossus</text></string>
+    <string id="st_arena_boss_colossus_desc"><text>A strong pseudogiant with two snorks. Keep moving and eliminate the faster enemies first.</text></string>
+    <string id="st_arena_boss_colossus_enemies"><text>1x Pseudogiant + 2x Snorks</text></string>
+    <string id="st_arena_boss_colossus_reward"><text>65000 RU + Scientific medkit</text></string>
 </string_table>

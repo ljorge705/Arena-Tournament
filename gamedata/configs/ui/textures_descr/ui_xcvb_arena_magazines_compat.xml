@@ -1,0 +1,7 @@
+<w>
+    <!-- Magazines Redux UIMagCell requests this unnumbered background.
+         Use the same vanilla atlas region as its ui_mags_bkg1 definition. -->
+    <file name="ui\ui_ingame2_common">
+        <texture id="ui_mags_bkg" x="0" y="285" width="68" height="39" />
+    </file>
+</w>

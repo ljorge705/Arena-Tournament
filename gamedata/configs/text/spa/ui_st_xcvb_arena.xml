@@ -1300,4 +1300,29 @@
 	<string id="st_arena_mag_menu_ammo">
 		<text>Cajas: %s</text>
 	</string>
+    <string id="st_arena_bosses"><text>BOSSES</text></string>
+    <string id="st_arena_boss_hunter_name"><text>El Cazador</text></string>
+    <string id="st_arena_boss_hunter_desc"><text>Duelo contra un veterano con escopeta SPAS-12. Usa las coberturas para controlar la distancia.</text></string>
+    <string id="st_arena_boss_hunter_enemies"><text>1x Veterano / SPAS-12</text></string>
+    <string id="st_arena_boss_hunter_reward"><text>35000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_ghost_name"><text>El Fantasma</text></string>
+    <string id="st_arena_boss_ghost_desc"><text>Duelo contra un tirador con SVD. Evita cruzar la arena por el centro descubierto.</text></string>
+    <string id="st_arena_boss_ghost_enemies"><text>1x Tirador / SVD</text></string>
+    <string id="st_arena_boss_ghost_reward"><text>45000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_executioner_name"><text>El Verdugo: duelo final</text></string>
+    <string id="st_arena_boss_executioner_desc"><text>El campeon regresa en un duelo con PKM. Aprovecha sus recargas para cambiar de cobertura.</text></string>
+    <string id="st_arena_boss_executioner_enemies"><text>1x Campeon / PKM</text></string>
+    <string id="st_arena_boss_executioner_reward"><text>65000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_matriarch_name"><text>La Matriarca</text></string>
+    <string id="st_arena_boss_matriarch_desc"><text>Una quimera fuerte y dos pseudoperros. Separa la manada antes de enfrentar a la Matriarca.</text></string>
+    <string id="st_arena_boss_matriarch_enemies"><text>1x Quimera + 2x Pseudoperros</text></string>
+    <string id="st_arena_boss_matriarch_reward"><text>35000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_whisper_name"><text>El Susurro</text></string>
+    <string id="st_arena_boss_whisper_desc"><text>Un controlador protegido por dos zombis. Los escoltas complican tu acercamiento al jefe.</text></string>
+    <string id="st_arena_boss_whisper_enemies"><text>1x Controlador + 2x Zombis</text></string>
+    <string id="st_arena_boss_whisper_reward"><text>45000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_colossus_name"><text>El Coloso</text></string>
+    <string id="st_arena_boss_colossus_desc"><text>Un pseudogigante fuerte con dos snorks. Mantente en movimiento y elimina primero a los mas rapidos.</text></string>
+    <string id="st_arena_boss_colossus_enemies"><text>1x Pseudogigante + 2x Snorks</text></string>
+    <string id="st_arena_boss_colossus_reward"><text>65000 RU + Botiquin cientifico</text></string>
 </string_table>
