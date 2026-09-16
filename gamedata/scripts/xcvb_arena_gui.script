@@ -250,6 +250,10 @@ function UIXcvbArena:InitControls()
 
 	self.endless_custom_eq_btn_main = xml:Init3tButton("tournament_cont:endless_custom_eq_btn_main", self.tournament_cont)
 	self:Register(self.endless_custom_eq_btn_main, "btn_endless_custom_eq_main")
+	if self.endless_custom_eq_btn_main then
+		self.endless_custom_eq_btn_main:Show(false)
+		self.endless_custom_eq_btn_main:Enable(false)
+	end
 
 	-- ArtiGrok Special Ammo Toggle Button (Main Screen)
 	self.endless_arti_btn_main = xml:Init3tButton("tournament_cont:endless_arti_btn_main", self.tournament_cont)
@@ -496,6 +500,8 @@ function UIXcvbArena:InitControls()
 
 		self.btn_ec_select_wpn = xml:Init3tButton("endless_custom_menu:btn_ec_select_wpn", self.endless_custom_menu)
 		self:Register(self.btn_ec_select_wpn, "btn_ec_select_wpn")
+		self.btn_ec_3dssg = xml:Init3tButton("endless_custom_menu:btn_ec_3dssg", self.endless_custom_menu)
+		self:Register(self.btn_ec_3dssg, "btn_ec_3dssg")
 
 		self.ec_ammo_btns = {}
 		for _, at in ipairs({ "auto", "fmj", "ap", "hp", "spec" }) do
@@ -778,6 +784,7 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		end
 		if self.btn_ec_toggle then self.btn_ec_toggle:Show(is_shown); self.btn_ec_toggle:Enable(is_shown) end
 		if self.btn_ec_select_wpn then self.btn_ec_select_wpn:Show(is_shown); self.btn_ec_select_wpn:Enable(is_shown) end
+		if self.btn_ec_3dssg then self.btn_ec_3dssg:Show(is_shown); self.btn_ec_3dssg:Enable(is_shown) end
 		if self.ec_cls_btns then
 			for _, b in pairs(self.ec_cls_btns) do
 				if b then b:Show(is_shown); b:Enable(is_shown) end
@@ -894,6 +901,7 @@ function UIXcvbArena:InitCallbacks()
 		self:AddCallback("btn_ec_cls_" .. c, ui_events.BUTTON_CLICKED, function() self:on_click_ec_cls(c) end, self)
 	end
 	self:AddCallback("btn_ec_select_wpn", ui_events.BUTTON_CLICKED, self.on_click_ec_select_wpn, self)
+	self:AddCallback("btn_ec_3dssg", ui_events.BUTTON_CLICKED, self.on_click_ec_3dssg, self)
 	for _, at in ipairs({ "auto", "fmj", "ap", "hp", "spec" }) do
 		local t = at
 		self:AddCallback("btn_ec_ammo_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_ec_ammo(t) end, self)
@@ -2105,7 +2113,7 @@ function UIXcvbArena:update_loadout_buttons()
 		end
 	else
 		if self.btn_endless then self.btn_endless:Show(true) end
-		if self.endless_custom_eq_btn_main then self.endless_custom_eq_btn_main:Show(true) end
+		if self.endless_custom_eq_btn_main then self.endless_custom_eq_btn_main:Show(false) end
 		if self.btn_endless_cont then
 			self.btn_endless_cont:Show(true)
 			local cp = xcvb_arena_main.endless_checkpoint_wave or 1
@@ -3025,9 +3033,17 @@ function UIXcvbArena:on_click_endless_type(t)
 	self:update_endless_display()
 end
 
-function UIXcvbArena:open_dssg_menu()
-	if not self.selected_weapon_sec then return end
-	local entries = xcvb_arena_utils.get_weapon_scopes(self.selected_weapon_sec) or {}
+function UIXcvbArena:open_dssg_menu(target_mode)
+	self.dssg_menu_target_mode = target_mode or "tournament"
+	local wpn_sec = nil
+	if self.dssg_menu_target_mode == "endless" then
+		local cl = xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout()
+		wpn_sec = cl and cl.weapon_sec
+	else
+		wpn_sec = self.selected_weapon_sec
+	end
+	if not wpn_sec then return end
+	local entries = (xcvb_arena_utils and xcvb_arena_utils.get_weapon_scopes and xcvb_arena_utils.get_weapon_scopes(wpn_sec)) or {}
 	if #entries == 0 then return end
 	local kits, scopes = {}, {}
 	for _, sec in ipairs(entries) do
@@ -3048,6 +3064,10 @@ function UIXcvbArena:show_dssg_menu(show)
 	self:set_modal_active("dssg", show == true)
 	if show == true then
 		self:update_dssg_menu()
+	else
+		if self.dssg_menu_target_mode == "endless" and not (self.endless_custom_menu and self.endless_custom_menu:IsShown()) then
+			self:show_endless_custom_menu(true)
+		end
 	end
 end
 
@@ -3060,9 +3080,15 @@ function UIXcvbArena:update_dssg_menu()
 	if (not self.arr_3dssg_page) or self.arr_3dssg_page > total_pages then self.arr_3dssg_page = 1 end
 	if self.arr_3dssg_page < 1 then self.arr_3dssg_page = 1 end
 
+	local w_sec = (self.dssg_menu_target_mode == "endless")
+		and (xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout() and xcvb_arena_endless.get_custom_loadout().weapon_sec)
+		or self.selected_weapon_sec
+
 	local w_name = ""
-	if self.selected_weapon_sec then
-		w_name = xcvb_arena_utils.get_item_name(self.selected_weapon_sec) or ""
+	if w_sec then
+		w_name = (xcvb_arena_utils and xcvb_arena_utils.get_unique_weapon_name and xcvb_arena_utils.get_unique_weapon_name(w_sec))
+			or (ini_sys:r_string_ex(w_sec, "inv_name") and gt(ini_sys:r_string_ex(w_sec, "inv_name")))
+			or (xcvb_arena_utils and xcvb_arena_utils.get_item_name and xcvb_arena_utils.get_item_name(w_sec)) or w_sec or ""
 	end
 	if self.dssg_menu_title then
 		self.dssg_menu_title:SetText("3DSSG: " .. w_name)
@@ -3076,8 +3102,25 @@ function UIXcvbArena:update_dssg_menu()
 	end
 
 	-- Mode buttons
-	local cur_mode = self.selected_3dssg_mode
-	local cur_scope = self.selected_3dssg_scope
+	local cur_mode, cur_scope
+	if self.dssg_menu_target_mode == "endless" then
+		local cl = xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout()
+		local s_sec = cl and cl.scope_sec
+		if not s_sec or s_sec == "off" then
+			cur_mode = "off"
+			cur_scope = nil
+		elseif s_sec == "random" then
+			cur_mode = "random"
+			cur_scope = nil
+		else
+			cur_mode = "custom"
+			cur_scope = s_sec
+		end
+	else
+		cur_mode = self.selected_3dssg_mode
+		cur_scope = self.selected_3dssg_scope
+	end
+
 	if self.btn_3dssg_off then
 		if cur_mode == "off" then
 			self.btn_3dssg_off:TextControl():SetText("3DSSG [OFF] [x]")
@@ -3139,24 +3182,48 @@ function UIXcvbArena:on_click_dssg_row(row_idx)
 	local actual_idx = (self.arr_3dssg_page - 1) * 7 + row_idx
 	local entry = entries[actual_idx]
 	if not entry then return end
-	self.selected_3dssg_scope = entry
-	self.selected_3dssg_mode = "custom"
-	self:show_dssg_menu(false)
-	self:update_loadout_buttons()
+	if self.dssg_menu_target_mode == "endless" then
+		if xcvb_arena_endless and xcvb_arena_endless.set_custom_scope then
+			xcvb_arena_endless.set_custom_scope(entry)
+		end
+		self:show_dssg_menu(false)
+		self:show_endless_custom_menu(true)
+	else
+		self.selected_3dssg_scope = entry
+		self.selected_3dssg_mode = "custom"
+		self:show_dssg_menu(false)
+		self:update_loadout_buttons()
+	end
 end
 
 function UIXcvbArena:on_click_3dssg_menu_off()
-	self.selected_3dssg_mode = "off"
-	self.selected_3dssg_scope = nil
-	self:show_dssg_menu(false)
-	self:update_loadout_buttons()
+	if self.dssg_menu_target_mode == "endless" then
+		if xcvb_arena_endless and xcvb_arena_endless.set_custom_scope then
+			xcvb_arena_endless.set_custom_scope("off")
+		end
+		self:show_dssg_menu(false)
+		self:show_endless_custom_menu(true)
+	else
+		self.selected_3dssg_mode = "off"
+		self.selected_3dssg_scope = nil
+		self:show_dssg_menu(false)
+		self:update_loadout_buttons()
+	end
 end
 
 function UIXcvbArena:on_click_3dssg_menu_random()
-	self.selected_3dssg_mode = "random"
-	self.selected_3dssg_scope = nil
-	self:show_dssg_menu(false)
-	self:update_loadout_buttons()
+	if self.dssg_menu_target_mode == "endless" then
+		if xcvb_arena_endless and xcvb_arena_endless.set_custom_scope then
+			xcvb_arena_endless.set_custom_scope("random")
+		end
+		self:show_dssg_menu(false)
+		self:show_endless_custom_menu(true)
+	else
+		self.selected_3dssg_mode = "random"
+		self.selected_3dssg_scope = nil
+		self:show_dssg_menu(false)
+		self:update_loadout_buttons()
+	end
 end
 
 function UIXcvbArena:on_click_dssg_page(dir)
@@ -3693,6 +3760,7 @@ function UIXcvbArena:update_endless_custom_btn()
 	if self.endless_custom_eq_btn_main and self.endless_custom_eq_btn_main:TextControl() then
 		self.endless_custom_eq_btn_main:TextControl():SetText(base_lbl .. ": [" .. status_lbl .. "]")
 		self.endless_custom_eq_btn_main:TextControl():SetTextColor(col)
+		self.endless_custom_eq_btn_main:Show(false)
 	end
 	if self.btn_diff_custom and self.btn_diff_custom:TextControl() then
 		self.btn_diff_custom:TextControl():SetText(base_lbl .. ": [" .. status_lbl .. "]")
@@ -3747,6 +3815,37 @@ function UIXcvbArena:update_endless_custom_menu()
 		self.btn_ec_select_wpn:TextControl():SetTextColor(cur_sec and GetARGB(255, 120, 240, 255) or GetARGB(255, 240, 200, 100))
 	end
 
+	-- 3b. 3DSSG button
+	local cur_scope = cl.scope_sec
+	local has_scopes = false
+	if cur_sec and xcvb_arena_utils and xcvb_arena_utils.get_weapon_scopes then
+		local sc_list = xcvb_arena_utils.get_weapon_scopes(cur_sec)
+		has_scopes = (sc_list and #sc_list > 0)
+	end
+	if self.btn_ec_3dssg and self.btn_ec_3dssg:TextControl() then
+		if not has_scopes then
+			self.btn_ec_3dssg:TextControl():SetText("3DSSG [N/A]")
+			self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255, 130, 130, 130))
+			self.btn_ec_3dssg:Enable(false)
+		else
+			self.btn_ec_3dssg:Enable(true)
+			if not cur_scope or cur_scope == "off" then
+				self.btn_ec_3dssg:TextControl():SetText("3DSSG [OFF]")
+				self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+			elseif cur_scope == "random" then
+				self.btn_ec_3dssg:TextControl():SetText("3DSSG [RANDOM]")
+				self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+			else
+				local sc_name = (xcvb_arena_utils and xcvb_arena_utils.get_item_short_name and xcvb_arena_utils.get_item_short_name(cur_scope)) or cur_scope
+				if string.len(sc_name) > 14 then
+					sc_name = string.sub(sc_name, 1, 12) .. ".."
+				end
+				self.btn_ec_3dssg:TextControl():SetText("3DSSG: " .. sc_name)
+				self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255, 120, 240, 255))
+			end
+		end
+	end
+
 	-- 4. Ammo type buttons
 	local cur_ammo = cl.ammo_type or "auto"
 	if cur_ammo == "special" then cur_ammo = "spec" end
@@ -3783,7 +3882,19 @@ function UIXcvbArena:update_endless_custom_menu()
 	end
 	if self.ec_sum_wpn then
 		local w_lbl = gt("st_arena_ec_sum_wpn_lbl") or "Weapon:"
-		self.ec_sum_wpn:SetText(w_lbl .. " " .. w_name .. (cur_sec and (" [" .. cur_sec .. "]") or ""))
+		local sc_txt = ""
+		if cur_scope and cur_scope ~= "off" then
+			if cur_scope == "random" then
+				sc_txt = " + 3DSSG [RANDOM]"
+			else
+				local s_nm = (xcvb_arena_utils and xcvb_arena_utils.get_item_short_name and xcvb_arena_utils.get_item_short_name(cur_scope)) or cur_scope
+				sc_txt = " + " .. s_nm
+			end
+		end
+		self.ec_sum_wpn:SetText(w_lbl .. " " .. w_name .. sc_txt)
+	end
+	if self.ec_sum_note then
+		self.ec_sum_note:SetText(gt("st_arena_endless_custom_note") or "Note: When custom loadout is enabled, you will keep this chosen weapon across all Endless rounds.")
 	end
 	if self.ec_sum_tier then
 		local cls_lbl = gt("st_arena_ec_sum_class_lbl") or "Class:"
@@ -3823,6 +3934,16 @@ function UIXcvbArena:on_click_ec_cls(cls)
 		end
 	end
 	self:update_endless_custom_menu()
+end
+
+function UIXcvbArena:on_click_ec_3dssg()
+	local cl = xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout()
+	local wpn_sec = cl and cl.weapon_sec
+	if not wpn_sec then return end
+	local entries = xcvb_arena_utils and xcvb_arena_utils.get_weapon_scopes and xcvb_arena_utils.get_weapon_scopes(wpn_sec)
+	if not entries or #entries == 0 then return end
+	self:show_endless_custom_menu(false)
+	self:open_dssg_menu("endless")
 end
 
 function UIXcvbArena:on_click_ec_select_wpn()

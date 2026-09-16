@@ -1458,7 +1458,7 @@
 		<text>CONFIRMAR Y GUARDAR EQUIPAMIENTO</text>
 	</string>
 	<string id="st_arena_endless_custom_note">
-		<text>Nota: Al activar equipamiento personalizado, iniciaras el modo endless con este armamento exacto.</text>
+		<text>Nota: Con el equipamiento personalizado activo, mantendras esta misma arma elegida durante todas las rondas de Endless.</text>
 	</string>
 	<string id="st_arena_endless_custom_on">
 		<text>ACTIVO</text>

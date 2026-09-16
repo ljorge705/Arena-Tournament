@@ -1432,7 +1432,7 @@
 		<text>CONFIRM AND SAVE EQUIPMENT</text>
 	</string>
 	<string id="st_arena_endless_custom_note">
-		<text>Note: When custom equipment is active, you will enter endless mode with this exact loadout.</text>
+		<text>Note: When custom loadout is enabled, you will keep this chosen weapon across all Endless rounds.</text>
 	</string>
 	<string id="st_arena_endless_custom_on">
 		<text>ACTIVE</text>

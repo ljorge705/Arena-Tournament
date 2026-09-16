@@ -52,6 +52,25 @@ function set_custom_weapon(sec, cls, tier)
     custom_loadout.weapon_sec = sec
     if cls then custom_loadout.class = cls end
     if tier then custom_loadout.tier = tier end
+    if custom_loadout.scope_sec and custom_loadout.scope_sec ~= "off" and custom_loadout.scope_sec ~= "random" then
+        local valid = false
+        if xcvb_arena_utils and xcvb_arena_utils.get_weapon_scopes then
+            local scs = xcvb_arena_utils.get_weapon_scopes(sec) or {}
+            for _, s in ipairs(scs) do
+                if s == custom_loadout.scope_sec then
+                    valid = true
+                    break
+                end
+            end
+        end
+        if not valid then
+            custom_loadout.scope_sec = "off"
+        end
+    end
+end
+
+function set_custom_scope(scope_sec)
+    custom_loadout.scope_sec = scope_sec
 end
 
 function set_custom_ammo_type(a_type, spec_sec)
@@ -513,6 +532,13 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
 
     -- Timer 5: 3DSSG Scope Attachment (1.1s)
     local is_dssg = (use_3dssg == true) or (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true)
+    if custom_loadout.enabled then
+        if custom_loadout.scope_sec == "off" then
+            is_dssg = false
+        elseif custom_loadout.scope_sec and custom_loadout.scope_sec ~= "off" then
+            is_dssg = true
+        end
+    end
     if is_dssg then
         CreateTimeEvent("arena_equip_endless_3dssg", "arena_equip_endless_3dssg", 1.1, function()
             if not db.actor then return true end
@@ -520,14 +546,76 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
                 if xcvb_arena_utils and xcvb_arena_utils.temporary_arena_item_ids and xcvb_arena_utils.temporary_arena_item_ids[itm:id()]
                     and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
                     local forced_scope = (custom_loadout.enabled and custom_loadout.scope_sec) or nil
+                    if forced_scope == "off" then forced_scope = nil end
                     if xcvb_arena_utils and xcvb_arena_utils.attach_arena_scope then
                         xcvb_arena_utils.attach_arena_scope(itm, forced_scope)
+                    end
+                    local sec = itm:section()
+                    if xcvb_arena_utils and xcvb_arena_utils.is_powered_scope_or_weapon and xcvb_arena_utils.is_powered_scope_or_weapon(sec) then
+                        if se_save_var then
+                            se_save_var(itm:id(), nil, "3dss_thermal_battery", {
+                                version = 2,
+                                main = { section = sec, charge = 1.0 },
+                            })
+                        end
+                        if xcvb_arena_utils.ensure_actor_3dssg_batteries then
+                            xcvb_arena_utils.ensure_actor_3dssg_batteries(nil, sec)
+                        end
                     end
                 end
             end, db.actor)
             return true
         end)
     end
+
+    -- Timer 6: 3DSSG Slot & Draw Verification (1.6s)
+    CreateTimeEvent("arena_equip_endless_3dssg_draw_verify1", "arena_equip_endless_3dssg_draw_verify1", 1.6, function()
+        if not db.actor then return true end
+        local in_slot = db.actor:item_in_slot(endless_target_slot)
+        if not in_slot then
+            local wpn_candidate = nil
+            db.actor:iterate_inventory(function(_, itm)
+                if itm and xcvb_arena_utils and xcvb_arena_utils.temporary_arena_item_ids and xcvb_arena_utils.temporary_arena_item_ids[itm:id()]
+                    and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                    wpn_candidate = itm
+                    return true
+                end
+            end, db.actor)
+            if wpn_candidate then
+                pcall(function() db.actor:move_to_slot(wpn_candidate, endless_target_slot) end)
+                if db.actor:item_in_slot(endless_target_slot) ~= wpn_candidate and endless_target_slot == 2 then
+                    pcall(function() db.actor:move_to_slot(wpn_candidate, 3) end)
+                    if db.actor:item_in_slot(3) == wpn_candidate then
+                        endless_target_slot = 3
+                    end
+                end
+                if db.actor.make_item_active then
+                    pcall(function() db.actor:make_item_active(wpn_candidate) end)
+                end
+            end
+        end
+        pcall(function() db.actor:activate_slot(endless_target_slot) end)
+        return true
+    end)
+
+    -- Timer 7: Final Active Slot Draw Confirmation (2.2s)
+    CreateTimeEvent("arena_equip_endless_3dssg_draw_verify2", "arena_equip_endless_3dssg_draw_verify2", 2.2, function()
+        if not db.actor then return true end
+        if db.actor:active_slot() ~= endless_target_slot then
+            local in_slot = db.actor:item_in_slot(endless_target_slot)
+            if not in_slot then
+                for _, s in ipairs({ 2, 3, 1 }) do
+                    local itm = db.actor:item_in_slot(s)
+                    if itm and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                        endless_target_slot = s
+                        break
+                    end
+                end
+            end
+            pcall(function() db.actor:activate_slot(endless_target_slot) end)
+        end
+        return true
+    end)
 end
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -547,6 +635,7 @@ function save_state(m_data)
             mag_sec = custom_loadout.mag_sec,
             mag_count = custom_loadout.mag_count,
             ammo_count = custom_loadout.ammo_count,
+            scope_sec = custom_loadout.scope_sec,
         }
     }
 end
@@ -563,6 +652,7 @@ function load_state(m_data)
     custom_loadout.mag_sec = cl.mag_sec
     custom_loadout.mag_count = cl.mag_count or 4
     custom_loadout.ammo_count = cl.ammo_count or 4
+    custom_loadout.scope_sec = cl.scope_sec
 end
 
 function on_game_start()

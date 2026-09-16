@@ -1416,7 +1416,7 @@
 		<text>ПОДТВЕРДИТЬ И СОХРАНИТЬ СНАРЯЖЕНИЕ</text>
 	</string>
 	<string id="st_arena_endless_custom_note">
-		<text>Примечание: При включенном своем снаряжении вы начнете бой с этим набором.</text>
+		<text>Примечание: При включенном снаряжении это же выбранное оружие останется у вас на все раунды Endless.</text>
 	</string>
 	<string id="st_arena_endless_custom_on">
 		<text>ВКЛ</text>

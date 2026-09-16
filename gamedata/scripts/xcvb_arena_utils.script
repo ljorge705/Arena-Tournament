@@ -2933,6 +2933,40 @@ function get_weapon_scopes(weapon_sec)
     return result
 end
 
+function is_powered_scope_or_weapon(sec)
+    if not sec or not ini_sys or not ini_sys:section_exist(sec) then return false end
+    if (ini_sys:r_float_ex(sec, "s3ds_image_type") or 0) > 0 then return true end
+    if ini_sys:r_bool_ex(sec, "s3ds_fusion_outline", false) then return true end
+    if ini_sys:r_float_ex(sec, "thermal_battery_drain") ~= nil then return true end
+    if ini_sys:r_float_ex(sec, "power_critical") ~= nil then return true end
+    return false
+end
+
+function ensure_actor_3dssg_batteries(scope_sec, weapon_sec)
+    if not db.actor then return end
+    if not (is_powered_scope_or_weapon(scope_sec) or is_powered_scope_or_weapon(weapon_sec)) then return end
+    local batt_sec = (ini_sys:section_exist("3dss_thermal_battery") and ini_sys:r_string_ex("3dss_thermal_battery", "battery_section")) or "batteries_dead"
+    if not ini_sys:section_exist(batt_sec) then return end
+
+    local count = 0
+    db.actor:iterate_inventory(function(_, itm)
+        if itm and itm:section() == batt_sec and (itm:condition() or 0) > 0.5 then
+            count = count + 1
+        end
+    end, db.actor)
+
+    local needed = math.max(0, 2 - count)
+    for b = 1, needed do
+        local se_batt = alife_create(batt_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+        if se_batt then
+            temporary_arena_item_ids[se_batt.id] = true
+            if alife_process_item then
+                pcall(alife_process_item, batt_sec, se_batt.id, { cond = 1.0 })
+            end
+        end
+    end
+end
+
 function attach_arena_scope(weapon, requested_scope)
     if not (weapon and IsWeapon(nil, weapon:clsid()) and not (IsKnife and IsKnife(nil, weapon:clsid()))) then return end
     local parent = ini_sys:r_string_ex(weapon:section(), "parent_section") or weapon:section()
@@ -2954,6 +2988,12 @@ function attach_arena_scope(weapon, requested_scope)
     local scope_obj = alife_create(scope_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
     if not scope_obj then return end
     temporary_arena_item_ids[scope_obj.id] = true
+    if se_save_var then
+        se_save_var(scope_obj.id, nil, "3dss_thermal_battery", {
+            version = 2,
+            loose = { section = scope_sec, charge = 1.0 },
+        })
+    end
     local weapon_id = weapon:id()
     local restore_slot = nil
     local was_active = false
@@ -2986,6 +3026,9 @@ function attach_arena_scope(weapon, requested_scope)
             end
         end, db.actor)
         if scope_item and source_weapon then
+            if scope_item.set_condition then
+                pcall(scope_item.set_condition, scope_item, 1.0)
+            end
             local ok = pcall(item_weapon.attach_scope, scope_item, source_weapon)
             if ok then
                 local restore_attempts = 0
@@ -3011,10 +3054,57 @@ function attach_arena_scope(weapon, requested_scope)
                     end
                     if attached_weapon then
                         temporary_arena_item_ids[attached_weapon:id()] = true
-                        pcall(function() db.actor:move_to_slot(attached_weapon, restore_slot or 2) end)
-                        if was_active then
-                            pcall(function() db.actor:activate_slot(restore_slot or 2) end)
+                        local target_s = restore_slot or 2
+                        
+                        -- Clear slot if occupied by another item
+                        local cur_in_slot = db.actor:item_in_slot(target_s)
+                        if cur_in_slot and cur_in_slot:id() ~= attached_weapon:id() then
+                            pcall(function() db.actor:move_to_ruck(cur_in_slot) end)
                         end
+                        pcall(function() db.actor:move_to_slot(attached_weapon, target_s) end)
+                        
+                        -- Anomaly fallback for slot 3
+                        if db.actor:item_in_slot(target_s) ~= attached_weapon and target_s == 2 then
+                            local in_3 = db.actor:item_in_slot(3)
+                            if not in_3 then
+                                pcall(function() db.actor:move_to_slot(attached_weapon, 3) end)
+                                if db.actor:item_in_slot(3) == attached_weapon then
+                                    target_s = 3
+                                end
+                            end
+                        end
+                        
+                        if db.actor.make_item_active then
+                            pcall(function() db.actor:make_item_active(attached_weapon) end)
+                        end
+                        pcall(function() db.actor:activate_slot(target_s) end)
+                        
+                        -- Follow-up confirmation timer to guarantee weapon is in hands
+                        CreateTimeEvent("arena_3dssg_draw_confirm", "scope_draw_" .. tostring(attached_weapon:id()), 0.35, function()
+                            if not db.actor then return true end
+                            local in_s = db.actor:item_in_slot(target_s)
+                            if in_s and in_s:id() == attached_weapon:id() then
+                                pcall(function() db.actor:activate_slot(target_s) end)
+                            else
+                                pcall(function() db.actor:move_to_slot(attached_weapon, target_s) end)
+                                if db.actor.make_item_active then
+                                    pcall(function() db.actor:make_item_active(attached_weapon) end)
+                                end
+                                pcall(function() db.actor:activate_slot(target_s) end)
+                            end
+                            return true
+                        end)
+
+                        if se_save_var then
+                            se_save_var(attached_weapon:id(), nil, "3dss_thermal_battery", {
+                                version = 2,
+                                main = { section = scope_sec, charge = 1.0 },
+                            })
+                        end
+                        if z_3dss_thermal_battery and z_3dss_thermal_battery.refresh_weapon_textures then
+                            pcall(z_3dss_thermal_battery.refresh_weapon_textures, attached_weapon, true)
+                        end
+                        ensure_actor_3dssg_batteries(scope_sec, child_section)
                         return true
                     end
                     return restore_attempts >= 10
@@ -3024,21 +3114,6 @@ function attach_arena_scope(weapon, requested_scope)
         end
         return attach_attempts >= 10
     end)
-    if se_save_var and (ini_sys:r_float_ex(scope_sec, "s3ds_image_type") or 0) > 1 then
-        CreateTimeEvent("arena_3dssg_battery", "scope_battery_" .. tostring(scope_obj.id), 0.1, function()
-            db.actor:iterate_inventory(function(_, item)
-                local item_section = item and item:section()
-                if item_section and string.find(item_section, "^" .. parent .. "_", 1) then
-                    se_save_var(item:id(), nil, "3dss_thermal_battery", {
-                        version = 2,
-                        main = { section = scope_sec, charge = 1.0 },
-                    })
-                    return true
-                end
-            end, db.actor)
-            return true
-        end)
-    end
 end
 
 function get_tier_preview_gear(effective_tier)
@@ -3106,7 +3181,11 @@ function release_actor_arena_item(id)
     end
     local se_item = alife_object(id)
     if se_item then
-        pcall(alife_release, se_item)
+        if safe_release_manager and safe_release_manager.release then
+            pcall(safe_release_manager.release, se_item)
+        else
+            pcall(alife_release, se_item)
+        end
     end
 end
 
@@ -5572,4 +5651,83 @@ function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_a
     return total_fee
 end
 
+function install_item_parts_safeguard()
+    if item_parts and item_parts.get_parts_con and not item_parts.__arena_safeguard_installed then
+        local orig_get_parts_con = item_parts.get_parts_con
+        item_parts.get_parts_con = function(obj, id, evaluate)
+            local res = orig_get_parts_con(obj, id, evaluate)
+            if res == nil and evaluate then
+                return {}
+            end
+            return res
+        end
+        item_parts.__arena_safeguard_installed = true
+    end
+end
+
+function install_itms_manager_safeguard()
+    if itms_manager and not itms_manager.__arena_safeguard_installed then
+        if itms_manager.bolt_manager then
+            itms_manager.bolt_manager = function()
+                pcall(ResetTimeEvent, "cycle", "bolt_manager", 60)
+                if not db.actor then return false end
+                local bolt_max_num = (ini_manager and ini_manager.r_float_ex and ini_manager:r_float_ex("settings", "bolt_max_num")) or 99
+                local cnt = 0
+                local function safe_itr(temp, obj)
+                    if not obj then return end
+                    local ok, sec = pcall(function() return obj:section() end)
+                    if not (ok and sec) then return end
+                    if (sec == "bolt") or (sec == "bolt_bullet") then
+                        cnt = cnt + 1
+                        if cnt > bolt_max_num then
+                            local ok_id, o_id = pcall(function() return obj:id() end)
+                            if ok_id and o_id then
+                                local se_obj = alife_object(o_id)
+                                if se_obj then
+                                    if safe_release_manager and safe_release_manager.release then
+                                        pcall(safe_release_manager.release, se_obj)
+                                    else
+                                        pcall(alife_release, se_obj)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                pcall(function() db.actor:iterate_ruck(safe_itr, nil) end)
+                return false
+            end
+        end
+        if itms_manager.save_state then
+            itms_manager.save_state = function(m_data)
+                if not (m_data and db.actor) then return end
+                local bolts = {}
+                local function safe_itr(obj)
+                    if not obj then return end
+                    local ok, sec = pcall(function() return obj:section() end)
+                    if not (ok and sec) then return end
+                    if (sec == "bolt") or (sec == "bolt_bullet") then
+                        if not bolts[sec] then bolts[sec] = 0 end
+                        bolts[sec] = bolts[sec] + 1
+                    end
+                    return false
+                end
+                pcall(function() db.actor:inventory_for_each(safe_itr) end)
+                m_data.bolts = bolts
+                local slot6 = db.actor:item_in_slot(6)
+                m_data.bolt_slot = slot6 and slot6:section() or nil
+            end
+        end
+        itms_manager.__arena_safeguard_installed = true
+    end
+end
+
+function on_game_start()
+    pcall(install_item_parts_safeguard)
+    pcall(install_itms_manager_safeguard)
+end
+
 pcall(init_sr_light_hook)
+pcall(install_item_parts_safeguard)
+pcall(install_itms_manager_safeguard)
+

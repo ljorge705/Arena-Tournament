@@ -74,6 +74,9 @@ local function cancel_player_combat_events()
         {"arena_endless_torch_verify_e", "arena_endless_torch_verify_a"},
     }
     for _, event in ipairs(events) do RemoveTimeEvent(event[1], event[2]) end
+    if xcvb_arena_utils and xcvb_arena_utils.cancel_all_arena_events then
+        pcall(xcvb_arena_utils.cancel_all_arena_events)
+    end
 end
 
 local function return_actor_to_bar()
@@ -1964,6 +1967,10 @@ end
 
 function trigger_medic_rescue()
     if is_medic_rescuing then return true end
+    if xcvb_arena_utils and xcvb_arena_utils.install_itms_manager_safeguard then
+        pcall(xcvb_arena_utils.install_itms_manager_safeguard)
+    end
+    pcall(ResetTimeEvent, "cycle", "bolt_manager", 30)
     if tourn_ending or endless_ending then return false end
     if not db.actor then return false end
     local in_endless = is_endless_mode or HI("xcvb_endless_started")
@@ -2396,6 +2403,9 @@ function actor_on_first_update()
 end
 
 function on_game_start()
+    if xcvb_arena_utils and xcvb_arena_utils.install_item_parts_safeguard then
+        pcall(xcvb_arena_utils.install_item_parts_safeguard)
+    end
     RegisterScriptCallback("actor_on_update", actor_on_update)
     RegisterScriptCallback("actor_on_before_death", actor_on_before_death)
     RegisterScriptCallback("on_enemy_eval", on_enemy_eval)
