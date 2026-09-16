@@ -52,6 +52,9 @@ function UIXcvbArena:__init() super()
 	self.selected_special_ammo_sec = nil
 	self.available_weapons_cache = {}
 	self.spec_ammo_page = 1
+	self.selected_weapon_menu_tier = 0
+	self.wpn_menu_page = 1
+	self.wpn_menu_entries = {}
 	self.rows = {}
 
 	-- Batalla Campal & Monster vs Monster (Beta Testing) state
@@ -176,14 +179,18 @@ function UIXcvbArena:InitControls()
 		self:Register(btn, "btn_loadout_" .. cls)
 	end
 
-	-- Loadout Tier Selection Controls
-	self.loadout_tier_title = xml:InitTextWnd("tournament_cont:loadout_tier_title", self.tournament_cont)
-	self.loadout_tier_btns = {}
-	for t = 0, 5 do
-		local btn = xml:Init3tButton("tournament_cont:loadout_tier_btn_" .. t, self.tournament_cont)
-		self.loadout_tier_btns[t] = btn
-		self:Register(btn, "btn_loadout_tier_" .. t)
-	end
+	-- Loadout Tier Selection Controls (Hidden: chosen via Weapon Selection Menu)
+	pcall(function()
+		self.loadout_tier_title = xml:InitTextWnd("tournament_cont:loadout_tier_title", self.tournament_cont)
+		self.loadout_tier_btns = {}
+		for t = 0, 5 do
+			local btn = xml:Init3tButton("tournament_cont:loadout_tier_btn_" .. t, self.tournament_cont)
+			self.loadout_tier_btns[t] = btn
+			self:Register(btn, "btn_loadout_tier_" .. t)
+			if btn then btn:Show(false); btn:Enable(false) end
+		end
+		if self.loadout_tier_title then self.loadout_tier_title:Show(false) end
+	end)
 
 	-- Loadout Ammo Selection Controls
 	self.loadout_ammo_title = xml:InitTextWnd("tournament_cont:loadout_ammo_title", self.tournament_cont)
@@ -240,6 +247,9 @@ function UIXcvbArena:InitControls()
 	-- Continue Endless Mode Button (Bottom Right, below Endless Mode)
 	self.btn_endless_cont = xml:Init3tButton("tournament_cont:endless_cont_btn", self.tournament_cont)
 	self:Register(self.btn_endless_cont, "btn_endless_cont")
+
+	self.endless_custom_eq_btn_main = xml:Init3tButton("tournament_cont:endless_custom_eq_btn_main", self.tournament_cont)
+	self:Register(self.endless_custom_eq_btn_main, "btn_endless_custom_eq_main")
 
 	-- ArtiGrok Special Ammo Toggle Button (Main Screen)
 	self.endless_arti_btn_main = xml:Init3tButton("tournament_cont:endless_arti_btn_main", self.tournament_cont)
@@ -430,6 +440,9 @@ function UIXcvbArena:InitControls()
 	self.endless_arti_btn = xml:Init3tButton("beta_cont:endless_arti_btn", self.beta_cont)
 	self:Register(self.endless_arti_btn, "btn_endless_arti")
 
+	self.endless_custom_eq_btn = xml:Init3tButton("beta_cont:endless_custom_eq_btn", self.beta_cont)
+	self:Register(self.endless_custom_eq_btn, "btn_endless_custom_eq")
+
 	-- Endless Mode Difficulty Selection Modal Window
 	self.endless_diff_menu = xml:InitStatic("endless_diff_menu", self.bg)
 	self.endless_diff_menu:Show(false)
@@ -455,10 +468,71 @@ function UIXcvbArena:InitControls()
 	self.btn_diff_3dssg = xml:Init3tButton("endless_diff_menu:btn_diff_3dssg", self.endless_diff_menu)
 	self:Register(self.btn_diff_3dssg, "btn_diff_3dssg")
 
+	self.btn_diff_custom = xml:Init3tButton("endless_diff_menu:btn_diff_custom", self.endless_diff_menu)
+	self:Register(self.btn_diff_custom, "btn_diff_custom")
+
 	self.btn_diff_cancel = xml:Init3tButton("endless_diff_menu:btn_diff_cancel", self.endless_diff_menu)
 	self:Register(self.btn_diff_cancel, "btn_diff_cancel")
 	if self.btn_diff_cancel:TextControl() then
 		self.btn_diff_cancel:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+	end
+
+	-- Endless Mode Custom Loadout Modal Window
+	self.endless_custom_menu = xml:InitStatic("endless_custom_menu", self.bg)
+	if self.endless_custom_menu then
+		self.endless_custom_menu:Show(false)
+		self.ec_title = xml:InitTextWnd("endless_custom_menu:title", self.endless_custom_menu)
+		self.ec_subtitle = xml:InitTextWnd("endless_custom_menu:subtitle", self.endless_custom_menu)
+
+		self.btn_ec_toggle = xml:Init3tButton("endless_custom_menu:btn_ec_toggle", self.endless_custom_menu)
+		self:Register(self.btn_ec_toggle, "btn_ec_toggle")
+
+		self.ec_cls_btns = {}
+		for _, cls in ipairs({ "pistol", "shotgun", "rifle", "smg", "sniper" }) do
+			local btn = xml:Init3tButton("endless_custom_menu:btn_ec_cls_" .. cls, self.endless_custom_menu)
+			self.ec_cls_btns[cls] = btn
+			self:Register(btn, "btn_ec_cls_" .. cls)
+		end
+
+		self.btn_ec_select_wpn = xml:Init3tButton("endless_custom_menu:btn_ec_select_wpn", self.endless_custom_menu)
+		self:Register(self.btn_ec_select_wpn, "btn_ec_select_wpn")
+
+		self.ec_ammo_btns = {}
+		for _, at in ipairs({ "auto", "fmj", "ap", "hp", "spec" }) do
+			local btn = xml:Init3tButton("endless_custom_menu:btn_ec_ammo_" .. at, self.endless_custom_menu)
+			self.ec_ammo_btns[at] = btn
+			self:Register(btn, "btn_ec_ammo_" .. at)
+		end
+
+		self.btn_ec_mag_prev = xml:Init3tButton("endless_custom_menu:btn_ec_mag_prev", self.endless_custom_menu)
+		self:Register(self.btn_ec_mag_prev, "btn_ec_mag_prev")
+		self.btn_ec_mag_label = xml:Init3tButton("endless_custom_menu:btn_ec_mag_label", self.endless_custom_menu)
+		self:Register(self.btn_ec_mag_label, "btn_ec_mag_label")
+		self.btn_ec_mag_next = xml:Init3tButton("endless_custom_menu:btn_ec_mag_next", self.endless_custom_menu)
+		self:Register(self.btn_ec_mag_next, "btn_ec_mag_next")
+
+		self.btn_ec_box_prev = xml:Init3tButton("endless_custom_menu:btn_ec_box_prev", self.endless_custom_menu)
+		self:Register(self.btn_ec_box_prev, "btn_ec_box_prev")
+		self.btn_ec_box_label = xml:Init3tButton("endless_custom_menu:btn_ec_box_label", self.endless_custom_menu)
+		self:Register(self.btn_ec_box_label, "btn_ec_box_label")
+		self.btn_ec_box_next = xml:Init3tButton("endless_custom_menu:btn_ec_box_next", self.endless_custom_menu)
+		self:Register(self.btn_ec_box_next, "btn_ec_box_next")
+
+		self.ec_summary_frame = xml:InitStatic("endless_custom_menu:ec_summary_frame", self.endless_custom_menu)
+		if self.ec_summary_frame then
+			self.ec_sum_status = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_status", self.ec_summary_frame)
+			self.ec_sum_wpn = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_wpn", self.ec_summary_frame)
+			self.ec_sum_tier = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_tier", self.ec_summary_frame)
+			self.ec_sum_ammo = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_ammo", self.ec_summary_frame)
+			self.ec_sum_mags = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_mags", self.ec_summary_frame)
+			self.ec_sum_note = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_note", self.ec_summary_frame)
+		end
+
+		self.btn_ec_confirm = xml:Init3tButton("endless_custom_menu:btn_ec_confirm", self.endless_custom_menu)
+		self:Register(self.btn_ec_confirm, "btn_ec_confirm")
+
+		self.btn_ec_cancel = xml:Init3tButton("endless_custom_menu:btn_ec_cancel", self.endless_custom_menu)
+		self:Register(self.btn_ec_cancel, "btn_ec_cancel")
 	end
 
 	-- 3DSSG Selection Popup Menu (Mirrors + Kits)
@@ -546,8 +620,42 @@ function UIXcvbArena:InitControls()
 		self.btn_dev_none = xml:Init3tButton("night_device_menu:btn_device_none", self.night_device_menu)
 		self:Register(self.btn_dev_none, "btn_dev_none")
 
-		self.btn_dev_close = xml:Init3tButton("night_device_menu:btn_device_close", self.night_device_menu)
+			self.btn_dev_close = xml:Init3tButton("night_device_menu:btn_device_close", self.night_device_menu)
 		self:Register(self.btn_dev_close, "btn_dev_close")
+	end
+
+	-- Weapon Selection Modal Window (By Class & Tier)
+	self.wpn_menu = xml:InitStatic("wpn_menu", self.bg)
+	if self.wpn_menu then
+		self.wpn_menu:Show(false)
+		self.wpn_menu_title = xml:InitTextWnd("wpn_menu:title", self.wpn_menu)
+		self.wpn_menu_subtitle = xml:InitTextWnd("wpn_menu:subtitle", self.wpn_menu)
+
+		self.wpn_tab_tiers = {}
+		for t = 0, 5 do
+			local btn = xml:Init3tButton("wpn_menu:tab_tier_" .. t, self.wpn_menu)
+			self.wpn_tab_tiers[t] = btn
+			self:Register(btn, "btn_wpn_tab_tier_" .. t)
+		end
+
+		self.arr_wpn_rows = {}
+		for i = 1, 7 do
+			local btn = xml:Init3tButton("wpn_menu:wpn_row_" .. i, self.wpn_menu)
+			self.arr_wpn_rows[i] = btn
+			self:Register(btn, "btn_arr_wpn_" .. i)
+		end
+
+		self.wpn_page_prev = xml:Init3tButton("wpn_menu:wpn_page_prev", self.wpn_menu)
+		self:Register(self.wpn_page_prev, "btn_wpn_page_prev")
+		self.wpn_page_info = xml:InitTextWnd("wpn_menu:wpn_page_info", self.wpn_menu)
+		self.wpn_page_next = xml:Init3tButton("wpn_menu:wpn_page_next", self.wpn_menu)
+		self:Register(self.wpn_page_next, "btn_wpn_page_next")
+
+		self.btn_wpn_random = xml:Init3tButton("wpn_menu:btn_wpn_random", self.wpn_menu)
+		self:Register(self.btn_wpn_random, "btn_wpn_random")
+
+		self.btn_wpn_close = xml:Init3tButton("wpn_menu:btn_wpn_close", self.wpn_menu)
+		self:Register(self.btn_wpn_close, "btn_wpn_close")
 	end
 
 	xml:InitStatic("vert_line1", self.bg)
@@ -558,13 +666,31 @@ function UIXcvbArena:InitControls()
 	self:set_modal_active("mag", false)
 	self:set_modal_active("endless_diff", false)
 	self:set_modal_active("night_device", false)
+	self:set_modal_active("wpn", false)
+	self:set_modal_active("endless_custom", false)
+	self:update_endless_custom_btn()
 end
 
 function UIXcvbArena:set_modal_active(modal_name, is_active)
 	local is_shown = (is_active == true)
 
+	if not self.modal_orig_pos then
+		self.modal_orig_pos = {
+			wpn = vector2():set(140, 85),
+			dssg = vector2():set(140, 94),
+			mag = vector2():set(140, 94),
+			night_device = vector2():set(180, 140),
+			endless_diff = vector2():set(250, 170),
+			endless_custom = vector2():set(120, 60),
+		}
+	end
+
+	local off_pos = vector2():set(-5000, -5000)
+
 	if modal_name == "dssg" then
 		if self.dssg_menu then
+			local pos = is_shown and (self.modal_orig_pos.dssg or vector2():set(140, 94)) or off_pos
+			self.dssg_menu:SetWndPos(pos)
 			self.dssg_menu:Show(is_shown)
 			self.dssg_menu:Enable(is_shown)
 		end
@@ -583,6 +709,8 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		end
 	elseif modal_name == "mag" then
 		if self.mag_menu then
+			local pos = is_shown and (self.modal_orig_pos.mag or vector2():set(140, 94)) or off_pos
+			self.mag_menu:SetWndPos(pos)
 			self.mag_menu:Show(is_shown)
 			self.mag_menu:Enable(is_shown)
 		end
@@ -603,6 +731,8 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		end
 	elseif modal_name == "endless_diff" then
 		if self.endless_diff_menu then
+			local pos = is_shown and (self.modal_orig_pos.endless_diff or vector2():set(250, 202)) or off_pos
+			self.endless_diff_menu:SetWndPos(pos)
 			self.endless_diff_menu:Show(is_shown)
 			self.endless_diff_menu:Enable(is_shown)
 		end
@@ -610,9 +740,66 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		if self.btn_diff_medium then self.btn_diff_medium:Show(is_shown); self.btn_diff_medium:Enable(is_shown) end
 		if self.btn_diff_hard then self.btn_diff_hard:Show(is_shown); self.btn_diff_hard:Enable(is_shown) end
 		if self.btn_diff_3dssg then self.btn_diff_3dssg:Show(is_shown); self.btn_diff_3dssg:Enable(is_shown) end
+		if self.btn_diff_custom then self.btn_diff_custom:Show(is_shown); self.btn_diff_custom:Enable(is_shown) end
 		if self.btn_diff_cancel then self.btn_diff_cancel:Show(is_shown); self.btn_diff_cancel:Enable(is_shown) end
+	elseif modal_name == "wpn" then
+		if self.wpn_menu then
+			local pos = is_shown and (self.modal_orig_pos.wpn or vector2():set(140, 85)) or off_pos
+			self.wpn_menu:SetWndPos(pos)
+			self.wpn_menu:Show(is_shown)
+			self.wpn_menu:Enable(is_shown)
+		end
+		if self.btn_wpn_close then self.btn_wpn_close:Show(is_shown); self.btn_wpn_close:Enable(is_shown) end
+		if self.btn_wpn_random then self.btn_wpn_random:Show(is_shown); self.btn_wpn_random:Enable(is_shown) end
+		if self.wpn_page_prev then self.wpn_page_prev:Show(is_shown); self.wpn_page_prev:Enable(is_shown) end
+		if self.wpn_page_next then self.wpn_page_next:Show(is_shown); self.wpn_page_next:Enable(is_shown) end
+		if self.wpn_tab_tiers then
+			for t = 0, 5 do
+				if self.wpn_tab_tiers[t] then
+					self.wpn_tab_tiers[t]:Show(is_shown)
+					self.wpn_tab_tiers[t]:Enable(is_shown)
+				end
+			end
+		end
+		if self.arr_wpn_rows then
+			for i = 1, 7 do
+				if self.arr_wpn_rows[i] then
+					self.arr_wpn_rows[i]:Show(is_shown)
+					self.arr_wpn_rows[i]:Enable(is_shown)
+				end
+			end
+		end
+	elseif modal_name == "endless_custom" then
+		if self.endless_custom_menu then
+			local pos = is_shown and (self.modal_orig_pos.endless_custom or vector2():set(120, 60)) or off_pos
+			self.endless_custom_menu:SetWndPos(pos)
+			self.endless_custom_menu:Show(is_shown)
+			self.endless_custom_menu:Enable(is_shown)
+		end
+		if self.btn_ec_toggle then self.btn_ec_toggle:Show(is_shown); self.btn_ec_toggle:Enable(is_shown) end
+		if self.btn_ec_select_wpn then self.btn_ec_select_wpn:Show(is_shown); self.btn_ec_select_wpn:Enable(is_shown) end
+		if self.ec_cls_btns then
+			for _, b in pairs(self.ec_cls_btns) do
+				if b then b:Show(is_shown); b:Enable(is_shown) end
+			end
+		end
+		if self.ec_ammo_btns then
+			for _, b in pairs(self.ec_ammo_btns) do
+				if b then b:Show(is_shown); b:Enable(is_shown) end
+			end
+		end
+		if self.btn_ec_mag_prev then self.btn_ec_mag_prev:Show(is_shown); self.btn_ec_mag_prev:Enable(is_shown) end
+		if self.btn_ec_mag_label then self.btn_ec_mag_label:Show(is_shown); self.btn_ec_mag_label:Enable(is_shown) end
+		if self.btn_ec_mag_next then self.btn_ec_mag_next:Show(is_shown); self.btn_ec_mag_next:Enable(is_shown) end
+		if self.btn_ec_box_prev then self.btn_ec_box_prev:Show(is_shown); self.btn_ec_box_prev:Enable(is_shown) end
+		if self.btn_ec_box_label then self.btn_ec_box_label:Show(is_shown); self.btn_ec_box_label:Enable(is_shown) end
+		if self.btn_ec_box_next then self.btn_ec_box_next:Show(is_shown); self.btn_ec_box_next:Enable(is_shown) end
+		if self.btn_ec_confirm then self.btn_ec_confirm:Show(is_shown); self.btn_ec_confirm:Enable(is_shown) end
+		if self.btn_ec_cancel then self.btn_ec_cancel:Show(is_shown); self.btn_ec_cancel:Enable(is_shown) end
 	elseif modal_name == "night_device" then
 		if self.night_device_menu then
+			local pos = is_shown and (self.modal_orig_pos.night_device or vector2():set(180, 140)) or off_pos
+			self.night_device_menu:SetWndPos(pos)
 			self.night_device_menu:Show(is_shown)
 			self.night_device_menu:Enable(is_shown)
 		end
@@ -627,7 +814,9 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 	local any_modal_open = (self.dssg_menu and self.dssg_menu:IsShown())
 		or (self.mag_menu and self.mag_menu:IsShown())
 		or (self.endless_diff_menu and self.endless_diff_menu:IsShown())
+		or (self.endless_custom_menu and self.endless_custom_menu:IsShown())
 		or (self.night_device_menu and self.night_device_menu:IsShown())
+		or (self.wpn_menu and self.wpn_menu:IsShown())
 
 	local allow_bg = not any_modal_open
 	if self.tournament_cont then self.tournament_cont:Enable(allow_bg) end
@@ -636,8 +825,12 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 	if self.btn_mode then self.btn_mode:Enable(allow_bg) end
 	if self.btn_beta then self.btn_beta:Enable(allow_bg) end
 	if self.btn_practice then self.btn_practice:Enable(allow_bg) end
-end
 
+	if not any_modal_open then
+		self:update_loadout_buttons()
+		self:update_modifier_buttons()
+	end
+end
 
 function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_practice", ui_events.BUTTON_CLICKED, self.on_click_practice_toggle, self)
@@ -653,7 +846,9 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_diff_medium", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("medium") end, self)
 	self:AddCallback("btn_diff_hard", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("hard") end, self)
 	self:AddCallback("btn_diff_3dssg", ui_events.BUTTON_CLICKED, self.on_click_endless_3dssg, self)
+	self:AddCallback("btn_diff_custom", ui_events.BUTTON_CLICKED, self.on_click_diff_custom, self)
 	self:AddCallback("btn_diff_cancel", ui_events.BUTTON_CLICKED, function() self:show_endless_difficulty_menu(false) end, self)
+	self:AddCallback("btn_endless_custom_eq_main", ui_events.BUTTON_CLICKED, self.on_click_endless_custom_eq, self)
 
 	-- Beta Testing tabs
 	self:AddCallback("beta_tab_br", ui_events.BUTTON_CLICKED, function() self:on_click_beta_tab("br") end, self)
@@ -690,6 +885,25 @@ function UIXcvbArena:InitCallbacks()
 		self:AddCallback("btn_endless_type_" .. et, ui_events.BUTTON_CLICKED, function() self:on_click_endless_type(et) end, self)
 	end
 	self:AddCallback("btn_endless_start", ui_events.BUTTON_CLICKED, self.on_click_endless_start, self)
+	self:AddCallback("btn_endless_custom_eq", ui_events.BUTTON_CLICKED, self.on_click_endless_custom_eq, self)
+
+	-- Endless Custom Equipment Callbacks
+	self:AddCallback("btn_ec_toggle", ui_events.BUTTON_CLICKED, self.on_click_ec_toggle, self)
+	for _, cls in ipairs({ "pistol", "shotgun", "rifle", "smg", "sniper" }) do
+		local c = cls
+		self:AddCallback("btn_ec_cls_" .. c, ui_events.BUTTON_CLICKED, function() self:on_click_ec_cls(c) end, self)
+	end
+	self:AddCallback("btn_ec_select_wpn", ui_events.BUTTON_CLICKED, self.on_click_ec_select_wpn, self)
+	for _, at in ipairs({ "auto", "fmj", "ap", "hp", "spec" }) do
+		local t = at
+		self:AddCallback("btn_ec_ammo_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_ec_ammo(t) end, self)
+	end
+	self:AddCallback("btn_ec_mag_prev", ui_events.BUTTON_CLICKED, function() self:on_click_ec_mag_cycle(-1) end, self)
+	self:AddCallback("btn_ec_mag_next", ui_events.BUTTON_CLICKED, function() self:on_click_ec_mag_cycle(1) end, self)
+	self:AddCallback("btn_ec_box_prev", ui_events.BUTTON_CLICKED, function() self:on_click_ec_box_cycle(-1) end, self)
+	self:AddCallback("btn_ec_box_next", ui_events.BUTTON_CLICKED, function() self:on_click_ec_box_cycle(1) end, self)
+	self:AddCallback("btn_ec_confirm", ui_events.BUTTON_CLICKED, self.on_click_ec_confirm, self)
+	self:AddCallback("btn_ec_cancel", ui_events.BUTTON_CLICKED, self.on_click_ec_cancel, self)
 
 	-- Category callbacks
 	self:AddCallback("btn_cat_stalkers", ui_events.BUTTON_CLICKED, self.on_click_cat_stalkers, self)
@@ -754,6 +968,20 @@ function UIXcvbArena:InitCallbacks()
 	for i = 1, 7 do
 		local r = i
 		self:AddCallback("btn_arr_mag_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_mag_row(r) end, self)
+	end
+
+	-- Weapon Selection Menu callbacks
+	self:AddCallback("btn_wpn_close", ui_events.BUTTON_CLICKED, function() self:show_wpn_menu(false) end, self)
+	self:AddCallback("btn_wpn_page_prev", ui_events.BUTTON_CLICKED, function() self:on_click_wpn_page(-1) end, self)
+	self:AddCallback("btn_wpn_page_next", ui_events.BUTTON_CLICKED, function() self:on_click_wpn_page(1) end, self)
+	self:AddCallback("btn_wpn_random", ui_events.BUTTON_CLICKED, function() self:on_click_wpn_random() end, self)
+	for t = 0, 5 do
+		local tv = t
+		self:AddCallback("btn_wpn_tab_tier_" .. t, ui_events.BUTTON_CLICKED, function() self:on_click_wpn_tier_tab(tv) end, self)
+	end
+	for i = 1, 7 do
+		local row = i
+		self:AddCallback("btn_arr_wpn_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_wpn_row(row) end, self)
 	end
 
 	-- Main enter button callback
@@ -1029,6 +1257,7 @@ end
 function UIXcvbArena:on_select_night_device(sec)
 	xcvb_arena_main.night_mode_device = sec
 	self:set_modal_active("night_device", false)
+	self:set_modal_active("wpn", false)
 	self:update_night_device_btn()
 end
 
@@ -1184,6 +1413,7 @@ function UIXcvbArena:update_view_mode()
 	self:set_modal_active("dssg", false)
 	self:set_modal_active("mag", false)
 	self:set_modal_active("night_device", false)
+	self:set_modal_active("wpn", false)
 	self:update_practice_button()
 	if self.btn_practice then
 		self.btn_practice:Show(self.current_mode == "tournament")
@@ -1538,14 +1768,25 @@ function UIXcvbArena:on_click_spec_ammo_btn(slot_idx)
 end
 
 function UIXcvbArena:on_click_loadout_class(cls)
-	if self.selected_loadout_class == cls and cls ~= "random" then
+	if cls == "random" then
 		self.selected_loadout_class = "random"
-	else
-		self.selected_loadout_class = cls
+		self.selected_loadout_tier = 0
+		self.selected_weapon_sec = nil
+		self.selected_special_ammo_sec = nil
+		self.selected_loadout_mag = nil
+		self.selected_3dssg_scope = nil
+		self.selected_3dssg_mode = "off"
+		self.selected_mag_count = "auto"
+		self.selected_ammo_count = "auto"
+		self.spec_ammo_page = 1
+		self:update_loadout_buttons()
+		return
 	end
-	self.selected_weapon_sec = nil
-	self.selected_special_ammo_sec = nil
-	self.spec_ammo_page = 1
+
+	self.selected_loadout_class = cls
+	self.selected_weapon_menu_tier = 0
+	self.wpn_menu_page = 1
+	self:open_wpn_menu(cls)
 	self:update_loadout_buttons()
 end
 
@@ -1566,6 +1807,10 @@ function UIXcvbArena:on_click_loadout_ammo(at)
 		self.selected_loadout_ammo = "auto"
 	else
 		self.selected_loadout_ammo = at
+	end
+	if self.selected_loadout_ammo == "auto" then
+		self.selected_special_ammo_sec = nil
+		self.selected_ammo_count = "auto"
 	end
 	self:update_loadout_buttons()
 end
@@ -1619,16 +1864,8 @@ function UIXcvbArena:update_loadout_buttons()
 	for t = 0, 5 do
 		local btn = self.loadout_tier_btns and self.loadout_tier_btns[t]
 		if btn then
-			btn:Show(true)
-			btn:Enable(true)
-			local t_name = tier_names[t] or ("Tier " .. t)
-			if t == self.selected_loadout_tier then
-				btn:TextControl():SetText(t_name .. " [ON]")
-				btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
-			else
-				btn:TextControl():SetText(t_name .. " [OFF]")
-				btn:TextControl():SetTextColor(GetARGB(255, 150, 150, 150))
-			end
+			btn:Show(false)
+			btn:Enable(false)
 		end
 	end
 
@@ -1642,8 +1879,11 @@ function UIXcvbArena:update_loadout_buttons()
 
 	-- Refresh available weapons cache
 	if self.selected_loadout_class ~= "random" then
-		self.available_weapons_cache = xcvb_arena_utils.get_available_weapons(eff_tier, self.selected_loadout_class)
-		if (not self.selected_weapon_sec) or (not is_in_list(self.available_weapons_cache, self.selected_weapon_sec)) then
+		if self.selected_weapon_sec then
+			eff_tier = xcvb_arena_utils.get_weapon_tier(self.selected_weapon_sec) or eff_tier
+			self.selected_loadout_tier = eff_tier
+		else
+			self.available_weapons_cache = xcvb_arena_utils.get_available_weapons(eff_tier, self.selected_loadout_class)
 			self.selected_weapon_sec = self.available_weapons_cache and self.available_weapons_cache[1] or nil
 		end
 	else
@@ -1677,7 +1917,7 @@ function UIXcvbArena:update_loadout_buttons()
 		local btn = self.loadout_ammo_btns and self.loadout_ammo_btns[at]
 		if btn then
 			btn:Show(true)
-			btn:SetWndPos(vector2():set((idx - 1) * step, 360))
+			btn:SetWndPos(vector2():set((idx - 1) * step, 322))
 			btn:SetWndSize(vector2():set(w, 22))
 			local a_name = ammo_names[at] or at:upper()
 			if at == self.selected_loadout_ammo then
@@ -1771,7 +2011,7 @@ function UIXcvbArena:update_loadout_buttons()
 			self.btn_mag:Enable(true)
 			self.btn_mag:TextControl():SetTextColor(GetARGB(255, 255, 230, 140))
 		else
-			self.btn_mag:TextControl():SetText(gt("st_arena_loadout_mag_none") or "Sin Cargador")
+			self.btn_mag:TextControl():SetText(gt("st_arena_loadout_mag_none") or "No Magazine")
 			self.btn_mag:Enable(false)
 			self.btn_mag:TextControl():SetTextColor(GetARGB(255, 120, 120, 120))
 		end
@@ -1815,6 +2055,7 @@ function UIXcvbArena:update_loadout_buttons()
 	if self.selected_loadout_ammo == "special" then
 		if self.btn_endless then self.btn_endless:Show(false) end
 		if self.btn_endless_cont then self.btn_endless_cont:Show(false) end
+		if self.endless_custom_eq_btn_main then self.endless_custom_eq_btn_main:Show(false) end
 		if self.endless_arti_btn_main then self.endless_arti_btn_main:Show(false) end
 		if self.spec_menu_title then
 			self.spec_menu_title:Show(true)
@@ -1864,6 +2105,7 @@ function UIXcvbArena:update_loadout_buttons()
 		end
 	else
 		if self.btn_endless then self.btn_endless:Show(true) end
+		if self.endless_custom_eq_btn_main then self.endless_custom_eq_btn_main:Show(true) end
 		if self.btn_endless_cont then
 			self.btn_endless_cont:Show(true)
 			local cp = xcvb_arena_main.endless_checkpoint_wave or 1
@@ -2740,6 +2982,7 @@ function UIXcvbArena:update_beta_display()
 	if self.endless_rules_frame then self.endless_rules_frame:Show(is_endless) end
 	if self.endless_start_btn then self.endless_start_btn:Show(is_endless) end
 	if self.endless_arti_btn then self.endless_arti_btn:Show(is_endless) end
+	if self.endless_custom_eq_btn then self.endless_custom_eq_btn:Show(is_endless) end
 
 	if is_endless then
 		self:update_endless_display()
@@ -2774,6 +3017,7 @@ function UIXcvbArena:update_endless_display()
 	end
 
 	self:update_endless_arti_btn()
+	self:update_endless_custom_btn()
 end
 
 function UIXcvbArena:on_click_endless_type(t)
@@ -2953,7 +3197,7 @@ end
 function UIXcvbArena:on_click_mag_btn()
 	if not self.selected_weapon_sec then
 		if db.actor then
-			local msg = gt("st_arena_loadout_mags_auto") or "1-3 cargadores (Basico)"
+			local msg = gt("st_arena_loadout_mags_auto") or "1-3 mags (Basic)"
 			news_manager.send_tip(db.actor, msg, 0, nil, 3000)
 		end
 		return
@@ -3046,8 +3290,8 @@ function UIXcvbArena:update_mag_menu()
 	local m_cnt = self.selected_mag_count or "auto"
 	local a_cnt = self.selected_ammo_count or "auto"
 	if self.mag_count_text then
-		local m_str = (m_cnt == "auto") and (gt("st_arena_loadout_mags_auto") or "1-3 (Basico)") or (tostring(m_cnt) .. "x")
-		self.mag_count_text:SetText((gt("st_arena_mag_menu_mags") or "Cargadores: ") .. m_str)
+		local m_str = (m_cnt == "auto") and (gt("st_arena_loadout_mags_auto") or "1-3 (Basic)") or (tostring(m_cnt) .. "x")
+		self.mag_count_text:SetText((gt("st_arena_mag_menu_mags") or "Magazines: ") .. m_str)
 	end
 	if self.ammo_count_text then
 		local a_str = ""
@@ -3150,6 +3394,7 @@ function UIXcvbArena:show_endless_difficulty_menu(show)
 	self:set_modal_active("endless_diff", show == true)
 	if show == true then
 		self:update_endless_3dssg_button()
+		self:update_endless_custom_btn()
 	end
 end
 
@@ -3229,17 +3474,436 @@ end
 -- WINDOW LIFECYCLE
 --------------------------------------------------------------------------------
 
+--------------------------------------------------------------------------------
+-- WEAPON SELECTION MODAL LOGIC (BY CLASS & TIER - 3DSSG STYLE)
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:open_wpn_menu(cls, target_mode)
+	self.wpn_menu_target_mode = target_mode or self.wpn_menu_target_mode or "tournament"
+	self.selected_loadout_class = cls or self.selected_loadout_class or "rifle"
+	self.wpn_menu_page = 1
+	self:show_wpn_menu(true)
+end
+
+function UIXcvbArena:show_wpn_menu(is_shown)
+	self:set_modal_active("wpn", is_shown == true)
+	if is_shown then
+		self:update_wpn_menu()
+	else
+		if self.wpn_menu_target_mode == "endless" and not (self.endless_custom_menu and self.endless_custom_menu:IsShown()) then
+			self:show_endless_custom_menu(true)
+		end
+	end
+end
+
+function UIXcvbArena:on_click_wpn_tier_tab(tier_val)
+	self.selected_weapon_menu_tier = tier_val or 0
+	self.wpn_menu_page = 1
+	self:update_wpn_menu()
+end
+
+function UIXcvbArena:update_wpn_menu()
+	if not self.wpn_menu or not self.wpn_menu:IsShown() then return end
+
+	local cls = self.selected_loadout_class or "rifle"
+	local class_titles = {
+		pistol = "st_arena_class_pistol",
+		shotgun = "st_arena_class_shotgun",
+		rifle = "st_arena_class_rifle",
+		smg = "st_arena_class_smg",
+		sniper = "st_arena_class_sniper",
+	}
+	local c_title = class_titles[cls] and gt(class_titles[cls]) or cls:upper()
+	if self.wpn_menu_title then
+		self.wpn_menu_title:SetText(c_title:upper())
+	end
+
+	for t = 0, 5 do
+		local btn = self.wpn_tab_tiers and self.wpn_tab_tiers[t]
+		if btn and btn:TextControl() then
+			if t == (self.selected_weapon_menu_tier or 0) then
+				btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 80))
+			else
+				btn:TextControl():SetTextColor(GetARGB(255, 175, 175, 175))
+			end
+		end
+	end
+
+	local tier_filter = self.selected_weapon_menu_tier
+	local entries = xcvb_arena_utils.get_all_available_weapons_by_class(cls, tier_filter)
+	self.wpn_menu_entries = entries
+
+	local total_entries = #entries
+	local per_page = 7
+	local total_pages = math.max(1, math.ceil(total_entries / per_page))
+
+	if (not self.wpn_menu_page) or self.wpn_menu_page > total_pages then self.wpn_menu_page = 1 end
+	if self.wpn_menu_page < 1 then self.wpn_menu_page = 1 end
+
+	if self.wpn_menu_subtitle then
+		local fmt = gt("st_arena_wpn_menu_count")
+		if not fmt or fmt == "" or string.find(fmt, "^st_") then
+			fmt = "%d weapons available"
+		end
+		local count_str = string.format(fmt, total_entries)
+		self.wpn_menu_subtitle:SetText(count_str)
+	end
+
+	local start_idx = (self.wpn_menu_page - 1) * per_page
+
+	-- Gather names for the current page and disambiguate any remaining identical names
+	local page_names = {}
+	local name_counts = {}
+	for i = 1, per_page do
+		local entry = entries[start_idx + i]
+		if entry then
+			local sec = entry.sec
+			local w_name = (xcvb_arena_utils and xcvb_arena_utils.get_unique_weapon_name and xcvb_arena_utils.get_unique_weapon_name(sec))
+				or (ini_sys:r_string_ex(sec, "inv_name") and gt(ini_sys:r_string_ex(sec, "inv_name"))) or sec
+			page_names[i] = w_name
+			name_counts[w_name] = (name_counts[w_name] or 0) + 1
+		end
+	end
+
+	for i = 1, per_page do
+		local btn = self.arr_wpn_rows and self.arr_wpn_rows[i]
+		if btn then
+			local entry = entries[start_idx + i]
+			if entry then
+				btn:Show(true)
+				btn:Enable(true)
+				local sec = entry.sec
+				local t = entry.tier or 1
+				local w_name = page_names[i] or sec
+				if name_counts[w_name] and name_counts[w_name] > 1 then
+					local s_clean = string.gsub(sec, "^wpn_", "")
+					w_name = w_name .. " [" .. s_clean .. "]"
+				end
+				if string.len(w_name) > 36 then
+					w_name = string.sub(w_name, 1, 34) .. ".."
+				end
+				local cur_active_sel = (self.wpn_menu_target_mode == "endless" and xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout().weapon_sec) or self.selected_weapon_sec
+				local is_sel = (cur_active_sel == sec)
+				local row_text = string.format("[T%d] %s%s", t, w_name, is_sel and " [SELECCIONADA]" or "")
+				if btn:TextControl() then
+					btn:TextControl():SetText(row_text)
+					if is_sel then
+						btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+					else
+						btn:TextControl():SetTextColor(GetARGB(255, 220, 220, 220))
+					end
+				end
+			else
+				btn:Show(false)
+				btn:Enable(false)
+			end
+		end
+	end
+
+	if self.wpn_page_prev then self.wpn_page_prev:Show(total_pages > 1) end
+	if self.wpn_page_next then self.wpn_page_next:Show(total_pages > 1) end
+	if self.wpn_page_info then
+		self.wpn_page_info:SetText(tostring(self.wpn_menu_page) .. "/" .. tostring(total_pages))
+	end
+end
+
+function UIXcvbArena:on_click_wpn_row(row_idx)
+	local entries = self.wpn_menu_entries or {}
+	local actual_idx = ((self.wpn_menu_page or 1) - 1) * 7 + row_idx
+	local entry = entries[actual_idx]
+	if not entry then return end
+
+	if self.wpn_menu_target_mode == "endless" then
+		if xcvb_arena_endless then
+			xcvb_arena_endless.set_custom_weapon(entry.sec, self.selected_loadout_class, entry.tier or 1)
+		end
+		self:show_wpn_menu(false)
+		self:show_endless_custom_menu(true)
+		return
+	end
+
+	self.selected_weapon_sec = entry.sec
+	self.selected_loadout_tier = entry.tier or 1
+	self.selected_special_ammo_sec = nil
+
+	self:show_wpn_menu(false)
+	self:update_loadout_buttons()
+	self:update_modifier_buttons()
+end
+
+function UIXcvbArena:on_click_wpn_random()
+	local entries = self.wpn_menu_entries or {}
+	if #entries == 0 then return end
+	local rnd_entry = entries[math.random(#entries)]
+	if rnd_entry then
+		if self.wpn_menu_target_mode == "endless" then
+			if xcvb_arena_endless then
+				xcvb_arena_endless.set_custom_weapon(rnd_entry.sec, self.selected_loadout_class, rnd_entry.tier or 1)
+			end
+			self:show_wpn_menu(false)
+			self:show_endless_custom_menu(true)
+			return
+		end
+		self.selected_weapon_sec = rnd_entry.sec
+		self.selected_loadout_tier = rnd_entry.tier or 1
+		self.selected_special_ammo_sec = nil
+	end
+	self:show_wpn_menu(false)
+	self:update_loadout_buttons()
+	self:update_modifier_buttons()
+end
+
+function UIXcvbArena:on_click_wpn_page(dir)
+	local total_entries = #(self.wpn_menu_entries or {})
+	local total_pages = math.max(1, math.ceil(total_entries / 7))
+
+	local target = (self.wpn_menu_page or 1) + dir
+	if target < 1 then target = total_pages end
+	if target > total_pages then target = 1 end
+	self.wpn_menu_page = target
+	self:update_wpn_menu()
+end
+
+--------------------------------------------------------------------------------
+-- ENDLESS CUSTOM LOADOUT MODAL LOGIC
+--------------------------------------------------------------------------------
+
+function UIXcvbArena:on_click_endless_custom_eq()
+	self.wpn_menu_target_mode = "endless"
+	self:show_endless_custom_menu(true)
+end
+
+function UIXcvbArena:show_endless_custom_menu(is_shown)
+	self:set_modal_active("endless_custom", is_shown == true)
+	if is_shown then
+		self:update_endless_custom_menu()
+	end
+end
+
+function UIXcvbArena:update_endless_custom_btn()
+	local is_custom = xcvb_arena_endless and xcvb_arena_endless.is_custom_loadout_enabled()
+	local base_lbl = gt("st_arena_endless_custom_btn") or "EQUIPAMIENTO"
+	local status_lbl = is_custom and (gt("st_arena_endless_custom_on") or "ACTIVO") or (gt("st_arena_endless_custom_off") or "DESACTIVADO")
+	local col = is_custom and GetARGB(255, 100, 255, 100) or GetARGB(255, 180, 180, 180)
+
+	if self.endless_custom_eq_btn and self.endless_custom_eq_btn:TextControl() then
+		self.endless_custom_eq_btn:TextControl():SetText(base_lbl .. ": [" .. status_lbl .. "]")
+		self.endless_custom_eq_btn:TextControl():SetTextColor(col)
+	end
+	if self.endless_custom_eq_btn_main and self.endless_custom_eq_btn_main:TextControl() then
+		self.endless_custom_eq_btn_main:TextControl():SetText(base_lbl .. ": [" .. status_lbl .. "]")
+		self.endless_custom_eq_btn_main:TextControl():SetTextColor(col)
+	end
+	if self.btn_diff_custom and self.btn_diff_custom:TextControl() then
+		self.btn_diff_custom:TextControl():SetText(base_lbl .. ": [" .. status_lbl .. "]")
+		self.btn_diff_custom:TextControl():SetTextColor(col)
+	end
+end
+
+function UIXcvbArena:on_click_diff_custom()
+	self.custom_menu_opened_from = "endless_diff"
+	self:set_modal_active("endless_diff", false)
+	self:show_endless_custom_menu(true)
+end
+
+function UIXcvbArena:update_endless_custom_menu()
+	if not self.endless_custom_menu or not self.endless_custom_menu:IsShown() then return end
+	if not xcvb_arena_endless then return end
+
+	local cl = xcvb_arena_endless.get_custom_loadout()
+	local is_on = cl.enabled == true
+
+	-- 1. Toggle button
+	if self.btn_ec_toggle and self.btn_ec_toggle:TextControl() then
+		local status_txt = is_on and (gt("st_arena_endless_custom_on") or "ON") or (gt("st_arena_endless_custom_off") or "OFF")
+		self.btn_ec_toggle:TextControl():SetText((gt("st_arena_endless_custom_toggle") or "ESTADO") .. ": [" .. status_txt .. "]")
+		if is_on then
+			self.btn_ec_toggle:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+		else
+			self.btn_ec_toggle:TextControl():SetTextColor(GetARGB(255, 200, 200, 200))
+		end
+	end
+
+	-- 2. Class buttons
+	local cur_cls = cl.class or "rifle"
+	if self.ec_cls_btns then
+		for cls, btn in pairs(self.ec_cls_btns) do
+			if btn and btn:TextControl() then
+				if cls == cur_cls then
+					btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 80))
+				else
+					btn:TextControl():SetTextColor(GetARGB(255, 175, 175, 175))
+				end
+			end
+		end
+	end
+
+	-- 3. Weapon selection button text
+	local cur_sec = cl.weapon_sec
+	local w_name = cur_sec and ((xcvb_arena_utils and xcvb_arena_utils.get_unique_weapon_name and xcvb_arena_utils.get_unique_weapon_name(cur_sec))
+		or (ini_sys:r_string_ex(cur_sec, "inv_name") and gt(ini_sys:r_string_ex(cur_sec, "inv_name"))) or cur_sec) or (gt("st_arena_endless_custom_choose_wpn") or "Choose Weapon")
+	if self.btn_ec_select_wpn and self.btn_ec_select_wpn:TextControl() then
+		self.btn_ec_select_wpn:TextControl():SetText((gt("st_arena_loadout_weapon_title") or "WEAPON") .. ": " .. w_name)
+		self.btn_ec_select_wpn:TextControl():SetTextColor(cur_sec and GetARGB(255, 120, 240, 255) or GetARGB(255, 240, 200, 100))
+	end
+
+	-- 4. Ammo type buttons
+	local cur_ammo = cl.ammo_type or "auto"
+	if cur_ammo == "special" then cur_ammo = "spec" end
+	if self.ec_ammo_btns then
+		for at, btn in pairs(self.ec_ammo_btns) do
+			if btn and btn:TextControl() then
+				if at == cur_ammo then
+					btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 80))
+				else
+					btn:TextControl():SetTextColor(GetARGB(255, 175, 175, 175))
+				end
+			end
+		end
+	end
+
+	-- 5. Magazine and Ammo box labels
+	local mag_c = cl.mag_count or 4
+	if self.btn_ec_mag_label and self.btn_ec_mag_label:TextControl() then
+		local m_title = gt("st_arena_loadout_mags_title") or "Magazines"
+		self.btn_ec_mag_label:TextControl():SetText(string.format("%d %s", mag_c, m_title))
+	end
+
+	local box_c = cl.ammo_count or 4
+	if self.btn_ec_box_label and self.btn_ec_box_label:TextControl() then
+		local b_title = gt("st_arena_mag_ammo_box_label") or "Ammo Boxes"
+		self.btn_ec_box_label:TextControl():SetText(string.format("%d %s", box_c, b_title))
+	end
+
+	-- 6. Summary details (fully localized)
+	if self.ec_sum_status then
+		local st_text = is_on and (gt("st_arena_ec_sum_status_on") or "CUSTOM LOADOUT ACTIVE") or (gt("st_arena_ec_sum_status_off") or "RANDOM STANDARD (DISABLED)")
+		self.ec_sum_status:SetText((gt("st_arena_ec_sum_status_lbl") or "Status:") .. " " .. st_text)
+		self.ec_sum_status:SetTextColor(is_on and GetARGB(255, 120, 255, 120) or GetARGB(255, 220, 220, 140))
+	end
+	if self.ec_sum_wpn then
+		local w_lbl = gt("st_arena_ec_sum_wpn_lbl") or "Weapon:"
+		self.ec_sum_wpn:SetText(w_lbl .. " " .. w_name .. (cur_sec and (" [" .. cur_sec .. "]") or ""))
+	end
+	if self.ec_sum_tier then
+		local cls_lbl = gt("st_arena_ec_sum_class_lbl") or "Class:"
+		local tier_lbl = gt("st_arena_ec_sum_tier_lbl") or "Tier:"
+		local cls_name = gt("st_arena_class_" .. cur_cls) or cur_cls:upper()
+		self.ec_sum_tier:SetText(string.format("%s %s  |  %s %s", cls_lbl, cls_name:upper(), tier_lbl, tostring(cl.tier or 1)))
+	end
+	if self.ec_sum_ammo then
+		local a_lbl = gt("st_arena_ec_sum_ammo_lbl") or "Ammo:"
+		local a_name = gt("st_arena_ammo_" .. (cl.ammo_type or "auto")) or (cl.ammo_type or "auto"):upper()
+		self.ec_sum_ammo:SetText(a_lbl .. " " .. a_name:upper())
+	end
+	if self.ec_sum_mags then
+		local m_lbl = gt("st_arena_ec_sum_mags_lbl") or "Magazines:"
+		local b_lbl = gt("st_arena_ec_sum_boxes_lbl") or "Ammo Boxes:"
+		self.ec_sum_mags:SetText(string.format("%s %d  |  %s %d", m_lbl, mag_c, b_lbl, box_c))
+	end
+end
+
+function UIXcvbArena:on_click_ec_toggle()
+	if xcvb_arena_endless then
+		xcvb_arena_endless.toggle_custom_loadout()
+	end
+	self:update_endless_custom_menu()
+	self:update_endless_custom_btn()
+end
+
+function UIXcvbArena:on_click_ec_cls(cls)
+	if not xcvb_arena_endless then return end
+	local cl = xcvb_arena_endless.get_custom_loadout()
+	if cl.class ~= cls then
+		cl.class = cls
+		local pool = xcvb_arena_utils.get_all_available_weapons_by_class(cls, 0)
+		if pool and #pool > 0 then
+			cl.weapon_sec = pool[1].sec
+			cl.tier = pool[1].tier or 1
+		end
+	end
+	self:update_endless_custom_menu()
+end
+
+function UIXcvbArena:on_click_ec_select_wpn()
+	local cl = xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout()
+	local cls = (cl and cl.class) or "rifle"
+	self.wpn_menu_target_mode = "endless"
+	self:set_modal_active("endless_custom", false)
+	self:open_wpn_menu(cls, "endless")
+end
+
+function UIXcvbArena:on_click_ec_ammo(ammo_type)
+	if not xcvb_arena_endless then return end
+	local cl = xcvb_arena_endless.get_custom_loadout()
+	if ammo_type == "spec" then
+		cl.ammo_type = "special"
+	else
+		cl.ammo_type = ammo_type
+	end
+	self:update_endless_custom_menu()
+end
+
+function UIXcvbArena:on_click_ec_mag_cycle(dir)
+	if not xcvb_arena_endless then return end
+	local cl = xcvb_arena_endless.get_custom_loadout()
+	local new_cnt = (cl.mag_count or 4) + dir
+	if new_cnt < 1 then new_cnt = 10 end
+	if new_cnt > 10 then new_cnt = 1 end
+	xcvb_arena_endless.set_custom_mag_count(new_cnt)
+	self:update_endless_custom_menu()
+end
+
+function UIXcvbArena:on_click_ec_box_cycle(dir)
+	if not xcvb_arena_endless then return end
+	local cl = xcvb_arena_endless.get_custom_loadout()
+	local new_cnt = (cl.ammo_count or 4) + dir
+	if new_cnt < 1 then new_cnt = 8 end
+	if new_cnt > 8 then new_cnt = 1 end
+	xcvb_arena_endless.set_custom_ammo_count(new_cnt)
+	self:update_endless_custom_menu()
+end
+
+function UIXcvbArena:on_click_ec_confirm()
+	if xcvb_arena_endless then
+		xcvb_arena_endless.set_custom_loadout_enabled(true)
+	end
+	self:show_endless_custom_menu(false)
+	if self.custom_menu_opened_from == "endless_diff" then
+		self.custom_menu_opened_from = nil
+		self:show_endless_difficulty_menu(true)
+	end
+	self:update_endless_custom_btn()
+end
+
+function UIXcvbArena:on_click_ec_cancel()
+	self:show_endless_custom_menu(false)
+	if self.custom_menu_opened_from == "endless_diff" then
+		self.custom_menu_opened_from = nil
+		self:show_endless_difficulty_menu(true)
+	end
+	self:update_endless_custom_btn()
+end
+
 function UIXcvbArena:OnKeyboard(dik, keyboard_action)
 	local res = CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
 	if res == false then
 		local bind = dik_to_bind(dik)
 		if bind == key_bindings.kQUIT or dik == DIK_keys.DIK_ESCAPE then
+			if self.wpn_menu and self.wpn_menu:IsShown() then
+				self:show_wpn_menu(false)
+				return true
+			end
 			if self.mag_menu and self.mag_menu:IsShown() then
 				self:show_mag_menu(false)
 				return true
 			end
 			if self.dssg_menu and self.dssg_menu:IsShown() then
 				self:show_dssg_menu(false)
+				return true
+			end
+			if self.endless_custom_menu and self.endless_custom_menu:IsShown() then
+				self:show_endless_custom_menu(false)
 				return true
 			end
 			if self.endless_diff_menu and self.endless_diff_menu:IsShown() then
@@ -3255,6 +3919,9 @@ end
 function UIXcvbArena:Close()
 	if self.mag_menu and self.mag_menu:IsShown() then
 		self:show_mag_menu(false)
+	end
+	if self.endless_custom_menu and self.endless_custom_menu:IsShown() then
+		self:show_endless_custom_menu(false)
 	end
 	if self.endless_diff_menu and self.endless_diff_menu:IsShown() then
 		self:show_endless_difficulty_menu(false)

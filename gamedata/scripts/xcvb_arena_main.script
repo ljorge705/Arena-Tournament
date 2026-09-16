@@ -942,6 +942,7 @@ function actor_on_update()
 		next_board_check = tg + 4000
 		if level and level.name and level.name() == "l05_bar" then
 			xcvb_arena_utils.check_and_spawn_board()
+			xcvb_arena_utils.check_and_spawn_companion_boards()
 		end
 	end
 end
@@ -997,6 +998,14 @@ function on_game_start()
 		xr_effects.open_arena_gui = function(actor, npc)
 			if xcvb_arena_gui and xcvb_arena_gui.open_gui then
 				xcvb_arena_gui.open_gui()
+			end
+		end
+	end
+
+	if xr_effects and not xr_effects.open_companion_ui then
+		xr_effects.open_companion_ui = function(actor, npc)
+			if xcvb_arena_companion_ui and xcvb_arena_companion_ui.open_companion_ui then
+				xcvb_arena_companion_ui.open_companion_ui()
 			end
 		end
 	end

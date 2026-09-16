@@ -1,0 +1,672 @@
+-- =============================================================================
+-- xcvb_arena_companions.script
+-- Arena Companion Hiring System & Arena Economy (Endless Mode)
+-- Companions are hired NPC allies that fight alongside the player and persist
+-- between Endless waves. They are hired using Arena Credits (CLP) earned by
+-- killing enemies during Endless mode.
+-- =============================================================================
+
+local MAX_COMPANIONS = 3
+
+-- Arena Credits (Dinero de la Arena: CLP)
+local arena_credits = 0
+
+-- Companion definitions: rank 0–4, cost (in CLP), NPC section, keys
+local companion_defs = {
+    [1] = {
+        rank        = 0,
+        cost        = 5000, -- RU
+        section     = "sim_default_stalker_0",
+        name_key    = "st_arena_companion_rank0_name",
+        desc_key    = "st_arena_companion_rank0_desc",
+    },
+    [2] = {
+        rank        = 1,
+        cost        = 12000,
+        section     = "sim_default_stalker_1",
+        name_key    = "st_arena_companion_rank1_name",
+        desc_key    = "st_arena_companion_rank1_desc",
+    },
+    [3] = {
+        rank        = 2,
+        cost        = 25000,
+        section     = "sim_default_killer_2",
+        name_key    = "st_arena_companion_rank2_name",
+        desc_key    = "st_arena_companion_rank2_desc",
+    },
+    [4] = {
+        rank        = 3,
+        cost        = 45000,
+        section     = "sim_default_killer_3",
+        name_key    = "st_arena_companion_rank3_name",
+        desc_key    = "st_arena_companion_rank3_desc",
+    },
+    [5] = {
+        rank        = 4,
+        cost        = 75000,
+        section     = "sim_default_military_4",
+        name_key    = "st_arena_companion_rank4_name",
+        desc_key    = "st_arena_companion_rank4_desc",
+    },
+}
+
+-- Companion squad section (online_offline_group) — defined in mod_system_xcvbarena.ltx
+local COMPANION_SQUAD_SEC = "arena_companion_squad"
+
+-- Active companions: list of { squad_id, npc_id, def_idx, rank }
+local active_companions = {}
+local companion_npc_ids_cache = {}
+
+function refresh_companion_id_cache()
+    companion_npc_ids_cache = {}
+    for _, entry in ipairs(active_companions) do
+        if entry.npc_id then
+            companion_npc_ids_cache[entry.npc_id] = true
+        end
+    end
+end
+
+function is_companion(npc_id)
+    if not npc_id then return false end
+    if companion_npc_ids_cache and companion_npc_ids_cache[npc_id] then return true end
+    if active_companions then
+        for _, entry in ipairs(active_companions) do
+            if entry.npc_id == npc_id then
+                if companion_npc_ids_cache then
+                    companion_npc_ids_cache[npc_id] = true
+                end
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Compatibility helper: now returns the actor's real game money
+function get_arena_credits()
+    return (db.actor and db.actor:money()) or 0
+end
+
+function add_arena_credits(amount)
+    return get_arena_credits()
+end
+
+function spend_arena_credits(amount)
+    if db.actor and db.actor:money() >= (amount or 0) then
+        db.actor:give_money(-(amount or 0))
+        return true
+    end
+    return false
+end
+
+function set_arena_credits(amount) end
+function reset_arena_credits() end
+
+function on_endless_enemy_killed(se_obj, difficulty)
+    return 0
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ACCESSORS
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function get_companion_defs()
+    return companion_defs
+end
+
+function get_active_companions()
+    return active_companions
+end
+
+function get_active_companion_count()
+    cleanup_dead_companions()
+    return #active_companions
+end
+
+function get_max_companions()
+    return MAX_COMPANIONS
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- HIRE / FIRE
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function hire_companion(def_idx)
+    local gt = game.translate_string
+    local def = companion_defs[def_idx]
+    if not def then
+        return false, gt("st_arena_companion_err_invalid")
+    end
+
+    if not (xcvb_arena_fight and xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active()) then
+        return false, gt("st_arena_companion_err_not_endless")
+    end
+
+    if get_active_companion_count() >= MAX_COMPANIONS then
+        return false, string.format(gt("st_arena_companion_err_max"), MAX_COMPANIONS)
+    end
+
+    local actor_money = (db.actor and db.actor:money()) or 0
+    if actor_money < def.cost then
+        return false, string.format(gt("st_arena_companion_err_money"), def.cost)
+    end
+
+    local sec = _get_safe_companion_section(def.section)
+    if not (sec and ini_sys and ini_sys:section_exist(sec)) then
+        return false, gt("st_arena_companion_err_spawn")
+    end
+
+    local spawn_pos, spawn_lvid, spawn_gvid = xcvb_arena_utils.get_actor_tournament_pos()
+    if db.actor then
+        local ap = db.actor:position()
+        if ap then
+            -- Determine arena half: South (< 105) moves +Z toward center; North (>= 105) moves -Z toward center
+            local dir_z = (ap.z < 105.0) and 1 or -1
+            local offset_x = (math.random() - 0.5) * 1.5
+            local offset_z = dir_z * (2.5 + math.random() * 0.5)
+            local target_x = math.max(146.0, math.min(157.0, ap.x + offset_x))
+            local target_z = math.max(84.0, math.min(126.0, ap.z + offset_z))
+            spawn_pos = vector():set(target_x, ap.y, target_z)
+            if level and level.vertex_id then
+                local vid = level.vertex_id(spawn_pos)
+                if vid and vid < 2^32 - 1 and vid > 0 then
+                    spawn_lvid = vid
+                end
+            end
+        end
+    end
+
+    local squad = alife_create(COMPANION_SQUAD_SEC, spawn_pos, spawn_lvid, spawn_gvid)
+    if not squad then
+        return false, gt("st_arena_companion_err_spawn")
+    end
+
+    local ok, err = pcall(function()
+        squad:add_squad_member(sec, spawn_pos, spawn_lvid, spawn_gvid)
+        squad:set_squad_relation()
+        squad:refresh()
+    end)
+
+    if not ok or squad:npc_count() == 0 then
+        pcall(alife_release_id, squad.id)
+        return false, gt("st_arena_companion_err_spawn")
+    end
+
+    local npc_id = nil
+    for m in squad:squad_members() do
+        npc_id = m.id
+        break
+    end
+
+    squad.scripted_target = "actor"
+    squad.assigned_target_id = 0
+    if axr_companions then
+        axr_companions.companion_squads[squad.id] = squad
+        if npc_id then
+            axr_companions.non_task_companions[npc_id] = true
+        end
+    end
+    if npc_id then
+        local se_npc = alife_object(npc_id)
+        if se_npc then
+            se_save_var(se_npc.id, se_npc:name(), "companion", true)
+            se_save_var(se_npc.id, se_npc:name(), "companion_cannot_dismiss", true)
+            se_save_var(se_npc.id, se_npc:name(), "companion_cannot_teleport", true)
+        end
+    end
+
+    if db.actor and db.actor.give_money then
+        db.actor:give_money(-def.cost)
+    end
+
+    local entry = {
+        squad_id = squad.id,
+        npc_id   = npc_id,
+        def_idx  = def_idx,
+        rank     = def.rank,
+    }
+    table.insert(active_companions, entry)
+    refresh_companion_id_cache()
+
+    if xcvb_arena_utils and xcvb_arena_utils.arena_spawned_combatant_ids then
+        xcvb_arena_utils.arena_spawned_combatant_ids[squad.id] = true
+        if npc_id then
+            xcvb_arena_utils.arena_spawned_combatant_ids[npc_id] = true
+        end
+    end
+
+    local attempts = 0
+    CreateTimeEvent("xcvb_comp_aggro_e", "xcvb_comp_aggro_a_" .. squad.id, 0.2, function()
+        attempts = attempts + 1
+        local done = _setup_single_companion_ai(entry)
+        if done or attempts >= 15 then
+            return true
+        end
+        ResetTimeEvent("xcvb_comp_aggro_e", "xcvb_comp_aggro_a_" .. squad.id, 0.2)
+        return false
+    end)
+
+    local msg = string.format(gt("st_arena_companion_hired"), gt(def.name_key))
+    news_manager.send_tip(db.actor, msg, 0, nil, 5000)
+    return true, nil
+end
+
+function fire_companion(list_idx)
+    local gt = game.translate_string
+    local entry = active_companions[list_idx]
+    if not entry then return false end
+
+    _release_companion_entry(entry)
+    table.remove(active_companions, list_idx)
+    refresh_companion_id_cache()
+
+    news_manager.send_tip(db.actor, gt("st_arena_companion_fired"), 0, nil, 4000)
+    return true
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- CLEANUP
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function cleanup_dead_companions()
+    local alive = {}
+    for _, entry in ipairs(active_companions) do
+        if _is_companion_alive(entry) then
+            table.insert(alive, entry)
+        else
+            _release_companion_entry(entry)
+        end
+    end
+    active_companions = alive
+    refresh_companion_id_cache()
+end
+
+function cleanup_all_companions()
+    for _, entry in ipairs(active_companions) do
+        _release_companion_entry(entry)
+    end
+    active_companions = {}
+    refresh_companion_id_cache()
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- AGGRO & COMBAT ENGAGEMENT
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function reassign_companion_aggro(enemy_squad_ids)
+    cleanup_dead_companions()
+    for _, entry in ipairs(active_companions) do
+        _setup_single_companion_ai(entry, enemy_squad_ids)
+    end
+end
+
+function _setup_single_companion_ai(entry, enemy_squad_ids)
+    if not (entry and entry.npc_id) then return false end
+    local npc = level.object_by_id(entry.npc_id)
+    if not (npc and npc:alive()) then return false end
+
+    -- 1. Ensure squad and NPC are registered in axr_companions
+    local squad = entry.squad_id and alife_object(entry.squad_id)
+    local target_sq = enemy_squad_ids and enemy_squad_ids[1]
+    if not target_sq and xcvb_arena_fight and xcvb_arena_fight.get_endless_enemy_squad_ids then
+        local sq_list = xcvb_arena_fight.get_endless_enemy_squad_ids()
+        if sq_list and #sq_list > 0 then target_sq = sq_list[1] end
+    end
+
+    if squad then
+        if target_sq then
+            squad.scripted_target = target_sq
+            squad.assigned_target_id = target_sq
+            squad.rush_to_target = true
+        else
+            squad.scripted_target = "actor"
+            squad.assigned_target_id = 0
+            squad.rush_to_target = true
+        end
+        if axr_companions then
+            axr_companions.companion_squads[squad.id] = squad
+        end
+    end
+
+    if axr_companions then
+        axr_companions.non_task_companions[entry.npc_id] = true
+        local se_npc = alife_object(entry.npc_id)
+        if se_npc then
+            se_save_var(se_npc.id, se_npc:name(), "companion", true)
+            se_save_var(se_npc.id, se_npc:name(), "companion_cannot_dismiss", true)
+            se_save_var(se_npc.id, se_npc:name(), "companion_cannot_teleport", true)
+        end
+        pcall(function() npc:inactualize_patrol_path() end)
+        if axr_companions.setup_companion_logic then
+            pcall(axr_companions.setup_companion_logic, npc, db.storage[entry.npc_id], false, true)
+        end
+        if axr_companions.set_companion_combat_type_default then
+            pcall(axr_companions.set_companion_combat_type_default, npc)
+        end
+        if axr_companions.set_companion_to_attack_state then
+            pcall(axr_companions.set_companion_to_attack_state, npc)
+        end
+        if axr_companions.set_companion_to_loot_nothing then
+            pcall(axr_companions.set_companion_to_loot_nothing, npc)
+        end
+    end
+
+    -- 2. Prevent companion from leaving the arena
+    pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
+
+    -- 3. Permanent friend/goodwill with actor
+    if db.actor then
+        pcall(function()
+            npc:set_relation(game_object.friend, db.actor)
+            npc:force_set_goodwill(5000, db.actor)
+        end)
+    end
+
+    -- 4. Combat alertness & readiness
+    if IsStalker and IsStalker(npc) then
+        pcall(function()
+            npc:set_mental_state(anim.danger)
+            npc:set_body_state(move.standing)
+            npc:set_movement_type(move.run)
+            npc:set_custom_panic_threshold(0.0)
+            if npc.register_in_combat then
+                npc:register_in_combat()
+            end
+            -- Ensure companion has sufficient ammunition for their firearm
+            if not entry.ammo_given then
+                local bw = npc:best_weapon()
+                if bw then
+                    local a_cls = ini_sys:r_string_ex(bw:section(), "ammo_class") or ""
+                    local first_ammo = str_explode(a_cls, ",")[1]
+                    if first_ammo and ini_sys:section_exist(trim(first_ammo)) then
+                        for _ = 1, 4 do
+                            alife_create(trim(first_ammo), npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+                        end
+                        entry.ammo_given = true
+                    end
+                end
+            end
+        end)
+    end
+
+    -- 5. Engage against enemies
+    _engage_companion_with_enemies(npc, enemy_squad_ids)
+    return true
+end
+
+function get_active_arena_enemies()
+    local enemies = {}
+    if xcvb_arena_utils and xcvb_arena_utils.arena_spawned_combatant_ids then
+        for id, _ in pairs(xcvb_arena_utils.arena_spawned_combatant_ids) do
+            if not is_companion(id) and id ~= 0 then
+                local obj = level.object_by_id(id)
+                if obj and obj:alive() and (IsStalker(obj) or IsMonster(obj)) then
+                    table.insert(enemies, obj)
+                end
+            end
+        end
+    end
+    return enemies
+end
+
+function _engage_companion_with_enemies(npc, enemy_squad_ids)
+    if not (npc and npc:alive()) then return end
+
+    local enemies = get_active_arena_enemies()
+    if #enemies == 0 and enemy_squad_ids then
+        for _, s_id in ipairs(enemy_squad_ids) do
+            local sq = alife_object(s_id)
+            if sq then
+                for m in sq:squad_members() do
+                    local e_obj = level.object_by_id(m.id)
+                    if e_obj and e_obj:alive() then
+                        table.insert(enemies, e_obj)
+                    end
+                end
+            end
+        end
+    end
+    if #enemies == 0 and xcvb_arena_fight and xcvb_arena_fight.get_endless_enemy_squad_ids then
+        local sq_ids = xcvb_arena_fight.get_endless_enemy_squad_ids()
+        if sq_ids then
+            for _, s_id in ipairs(sq_ids) do
+                local sq = alife_object(s_id)
+                if sq then
+                    for m in sq:squad_members() do
+                        local e_obj = level.object_by_id(m.id)
+                        if e_obj and e_obj:alive() then
+                            table.insert(enemies, e_obj)
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if #enemies == 0 then return end
+
+    local nearest_pos = nil
+    local nearest_dist = 999999
+    local nearest_enemy_obj = nil
+    local npc_pos = npc:position()
+
+    for _, e_obj in ipairs(enemies) do
+        pcall(function()
+            npc:set_relation(game_object.enemy, e_obj)
+            npc:force_set_goodwill(-5000, e_obj)
+            e_obj:set_relation(game_object.enemy, npc)
+            e_obj:force_set_goodwill(-5000, npc)
+            npc:make_object_visible_somewhen(e_obj)
+        end)
+        if npc.register_in_combat then
+            pcall(function() npc:register_in_combat() end)
+        end
+        if e_obj.register_in_combat then
+            pcall(function() e_obj:register_in_combat() end)
+        end
+
+        local ep = e_obj:position()
+        local dist = npc_pos:distance_to(ep)
+        if dist < nearest_dist then
+            nearest_dist = dist
+            nearest_pos = ep
+            nearest_enemy_obj = e_obj
+        end
+    end
+
+    if IsStalker and IsStalker(npc) then
+        pcall(function()
+            npc:set_mental_state(anim.danger)
+            if nearest_enemy_obj then
+                npc:set_sight(look.danger, nearest_pos)
+                -- Only navigate toward enemy if far away and without line of sight
+                if nearest_dist > 25 and not npc:see(nearest_enemy_obj) then
+                    local e_lvid = nearest_enemy_obj:level_vertex_id()
+                    if e_lvid and e_lvid > 0 then
+                        npc:set_path_type(game_object.level_path)
+                        npc:set_dest_level_vertex_id(e_lvid)
+                        npc:set_movement_type(move.run)
+                    end
+                else
+                    -- Within combat distance (<= 25m) or seeing enemy:
+                    -- Allow stalker combat logic to take cover, aim, and shoot bursts without forced melee charge
+                    npc:set_movement_type(move.walk)
+                end
+            end
+        end)
+    end
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- INTERNAL HELPERS
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function _is_companion_alive(entry)
+    if not entry then return false end
+    local squad = entry.squad_id and alife_object(entry.squad_id)
+    if not squad then return false end
+    if squad:npc_count() <= 0 then return false end
+    if entry.npc_id then
+        local npc = level.object_by_id(entry.npc_id)
+        if npc and not npc:alive() then return false end
+    end
+    return true
+end
+
+function _release_companion_entry(entry)
+    if not entry then return end
+    if entry.npc_id then
+        local npc = level.object_by_id(entry.npc_id)
+        if npc and axr_companions and axr_companions.remove_from_actor_squad then
+            pcall(axr_companions.remove_from_actor_squad, npc)
+        end
+        if axr_companions and axr_companions.non_task_companions then
+            axr_companions.non_task_companions[entry.npc_id] = nil
+        end
+    end
+    if entry.squad_id and axr_companions and axr_companions.companion_squads then
+        axr_companions.companion_squads[entry.squad_id] = nil
+    end
+    local function safe_rel(id)
+        if not id then return end
+        local se = alife_object(id)
+        if se then
+            pcall(alife_release, se)
+        end
+    end
+    if entry.squad_id then
+        local squad = alife_object(entry.squad_id)
+        if squad then
+            local ids = {}
+            for m in squad:squad_members() do
+                table.insert(ids, m.id)
+            end
+            for _, mid in ipairs(ids) do safe_rel(mid) end
+            safe_rel(entry.squad_id)
+        end
+    end
+end
+
+function _get_safe_companion_section(preferred_sec)
+    if preferred_sec and ini_sys and ini_sys:section_exist(preferred_sec) then
+        return preferred_sec
+    end
+    return "sim_default_stalker_0"
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- on_enemy_eval: manage friend / enemy relationships in combat
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function on_enemy_eval(npc, enemy, flags)
+    if not (npc and enemy and flags) then return end
+    local npc_id = npc:id()
+    local enemy_id = enemy:id()
+
+    local npc_is_comp = is_companion(npc_id)
+    local enemy_is_comp = is_companion(enemy_id)
+    local actor_id = db.actor and db.actor:id() or 0
+
+    -- 1. Si el companion evalua al jugador -> Amistoso
+    if npc_is_comp and enemy_id == actor_id then
+        flags.override = true
+        flags.result = false
+        return
+    end
+
+    -- 2. Si el jugador evalua al companion -> Amistoso
+    if npc_id == actor_id and enemy_is_comp then
+        flags.override = true
+        flags.result = false
+        return
+    end
+
+    -- 3. Si un companion evalua a otro companion -> Amistoso
+    if npc_is_comp and enemy_is_comp then
+        flags.override = true
+        flags.result = false
+        return
+    end
+
+    -- 4. Si un companion evalua a un enemigo del arena -> SIEMPRE hostil
+    if npc_is_comp then
+        if xcvb_arena_utils and xcvb_arena_utils.arena_spawned_combatant_ids and xcvb_arena_utils.arena_spawned_combatant_ids[enemy_id] then
+            flags.override = true
+            flags.result = true
+            return
+        end
+    end
+
+    -- 5. Si un enemigo del arena evalua a nuestro companion -> SIEMPRE hostil
+    if enemy_is_comp then
+        if xcvb_arena_utils and xcvb_arena_utils.arena_spawned_combatant_ids and xcvb_arena_utils.arena_spawned_combatant_ids[npc_id] then
+            flags.override = true
+            flags.result = true
+            return
+        end
+    end
+end
+
+-- Mantener el aggro activo periodicamente durante el combate
+local next_aggro_pulse = 0
+function actor_on_update()
+    local tg = time_global()
+    if tg > next_aggro_pulse then
+        next_aggro_pulse = tg + 1500
+        if xcvb_arena_fight and xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active() then
+            if #active_companions > 0 then
+                reassign_companion_aggro()
+            end
+        end
+    end
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- SAVE / LOAD
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function save_state(m_data)
+    local saved = {}
+    for _, entry in ipairs(active_companions) do
+        if _is_companion_alive(entry) then
+            table.insert(saved, {
+                squad_id = entry.squad_id,
+                npc_id   = entry.npc_id,
+                def_idx  = entry.def_idx,
+                rank     = entry.rank,
+            })
+        end
+    end
+    m_data.xcvb_companions = saved
+end
+
+function load_state(m_data)
+    active_companions = {}
+    local saved = m_data.xcvb_companions or {}
+    for _, entry in ipairs(saved) do
+        if entry.squad_id then
+            local squad = alife_object(entry.squad_id)
+            if squad and squad:npc_count() > 0 then
+                table.insert(active_companions, {
+                    squad_id = entry.squad_id,
+                    npc_id   = entry.npc_id,
+                    def_idx  = entry.def_idx,
+                    rank     = entry.rank,
+                })
+            end
+        end
+    end
+    refresh_companion_id_cache()
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ENGINE HOOKS
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function on_game_start()
+    RegisterScriptCallback("on_enemy_eval", on_enemy_eval)
+    RegisterScriptCallback("actor_on_update", actor_on_update)
+    RegisterScriptCallback("save_state", save_state)
+    RegisterScriptCallback("load_state", load_state)
+end
+

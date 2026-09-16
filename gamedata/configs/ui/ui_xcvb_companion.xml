@@ -1,0 +1,151 @@
+<w>
+	<!-- Main Dialog Background -->
+	<dialog x="240" y="60" width="544" height="640" stretch="1">
+		<texture>ui_inGame2_opt_dialog_window</texture>
+	</dialog>
+
+	<!-- Title -->
+	<title x="240" y="74" width="544" height="28">
+		<text r="240" g="210" b="120" font="graffiti22" align="c" vert_align="c">st_arena_companion_title</text>
+	</title>
+
+	<!-- Status: Activos x/3 -->
+	<status x="240" y="104" width="544" height="18">
+		<text r="200" g="200" b="200" font="letterica18" align="c" vert_align="c"></text>
+	</status>
+
+	<!-- Arena Money (Pts) -->
+	<arena_money x="0" y="0" width="0" height="0"></arena_money>
+
+	<!-- Normal Money (RU) -->
+	<normal_money x="240" y="126" width="544" height="20">
+		<text r="140" g="220" b="140" font="letterica18" align="c" vert_align="c"></text>
+	</normal_money>
+
+	<!-- Separator 1 -->
+	<sep1 x="255" y="150" width="514" height="2" stretch="1">
+		<texture>ui_inGame2_line_dialog</texture>
+	</sep1>
+
+	<!-- Companion Ranks 1 to 5 -->
+	<!-- Fila 1 (Novato) -->
+	<name_1 x="260" y="156" width="240" height="20">
+		<text r="230" g="220" b="180" font="letterica18" align="l" vert_align="c">st_arena_companion_rank0_name</text>
+	</name_1>
+	<cost_1 x="510" y="156" width="140" height="20">
+		<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+	</cost_1>
+	<desc_1 x="260" y="176" width="380" height="18">
+		<text r="160" g="160" b="160" font="letterica16" align="l" vert_align="c">st_arena_companion_rank0_desc</text>
+	</desc_1>
+	<btn_hire_1 x="670" y="160" width="88" height="26" check_mode="0">
+		<text font="letterica16">st_arena_companion_btn_hire</text>
+		<texture>ui_inGame2_button</texture>
+	</btn_hire_1>
+
+	<!-- Fila 2 (Experimentado) -->
+	<name_2 x="260" y="208" width="240" height="20">
+		<text r="230" g="220" b="180" font="letterica18" align="l" vert_align="c">st_arena_companion_rank1_name</text>
+	</name_2>
+	<cost_2 x="510" y="208" width="140" height="20">
+		<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+	</cost_2>
+	<desc_2 x="260" y="228" width="380" height="18">
+		<text r="160" g="160" b="160" font="letterica16" align="l" vert_align="c">st_arena_companion_rank1_desc</text>
+	</desc_2>
+	<btn_hire_2 x="670" y="212" width="88" height="26" check_mode="0">
+		<text font="letterica16">st_arena_companion_btn_hire</text>
+		<texture>ui_inGame2_button</texture>
+	</btn_hire_2>
+
+	<!-- Fila 3 (Veterano) -->
+	<name_3 x="260" y="260" width="240" height="20">
+		<text r="230" g="220" b="180" font="letterica18" align="l" vert_align="c">st_arena_companion_rank2_name</text>
+	</name_3>
+	<cost_3 x="510" y="260" width="140" height="20">
+		<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+	</cost_3>
+	<desc_3 x="260" y="280" width="380" height="18">
+		<text r="160" g="160" b="160" font="letterica16" align="l" vert_align="c">st_arena_companion_rank2_desc</text>
+	</desc_3>
+	<btn_hire_3 x="670" y="264" width="88" height="26" check_mode="0">
+		<text font="letterica16">st_arena_companion_btn_hire</text>
+		<texture>ui_inGame2_button</texture>
+	</btn_hire_3>
+
+	<!-- Fila 4 (Experto) -->
+	<name_4 x="260" y="312" width="240" height="20">
+		<text r="230" g="220" b="180" font="letterica18" align="l" vert_align="c">st_arena_companion_rank3_name</text>
+	</name_4>
+	<cost_4 x="510" y="312" width="140" height="20">
+		<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+	</cost_4>
+	<desc_4 x="260" y="332" width="380" height="18">
+		<text r="160" g="160" b="160" font="letterica16" align="l" vert_align="c">st_arena_companion_rank3_desc</text>
+	</desc_4>
+	<btn_hire_4 x="670" y="316" width="88" height="26" check_mode="0">
+		<text font="letterica16">st_arena_companion_btn_hire</text>
+		<texture>ui_inGame2_button</texture>
+	</btn_hire_4>
+
+	<!-- Fila 5 (Elite) -->
+	<name_5 x="260" y="364" width="240" height="20">
+		<text r="230" g="220" b="180" font="letterica18" align="l" vert_align="c">st_arena_companion_rank4_name</text>
+	</name_5>
+	<cost_5 x="510" y="364" width="140" height="20">
+		<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+	</cost_5>
+	<desc_5 x="260" y="384" width="380" height="18">
+		<text r="160" g="160" b="160" font="letterica16" align="l" vert_align="c">st_arena_companion_rank4_desc</text>
+	</desc_5>
+	<btn_hire_5 x="670" y="368" width="88" height="26" check_mode="0">
+		<text font="letterica16">st_arena_companion_btn_hire</text>
+		<texture>ui_inGame2_button</texture>
+	</btn_hire_5>
+
+	<!-- Separator 2 -->
+	<sep2 x="255" y="414" width="514" height="2" stretch="1">
+		<texture>ui_inGame2_line_dialog</texture>
+	</sep2>
+
+	<!-- Active Companions Header -->
+	<active_title x="240" y="420" width="544" height="20">
+		<text r="230" g="200" b="100" font="letterica18" align="c" vert_align="c">st_arena_companion_active_title</text>
+	</active_title>
+
+	<!-- Active Slots (1, 2, 3) -->
+	<slot_1 x="260" y="446" width="400" height="22">
+		<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
+	</slot_1>
+	<btn_fire_1 x="670" y="444" width="88" height="24" check_mode="0">
+		<text font="letterica16">st_arena_companion_btn_fire</text>
+		<texture>ui_inGame2_button</texture>
+	</btn_fire_1>
+
+	<slot_2 x="260" y="474" width="400" height="22">
+		<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
+	</slot_2>
+	<btn_fire_2 x="670" y="472" width="88" height="24" check_mode="0">
+		<text font="letterica16">st_arena_companion_btn_fire</text>
+		<texture>ui_inGame2_button</texture>
+	</btn_fire_2>
+
+	<slot_3 x="260" y="502" width="400" height="22">
+		<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
+	</slot_3>
+	<btn_fire_3 x="670" y="500" width="88" height="24" check_mode="0">
+		<text font="letterica16">st_arena_companion_btn_fire</text>
+		<texture>ui_inGame2_button</texture>
+	</btn_fire_3>
+
+	<!-- Separator 3 -->
+	<sep3 x="255" y="534" width="514" height="2" stretch="1">
+		<texture>ui_inGame2_line_dialog</texture>
+	</sep3>
+
+	<!-- Close Button -->
+	<btn_close x="442" y="546" width="140" height="30" check_mode="0">
+		<text font="letterica18">st_arena_companion_btn_close</text>
+		<texture>ui_inGame2_button</texture>
+	</btn_close>
+</w>

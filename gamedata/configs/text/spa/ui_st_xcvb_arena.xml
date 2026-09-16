@@ -707,7 +707,7 @@
 		<text>Selecciona la linterna o visor nocturno para el combate</text>
 	</string>
 	<string id="st_arena_dev_torch">
-		<text>Linterna Frontal (Estándar)</text>
+		<text>Linterna Frontal (EstÃ¡ndar)</text>
 	</string>
 	<string id="st_arena_dev_nvg1">
 		<text>Visor Nocturno Gen 1 (PNV-57E)</text>
@@ -1235,28 +1235,28 @@
 		<text>Ajusta el coste al elegir armas, niveles o municiones especificas (0 = Gratis, 1.0 = Predeterminado).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_auto_reopen_gui">
-		<text>Reabrir menú tras combate</text>
+		<text>Reabrir menÃº tras combate</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_auto_reopen_gui_desc">
-		<text>Abre automáticamente el panel de la Arena al finalizar un combate del torneo o modo infinito.</text>
+		<text>Abre automÃ¡ticamente el panel de la Arena al finalizar un combate del torneo o modo infinito.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_base_dist">
-		<text>Distancia de Visión Nocturna Base (Fácil)</text>
+		<text>Distancia de VisiÃ³n Nocturna Base (FÃ¡cil)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_base_dist_desc">
-		<text>Distancia en metros a la que los enemigos novatos o en dificultad fácil te ven de pie en la oscuridad (predeterminado: 24m).</text>
+		<text>Distancia en metros a la que los enemigos novatos o en dificultad fÃ¡cil te ven de pie en la oscuridad (predeterminado: 24m).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_mult">
-		<text>Multiplicador General de Visión Nocturna</text>
+		<text>Multiplicador General de VisiÃ³n Nocturna</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_mult_desc">
-		<text>Ajusta globalmente el alcance de visión de todos los enemigos y mutantes en Modo Noche (0.5x a 2.0x).</text>
+		<text>Ajusta globalmente el alcance de visiÃ³n de todos los enemigos y mutantes en Modo Noche (0.5x a 2.0x).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_elite_nvg">
-		<text>NVG en Enemigos de Élite</text>
+		<text>NVG en Enemigos de Ã‰lite</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_elite_nvg_desc">
-		<text>Los enemigos de élite (Maestros, Leyendas, Monolith y veteranos) equipan visores nocturnos y NO encienden linternas para mantener el sigilo.</text>
+		<text>Los enemigos de Ã©lite (Maestros, Leyendas, Monolith y veteranos) equipan visores nocturnos y NO encienden linternas para mantener el sigilo.</text>
 	</string>
 	<string id="st_arena_loadout_mag_title">
 		<text>CARGADOR</text>
@@ -1325,4 +1325,188 @@
     <string id="st_arena_boss_colossus_desc"><text>Un pseudogigante fuerte con dos snorks. Mantente en movimiento y elimina primero a los mas rapidos.</text></string>
     <string id="st_arena_boss_colossus_enemies"><text>1x Pseudogigante + 2x Snorks</text></string>
     <string id="st_arena_boss_colossus_reward"><text>65000 RU + Botiquin cientifico</text></string>
+	<string id="st_arena_companion_use">
+		<text>Tablero de Contratacion ($ACTION_USE$)</text>
+	</string>
+	<string id="st_arena_companion_title">
+		<text>CONTRATAR ALIADOS</text>
+	</string>
+	<string id="st_arena_companion_status">
+		<text>Activos: %d / %d</text>
+	</string>
+	<string id="st_arena_companion_money">
+		<text>Tu dinero: %d RU</text>
+	</string>
+	<string id="st_arena_companion_cost_fmt">
+		<text>Costo: %d RU</text>
+	</string>
+	<string id="st_arena_companion_active_title">
+		<text>ï¿½ TUS ALIADOS ï¿½</text>
+	</string>
+	<string id="st_arena_companion_btn_hire">
+		<text>CONTRATAR</text>
+	</string>
+	<string id="st_arena_companion_btn_fire">
+		<text>DESPEDIR</text>
+	</string>
+	<string id="st_arena_companion_btn_close">
+		<text>CERRAR</text>
+	</string>
+	<string id="st_arena_companion_slot_empty">
+		<text>-- Slot vacio --</text>
+	</string>
+	<string id="st_arena_companion_alive">
+		<text>Activo</text>
+	</string>
+	<string id="st_arena_companion_dead">
+		<text>Caido</text>
+	</string>
+	<string id="st_arena_companion_rank0_name">
+		<text>Stalker Novato</text>
+	</string>
+	<string id="st_arena_companion_rank0_desc">
+		<text>Un stalker basico. Mejor que nada.</text>
+	</string>
+	<string id="st_arena_companion_rank1_name">
+		<text>Stalker Experimentado</text>
+	</string>
+	<string id="st_arena_companion_rank1_desc">
+		<text>Decente en combate. Confiable.</text>
+	</string>
+	<string id="st_arena_companion_rank2_name">
+		<text>Mercenario Veterano</text>
+	</string>
+	<string id="st_arena_companion_rank2_desc">
+		<text>Operativo Killer. Habil y agresivo.</text>
+	</string>
+	<string id="st_arena_companion_rank3_name">
+		<text>Mercenario Experto</text>
+	</string>
+	<string id="st_arena_companion_rank3_desc">
+		<text>Killer de elite. Maneja situaciones difï¿½ciles.</text>
+	</string>
+	<string id="st_arena_companion_rank4_name">
+		<text>Elite Militar</text>
+	</string>
+	<string id="st_arena_companion_rank4_desc">
+		<text>Fuerzas especiales. Lo mejor que el dinero puede comprar.</text>
+	</string>
+	<string id="st_arena_companion_hired">
+		<text>%s contratado y listo para combatir!</text>
+	</string>
+	<string id="st_arena_companion_fired">
+		<text>Aliado despedido.</text>
+	</string>
+	<string id="st_arena_companion_err_invalid">
+		<text>Tipo de aliado invalido.</text>
+	</string>
+	<string id="st_arena_companion_err_not_endless">
+		<text>Solo puedes contratar aliados en el Modo Infinito.</text>
+	</string>
+	<string id="st_arena_companion_err_max">
+		<text>Maximo de aliados alcanzado (%d). Despide uno primero.</text>
+	</string>
+	<string id="st_arena_companion_err_money">
+		<text>No tienes suficiente dinero. Necesitas %d RU.</text>
+	</string>
+	<string id="st_arena_companion_err_spawn">
+		<text>No se pudo generar el aliado. Intenta de nuevo.</text>
+	</string>
+	<string id="st_arena_companion_err_generic">
+		<text>No puedes contratar aliados ahora mismo.</text>
+	</string>
+	<string id="st_arena_companion_arena_money">
+		<text>Dinero Arena: %d CLP</text>
+	</string>
+	<string id="st_arena_companion_normal_money">
+		<text>Dinero: %d RU</text>
+	</string>
+	<string id="st_arena_companion_cost_fmt">
+		<text>Costo: %d RU</text>
+	</string>
+	<string id="st_arena_companion_err_arena_money">
+		<text>No tienes suficientes CLP. Necesitas %d CLP (tienes %d).</text>
+	</string>
+	<string id="st_arena_kill_reward">
+		<text>+%d CLP [%s] (Total: %d CLP)</text>
+	</string>
+	<string id="st_arena_wpn_menu_title">
+		<text>SELECCION DE ARMA</text>
+	</string>
+	<string id="st_arena_tier_all">
+		<text>TODOS</text>
+	</string>
+	<string id="st_arena_wpn_random_tier">
+		<text>[ ARMA ALEATORIA ]</text>
+	</string>
+	<string id="st_arena_endless_custom_btn">
+		<text>EQUIPAMIENTO</text>
+	</string>
+	<string id="st_arena_endless_custom_title">
+		<text>EQUIPAMIENTO PERSONALIZADO (MODO ENDLESS)</text>
+	</string>
+	<string id="st_arena_endless_custom_desc">
+		<text>Elige tu clase, arma del catalogo, municion y cargadores para el combate</text>
+	</string>
+	<string id="st_arena_endless_custom_toggle">
+		<text>ESTADO: [PERSONALIZADO ACTIVADO]</text>
+	</string>
+	<string id="st_arena_endless_custom_choose_wpn">
+		<text>Elegir Arma del Catalogo</text>
+	</string>
+	<string id="st_arena_endless_custom_confirm">
+		<text>CONFIRMAR Y GUARDAR EQUIPAMIENTO</text>
+	</string>
+	<string id="st_arena_endless_custom_note">
+		<text>Nota: Al activar equipamiento personalizado, iniciaras el modo endless con este armamento exacto.</text>
+	</string>
+	<string id="st_arena_endless_custom_on">
+		<text>ACTIVO</text>
+	</string>
+	<string id="st_arena_endless_custom_off">
+		<text>DESACTIVADO</text>
+	</string>
+	<string id="st_arena_loadout_weapon_title">
+		<text>ARMA</text>
+	</string>
+	<string id="st_arena_loadout_mags_title">
+		<text>Cargadores</text>
+	</string>
+	<string id="st_arena_mag_ammo_box_label">
+		<text>Cajas de Municion</text>
+	</string>
+	<string id="st_arena_btn_close">
+		<text>CERRAR</text>
+	</string>
+	<string id="st_arena_ec_sum_status_lbl">
+		<text>Estado:</text>
+	</string>
+	<string id="st_arena_ec_sum_status_on">
+		<text>EQUIPAMIENTO PERSONALIZADO ACTIVADO</text>
+	</string>
+	<string id="st_arena_ec_sum_status_off">
+		<text>ALEATORIO ESTANDAR (DESACTIVADO)</text>
+	</string>
+	<string id="st_arena_ec_sum_wpn_lbl">
+		<text>Arma:</text>
+	</string>
+	<string id="st_arena_ec_sum_class_lbl">
+		<text>Clase:</text>
+	</string>
+	<string id="st_arena_ec_sum_tier_lbl">
+		<text>Tier:</text>
+	</string>
+	<string id="st_arena_ec_sum_ammo_lbl">
+		<text>Municion:</text>
+	</string>
+	<string id="st_arena_ec_sum_mags_lbl">
+		<text>Cargadores:</text>
+	</string>
+	<string id="st_arena_ec_sum_boxes_lbl">
+		<text>Cajas de municion:</text>
+	</string>
+	<string id="st_arena_wpn_menu_count">
+		<text>%d armas disponibles</text>
+	</string>
 </string_table>
+

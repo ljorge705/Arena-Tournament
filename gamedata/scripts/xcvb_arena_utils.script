@@ -191,6 +191,70 @@ function get_item_short_name(sec)
     return get_item_name(sec)
 end
 
+function get_unique_weapon_name(sec)
+    if not sec then return "" end
+    local name = get_item_name(sec)
+    if not name or name == "" or name == sec then
+        local inv = ini_sys and ini_sys:r_string_ex(sec, "inv_name")
+        name = inv and (game and game.translate_string and game.translate_string(inv) or inv) or sec
+    end
+
+    local suffix_map = {
+        { "_custom", "(Custom)" },
+        { "_modern", "(Modern)" },
+        { "_tactical", "(Tactical)" },
+        { "_tac", "(Tactical)" },
+        { "_camo", "(Camo)" },
+        { "_isg", "(ISG)" },
+        { "_worn", "(Worn)" },
+        { "_rusty", "(Rusty)" },
+        { "_old", "(Old)" },
+        { "_full", "(Full)" },
+        { "_obrez", "(Obrez)" },
+        { "_upg", "(Upgraded)" },
+        { "_archangel", "(Archangel)" },
+        { "_siber", "(Siber)" },
+        { "_gunslinger", "(Gunslinger)" },
+        { "_drum", "(Drum)" },
+        { "_vorkuta", "(Vorkuta)" },
+        { "_tan", "(Tan)" },
+        { "_black_sup", "(Suppressed)" },
+        { "_black", "(Black)" },
+        { "_m1", "(M1)" },
+        { "_sk1", "(Skin 1)" },
+        { "_sk2", "(Skin 2)" },
+        { "_duty", "(Duty)" },
+        { "_freedom", "(Freedom)" },
+        { "_monolith", "(Monolith)" },
+        { "_merc", "(Merc)" },
+        { "_military", "(Military)" },
+        { "_nimble", "(Nimble)" },
+        { "_zenit", "(Zenit)" },
+        { "_n", "(New)" },
+    }
+
+    local low_name = string.lower(name)
+    local low_sec = string.lower(sec)
+
+    for _, entry in ipairs(suffix_map) do
+        local key = entry[1]
+        local label = entry[2]
+        if string.find(low_sec, key, 1, true) then
+            local clean_label = string.gsub(string.lower(label), "[%(%)]", "")
+            if not string.find(low_name, clean_label, 1, true) then
+                name = name .. " " .. label
+                break
+            end
+        end
+    end
+
+    if string.find(low_sec, "aks", 1, true) and not string.find(low_name, "aks", 1, true) then
+        name = name .. " (S)"
+    end
+
+    return name
+end
+
 function get_weapon_special_ammos(weapon_sec)
     if not weapon_sec then return {} end
     local ammo_class_str = ini_sys:r_string_ex(weapon_sec, "ammo_class")
@@ -417,6 +481,7 @@ function reset_arena_object_cache()
     board_id, balcony_id = nil, nil
     board_respawned = false
     balcony_respawned = false
+    reset_companion_board_cache()
 end
 
 function spawn_balcony()
@@ -497,6 +562,102 @@ function check_and_spawn_board()
         balcony_id = obj and obj.id
         balcony_respawned = obj ~= nil
     end
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- COMPANION BOARDS (Arena floor – Endless mode hiring stations)
+-- ─────────────────────────────────────────────────────────────────────────────
+local companion_board_actor_id  = nil
+local companion_board_enemy_id  = nil
+local companion_boards_respawned = false
+
+function reset_companion_board_cache()
+    companion_board_actor_id  = nil
+    companion_board_enemy_id  = nil
+    companion_boards_respawned = false
+end
+
+local function spawn_companion_board(pos, lvid, gvid, angle_y)
+    if not (level and level.name and level.name() == "l05_bar") then return nil end
+    if level and level.vertex_id then
+        local v = level.vertex_id(pos)
+        if v and v < 2^32 - 1 then lvid = v end
+    end
+    local se_obj = alife_create("xcvb_arena_companion_board", pos, lvid, gvid)
+    if not se_obj then return nil end
+    local data = utils_stpk.get_physic_data(se_obj)
+    data.custom_data = [[
+[collide]
+ignore_static
+ignore_small_objects
+
+[logic]
+cfg = scripts\arena_companion_board_logic.ltx
+]]
+    utils_stpk.set_physic_data(data, se_obj)
+    se_obj.angle = vector():set(0, angle_y or 0, 0)
+    return se_obj
+end
+
+function check_and_spawn_companion_boards()
+    if not (level and level.name and level.name() == "l05_bar") then return end
+    local sim = alife()
+    if not sim then return end
+
+    local actor_b = companion_board_actor_id and sim:object(companion_board_actor_id)
+    local enemy_b = companion_board_enemy_id and sim:object(companion_board_enemy_id)
+    if companion_boards_respawned
+       and actor_b and actor_b:section_name() == "xcvb_arena_companion_board"
+       and enemy_b and enemy_b:section_name() == "xcvb_arena_companion_board" then
+        return
+    end
+
+    local actor_found = false
+    local enemy_found = false
+
+    for i = 1, 65534 do
+        local se = sim:object(i)
+        if se and se:section_name() == "xcvb_arena_companion_board" then
+            if not companion_boards_respawned or (actor_found and enemy_found) then
+                alife_release(se)
+            else
+                local pos = se.position
+                if pos.z < 105 then
+                    if not actor_found then
+                        actor_found = true
+                        companion_board_actor_id = i
+                    else
+                        alife_release(se)
+                    end
+                else
+                    if not enemy_found then
+                        enemy_found = true
+                        companion_board_enemy_id = i
+                    else
+                        alife_release(se)
+                    end
+                end
+            end
+        end
+    end
+
+    -- Tablero 1: Atrás de donde spawnea el actor por default (pos actor: 152.6, -20.06, 81.2)
+    -- Lo ubicamos en Z = 78.5, mirando de frente al actor (hacia el norte / centro de la arena)
+    if not companion_boards_respawned or not actor_found then
+        local pos = vector():set(152.6, -20.05, 78.5)
+        local obj = spawn_companion_board(pos, 40761, 1684, 0)
+        companion_board_actor_id = obj and obj.id
+    end
+
+    -- Tablero 2: Atrás de donde spawnea el enemigo por default (pos enemigo: 151.2, -20.05, 128.8)
+    -- Lo ubicamos en Z = 131.5, mirando de frente hacia el centro de la arena (hacia el sur)
+    if not companion_boards_respawned or not enemy_found then
+        local pos = vector():set(151.2, -20.05, 131.5)
+        local obj = spawn_companion_board(pos, 40551, 1796, 3.14159)
+        companion_board_enemy_id = obj and obj.id
+    end
+
+    companion_boards_respawned = true
 end
 
 function handle_removed_teams()
@@ -2281,6 +2442,23 @@ function setup_endless_squads_aggro(squad_ids)
                     pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
                     pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
                     
+                    if xcvb_arena_companions and xcvb_arena_companions.get_active_companions then
+                        local comps = xcvb_arena_companions.get_active_companions()
+                        for _, entry in ipairs(comps) do
+                            if entry.npc_id then
+                                local c_obj = level.object_by_id(entry.npc_id)
+                                if c_obj and c_obj:alive() then
+                                    pcall(function()
+                                        npc:force_set_goodwill(-5000, c_obj)
+                                        npc:set_relation(game_object.enemy, c_obj)
+                                        c_obj:force_set_goodwill(-5000, npc)
+                                        c_obj:set_relation(game_object.enemy, npc)
+                                    end)
+                                end
+                            end
+                        end
+                    end
+                    
                     if is_night then
                         apply_realistic_night_vision(npc)
                         equip_and_enable_npc_torch(npc)
@@ -2481,16 +2659,23 @@ function clean_tournament_squad(squad_id)
     end
 end
 
-local tournament_loadouts_t = {
+tournament_loadouts_t = {
     [1] = {
         outfits = { "novice_outfit", "bandit_novice_outfit", "trenchcoat_outfit", "cs_light_novice_outfit" },
         helmets = { "helm_respirator", "helm_cloth_mask" },
-        weapons = { "wpn_pm", "wpn_fort", "wpn_tt33", "wpn_colt1911", "wpn_walther", "wpn_beretta", "wpn_bm16", "wpn_toz34_obrez" },
-        shotguns = { "wpn_bm16", "wpn_toz34_obrez", "wpn_toz34" },
-        rifles = { "wpn_ak74u", "wpn_mp5", "wpn_bizon" },
-        smgs = { "wpn_kiparis", "wpn_pp2000", "wpn_mp5", "wpn_bizon" },
-        snipers = { "wpn_toz34", "wpn_bm16", "wpn_sks" },
-        pistols = { "wpn_pm", "wpn_fort", "wpn_tt33", "wpn_colt1911", "wpn_walther", "wpn_beretta" },
+        weapons = {
+            "wpn_pm", "wpn_pm_custom", "wpn_pb", "wpn_pb_custom", "wpn_fort", "wpn_tt33", "wpn_tt33_modern",
+            "wpn_colt1911", "wpn_walther", "wpn_beretta", "wpn_hpsa", "wpn_cz75",
+            "wpn_bm16", "wpn_bm16_full", "wpn_toz34_obrez", "wpn_toz34", "wpn_toz66",
+            "wpn_kiparis", "wpn_vz61", "wpn_ppsh41", "wpn_pps43",
+            "wpn_ak74u", "wpn_ak74u_old", "wpn_aks74u", "wpn_sks",
+            "wpn_mosin", "wpn_obrez",
+        },
+        shotguns = { "wpn_bm16", "wpn_bm16_full", "wpn_toz34_obrez", "wpn_toz34", "wpn_toz66" },
+        rifles = { "wpn_ak74u", "wpn_ak74u_old", "wpn_aks74u", "wpn_sks" },
+        smgs = { "wpn_kiparis", "wpn_vz61", "wpn_ppsh41", "wpn_pps43" },
+        snipers = { "wpn_mosin", "wpn_obrez", "wpn_sks", "wpn_toz34" },
+        pistols = { "wpn_pm", "wpn_pm_custom", "wpn_pb", "wpn_pb_custom", "wpn_fort", "wpn_tt33", "wpn_tt33_modern", "wpn_colt1911", "wpn_walther", "wpn_beretta", "wpn_hpsa", "wpn_cz75" },
         ammo_count = 5,
         meds = { "bandage", "bandage", "medkit" },
         knife = "wpn_knife",
@@ -2498,12 +2683,18 @@ local tournament_loadouts_t = {
     [2] = {
         outfits = { "stalker_outfit", "bandit_sun_outfit", "cs_light_outfit", "dolg_outfit" },
         helmets = { "helm_ach7", "helm_respirator_half" },
-        weapons = { "wpn_wincheaster1300", "wpn_mossberg590", "wpn_spas12", "wpn_mp5", "wpn_bizon", "wpn_kiparis", "wpn_ak74u" },
-        shotguns = { "wpn_wincheaster1300", "wpn_mossberg590", "wpn_spas12" },
-        rifles = { "wpn_ak74u", "wpn_ak74", "wpn_lr300" },
-        smgs = { "wpn_mp5", "wpn_bizon", "wpn_kiparis" },
-        snipers = { "wpn_sks", "wpn_mosin" },
-        pistols = { "wpn_pm", "wpn_fort", "wpn_colt1911" },
+        weapons = {
+            "wpn_glock", "wpn_glock17", "wpn_grach", "wpn_sig220", "wpn_sig220_n", "wpn_colt1911_modern", "wpn_aps", "wpn_oc33",
+            "wpn_wincheaster1300", "wpn_mossberg590", "wpn_remington870", "wpn_mp133", "wpn_ithacam37",
+            "wpn_ak74", "wpn_aks74", "wpn_akm", "wpn_akms", "wpn_lr300", "wpn_l85", "wpn_galil",
+            "wpn_mp5", "wpn_mp5k", "wpn_bizon", "wpn_pp2000", "wpn_uzi",
+            "wpn_mosin_archangel", "wpn_k98", "wpn_svt40", "wpn_g43", "wpn_sks_modern",
+        },
+        shotguns = { "wpn_wincheaster1300", "wpn_mossberg590", "wpn_remington870", "wpn_mp133", "wpn_ithacam37" },
+        rifles = { "wpn_ak74", "wpn_aks74", "wpn_akm", "wpn_akms", "wpn_lr300", "wpn_l85", "wpn_galil" },
+        smgs = { "wpn_mp5", "wpn_mp5k", "wpn_bizon", "wpn_pp2000", "wpn_uzi" },
+        snipers = { "wpn_mosin_archangel", "wpn_k98", "wpn_svt40", "wpn_g43", "wpn_sks_modern" },
+        pistols = { "wpn_glock", "wpn_glock17", "wpn_grach", "wpn_sig220", "wpn_sig220_n", "wpn_colt1911_modern", "wpn_aps", "wpn_oc33" },
         ammo_count = 6,
         meds = { "bandage", "bandage", "bandage", "medkit", "medkit", "stimpack" },
         grenades = { "grenade_rgd5" },
@@ -2512,12 +2703,18 @@ local tournament_loadouts_t = {
     [3] = {
         outfits = { "specops_outfit", "dolg_specops_outfit", "svoboda_heavy_outfit", "cs_heavy_outfit" },
         helmets = { "helm_ach7ex", "helm_protective" },
-        weapons = { "wpn_ak74", "wpn_akm", "wpn_l85", "wpn_g36", "wpn_val", "wpn_saiga12s", "wpn_abakan" },
-        shotguns = { "wpn_saiga12s", "wpn_protecta", "wpn_spas12" },
-        rifles = { "wpn_ak74", "wpn_akm", "wpn_l85", "wpn_g36", "wpn_abakan" },
-        smgs = { "wpn_val", "wpn_vityaz", "wpn_ump45", "wpn_mp5" },
-        snipers = { "wpn_svd", "wpn_sv98", "wpn_vintorez" },
-        pistols = { "wpn_glock", "wpn_usp", "wpn_aps", "wpn_beretta" },
+        weapons = {
+            "wpn_usp", "wpn_usp_tac", "wpn_fnx45", "wpn_fn57", "wpn_pl15", "wpn_glock19", "wpn_beretta_upg",
+            "wpn_spas12", "wpn_mp153", "wpn_mp153_m1", "wpn_mp155", "wpn_protecta", "wpn_saiga12s",
+            "wpn_ak74m", "wpn_ak101", "wpn_ak102", "wpn_ak103", "wpn_ak104", "wpn_ak105", "wpn_abakan", "wpn_aek971", "wpn_m4a1", "wpn_g36", "wpn_g36c", "wpn_g36k", "wpn_sig550", "wpn_sig552", "wpn_aug", "wpn_aug_a1",
+            "wpn_ump45", "wpn_vityaz", "wpn_mp5sd", "wpn_m1a1",
+            "wpn_svd", "wpn_svu", "wpn_sv98", "wpn_l96a1", "wpn_m24", "wpn_remington700",
+        },
+        shotguns = { "wpn_spas12", "wpn_mp153", "wpn_mp153_m1", "wpn_mp155", "wpn_protecta", "wpn_saiga12s" },
+        rifles = { "wpn_ak74m", "wpn_ak101", "wpn_ak102", "wpn_ak103", "wpn_ak104", "wpn_ak105", "wpn_abakan", "wpn_aek971", "wpn_m4a1", "wpn_g36", "wpn_g36c", "wpn_g36k", "wpn_sig550", "wpn_sig552", "wpn_aug", "wpn_aug_a1" },
+        smgs = { "wpn_ump45", "wpn_vityaz", "wpn_mp5sd", "wpn_m1a1" },
+        snipers = { "wpn_svd", "wpn_svu", "wpn_sv98", "wpn_l96a1", "wpn_m24", "wpn_remington700" },
+        pistols = { "wpn_usp", "wpn_usp_tac", "wpn_fnx45", "wpn_fn57", "wpn_pl15", "wpn_glock19", "wpn_beretta_upg" },
         ammo_count = 7,
         meds = { "bandage", "bandage", "medkit_army", "medkit_army", "stimpack", "drug_antidot" },
         grenades = { "grenade_rgd5", "grenade_f1" },
@@ -2526,12 +2723,18 @@ local tournament_loadouts_t = {
     [4] = {
         outfits = { "dolg_heavy_outfit", "military_outfit", "monolith_outfit", "svoboda_exolight_outfit" },
         helmets = { "helm_tactic", "helm_ach7ex", "helm_battle" },
-        weapons = { "wpn_vintorez", "wpn_svd", "wpn_m4", "wpn_fn2000", "wpn_groza", "wpn_saiga12s", "wpn_scar" },
-        shotguns = { "wpn_saiga12s", "wpn_usas12", "wpn_protecta" },
-        rifles = { "wpn_m4", "wpn_fn2000", "wpn_groza", "wpn_scar", "wpn_val" },
-        smgs = { "wpn_p90", "wpn_mp7", "wpn_val" },
-        snipers = { "wpn_svd", "wpn_vintorez", "wpn_g3sg1" },
-        pistols = { "wpn_glock", "wpn_fnx45", "wpn_usp" },
+        weapons = {
+            "wpn_desert_eagle", "wpn_deagle", "wpn_sr1m", "wpn_usp_tac_45", "wpn_glock17_m1", "wpn_pl15_tan",
+            "wpn_saiga12s_custom", "wpn_saiga12s_m1", "wpn_vepr", "wpn_protecta_custom", "wpn_mts_255",
+            "wpn_val", "wpn_groza", "wpn_fn2000", "wpn_scar", "wpn_scar_h", "wpn_m4_tac", "wpn_m4a1_siber", "wpn_xm4", "wpn_car15_bd", "wpn_hk416", "wpn_ak12", "wpn_ak74_isg", "wpn_akm_isg", "wpn_aksu_isg", "wpn_fal", "wpn_grot", "wpn_ash12", "wpn_rpk74",
+            "wpn_p90", "wpn_p90_gunslinger", "wpn_mp7", "wpn_sr2_veresk", "wpn_val_modern",
+            "wpn_vintorez", "wpn_svd_custom", "wpn_sv98_custom", "wpn_m98b", "wpn_sr25", "wpn_dvl10", "wpn_trg42", "wpn_g3sg1", "wpn_hk417",
+        },
+        shotguns = { "wpn_saiga12s_custom", "wpn_saiga12s_m1", "wpn_vepr", "wpn_protecta_custom", "wpn_mts_255" },
+        rifles = { "wpn_val", "wpn_groza", "wpn_fn2000", "wpn_scar", "wpn_scar_h", "wpn_m4_tac", "wpn_m4a1_siber", "wpn_xm4", "wpn_car15_bd", "wpn_hk416", "wpn_ak12", "wpn_ak74_isg", "wpn_akm_isg", "wpn_aksu_isg", "wpn_fal", "wpn_grot", "wpn_ash12", "wpn_rpk74" },
+        smgs = { "wpn_p90", "wpn_p90_gunslinger", "wpn_mp7", "wpn_sr2_veresk", "wpn_val_modern" },
+        snipers = { "wpn_vintorez", "wpn_svd_custom", "wpn_sv98_custom", "wpn_m98b", "wpn_sr25", "wpn_dvl10", "wpn_trg42", "wpn_g3sg1", "wpn_hk417" },
+        pistols = { "wpn_desert_eagle", "wpn_deagle", "wpn_sr1m", "wpn_usp_tac_45", "wpn_glock17_m1", "wpn_pl15_tan" },
         ammo_count = 8,
         meds = { "medkit_scientic", "medkit_army", "stimpack_army", "stimpack", "drug_psy_blockade" },
         grenades = { "grenade_f1", "grenade_f1" },
@@ -2540,12 +2743,18 @@ local tournament_loadouts_t = {
     [5] = {
         outfits = { "exo_outfit", "dolg_exo_outfit", "monolith_exo_outfit", "military_exo_outfit", "merc_exo_outfit" },
         helmets = { "helm_exo" },
-        weapons = { "wpn_pkm", "wpn_pkp", "wpn_gauss", "wpn_svu", "wpn_rpk74", "wpn_ash12", "wpn_usas12" },
-        shotguns = { "wpn_usas12", "wpn_saiga12s", "wpn_protecta" },
-        rifles = { "wpn_ash12", "wpn_pkm", "wpn_pkp", "wpn_rpk74" },
-        smgs = { "wpn_val", "wpn_p90", "wpn_mp7" },
-        snipers = { "wpn_gauss", "wpn_svu", "wpn_vintorez", "wpn_svd" },
-        pistols = { "wpn_fnx45", "wpn_glock", "wpn_usp" },
+        weapons = {
+            "wpn_desert_eagle_custom", "wpn_fn57_custom", "wpn_glock_custom",
+            "wpn_usas12", "wpn_ks23", "wpn_ks23_vorkuta", "wpn_saiga12s_isg", "wpn_raptr",
+            "wpn_pkm", "wpn_pkm_siber", "wpn_pkm_zenit_siber", "wpn_pkp", "wpn_pkp_siber", "wpn_rpk16", "wpn_rpk16_drum", "wpn_mk47", "wpn_mk47_custom", "wpn_howa20", "wpn_ar15_freedom", "wpn_dtmdr_black", "wpn_dtmdr_black_sup", "wpn_grot_tan", "wpn_ace52", "wpn_ru556",
+            "wpn_p90_tac", "wpn_mp7_custom", "wpn_sr2_m1", "wpn_kriss_vector",
+            "wpn_gauss", "wpn_vssk", "wpn_vintorez_isg", "wpn_svu_nimble", "wpn_m82", "wpn_wa2000",
+        },
+        shotguns = { "wpn_usas12", "wpn_ks23", "wpn_ks23_vorkuta", "wpn_saiga12s_isg", "wpn_raptr" },
+        rifles = { "wpn_pkm", "wpn_pkm_siber", "wpn_pkm_zenit_siber", "wpn_pkp", "wpn_pkp_siber", "wpn_rpk16", "wpn_rpk16_drum", "wpn_mk47", "wpn_mk47_custom", "wpn_howa20", "wpn_ar15_freedom", "wpn_dtmdr_black", "wpn_dtmdr_black_sup", "wpn_grot_tan", "wpn_ace52", "wpn_ru556" },
+        smgs = { "wpn_p90_tac", "wpn_mp7_custom", "wpn_sr2_m1", "wpn_kriss_vector" },
+        snipers = { "wpn_gauss", "wpn_vssk", "wpn_vintorez_isg", "wpn_svu_nimble", "wpn_m82", "wpn_wa2000" },
+        pistols = { "wpn_desert_eagle_custom", "wpn_fn57_custom", "wpn_glock_custom" },
         ammo_count = 10,
         meds = { "medkit_scientic", "medkit_scientic", "stimpack_army", "stimpack_army", "drug_psy_blockade", "drug_psy_blockade" },
         grenades = { "grenade_f1", "grenade_f1", "grenade_f1" },
@@ -2553,9 +2762,9 @@ local tournament_loadouts_t = {
     },
 }
 
-local last_spawned_weapon_sec = nil
+last_spawned_weapon_sec = nil
 
-local function pick_valid_section(list, exclude_sec)
+function pick_valid_section(list, exclude_sec)
     if not list then return nil end
     local valid = {}
     for _, sec in ipairs(list) do
@@ -2611,6 +2820,81 @@ function get_available_weapons(effective_tier, loadout_class)
     return valid
 end
 
+function get_weapon_tier(weapon_sec)
+    if not weapon_sec then return 1 end
+    for t = 1, 5 do
+        local t_data = tournament_loadouts_t[t]
+        if t_data then
+            local check_lists = { t_data.weapons, t_data.pistols, t_data.shotguns, t_data.rifles, t_data.smgs, t_data.snipers }
+            for _, list in ipairs(check_lists) do
+                if list then
+                    for _, sec in ipairs(list) do
+                        if sec == weapon_sec then
+                            return t
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return 1
+end
+
+function get_weapon_class(weapon_sec)
+    if not weapon_sec then return "rifle" end
+    for t = 1, 5 do
+        local t_data = tournament_loadouts_t[t]
+        if t_data then
+            local map = {
+                pistol = t_data.pistols,
+                shotgun = t_data.shotguns,
+                smg = t_data.smgs,
+                sniper = t_data.snipers,
+                rifle = t_data.rifles,
+            }
+            for cls, list in pairs(map) do
+                if list then
+                    for _, s in ipairs(list) do
+                        if s == weapon_sec then return cls end
+                    end
+                end
+            end
+        end
+    end
+    if ini_sys and ini_sys:section_exist(weapon_sec) then
+        local kind = ini_sys:r_string_ex(weapon_sec, "kind") or ""
+        if kind == "w_pistol" then return "pistol"
+        elseif kind == "w_shotgun" then return "shotgun"
+        elseif kind == "w_smg" then return "smg"
+        elseif kind == "w_sniper" then return "sniper"
+        elseif kind == "w_rifle" then return "rifle"
+        end
+    end
+    return "rifle"
+end
+
+function get_all_available_weapons_by_class(loadout_class, specific_tier)
+    local result = {}
+    local seen = {}
+    local min_t = 1
+    local max_t = 5
+    if specific_tier and specific_tier >= 1 and specific_tier <= 5 then
+        min_t = specific_tier
+        max_t = specific_tier
+    end
+
+    for t = min_t, max_t do
+        local list = get_available_weapons(t, loadout_class)
+        for _, sec in ipairs(list) do
+            if not seen[sec] then
+                seen[sec] = true
+                table.insert(result, { sec = sec, tier = t })
+            end
+        end
+    end
+    return result
+end
+
 function get_loadout_effective_ammo_sec(weapon_sec, ammo_type, special_sec, tier)
     if ammo_type == "special" and special_sec and ini_sys:section_exist(special_sec) then
         return special_sec
@@ -2640,7 +2924,8 @@ function get_weapon_scopes(weapon_sec)
         local child = parent .. "_" .. clean_scope
         local is_upgrade_kit = ini_sys:section_exist(clean_scope)
             and ini_sys:r_bool_ex(clean_scope, "weapon_kit", false)
-        local is_scope = IsItem and IsItem("scope", clean_scope)
+        local is_scope = (IsItem and IsItem("scope", clean_scope))
+            or (ini_sys:section_exist(clean_scope) and clean_scope ~= "none")
         if clean_scope ~= "" and (is_scope or is_upgrade_kit) and ini_sys:section_exist(child) then
             table.insert(result, clean_scope)
         end
@@ -2648,7 +2933,7 @@ function get_weapon_scopes(weapon_sec)
     return result
 end
 
-local function attach_arena_scope(weapon, requested_scope)
+function attach_arena_scope(weapon, requested_scope)
     if not (weapon and IsWeapon(nil, weapon:clsid()) and not (IsKnife and IsKnife(nil, weapon:clsid()))) then return end
     local parent = ini_sys:r_string_ex(weapon:section(), "parent_section") or weapon:section()
     if weapon:section() ~= parent then return end
@@ -2679,6 +2964,11 @@ local function attach_arena_scope(weapon, requested_scope)
             was_active = db.actor:active_slot() == slot
             break
         end
+    end
+    if not restore_slot then
+        local s = ini_sys:r_s32_ex(parent, "slot")
+        restore_slot = (s == 1) and 1 or 2
+        was_active = true
     end
 
     local attach_attempts = 0
@@ -2800,6 +3090,43 @@ local function get_or_create_arena_box()
     return nil
 end
 
+function release_actor_arena_item(id)
+    if not id then return end
+    if magazine_binder then
+        if magazine_binder.is_carried_mag and magazine_binder.is_carried_mag(id) then
+            pcall(magazine_binder.toggle_carried_mag, id)
+        end
+        if magazine_binder.set_data then
+            pcall(magazine_binder.set_data, id, nil)
+        end
+    end
+    local obj = level.object_by_id(id)
+    if obj and db.actor then
+        if db.actor.move_to_ruck then pcall(function() db.actor:move_to_ruck(obj) end) end
+    end
+    local se_item = alife_object(id)
+    if se_item then
+        pcall(alife_release, se_item)
+    end
+end
+
+function purge_all_arena_mags()
+    if not magazine_binder then return end
+    local carried = {}
+    if magazine_binder.get_carried_mags then
+        pcall(magazine_binder.get_carried_mags, carried)
+        for cid, _ in pairs(carried) do
+            if magazine_binder.toggle_carried_mag then pcall(magazine_binder.toggle_carried_mag, cid) end
+            if magazine_binder.set_data then pcall(magazine_binder.set_data, cid, nil) end
+        end
+    end
+    if magazine_binder.clean_data then pcall(magazine_binder.clean_data) end
+    if magazine_binder.update_loadout_slots then pcall(magazine_binder.update_loadout_slots) end
+    if magazine_binder.validate_loadout then pcall(magazine_binder.validate_loadout) end
+    if magazines and magazines.inventory_refresh then pcall(magazines.inventory_refresh) end
+    if mag_hud and mag_hud.HUD and mag_hud.HUD.Update then pcall(function() mag_hud.HUD:Update(true) end) end
+end
+
 function store_actor_inventory()
     if inventory_stored or inventory_restore_pending or not db.actor then return false end
     inventory_return_candidates = nil
@@ -2869,6 +3196,7 @@ function store_actor_inventory()
         restore_actor_inventory()
         return false
     end
+    purge_all_arena_mags()
     return true
 end
 
@@ -2897,19 +3225,16 @@ local function fill_arena_magazine(mag_id, mag_sec, ammo_sec)
     
     if magazine_binder then
         if magazine_binder.update_loadout_slots then pcall(magazine_binder.update_loadout_slots) end
-        if magazine_binder.carried_mags then
-            local m_data = (magazine_binder.get_mag_data and magazine_binder.get_mag_data(mag_id)) or (magazine_binder.get_data and magazine_binder.get_data(mag_id))
-            if not m_data then
-                local loaded_ammo = {}
-                for j = 1, cap do table.insert(loaded_ammo, ammo_sec) end
-                m_data = { section = mag_sec, loaded = loaded_ammo }
-                magazine_binder.carried_mags[mag_id] = m_data
-            end
+        if magazine_binder.is_carried_mag and not magazine_binder.is_carried_mag(mag_id) then
+            if magazine_binder.toggle_carried_mag then pcall(magazine_binder.toggle_carried_mag, mag_id) end
         end
+        if magazine_binder.validate_loadout then pcall(magazine_binder.validate_loadout) end
     end
+    if magazines and magazines.inventory_refresh then pcall(magazines.inventory_refresh) end
+    if mag_hud and mag_hud.HUD and mag_hud.HUD.Update then pcall(function() mag_hud.HUD:Update(true) end) end
 end
 
-local function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id, chosen_mag_sec)
+function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id, chosen_mag_sec)
     if not (wpn_sec and ammo_sec) then return ammo_sec end
     if not (magazine_binder and magazine_binder.is_supported_weapon and magazine_binder.is_supported_weapon(wpn_sec)) then
         return ammo_sec
@@ -2995,7 +3320,7 @@ local function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id, chosen_mag_
     return ammo_sec 
 end
 
-local function is_helmet_item(item)
+function is_helmet_item(item)
     if not item then return false end
     local sec = item:section()
     if item.is_helmet and item:is_helmet() then return true end
@@ -3005,7 +3330,7 @@ local function is_helmet_item(item)
     return false
 end
 
-local function is_outfit_item(item)
+function is_outfit_item(item)
     if not item then return false end
     local sec = item:section()
     if item.is_outfit and item:is_outfit() then return true end
@@ -3016,7 +3341,7 @@ local function is_outfit_item(item)
     return false
 end
 
-local function power_up_exoskeleton(spawned_outfit_id, outfit_sec)
+function power_up_exoskeleton(spawned_outfit_id, outfit_sec)
     if not outfit_sec then return end
     
     local is_an_exo = false
@@ -3391,14 +3716,7 @@ function restore_actor_inventory(is_retry)
     cancel_inventory_events()
     pcall(turn_off_actor_nightvision)
     for item_id, _ in pairs(temporary_arena_item_ids) do
-        local se_item = alife_object(item_id)
-        if se_item then
-            if safe_release_manager and safe_release_manager.release then
-                safe_release_manager.release({id = item_id})
-            else
-                alife_release(se_item)
-            end
-        end
+        release_actor_arena_item(item_id)
     end
     temporary_arena_item_ids = {}
 
@@ -3418,19 +3736,9 @@ function restore_actor_inventory(is_retry)
     end, db.actor)
 
     for _, id in ipairs(contraband_to_delete) do
-        local obj = level.object_by_id(id)
-        if obj and db.actor and db.actor.move_to_ruck then
-            pcall(function() db.actor:move_to_ruck(obj) end)
-        end
-        local se_item = alife_object(id)
-        if se_item then
-            if safe_release_manager and safe_release_manager.release then
-                safe_release_manager.release({id = id})
-            else
-                alife_release(se_item)
-            end
-        end
+        release_actor_arena_item(id)
     end
+    purge_all_arena_mags()
 
     if item_exo_device and item_exo_device.reset_speed then pcall(item_exo_device.reset_speed) end
     if speed and speed.remove_speed then pcall(speed.remove_speed, "exo_speed") end
@@ -4256,9 +4564,6 @@ function ensure_npc_combat_loadout(npc)
         end)
         local ammo_sec = get_weapon_ammo(sec, "auto")
         if ammo_sec and ini_sys:section_exist(ammo_sec) then
-            if magazine_binder and magazine_binder.is_supported_weapon and magazine_binder.is_supported_weapon(sec) then
-                pcall(spawn_and_fill_mags, sec, ammo_sec, 3, wpn:id())
-            end
             for _ = 1, 8 do
                 alife_create_item(ammo_sec, npc)
             end
@@ -4785,6 +5090,9 @@ function spawn_endless_squad(wave, enemy_type, difficulty)
 end
 
 function equip_endless_random_loadout(wave, difficulty, use_3dssg)
+    if xcvb_arena_endless and xcvb_arena_endless.equip_endless_loadout then
+        return xcvb_arena_endless.equip_endless_loadout(wave, difficulty, use_3dssg)
+    end
     local cur_wave = wave or 1
     local diff = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
     
@@ -4796,15 +5104,6 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
                 pcall(function() db.actor:move_to_ruck(slot_itm) end)
             end
         end
-        db.actor:iterate_inventory(function(owner, item)
-            if not item then return end
-            if IsWeapon(nil, item:clsid()) then
-                pcall(function() item:set_ammo_elapsed(0) end)
-                if magazine_binder and magazine_binder.set_data then
-                    pcall(magazine_binder.set_data, item:id(), nil)
-                end
-            end
-        end, db.actor)
     end
 
     -- 2. Release all previously recorded temporary arena items (except night device if night mode is active)
@@ -4816,11 +5115,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             if xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
                 kept_temp_items[item_id] = true
             else
-                if safe_release_manager and safe_release_manager.release then
-                    safe_release_manager.release({ id = item_id })
-                else
-                    alife_release(se_item)
-                end
+                release_actor_arena_item(item_id)
             end
         end
     end
@@ -4844,16 +5139,10 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
         end, db.actor)
 
         for _, id in ipairs(leftover_arena_items) do
-            local se_item = alife_object(id)
-            if se_item then
-                if safe_release_manager and safe_release_manager.release then
-                    safe_release_manager.release({ id = id })
-                else
-                    alife_release(se_item)
-                end
-            end
+            release_actor_arena_item(id)
         end
     end
+    purge_all_arena_mags()
     
     local tier = 1
     if diff == "easy" then
@@ -5010,6 +5299,9 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
         end
         if outfit_obj then
             db.actor:move_to_slot(outfit_obj, 7)
+            if magazine_binder and magazine_binder.update_loadout_slots then
+                pcall(magazine_binder.update_loadout_slots)
+            end
         end
         
         local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
@@ -5069,20 +5361,13 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
                     or (SYS_GetParam and SYS_GetParam(0, sec, "kind") == "w_mag")
                     or (magazine_binder and magazine_binder.is_magazine and magazine_binder.is_magazine(sec))
                 
-                if (is_ammo and not valid_ammo_types[sec]) or (is_mag and not valid_mags[sec]) then
+                if (is_mag and not temporary_arena_item_ids[itm:id()]) or (is_ammo and not valid_ammo_types[sec]) then
                     table.insert(stray_items, itm:id())
                 end
             end, db.actor)
 
             for _, s_id in ipairs(stray_items) do
-                local se = alife_object(s_id)
-                if se then
-                    if safe_release_manager and safe_release_manager.release then
-                        safe_release_manager.release({ id = s_id })
-                    else
-                        alife_release(se)
-                    end
-                end
+                release_actor_arena_item(s_id)
             end
         end
 
@@ -5214,7 +5499,7 @@ function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_a
     end
 
     -- 2. Weapon Tier override fee (bringing higher tier weapons into lower tier matches)
-    if loadout_tier and loadout_tier > 0 then
+    if loadout_class and loadout_class ~= "random" and loadout_tier and loadout_tier > 0 then
         if loadout_tier > round_tier then
             total_fee = total_fee + (loadout_tier - round_tier) * 1200
         else
@@ -5242,7 +5527,7 @@ function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_a
     end
 
     -- 4. Magazine fee (if weapon supports magazines)
-    if weapon_sec and magazine_binder and magazine_binder.is_supported_weapon and magazine_binder.is_supported_weapon(weapon_sec) then
+    if loadout_class and loadout_class ~= "random" and weapon_sec and magazine_binder and magazine_binder.is_supported_weapon and magazine_binder.is_supported_weapon(weapon_sec) then
         local m_cnt = tonumber(mag_count)
         if m_cnt and m_cnt > 0 then
             local basic_mag = get_weapon_basic_mag(weapon_sec)
@@ -5273,7 +5558,7 @@ function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_a
     end
 
     -- 5. Scope fee
-    if scope_sec then
+    if loadout_class and loadout_class ~= "random" and scope_sec then
         total_fee = total_fee + 500
     end
 

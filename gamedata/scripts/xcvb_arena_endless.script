@@ -1,0 +1,571 @@
+-- =============================================================================
+-- Arena Tournament Mod - Endless Mode Dedicated System
+-- Script: xcvb_arena_endless.script
+-- Description: Centralized logic for Endless Mode:
+--   1. Custom Loadout Management (Custom Weapon, Ammo, Mags for Endless)
+--   2. Massive Weapon Pool Selection (GAMMA, BaS, GIMP, Vanilla)
+--   3. Dynamic Loadout Equipping & Wave Transitions
+--   4. State Persistence (Save / Load)
+-- =============================================================================
+
+-- Ring buffer of recently spawned weapons in Endless to ensure variety
+local recent_weapons = {}
+local MAX_RECENT_WEAPONS = 8
+
+-- Custom Loadout Configuration for Endless Mode
+local custom_loadout = {
+    enabled = false,
+    class = "rifle",
+    weapon_sec = "wpn_ak74",
+    tier = 3,
+    ammo_type = "auto",            -- "auto", "fmj", "ap", "hp", "special"
+    special_ammo_sec = nil,
+    mag_sec = nil,
+    mag_count = 4,
+    ammo_count = 4,
+    scope_sec = nil,
+}
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- GETTERS / SETTERS FOR CUSTOM LOADOUT
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function is_custom_loadout_enabled()
+    return custom_loadout.enabled == true
+end
+
+function set_custom_loadout_enabled(val)
+    custom_loadout.enabled = (val == true)
+end
+
+function toggle_custom_loadout()
+    custom_loadout.enabled = not custom_loadout.enabled
+    return custom_loadout.enabled
+end
+
+function get_custom_loadout()
+    return custom_loadout
+end
+
+function set_custom_weapon(sec, cls, tier)
+    if not sec then return end
+    custom_loadout.weapon_sec = sec
+    if cls then custom_loadout.class = cls end
+    if tier then custom_loadout.tier = tier end
+end
+
+function set_custom_ammo_type(a_type, spec_sec)
+    custom_loadout.ammo_type = a_type or "auto"
+    custom_loadout.special_ammo_sec = spec_sec
+end
+
+function set_custom_mag_count(cnt)
+    custom_loadout.mag_count = math.max(1, math.min(10, cnt or 4))
+end
+
+function set_custom_ammo_count(cnt)
+    custom_loadout.ammo_count = math.max(1, math.min(8, cnt or 4))
+end
+
+function set_custom_mag_sec(mag_sec)
+    custom_loadout.mag_sec = mag_sec
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- MASSIVE WEAPON POOL GENERATOR
+-- ─────────────────────────────────────────────────────────────────────────────
+
+local function is_in_recent_history(sec)
+    for _, s in ipairs(recent_weapons) do
+        if s == sec then return true end
+    end
+    return false
+end
+
+local function record_recent_weapon(sec)
+    if not sec then return end
+    table.insert(recent_weapons, sec)
+    if #recent_weapons > MAX_RECENT_WEAPONS then
+        table.remove(recent_weapons, 1)
+    end
+end
+
+function get_endless_random_weapon(tier, chosen_cls, prefer_scopes)
+    local t = tier or 1
+    local cls = chosen_cls or "rifle"
+
+    -- 1. Query the massive catalog from xcvb_arena_utils
+    local entries = xcvb_arena_utils.get_all_available_weapons_by_class(cls, t)
+    local candidates = {}
+
+    if entries and #entries > 0 then
+        for _, entry in ipairs(entries) do
+            local sec = entry.sec
+            if sec and ini_sys:section_exist(sec) then
+                if not is_in_recent_history(sec) then
+                    table.insert(candidates, sec)
+                end
+            end
+        end
+
+        -- If all available weapons in this tier/class were recently used, allow all valid
+        if #candidates == 0 then
+            for _, entry in ipairs(entries) do
+                local sec = entry.sec
+                if sec and ini_sys:section_exist(sec) then
+                    table.insert(candidates, sec)
+                end
+            end
+        end
+    end
+
+    -- 2. Fallback to tournament_loadouts_t if catalog is empty
+    if #candidates == 0 then
+        local t_data = xcvb_arena_utils.tournament_loadouts_t and xcvb_arena_utils.tournament_loadouts_t[t]
+        if t_data then
+            local fallback_list = (cls == "pistol" and t_data.pistols)
+                or (cls == "shotgun" and t_data.shotguns)
+                or (cls == "smg" and t_data.smgs)
+                or (cls == "sniper" and t_data.snipers)
+                or t_data.rifles
+                or t_data.weapons
+            if fallback_list then
+                for _, s in ipairs(fallback_list) do
+                    if ini_sys:section_exist(s) then
+                        table.insert(candidates, s)
+                    end
+                end
+            end
+        end
+    end
+
+    -- 3. Prefer weapons that support scopes if 3DSSG is enabled
+    if prefer_scopes and cls ~= "pistol" and #candidates > 0 then
+        local scoped_pool = {}
+        for _, s in ipairs(candidates) do
+            local sc = xcvb_arena_utils and xcvb_arena_utils.get_weapon_scopes and xcvb_arena_utils.get_weapon_scopes(s)
+            if sc and #sc > 0 then
+                table.insert(scoped_pool, s)
+            end
+        end
+        if #scoped_pool > 0 then
+            candidates = scoped_pool
+        end
+    end
+
+    if #candidates > 0 then
+        local picked = candidates[math.random(#candidates)]
+        record_recent_weapon(picked)
+        return picked
+    end
+
+    -- Ultimate safe fallback
+    local safe = (cls == "pistol" and "wpn_pm")
+        or (cls == "shotgun" and "wpn_bm16")
+        or (cls == "smg" and "wpn_mp5")
+        or (cls == "sniper" and "wpn_svd")
+        or "wpn_ak74"
+    return safe
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ENDLESS LOADOUT SPAWNER
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function equip_endless_loadout(wave, difficulty, use_3dssg)
+    local cur_wave = wave or 1
+    local diff = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
+
+    -- 1. Put active weapon in rucksack
+    if db.actor then
+        pcall(function() db.actor:activate_slot(0) end)
+        for s = 1, 15 do
+            local slot_itm = db.actor:item_in_slot(s)
+            if slot_itm and db.actor.move_to_ruck then
+                pcall(function() db.actor:move_to_ruck(slot_itm) end)
+            end
+        end
+    end
+
+    -- 2. Release temporary arena items from previous wave (keep torch if night mode)
+    local kept_temp = {}
+    for item_id, _ in pairs(xcvb_arena_utils.temporary_arena_item_ids or {}) do
+        local se_item = alife_object(item_id)
+        if se_item then
+            local sec = se_item:section_name()
+            if xcvb_arena_main and xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
+                kept_temp[item_id] = true
+            else
+                xcvb_arena_utils.release_actor_arena_item(item_id)
+            end
+        end
+    end
+    xcvb_arena_utils.temporary_arena_item_ids = kept_temp
+
+    -- 3. Sweep actor inventory to purge any leftover loose items from the previous wave
+    if db.actor then
+        local leftover = {}
+        db.actor:iterate_inventory(function(owner, item)
+            if not item then return end
+            local sec = item:section()
+            if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+                return
+            end
+            if xcvb_arena_utils.saved_actor_item_ids and xcvb_arena_utils.saved_actor_item_ids[item:id()] then
+                return
+            end
+            table.insert(leftover, item:id())
+        end, db.actor)
+
+        for _, id in ipairs(leftover) do
+            xcvb_arena_utils.release_actor_arena_item(id)
+        end
+    end
+    if xcvb_arena_utils and xcvb_arena_utils.purge_all_arena_mags then
+        xcvb_arena_utils.purge_all_arena_mags()
+    end
+
+    -- 4. Determine Tier based on wave and difficulty
+    local tier = 1
+    if diff == "easy" then
+        if cur_wave >= 6 then tier = 5
+        elseif cur_wave >= 4 then tier = 4
+        elseif cur_wave >= 3 then tier = 3
+        elseif cur_wave >= 2 then tier = 2 end
+    else
+        if cur_wave >= 8 then tier = 5
+        elseif cur_wave >= 6 then tier = 4
+        elseif cur_wave >= 4 then tier = 3
+        elseif cur_wave >= 2 then tier = 2 end
+    end
+
+    local t_data = (xcvb_arena_utils.tournament_loadouts_t and xcvb_arena_utils.tournament_loadouts_t[tier])
+        or (xcvb_arena_utils.tournament_loadouts_t and xcvb_arena_utils.tournament_loadouts_t[1])
+        or {}
+
+    -- 5. Spawn armor and helmet
+    local spawned_outfit_id = nil
+    local outfit_sec = xcvb_arena_utils.pick_valid_section(t_data.outfits)
+    if outfit_sec then
+        local se = alife_create(outfit_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+        if se then
+            xcvb_arena_utils.temporary_arena_item_ids[se.id] = true
+            spawned_outfit_id = se.id
+            xcvb_arena_utils.power_up_exoskeleton(se.id, outfit_sec)
+        end
+    end
+
+    local spawned_helm_id = nil
+    local helm_sec = xcvb_arena_utils.pick_valid_section(t_data.helmets)
+    if helm_sec then
+        local se = alife_create(helm_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+        if se then
+            xcvb_arena_utils.temporary_arena_item_ids[se.id] = true
+            spawned_helm_id = se.id
+        end
+    end
+
+    -- 6. Select Weapon
+    local wpn_sec = nil
+    local chosen_cls = "rifle"
+    local is_custom = custom_loadout.enabled and custom_loadout.weapon_sec and ini_sys:section_exist(custom_loadout.weapon_sec)
+
+    if is_custom then
+        wpn_sec = custom_loadout.weapon_sec
+        chosen_cls = custom_loadout.class or "rifle"
+    else
+        local classes = { "shotgun", "rifle", "smg", "sniper" }
+        if tier == 1 then table.insert(classes, "pistol") end
+        chosen_cls = classes[math.random(#classes)]
+        local is_dssg = (use_3dssg == true) or (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true)
+        wpn_sec = get_endless_random_weapon(tier, chosen_cls, is_dssg)
+    end
+
+    -- 7. Spawn Weapon & Ammunition
+    local spawned_wpn_id = nil
+    if wpn_sec and ini_sys:section_exist(wpn_sec) then
+        xcvb_arena_utils.last_spawned_weapon_sec = wpn_sec
+        local se = alife_create(wpn_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+        if se then
+            xcvb_arena_utils.temporary_arena_item_ids[se.id] = true
+            spawned_wpn_id = se.id
+
+            local chosen_ammo = "auto"
+            if is_custom then
+                chosen_ammo = custom_loadout.ammo_type or "auto"
+            else
+                local ammo_types = { "fmj", "ap", "hp" }
+                chosen_ammo = ammo_types[math.random(#ammo_types)]
+                if xcvb_arena_main and xcvb_arena_main.endless_artigrok_ammo and xcvb_arena_utils.is_artigrok_active() then
+                    chosen_ammo = "special"
+                end
+            end
+
+            local ammo_sec = nil
+            if chosen_ammo == "special" and is_custom and custom_loadout.special_ammo_sec and ini_sys:section_exist(custom_loadout.special_ammo_sec) then
+                ammo_sec = custom_loadout.special_ammo_sec
+            else
+                ammo_sec = xcvb_arena_utils.get_weapon_ammo(wpn_sec, chosen_ammo)
+            end
+
+            if ammo_sec then
+                local num_mags = is_custom and custom_loadout.mag_count or 4
+                local pref_mag = is_custom and custom_loadout.mag_sec or nil
+                ammo_sec = xcvb_arena_utils.spawn_and_fill_mags(wpn_sec, ammo_sec, num_mags, spawned_wpn_id, pref_mag) or ammo_sec
+
+                local box_count = is_custom and custom_loadout.ammo_count or ((t_data.ammo_count or 4) + 1)
+                for i = 1, box_count do
+                    local se_ammo = alife_create(ammo_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+                    if se_ammo then
+                        xcvb_arena_utils.temporary_arena_item_ids[se_ammo.id] = true
+                    end
+                end
+            end
+        end
+    end
+
+    -- 8. Spawn knife and medical supplies
+    local knife_sec = t_data.knife or "wpn_knife"
+    if ini_sys:section_exist(knife_sec) then
+        local se = alife_create(knife_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+        if se then xcvb_arena_utils.temporary_arena_item_ids[se.id] = true end
+    end
+
+    if t_data.meds then
+        for _, med_sec in ipairs(t_data.meds) do
+            if ini_sys:section_exist(med_sec) then
+                local se = alife_create(med_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+                if se then xcvb_arena_utils.temporary_arena_item_ids[se.id] = true end
+            end
+        end
+        if diff == "easy" then
+            local bonus_med = "medkit"
+            if ini_sys:section_exist(bonus_med) then
+                local se = alife_create(bonus_med, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+                if se then xcvb_arena_utils.temporary_arena_item_ids[se.id] = true end
+            end
+        end
+    end
+
+    -- 9. Complete healing of player
+    if xcvb_arena_fight and xcvb_arena_fight.heal_actor_completely then
+        xcvb_arena_fight.heal_actor_completely()
+    else
+        if db.actor then
+            db.actor.health = 1.0
+            db.actor.bleeding = 1.0
+            db.actor.radiation = 0
+            db.actor.psy_health = 1.0
+            db.actor.power = 1.0
+        end
+    end
+
+    -- 10. Equip armor, helmet, and weapon into slots with full draw sequence
+    local endless_target_slot = (chosen_cls == "pistol") and 1 or 2
+
+    -- Timer 1: Equip Outfit (Slot 7)
+    CreateTimeEvent("arena_equip_endless_e1", "arena_equip_endless_a1", 0.25, function()
+        local outfit_obj = spawned_outfit_id and level.object_by_id(spawned_outfit_id)
+        if not outfit_obj and db.actor then
+            db.actor:iterate_inventory(function(_, itm)
+                if xcvb_arena_utils.is_outfit_item(itm) and xcvb_arena_utils.temporary_arena_item_ids[itm:id()] then
+                    outfit_obj = itm
+                    return true
+                end
+            end, db.actor)
+        end
+        if outfit_obj then
+            db.actor:move_to_slot(outfit_obj, 7)
+            if magazine_binder and magazine_binder.update_loadout_slots then
+                pcall(magazine_binder.update_loadout_slots)
+            end
+        end
+
+        local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
+        if not wpn_obj and db.actor then
+            db.actor:iterate_inventory(function(_, itm)
+                if xcvb_arena_utils.temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                    wpn_obj = itm
+                    return true
+                end
+            end, db.actor)
+        end
+        if wpn_obj then
+            if ini_sys:line_exist(wpn_obj:section(), "slot") then
+                local s = ini_sys:r_s32(wpn_obj:section(), "slot")
+                if s == 1 or s == 2 then
+                    endless_target_slot = s
+                end
+            end
+            db.actor:move_to_slot(wpn_obj, endless_target_slot)
+        end
+
+        -- Purge stray ammunition that does not match the equipped weapon
+        if db.actor and wpn_sec then
+            local valid_ammo_types = {}
+            local raw_ammos = ini_sys:r_string_ex(wpn_sec, "ammo_class") or ""
+            for _, a in ipairs(str_explode(raw_ammos, ",")) do
+                valid_ammo_types[trim(a)] = true
+            end
+            local valid_mags = {}
+            if magazine_binder and magazine_binder.get_mags_for_weapon then
+                local mags = magazine_binder.get_mags_for_weapon(wpn_sec)
+                if mags then
+                    for _, m in ipairs(mags) do valid_mags[m] = true end
+                end
+            end
+            if magazine_binder and magazine_binder.weapon_default_magazine then
+                local def_m = magazine_binder.weapon_default_magazine(wpn_sec)
+                if def_m then valid_mags[def_m] = true end
+            end
+
+            local stray = {}
+            db.actor:iterate_inventory(function(_, itm)
+                if not itm then return end
+                local sec = itm:section()
+                if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+                    return
+                end
+                if xcvb_arena_utils.saved_actor_item_ids and xcvb_arena_utils.saved_actor_item_ids[itm:id()] then
+                    return
+                end
+                local cls = itm:clsid()
+                local is_ammo = (IsItem and IsItem("ammo", sec))
+                    or (itm.is_ammo and itm:is_ammo())
+                    or (cls == clsid.wpn_ammo or cls == clsid.wpn_ammo_s or cls == clsid.wpn_ammo_m209 or cls == clsid.wpn_ammo_vog25 or cls == clsid.wpn_ammo_og7b)
+                    or string.find(sec, "^ammo_")
+                local is_mag = magazine_binder and magazine_binder.is_magazine and magazine_binder.is_magazine(sec)
+
+                if is_ammo and not valid_ammo_types[sec] then
+                    table.insert(stray, itm:id())
+                elseif is_mag and not valid_mags[sec] then
+                    table.insert(stray, itm:id())
+                end
+            end, db.actor)
+
+            for _, s_id in ipairs(stray) do
+                xcvb_arena_utils.release_actor_arena_item(s_id)
+            end
+        end
+
+        return true
+    end)
+
+    -- Timer 2: Equip Helmet (Slot 12)
+    CreateTimeEvent("arena_equip_endless_e2", "arena_equip_endless_a2", 0.45, function()
+        local helm_obj = spawned_helm_id and level.object_by_id(spawned_helm_id)
+        if not helm_obj and db.actor then
+            db.actor:iterate_inventory(function(_, itm)
+                if xcvb_arena_utils.is_helmet_item and xcvb_arena_utils.is_helmet_item(itm) and xcvb_arena_utils.temporary_arena_item_ids[itm:id()] then
+                    helm_obj = itm
+                    return true
+                end
+            end, db.actor)
+        end
+        if helm_obj then
+            db.actor:move_to_slot(helm_obj, 12)
+        end
+        return true
+    end)
+
+    -- Timer 3: Weapon to Slot & Draw (Slot 1 or 2)
+    CreateTimeEvent("arena_equip_endless_draw_e1", "arena_equip_endless_draw_a1", 0.65, function()
+        if not db.actor then return true end
+        local in_slot = db.actor:item_in_slot(endless_target_slot)
+        if not in_slot then
+            local other_slot = (endless_target_slot == 2) and 1 or 2
+            if db.actor:item_in_slot(other_slot) then
+                endless_target_slot = other_slot
+            else
+                local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
+                if not wpn_obj then
+                    db.actor:iterate_inventory(function(_, itm)
+                        if xcvb_arena_utils.temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                            wpn_obj = itm
+                            return true
+                        end
+                    end, db.actor)
+                end
+                if wpn_obj then
+                    db.actor:move_to_slot(wpn_obj, endless_target_slot)
+                end
+            end
+        end
+        db.actor:activate_slot(endless_target_slot)
+        return true
+    end)
+
+    -- Timer 4: Weapon Draw Verification Retry
+    CreateTimeEvent("arena_equip_endless_draw_e2", "arena_equip_endless_draw_a2", 1.1, function()
+        if not db.actor then return true end
+        if db.actor:active_slot() ~= endless_target_slot then
+            local in_slot = db.actor:item_in_slot(endless_target_slot)
+            if not in_slot then
+                local other_slot = (endless_target_slot == 2) and 1 or 2
+                if db.actor:item_in_slot(other_slot) then
+                    endless_target_slot = other_slot
+                end
+            end
+            db.actor:activate_slot(endless_target_slot)
+        end
+        return true
+    end)
+
+    -- Timer 5: 3DSSG Scope Attachment (1.1s)
+    local is_dssg = (use_3dssg == true) or (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true)
+    if is_dssg then
+        CreateTimeEvent("arena_equip_endless_3dssg", "arena_equip_endless_3dssg", 1.1, function()
+            if not db.actor then return true end
+            db.actor:iterate_inventory(function(_, itm)
+                if xcvb_arena_utils and xcvb_arena_utils.temporary_arena_item_ids and xcvb_arena_utils.temporary_arena_item_ids[itm:id()]
+                    and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                    local forced_scope = (custom_loadout.enabled and custom_loadout.scope_sec) or nil
+                    if xcvb_arena_utils and xcvb_arena_utils.attach_arena_scope then
+                        xcvb_arena_utils.attach_arena_scope(itm, forced_scope)
+                    end
+                end
+            end, db.actor)
+            return true
+        end)
+    end
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- STATE PERSISTENCE
+-- ─────────────────────────────────────────────────────────────────────────────
+
+function save_state(m_data)
+    if not m_data then return end
+    m_data.xcvb_arena_endless = {
+        custom_loadout = {
+            enabled = custom_loadout.enabled,
+            class = custom_loadout.class,
+            weapon_sec = custom_loadout.weapon_sec,
+            tier = custom_loadout.tier,
+            ammo_type = custom_loadout.ammo_type,
+            special_ammo_sec = custom_loadout.special_ammo_sec,
+            mag_sec = custom_loadout.mag_sec,
+            mag_count = custom_loadout.mag_count,
+            ammo_count = custom_loadout.ammo_count,
+        }
+    }
+end
+
+function load_state(m_data)
+    if not (m_data and m_data.xcvb_arena_endless and m_data.xcvb_arena_endless.custom_loadout) then return end
+    local cl = m_data.xcvb_arena_endless.custom_loadout
+    custom_loadout.enabled = (cl.enabled == true)
+    custom_loadout.class = cl.class or "rifle"
+    custom_loadout.weapon_sec = cl.weapon_sec
+    custom_loadout.tier = cl.tier or 3
+    custom_loadout.ammo_type = cl.ammo_type or "auto"
+    custom_loadout.special_ammo_sec = cl.special_ammo_sec
+    custom_loadout.mag_sec = cl.mag_sec
+    custom_loadout.mag_count = cl.mag_count or 4
+    custom_loadout.ammo_count = cl.ammo_count or 4
+end
+
+function on_game_start()
+    RegisterScriptCallback("save_state", save_state)
+    RegisterScriptCallback("load_state", load_state)
+end

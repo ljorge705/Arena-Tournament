@@ -4,8 +4,18 @@ visual                        = dynamics\arena_meshes\py_blackboard_short.ogf
 custom_data                   = scripts\arena_board_logic.ltx
 
 [xcvb_arena_balcony]:physic_object
-fixed_bones							= floor
+fixed_bones						= floor
 visual                        = dynamics\arena_meshes\metal_balcony.ogf
+
+[xcvb_arena_companion_board]:physic_object
+fixed_bones                   = link
+visual                        = dynamics\arena_meshes\py_blackboard_short.ogf
+custom_data                   = scripts\arena_companion_board_logic.ltx
+
+[arena_companion_squad]:online_offline_group
+faction                       = stalker
+npc_in_squad                  = 10
+common                        = false
 
 [arena_stalker_team_1]:online_offline_group
 faction 		= stalker

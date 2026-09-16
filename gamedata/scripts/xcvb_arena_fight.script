@@ -911,12 +911,17 @@ end
 --------------------------------------------------------------------------------
 -- MODO INFINITO (BETA TESTING - Endless Survival Mode)
 --------------------------------------------------------------------------------
+function get_endless_enemy_squad_ids()
+    return endless_enemy_squad_ids
+end
+
 function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     if not db.actor or not xcvb_arena_utils.store_actor_inventory() then return false end
     callback_epoch = callback_epoch + 1
     cancel_player_combat_events()
     tourn_ending = false
     endless_ending = false
+
     tournament_fight_closed = false
     endless_fight_closed = false
     is_endless_mode = true
@@ -965,7 +970,11 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
 
     CreateTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a", 0.3, function()
         if endless_ending or endless_fight_closed then return true end
-        xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, use_3dssg == true)
+        if xcvb_arena_endless and xcvb_arena_endless.equip_endless_loadout then
+            xcvb_arena_endless.equip_endless_loadout(endless_wave, endless_difficulty, use_3dssg == true)
+        else
+            xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, use_3dssg == true)
+        end
         return true
     end)
 
@@ -1013,6 +1022,9 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
             attempts = attempts + 1
             local done = xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
             if done or attempts >= 6 then
+                if xcvb_arena_companions and xcvb_arena_companions.reassign_companion_aggro then
+                    xcvb_arena_companions.reassign_companion_aggro(endless_enemy_squad_ids)
+                end
                 return true
             end
             ResetTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a", 0.4)
@@ -1026,6 +1038,9 @@ function advance_endless_wave(resume_pending)
     if endless_transitioning or endless_fight_closed or endless_ending or is_medic_rescuing then return end
     pcall(sync_night_mode_device_from_actor)
     endless_transitioning = true
+    if db.actor then
+        pcall(function() db.actor:activate_slot(0) end)
+    end
 
     if not resume_pending then
         local mult = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("endless_reward_mult")) or 1.0
@@ -1087,7 +1102,11 @@ function advance_endless_wave(resume_pending)
     CreateTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a", 4.0, function()
         if endless_ending or endless_fight_closed then return true end
 
-        xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, xcvb_arena_main.endless_3dssg == true)
+        if xcvb_arena_endless and xcvb_arena_endless.equip_endless_loadout then
+            xcvb_arena_endless.equip_endless_loadout(endless_wave, endless_difficulty, xcvb_arena_main.endless_3dssg == true)
+        else
+            xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, xcvb_arena_main.endless_3dssg == true)
+        end
         if xcvb_arena_main.night_mode_active then
             pcall(xcvb_arena_utils.ensure_actor_torch_active)
             CreateTimeEvent("arena_endless_torch_verify_e", "arena_endless_torch_verify_a", 0.8, function()
@@ -1122,6 +1141,9 @@ function advance_endless_wave(resume_pending)
             if endless_ending or endless_fight_closed then return true end
             attempts_w = attempts_w + 1
             local done = xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
+            if xcvb_arena_companions and xcvb_arena_companions.reassign_companion_aggro then
+                pcall(xcvb_arena_companions.reassign_companion_aggro, endless_enemy_squad_ids)
+            end
             if db.actor and db.actor:active_slot() == 0 then
                 for _, s in ipairs({2, 1}) do
                     if db.actor:item_in_slot(s) then
@@ -1142,6 +1164,18 @@ function advance_endless_wave(resume_pending)
         local start_tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count) .. " (" .. diff_str .. ")"
         news_manager.send_tip(db.actor, start_tip, 0, nil, 7000)
 
+        -- Reassign companion aggro to the new wave
+        if xcvb_arena_companions and xcvb_arena_companions.cleanup_dead_companions then
+            xcvb_arena_companions.cleanup_dead_companions()
+        end
+        if xcvb_arena_companions and xcvb_arena_companions.reassign_companion_aggro then
+            CreateTimeEvent("xcvb_comp_wave_aggro_e", "xcvb_comp_wave_aggro_a", 2.0, function()
+                if not endless_ending and not endless_fight_closed then
+                    xcvb_arena_companions.reassign_companion_aggro(endless_enemy_squad_ids)
+                end
+                return true
+            end)
+        end
         endless_transitioning = false
         return true
     end)
@@ -1174,6 +1208,13 @@ function end_endless_fight(is_victory, voluntary_leave)
         endless_enemy_squad_ids = {}
     end
     xcvb_arena_utils.clean_arena_corpses()
+    -- Clean up all hired companions when endless mode ends
+    if xcvb_arena_companions and xcvb_arena_companions.cleanup_all_companions then
+        pcall(xcvb_arena_companions.cleanup_all_companions)
+    end
+    if xcvb_arena_companions and xcvb_arena_companions.reset_arena_credits then
+        xcvb_arena_companions.reset_arena_credits()
+    end
     xcvb_arena_utils.restore_actor_inventory()
 
     heal_actor_completely()
@@ -1770,7 +1811,62 @@ function on_enemy_eval(npc, enemy, flags)
     end
 
     local enemy_id = enemy:id()
-    if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode then
+    local npc_id = npc:id()
+
+    if HI("xcvb_endless_started") or is_endless_mode then
+        local is_npc_comp = xcvb_arena_companions and xcvb_arena_companions.is_companion and xcvb_arena_companions.is_companion(npc_id)
+        local is_enemy_comp = xcvb_arena_companions and xcvb_arena_companions.is_companion and xcvb_arena_companions.is_companion(enemy_id)
+
+        -- Companion evaluates Actor -> Not Enemy
+        if is_npc_comp and enemy_id == 0 then
+            flags.override = true
+            flags.result = false
+            return
+        end
+        -- Actor evaluates Companion -> Not Enemy
+        if npc_id == 0 and is_enemy_comp then
+            flags.override = true
+            flags.result = false
+            return
+        end
+        -- Companion evaluates Companion -> Not Enemy
+        if is_npc_comp and is_enemy_comp then
+            flags.override = true
+            flags.result = false
+            return
+        end
+
+        local is_npc_arena = xcvb_arena_utils and xcvb_arena_utils.arena_spawned_combatant_ids and xcvb_arena_utils.arena_spawned_combatant_ids[npc_id] and not is_npc_comp
+        local is_enemy_arena = xcvb_arena_utils and xcvb_arena_utils.arena_spawned_combatant_ids and xcvb_arena_utils.arena_spawned_combatant_ids[enemy_id] and not is_enemy_comp
+
+        -- Companion evaluates Arena Enemy -> Hostile
+        if is_npc_comp and is_enemy_arena then
+            flags.override = true
+            flags.result = true
+            return
+        end
+        -- Arena Enemy evaluates Companion -> Hostile
+        if is_npc_arena and is_enemy_comp then
+            flags.override = true
+            flags.result = true
+            return
+        end
+        -- Arena Enemy evaluates Actor -> Hostile
+        if is_npc_arena and enemy_id == 0 then
+            flags.override = true
+            flags.result = true
+            return
+        end
+        -- Arena Enemy evaluates another Arena Enemy -> Friendly
+        if is_npc_arena and is_enemy_arena then
+            flags.override = true
+            flags.result = false
+            return
+        end
+        return
+    end
+
+    if HI("xcvb_tournament_started") then
         local npc_squad = get_object_squad(npc)
         local enemy_squad = enemy and get_object_squad(enemy)
         local npc_is_tourn = npc_squad and string.find(npc_squad:section_name(), "arena_")

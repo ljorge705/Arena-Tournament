@@ -1300,4 +1300,187 @@
 	<string id="st_arena_mag_menu_ammo">
 		<text>Boxes: %s</text>
 	</string>
+	<string id="st_arena_companion_use">
+		<text>Companion Hire Board ($ACTION_USE$)</text>
+	</string>
+	<string id="st_arena_companion_title">
+		<text>HIRE COMPANIONS</text>
+	</string>
+	<string id="st_arena_companion_status">
+		<text>Active: %d / %d</text>
+	</string>
+	<string id="st_arena_companion_money">
+		<text>Your money: %d RU</text>
+	</string>
+	<string id="st_arena_companion_cost_fmt">
+		<text>Cost: %d RU</text>
+	</string>
+	<string id="st_arena_companion_active_title">
+		<text>ï¿½ YOUR COMPANIONS ï¿½</text>
+	</string>
+	<string id="st_arena_companion_btn_hire">
+		<text>HIRE</text>
+	</string>
+	<string id="st_arena_companion_btn_fire">
+		<text>DISMISS</text>
+	</string>
+	<string id="st_arena_companion_btn_close">
+		<text>CLOSE</text>
+	</string>
+	<string id="st_arena_companion_slot_empty">
+		<text>-- Empty slot --</text>
+	</string>
+	<string id="st_arena_companion_alive">
+		<text>Active</text>
+	</string>
+	<string id="st_arena_companion_dead">
+		<text>KIA</text>
+	</string>
+	<string id="st_arena_companion_rank0_name">
+		<text>Rookie Stalker</text>
+	</string>
+	<string id="st_arena_companion_rank0_desc">
+		<text>A basic stalker. Better than nothing.</text>
+	</string>
+	<string id="st_arena_companion_rank1_name">
+		<text>Seasoned Stalker</text>
+	</string>
+	<string id="st_arena_companion_rank1_desc">
+		<text>Decent combat experience. Reliable.</text>
+	</string>
+	<string id="st_arena_companion_rank2_name">
+		<text>Veteran Merc</text>
+	</string>
+	<string id="st_arena_companion_rank2_desc">
+		<text>A Killer operative. Skilled and aggressive.</text>
+	</string>
+	<string id="st_arena_companion_rank3_name">
+		<text>Expert Merc</text>
+	</string>
+	<string id="st_arena_companion_rank3_desc">
+		<text>Elite Killer. Handles heavy situations.</text>
+	</string>
+	<string id="st_arena_companion_rank4_name">
+		<text>Military Elite</text>
+	</string>
+	<string id="st_arena_companion_rank4_desc">
+		<text>Special forces. The best money can buy.</text>
+	</string>
+	<string id="st_arena_companion_hired">
+		<text>%s hired and ready to fight!</text>
+	</string>
+	<string id="st_arena_companion_fired">
+		<text>Companion dismissed.</text>
+	</string>
+	<string id="st_arena_companion_err_invalid">
+		<text>Invalid companion type.</text>
+	</string>
+	<string id="st_arena_companion_err_not_endless">
+		<text>You can only hire companions in Endless Mode.</text>
+	</string>
+	<string id="st_arena_companion_err_max">
+		<text>Maximum companions reached (%d). Dismiss one first.</text>
+	</string>
+	<string id="st_arena_companion_err_money">
+		<text>Not enough money. Need %d RU.</text>
+	</string>
+	<string id="st_arena_companion_err_spawn">
+		<text>Failed to spawn companion. Try again.</text>
+	</string>
+	<string id="st_arena_companion_err_generic">
+		<text>Cannot hire companion right now.</text>
+	</string>
+	<string id="st_arena_companion_arena_money">
+		<text>Arena Money: %d CLP</text>
+	</string>
+	<string id="st_arena_companion_normal_money">
+		<text>Money: %d RU</text>
+	</string>
+	<string id="st_arena_companion_cost_fmt">`r`n`t`t<text>Cost: %d RU</text>
+	</string>
+	<string id="st_arena_companion_err_arena_money">
+		<text>Not enough CLP. Need %d CLP (you have %d).</text>
+	</string>
+	<string id="st_arena_kill_reward">
+		<text>+%d CLP [%s] (Total: %d CLP)</text>
+	</string>
+	<string id="st_arena_wpn_menu_title">
+		<text>WEAPON SELECTION</text>
+	</string>
+	<string id="st_arena_tier_all">
+		<text>ALL</text>
+	</string>
+	<string id="st_arena_wpn_random_tier">
+		<text>[ RANDOM WEAPON ]</text>
+	</string>
+	<string id="st_arena_endless_custom_btn">
+		<text>EQUIPMENT</text>
+	</string>
+	<string id="st_arena_endless_custom_title">
+		<text>CUSTOM EQUIPMENT (ENDLESS MODE)</text>
+	</string>
+	<string id="st_arena_endless_custom_desc">
+		<text>Choose your class, catalog weapon, ammo and magazines for combat</text>
+	</string>
+	<string id="st_arena_endless_custom_toggle">
+		<text>STATUS: [CUSTOM LOADOUT ACTIVE]</text>
+	</string>
+	<string id="st_arena_endless_custom_choose_wpn">
+		<text>Choose Weapon from Catalog</text>
+	</string>
+	<string id="st_arena_endless_custom_confirm">
+		<text>CONFIRM AND SAVE EQUIPMENT</text>
+	</string>
+	<string id="st_arena_endless_custom_note">
+		<text>Note: When custom equipment is active, you will enter endless mode with this exact loadout.</text>
+	</string>
+	<string id="st_arena_endless_custom_on">
+		<text>ACTIVE</text>
+	</string>
+	<string id="st_arena_endless_custom_off">
+		<text>DISABLED</text>
+	</string>
+	<string id="st_arena_loadout_weapon_title">
+		<text>WEAPON</text>
+	</string>
+	<string id="st_arena_loadout_mags_title">
+		<text>Magazines</text>
+	</string>
+	<string id="st_arena_mag_ammo_box_label">
+		<text>Ammo Boxes</text>
+	</string>
+	<string id="st_arena_btn_close">
+		<text>CLOSE</text>
+	</string>
+	<string id="st_arena_ec_sum_status_lbl">
+		<text>Status:</text>
+	</string>
+	<string id="st_arena_ec_sum_status_on">
+		<text>CUSTOM LOADOUT ACTIVE</text>
+	</string>
+	<string id="st_arena_ec_sum_status_off">
+		<text>RANDOM STANDARD (DISABLED)</text>
+	</string>
+	<string id="st_arena_ec_sum_wpn_lbl">
+		<text>Weapon:</text>
+	</string>
+	<string id="st_arena_ec_sum_class_lbl">
+		<text>Class:</text>
+	</string>
+	<string id="st_arena_ec_sum_tier_lbl">
+		<text>Tier:</text>
+	</string>
+	<string id="st_arena_ec_sum_ammo_lbl">
+		<text>Ammo:</text>
+	</string>
+	<string id="st_arena_ec_sum_mags_lbl">
+		<text>Magazines:</text>
+	</string>
+	<string id="st_arena_ec_sum_boxes_lbl">
+		<text>Ammo Boxes:</text>
+	</string>
+	<string id="st_arena_wpn_menu_count">
+		<text>%d weapons available</text>
+	</string>
 </string_table>
+

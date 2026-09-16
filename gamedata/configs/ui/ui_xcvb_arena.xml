@@ -181,64 +181,46 @@
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</loadout_btn_sniper>
 
-		<!-- Gear Tier Selection -->
-		<loadout_tier_title x="0" y="302" width="680" height="14">
-			<text r="220" g="190" b="130" font="letterica16" align="l" vert_align="c">st_arena_loadout_tier_title</text>
+		<!-- Gear Tier Selection (Hidden: chosen via Weapon Selection Menu) -->
+		<loadout_tier_title x="0" y="0" width="0" height="0">
+			<text r="220" g="190" b="130" font="letterica16" align="l" vert_align="c"></text>
 		</loadout_tier_title>
 
-		<loadout_tier_btn_0 x="0" y="318" width="110" height="22" check_mode="0">
-			<text font="letterica16">st_arena_tier_auto</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</loadout_tier_btn_0>
-		<loadout_tier_btn_1 x="114" y="318" width="110" height="22" check_mode="0">
-			<text font="letterica16">st_arena_tier_1_btn</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</loadout_tier_btn_1>
-		<loadout_tier_btn_2 x="228" y="318" width="110" height="22" check_mode="0">
-			<text font="letterica16">st_arena_tier_2_btn</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</loadout_tier_btn_2>
-		<loadout_tier_btn_3 x="342" y="318" width="110" height="22" check_mode="0">
-			<text font="letterica16">st_arena_tier_3_btn</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</loadout_tier_btn_3>
-		<loadout_tier_btn_4 x="456" y="318" width="110" height="22" check_mode="0">
-			<text font="letterica16">st_arena_tier_4_btn</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</loadout_tier_btn_4>
-		<loadout_tier_btn_5 x="570" y="318" width="110" height="22" check_mode="0">
-			<text font="letterica16">st_arena_tier_5_btn</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</loadout_tier_btn_5>
+		<loadout_tier_btn_0 x="0" y="0" width="0" height="0" check_mode="0"></loadout_tier_btn_0>
+		<loadout_tier_btn_1 x="0" y="0" width="0" height="0" check_mode="0"></loadout_tier_btn_1>
+		<loadout_tier_btn_2 x="0" y="0" width="0" height="0" check_mode="0"></loadout_tier_btn_2>
+		<loadout_tier_btn_3 x="0" y="0" width="0" height="0" check_mode="0"></loadout_tier_btn_3>
+		<loadout_tier_btn_4 x="0" y="0" width="0" height="0" check_mode="0"></loadout_tier_btn_4>
+		<loadout_tier_btn_5 x="0" y="0" width="0" height="0" check_mode="0"></loadout_tier_btn_5>
 
 		<!-- Ammo Type Selection -->
-		<loadout_ammo_title x="0" y="344" width="680" height="14">
+		<loadout_ammo_title x="0" y="304" width="680" height="14">
 			<text r="220" g="190" b="130" font="letterica16" align="l" vert_align="c">st_arena_loadout_ammo_title</text>
 		</loadout_ammo_title>
 
-		<loadout_ammo_btn_auto x="0" y="360" width="132" height="22" check_mode="0">
+		<loadout_ammo_btn_auto x="0" y="322" width="132" height="24" check_mode="0">
 			<text font="letterica16">st_arena_ammo_auto</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</loadout_ammo_btn_auto>
-		<loadout_ammo_btn_fmj x="137" y="360" width="132" height="22" check_mode="0">
+		<loadout_ammo_btn_fmj x="137" y="322" width="132" height="24" check_mode="0">
 			<text font="letterica16">st_arena_ammo_fmj</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</loadout_ammo_btn_fmj>
-		<loadout_ammo_btn_ap x="274" y="360" width="132" height="22" check_mode="0">
+		<loadout_ammo_btn_ap x="274" y="322" width="132" height="24" check_mode="0">
 			<text font="letterica16">st_arena_ammo_ap</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</loadout_ammo_btn_ap>
-		<loadout_ammo_btn_hp x="411" y="360" width="132" height="22" check_mode="0">
+		<loadout_ammo_btn_hp x="411" y="322" width="132" height="24" check_mode="0">
 			<text font="letterica16">st_arena_ammo_hp</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</loadout_ammo_btn_hp>
-		<loadout_ammo_btn_special x="548" y="360" width="132" height="22" check_mode="0">
+		<loadout_ammo_btn_special x="548" y="322" width="132" height="24" check_mode="0">
 			<text font="letterica16">st_arena_loadout_ammo_special</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</loadout_ammo_btn_special>
 
 		<!-- Loadout Summary Frame (Left Side) -->
-		<loadout_summary_frame x="0" y="388" width="220" height="156" stretch="1">
+		<loadout_summary_frame x="0" y="354" width="220" height="166" stretch="1">
 			<texture>xcvb_arena_gui_row_frame</texture>
 			<summary_title x="10" y="6" width="200" height="14">
 				<text r="255" g="220" b="130" font="letterica16" align="l" vert_align="c">st_arena_loadout_summary_title</text>
@@ -266,116 +248,122 @@
 			<summary_helmet x="10" y="108" width="200" height="16">
 				<text r="170" g="170" b="170" font="letterica16" align="l" vert_align="c"></text>
 			</summary_helmet>
-			<summary_scope x="10" y="124" width="200" height="16">
+			<summary_scope x="10" y="126" width="200" height="16">
 				<text r="150" g="210" b="230" font="letterica16" align="l" vert_align="c"></text>
 			</summary_scope>
-			<summary_cost x="10" y="139" width="200" height="15">
+			<summary_cost x="10" y="146" width="200" height="15">
 				<text r="120" g="240" b="120" font="letterica16" align="l" vert_align="c"></text>
 			</summary_cost>
 		</loadout_summary_frame>
 
-		<btn_3dssg x="228" y="386" width="224" height="25" check_mode="0">
+		<btn_3dssg x="228" y="354" width="224" height="25" check_mode="0">
 			<text font="letterica16">3DSSG [OFF]</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_3dssg>
 
 		<!-- Magazine Selection Controls (Center Column) -->
-		<btn_mag_prev x="228" y="413" width="22" height="25" check_mode="0">
+		<btn_mag_prev x="228" y="383" width="22" height="25" check_mode="0">
 			<text font="letterica16">&lt;</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_mag_prev>
-		<btn_mag x="252" y="413" width="176" height="25" check_mode="0">
+		<btn_mag x="252" y="383" width="176" height="25" check_mode="0">
 			<text font="letterica16">st_arena_loadout_mag_title</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_mag>
-		<btn_mag_next x="430" y="413" width="22" height="25" check_mode="0">
+		<btn_mag_next x="430" y="383" width="22" height="25" check_mode="0">
 			<text font="letterica16">&gt;</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_mag_next>
 
 		<!-- Ammo Quantity Controls (Center Column) -->
-		<btn_ammo_prev x="228" y="440" width="22" height="25" check_mode="0">
+		<btn_ammo_prev x="228" y="412" width="22" height="25" check_mode="0">
 			<text font="letterica16">-</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_ammo_prev>
-		<btn_ammo_qty x="252" y="440" width="176" height="25" check_mode="0">
+		<btn_ammo_qty x="252" y="412" width="176" height="25" check_mode="0">
 			<text font="letterica16">st_arena_loadout_ammo_qty_title</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_ammo_qty>
-		<btn_ammo_next x="430" y="440" width="22" height="25" check_mode="0">
+		<btn_ammo_next x="430" y="412" width="22" height="25" check_mode="0">
 			<text font="letterica16">+</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_ammo_next>
 
 		<!-- Enter Arena / Main Action Button (Centered) -->
-		<tourn_start_btn x="228" y="468" width="224" height="66" check_mode="0">
+		<tourn_start_btn x="228" y="442" width="224" height="78" check_mode="0">
 			<text font="graffiti19">st_arena_btn_enter</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</tourn_start_btn>
 
 		<!-- Quick Endless Mode Button (Bottom Right) -->
-		<endless_btn x="460" y="415" width="220" height="42" check_mode="0">
+		<endless_btn x="460" y="384" width="220" height="38" check_mode="0">
 			<text font="letterica16">st_arena_quick_endless_btn</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</endless_btn>
 
 		<!-- Continue Endless Mode Button (Bottom Right, below Endless Mode) -->
-		<endless_cont_btn x="460" y="462" width="220" height="42" check_mode="0">
+		<endless_cont_btn x="460" y="424" width="220" height="36" check_mode="0">
 			<text font="letterica16">st_arena_endless_cont_btn</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</endless_cont_btn>
 
+		<!-- Custom Equipment Button (Main Screen) -->
+		<endless_custom_eq_btn_main x="460" y="464" width="220" height="36" check_mode="0">
+			<text font="letterica16">st_arena_endless_custom_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</endless_custom_eq_btn_main>
+
 		<!-- ArtiGrok Special Ammo Toggle Button (Main Screen) -->
-		<endless_arti_btn_main x="460" y="384" width="220" height="28" check_mode="0">
+		<endless_arti_btn_main x="460" y="354" width="220" height="26" check_mode="0">
 			<text font="letterica16">st_arena_endless_artigrok_ammo</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</endless_arti_btn_main>
 
 		<!-- Special Ammo Selection Menu (Right Side, 8 buttons grid + pagination) -->
-		<spec_menu_title x="460" y="388" width="160" height="14">
+		<spec_menu_title x="460" y="354" width="160" height="14">
 			<text r="255" g="220" b="130" font="letterica16" align="l" vert_align="c">st_arena_spec_ammo_title</text>
 		</spec_menu_title>
-		<spec_page_prev x="626" y="386" width="16" height="16" check_mode="0">
+		<spec_page_prev x="626" y="352" width="16" height="16" check_mode="0">
 			<text font="letterica16">&lt;</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</spec_page_prev>
-		<spec_page_info x="644" y="386" width="18" height="16">
+		<spec_page_info x="644" y="352" width="18" height="16">
 			<text r="200" g="200" b="200" font="letterica16" align="c" vert_align="c">1/1</text>
 		</spec_page_info>
-		<spec_page_next x="664" y="386" width="16" height="16" check_mode="0">
+		<spec_page_next x="664" y="352" width="16" height="16" check_mode="0">
 			<text font="letterica16">&gt;</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</spec_page_next>
 
-		<spec_ammo_btn_1 x="460" y="406" width="106" height="26" check_mode="0">
+		<spec_ammo_btn_1 x="460" y="374" width="106" height="26" check_mode="0">
 			<text font="letterica16"></text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</spec_ammo_btn_1>
-		<spec_ammo_btn_2 x="574" y="406" width="106" height="26" check_mode="0">
+		<spec_ammo_btn_2 x="574" y="374" width="106" height="26" check_mode="0">
 			<text font="letterica16"></text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</spec_ammo_btn_2>
-		<spec_ammo_btn_3 x="460" y="435" width="106" height="26" check_mode="0">
+		<spec_ammo_btn_3 x="460" y="404" width="106" height="26" check_mode="0">
 			<text font="letterica16"></text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</spec_ammo_btn_3>
-		<spec_ammo_btn_4 x="574" y="435" width="106" height="26" check_mode="0">
+		<spec_ammo_btn_4 x="574" y="404" width="106" height="26" check_mode="0">
 			<text font="letterica16"></text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</spec_ammo_btn_4>
-		<spec_ammo_btn_5 x="460" y="464" width="106" height="26" check_mode="0">
+		<spec_ammo_btn_5 x="460" y="434" width="106" height="26" check_mode="0">
 			<text font="letterica16"></text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</spec_ammo_btn_5>
-		<spec_ammo_btn_6 x="574" y="464" width="106" height="26" check_mode="0">
+		<spec_ammo_btn_6 x="574" y="434" width="106" height="26" check_mode="0">
 			<text font="letterica16"></text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</spec_ammo_btn_6>
-		<spec_ammo_btn_7 x="460" y="493" width="106" height="26" check_mode="0">
+		<spec_ammo_btn_7 x="460" y="464" width="106" height="26" check_mode="0">
 			<text font="letterica16"></text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</spec_ammo_btn_7>
-		<spec_ammo_btn_8 x="574" y="493" width="106" height="26" check_mode="0">
+		<spec_ammo_btn_8 x="574" y="464" width="106" height="26" check_mode="0">
 			<text font="letterica16"></text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</spec_ammo_btn_8>
@@ -847,14 +835,20 @@
 			</rule_line3>
 		</endless_rules_frame>
 
+		<!-- Custom Equipment Button -->
+		<endless_custom_eq_btn x="5" y="412" width="210" height="48" check_mode="0">
+			<text font="letterica16">st_arena_endless_custom_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</endless_custom_eq_btn>
+
 		<!-- Prominent Centered Start Button -->
-		<endless_start_btn x="165" y="412" width="350" height="48" check_mode="0">
+		<endless_start_btn x="220" y="412" width="290" height="48" check_mode="0">
 			<text font="graffiti22">st_arena_endless_start_btn</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</endless_start_btn>
 
 		<!-- ArtiGrok Special Ammo Toggle Button -->
-		<endless_arti_btn x="525" y="412" width="145" height="48" check_mode="0">
+		<endless_arti_btn x="515" y="412" width="160" height="48" check_mode="0">
 			<text font="letterica16">st_arena_endless_artigrok_ammo</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</endless_arti_btn>
@@ -863,35 +857,171 @@
 	<!-- ============================================== -->
 	<!-- ENDLESS DIFFICULTY SELECTION POPUP MENU        -->
 	<!-- ============================================== -->
-	<endless_diff_menu x="250" y="202" width="320" height="285" stretch="1">
+	<endless_diff_menu x="250" y="170" width="320" height="330" stretch="1">
 		<texture>ui_table_back</texture>
 		<title x="15" y="14" width="290" height="24">
 			<text r="255" g="220" b="140" font="graffiti22" align="c" vert_align="c">st_arena_endless_diff_title</text>
 		</title>
-		<desc x="15" y="42" width="290" height="20">
+		<desc x="15" y="40" width="290" height="20">
 			<text r="200" g="200" b="200" font="letterica16" align="c" vert_align="c">st_arena_endless_diff_subtitle</text>
 		</desc>
-		<btn_diff_easy x="35" y="68" width="250" height="36" check_mode="0">
+		<btn_diff_easy x="35" y="64" width="250" height="36" check_mode="0">
 			<text font="letterica18">st_arena_endless_diff_easy</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_easy>
-		<btn_diff_medium x="35" y="110" width="250" height="36" check_mode="0">
+		<btn_diff_medium x="35" y="104" width="250" height="36" check_mode="0">
 			<text font="letterica18">st_arena_endless_diff_medium</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_medium>
-		<btn_diff_hard x="35" y="152" width="250" height="36" check_mode="0">
+		<btn_diff_hard x="35" y="144" width="250" height="36" check_mode="0">
 			<text font="letterica18">st_arena_endless_diff_hard</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_hard>
-		<btn_diff_3dssg x="35" y="194" width="250" height="32" check_mode="0">
+		<btn_diff_3dssg x="35" y="184" width="250" height="32" check_mode="0">
 			<text font="letterica16">3DSSG [OFF]</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_3dssg>
-		<btn_diff_cancel x="60" y="244" width="200" height="32" check_mode="0">
+		<btn_diff_custom x="35" y="222" width="250" height="34" check_mode="0">
+			<text font="letterica16">st_arena_endless_custom_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_custom>
+		<btn_diff_cancel x="60" y="268" width="200" height="32" check_mode="0">
 			<text font="letterica16">st_arena_endless_diff_cancel</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_cancel>
 	</endless_diff_menu>
+	<!-- ============================================== -->
+	<!-- ENDLESS CUSTOM LOADOUT POPUP MENU              -->
+	<!-- ============================================== -->
+	<endless_custom_menu x="120" y="60" width="580" height="540" stretch="1">
+		<texture>ui_table_back</texture>
+		<title x="15" y="10" width="550" height="24">
+			<text r="255" g="220" b="140" font="graffiti22" align="c" vert_align="c">st_arena_endless_custom_title</text>
+		</title>
+		<subtitle x="15" y="34" width="550" height="18">
+			<text r="180" g="180" b="180" font="letterica16" align="c" vert_align="c">st_arena_endless_custom_desc</text>
+		</subtitle>
+
+		<!-- Mode Toggle Button (Random vs Custom) -->
+		<btn_ec_toggle x="30" y="58" width="520" height="30" check_mode="0">
+			<text font="letterica18">st_arena_endless_custom_toggle</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_toggle>
+
+		<!-- Class Tabs -->
+		<btn_ec_cls_pistol x="30" y="94" width="100" height="26" check_mode="0">
+			<text font="letterica16">st_arena_class_pistol</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_cls_pistol>
+		<btn_ec_cls_shotgun x="135" y="94" width="100" height="26" check_mode="0">
+			<text font="letterica16">st_arena_class_shotgun</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_cls_shotgun>
+		<btn_ec_cls_rifle x="240" y="94" width="100" height="26" check_mode="0">
+			<text font="letterica16">st_arena_class_rifle</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_cls_rifle>
+		<btn_ec_cls_smg x="345" y="94" width="100" height="26" check_mode="0">
+			<text font="letterica16">st_arena_class_smg</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_cls_smg>
+		<btn_ec_cls_sniper x="450" y="94" width="100" height="26" check_mode="0">
+			<text font="letterica16">st_arena_class_sniper</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_cls_sniper>
+
+		<!-- Weapon Selection / Change Button -->
+		<btn_ec_select_wpn x="30" y="126" width="520" height="34" check_mode="0">
+			<text font="letterica16">st_arena_endless_custom_choose_wpn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_select_wpn>
+
+		<!-- Ammo Type Selector Row -->
+		<btn_ec_ammo_auto x="30" y="166" width="100" height="26" check_mode="0">
+			<text font="letterica16">st_arena_ammo_auto</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_ammo_auto>
+		<btn_ec_ammo_fmj x="135" y="166" width="100" height="26" check_mode="0">
+			<text font="letterica16">st_arena_ammo_fmj</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_ammo_fmj>
+		<btn_ec_ammo_ap x="240" y="166" width="100" height="26" check_mode="0">
+			<text font="letterica16">st_arena_ammo_ap</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_ammo_ap>
+		<btn_ec_ammo_hp x="345" y="166" width="100" height="26" check_mode="0">
+			<text font="letterica16">st_arena_ammo_hp</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_ammo_hp>
+		<btn_ec_ammo_spec x="450" y="166" width="100" height="26" check_mode="0">
+			<text font="letterica16">st_arena_loadout_ammo_special</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_ammo_spec>
+
+		<!-- Magazine & Ammo Boxes Controls -->
+		<btn_ec_mag_prev x="30" y="198" width="26" height="26" check_mode="0">
+			<text font="letterica16">&lt;</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_mag_prev>
+		<btn_ec_mag_label x="60" y="198" width="200" height="26" check_mode="0">
+			<text font="letterica16">4 Cargadores</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_mag_label>
+		<btn_ec_mag_next x="264" y="198" width="26" height="26" check_mode="0">
+			<text font="letterica16">&gt;</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_mag_next>
+
+		<btn_ec_box_prev x="310" y="198" width="26" height="26" check_mode="0">
+			<text font="letterica16">-</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_box_prev>
+		<btn_ec_box_label x="340" y="198" width="166" height="26" check_mode="0">
+			<text font="letterica16">4 Cajas de Municion</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_box_label>
+		<btn_ec_box_next x="510" y="198" width="26" height="26" check_mode="0">
+			<text font="letterica16">+</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_box_next>
+
+		<!-- Summary Details Frame -->
+		<ec_summary_frame x="30" y="232" width="520" height="210" stretch="1">
+			<texture>xcvb_arena_gui_row_frame</texture>
+			<title x="15" y="8" width="490" height="18">
+				<text r="255" g="220" b="130" font="letterica18" align="l" vert_align="c">st_arena_loadout_summary_title</text>
+			</title>
+			<ec_sum_status x="20" y="32" width="480" height="20">
+				<text r="130" g="240" b="130" font="letterica16" align="l" vert_align="c"></text>
+			</ec_sum_status>
+			<ec_sum_wpn x="20" y="56" width="480" height="20">
+				<text r="220" g="220" b="220" font="letterica16" align="l" vert_align="c"></text>
+			</ec_sum_wpn>
+			<ec_sum_tier x="20" y="80" width="480" height="20">
+				<text r="200" g="200" b="160" font="letterica16" align="l" vert_align="c"></text>
+			</ec_sum_tier>
+			<ec_sum_ammo x="20" y="104" width="480" height="20">
+				<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
+			</ec_sum_ammo>
+			<ec_sum_mags x="20" y="128" width="480" height="20">
+				<text r="180" g="210" b="240" font="letterica16" align="l" vert_align="c"></text>
+			</ec_sum_mags>
+			<ec_sum_note x="20" y="152" width="480" height="48" complex_mode="1">
+				<text r="160" g="160" b="160" font="letterica16" align="l" vert_align="t">st_arena_endless_custom_note</text>
+			</ec_sum_note>
+		</ec_summary_frame>
+
+		<!-- Bottom Action Buttons -->
+		<btn_ec_confirm x="60" y="450" width="460" height="38" check_mode="0">
+			<text font="graffiti19">st_arena_endless_custom_confirm</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_confirm>
+		<btn_ec_cancel x="60" y="494" width="460" height="34" check_mode="0">
+			<text font="letterica18">st_arena_btn_close</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_ec_cancel>
+	</endless_custom_menu>
+
 
 	<!-- ============================================== -->
 	<!-- 3DSSG SELECTION POPUP MENU (Mirrors + Kits)    -->
@@ -1078,6 +1208,98 @@
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_device_close>
 	</night_device_menu>
+
+	<!-- ============================================== -->
+	<!-- Weapon Selection Popup Menu (By Class & Tier)  -->
+	<!-- ============================================== -->
+	<wpn_menu x="140" y="85" width="540" height="490" stretch="1">
+		<texture>ui_table_back</texture>
+		<title x="15" y="10" width="510" height="22">
+			<text r="255" g="220" b="140" font="graffiti22" align="c" vert_align="c">st_arena_wpn_menu_title</text>
+		</title>
+		<subtitle x="15" y="32" width="510" height="16">
+			<text r="200" g="200" b="200" font="letterica16" align="c" vert_align="c"></text>
+		</subtitle>
+
+		<!-- Tier Filter Tabs: ALL, T1, T2, T3, T4, T5 -->
+		<tab_tier_0 x="20" y="52" width="80" height="26" check_mode="0">
+			<text font="letterica16">st_arena_tier_all</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tab_tier_0>
+		<tab_tier_1 x="104" y="52" width="80" height="26" check_mode="0">
+			<text font="letterica16">st_arena_tier_1_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tab_tier_1>
+		<tab_tier_2 x="188" y="52" width="80" height="26" check_mode="0">
+			<text font="letterica16">st_arena_tier_2_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tab_tier_2>
+		<tab_tier_3 x="272" y="52" width="80" height="26" check_mode="0">
+			<text font="letterica16">st_arena_tier_3_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tab_tier_3>
+		<tab_tier_4 x="356" y="52" width="80" height="26" check_mode="0">
+			<text font="letterica16">st_arena_tier_4_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tab_tier_4>
+		<tab_tier_5 x="440" y="52" width="80" height="26" check_mode="0">
+			<text font="letterica16">st_arena_tier_5_btn</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</tab_tier_5>
+
+		<!-- 7 Weapon Rows -->
+		<wpn_row_1 x="20" y="86" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</wpn_row_1>
+		<wpn_row_2 x="20" y="124" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</wpn_row_2>
+		<wpn_row_3 x="20" y="162" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</wpn_row_3>
+		<wpn_row_4 x="20" y="200" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</wpn_row_4>
+		<wpn_row_5 x="20" y="238" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</wpn_row_5>
+		<wpn_row_6 x="20" y="276" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</wpn_row_6>
+		<wpn_row_7 x="20" y="314" width="500" height="34" check_mode="0">
+			<text font="letterica16"></text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</wpn_row_7>
+
+		<!-- Pagination -->
+		<wpn_page_prev x="140" y="360" width="50" height="28" check_mode="0">
+			<text font="letterica16">&lt;</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</wpn_page_prev>
+		<wpn_page_info x="195" y="362" width="200" height="24">
+			<text r="200" g="200" b="200" font="letterica16" align="c" vert_align="c">1/1</text>
+		</wpn_page_info>
+		<wpn_page_next x="350" y="360" width="50" height="28" check_mode="0">
+			<text font="letterica16">&gt;</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</wpn_page_next>
+
+		<btn_wpn_random x="60" y="402" width="420" height="32" check_mode="0">
+			<text font="letterica16">st_arena_wpn_random_tier</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_wpn_random>
+
+		<btn_wpn_close x="60" y="445" width="420" height="34" check_mode="0">
+			<text font="letterica18">st_arena_endless_diff_cancel</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_wpn_close>
+	</wpn_menu>
 
 	<!-- Row vertical lines (Direct children of <w> as expected by CUIXmlInit) -->
 	<vert_line1 x="80" y="0" width="1" height="48" stretch="1">

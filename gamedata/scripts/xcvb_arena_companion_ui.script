@@ -1,0 +1,199 @@
+-- =============================================================================
+-- xcvb_arena_companion_ui.script
+-- Companion Hiring Menu UI
+-- Opens when the player interacts with one of the two companion boards in the
+-- arena. Shows available companion ranks, their cost in Arena Credits,
+-- and current companions. Built with native CScriptXmlInit XML parsing.
+-- =============================================================================
+
+local gt = game.translate_string
+GUI_COMPANION = nil
+
+function open_companion_ui()
+    if not GUI_COMPANION then
+        GUI_COMPANION = UIXcvbCompanion()
+    end
+    if GUI_COMPANION and not GUI_COMPANION:IsShown() then
+        GUI_COMPANION:ShowDialog(true)
+        Register_UI("UIXcvbCompanion", "xcvb_arena_companion_ui")
+    end
+    if GUI_COMPANION then
+        GUI_COMPANION:refresh()
+    end
+end
+
+if rawget(_G, "xr_effects") then
+    _G.xr_effects.open_companion_ui = function(actor, npc)
+        open_companion_ui()
+    end
+end
+
+function on_game_start()
+    if xr_effects then
+        xr_effects.open_companion_ui = function(actor, npc)
+            open_companion_ui()
+        end
+    end
+end
+
+-- =============================================================================
+class "UIXcvbCompanion" (CUIScriptWnd)
+
+function UIXcvbCompanion:__init() super()
+    self:InitControls()
+    self:InitCallbacks()
+    self:refresh()
+end
+
+function UIXcvbCompanion:__finalize() end
+
+function UIXcvbCompanion:InitControls()
+    self:SetWndRect(Frect():set(0, 0, 1024, 768))
+    self:SetAutoDelete(true)
+    self:Enable(true)
+
+    local xml = CScriptXmlInit()
+    xml:ParseFile("ui_xcvb_companion.xml")
+
+    self.dialog = xml:InitStatic("dialog", self)
+    self.title = xml:InitTextWnd("title", self)
+    self.status = xml:InitTextWnd("status", self)
+    self.arena_money = xml:InitTextWnd("arena_money", self)
+    self.normal_money = xml:InitTextWnd("normal_money", self)
+
+    xml:InitStatic("sep1", self)
+    xml:InitStatic("sep2", self)
+    xml:InitStatic("sep3", self)
+
+    -- 5 Companion rank rows
+    self.rows = {}
+    for i = 1, 5 do
+        local row = {}
+        row.name = xml:InitTextWnd("name_" .. i, self)
+        row.cost = xml:InitTextWnd("cost_" .. i, self)
+        row.desc = xml:InitTextWnd("desc_" .. i, self)
+        row.btn_hire = xml:Init3tButton("btn_hire_" .. i, self)
+        self:Register(row.btn_hire, "btn_hire_" .. i)
+        self.rows[i] = row
+    end
+
+    self.active_title = xml:InitTextWnd("active_title", self)
+
+    -- 3 Active companion slots
+    self.slots = {}
+    self.fire_btns = {}
+    for i = 1, 3 do
+        self.slots[i] = xml:InitTextWnd("slot_" .. i, self)
+        local btn = xml:Init3tButton("btn_fire_" .. i, self)
+        self:Register(btn, "btn_fire_" .. i)
+        self.fire_btns[i] = btn
+    end
+
+    -- Close button
+    self.btn_close = xml:Init3tButton("btn_close", self)
+    self:Register(self.btn_close, "btn_close")
+end
+
+function UIXcvbCompanion:InitCallbacks()
+    self:AddCallback("btn_close", ui_events.BUTTON_CLICKED, self.OnClose, self)
+
+    for i = 1, 5 do
+        local def_idx = i
+        self:AddCallback("btn_hire_" .. i, ui_events.BUTTON_CLICKED, function()
+            self:OnHire(def_idx)
+        end, self)
+    end
+
+    for i = 1, 3 do
+        local slot_idx = i
+        self:AddCallback("btn_fire_" .. i, ui_events.BUTTON_CLICKED, function()
+            self:OnFire(slot_idx)
+        end, self)
+    end
+end
+
+function UIXcvbCompanion:OnClose()
+    self:HideDialog()
+    Unregister_UI("UIXcvbCompanion")
+end
+
+function UIXcvbCompanion:OnHire(def_idx)
+    local ok, reason = xcvb_arena_companions.hire_companion(def_idx)
+    if not ok then
+        news_manager.send_tip(db.actor, reason or gt("st_arena_companion_err_generic"), 0, nil, 4000)
+    end
+    self:refresh()
+end
+
+function UIXcvbCompanion:OnFire(list_idx)
+    local active = xcvb_arena_companions.get_active_companions()
+    if not active[list_idx] then
+        self:refresh()
+        return
+    end
+    xcvb_arena_companions.fire_companion(list_idx)
+    self:refresh()
+end
+
+function UIXcvbCompanion:OnKeyboard(dik, keyboard_action)
+    local res = CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
+    if res then return res end
+    if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+        if dik == DIK_keys.DIK_ESCAPE then
+            self:OnClose()
+            return true
+        end
+    end
+    return false
+end
+
+function UIXcvbCompanion:refresh()
+    local active = xcvb_arena_companions.get_active_companions()
+    local active_count = #active
+    local max_count = xcvb_arena_companions.get_max_companions()
+    local normal_m = db.actor and db.actor:money() or 0
+    local in_endless = xcvb_arena_fight and xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active()
+
+    if self.status then
+        self.status:SetText(string.format(gt("st_arena_companion_status"), active_count, max_count))
+    end
+    if self.arena_money then
+        self.arena_money:Show(false)
+    end
+    if self.normal_money then
+        self.normal_money:SetText(string.format(gt("st_arena_companion_normal_money"), normal_m))
+    end
+
+    local defs = xcvb_arena_companions.get_companion_defs()
+    for i = 1, 5 do
+        local row = self.rows[i]
+        local def = defs[i]
+        if row and def then
+            local can_hire = in_endless and (active_count < max_count) and (normal_m >= def.cost)
+            row.btn_hire:Enable(can_hire)
+            row.cost:SetText(string.format(gt("st_arena_companion_cost_fmt"), def.cost))
+            if normal_m < def.cost then
+                row.cost:SetTextColor(GetARGB(255, 230, 80, 80))
+            else
+                row.cost:SetTextColor(GetARGB(255, 140, 220, 140))
+            end
+        end
+    end
+
+    for i = 1, 3 do
+        local entry = active[i]
+        if entry then
+            local def = defs[entry.def_idx]
+            local name = def and gt(def.name_key) or "Companion"
+            local alive = xcvb_arena_companions._is_companion_alive(entry)
+            local status_str = alive and gt("st_arena_companion_alive") or gt("st_arena_companion_dead")
+            self.slots[i]:SetText(string.format("[%d] %s - %s", i, name, status_str))
+            self.slots[i]:SetTextColor(alive and GetARGB(255, 140, 220, 140) or GetARGB(255, 230, 80, 80))
+            self.fire_btns[i]:Enable(true)
+        else
+            self.slots[i]:SetText(string.format("[%d] %s", i, gt("st_arena_companion_slot_empty")))
+            self.slots[i]:SetTextColor(GetARGB(255, 120, 120, 120))
+            self.fire_btns[i]:Enable(false)
+        end
+    end
+end
