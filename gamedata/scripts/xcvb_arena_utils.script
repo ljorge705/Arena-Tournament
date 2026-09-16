@@ -2967,8 +2967,98 @@ function ensure_actor_3dssg_batteries(scope_sec, weapon_sec)
     end
 end
 
+function is_knife(itm)
+    if not itm then return false end
+    local c = nil
+    pcall(function() c = itm:clsid() end)
+    if c then
+        if clsid and (c == clsid.wpn_knife or c == clsid.wpn_knife_s) then
+            return true
+        end
+        if IsMelee and IsMelee(itm, c) then
+            return true
+        end
+        if IsKnife and IsKnife(itm, c) then
+            return true
+        end
+    end
+    local sec = nil
+    pcall(function() sec = itm:section() end)
+    if sec and (string.find(sec, "knife") or string.find(sec, "axe") or string.find(sec, "machete")) then
+        return true
+    end
+    return false
+end
+
+function is_gun(itm)
+    if not itm then return false end
+    if is_knife(itm) then return false end
+    local ok, c = pcall(function() return itm:clsid() end)
+    if ok and c and IsWeapon(nil, c) then
+        return true
+    end
+    return false
+end
+
+function safe_equip_gun(gun_obj, preferred_slot)
+    if not (gun_obj and db.actor and is_gun(gun_obj)) then return nil end
+    local gun_id = gun_obj:id()
+    local target_s = preferred_slot
+    if not target_s then
+        local raw = ini_sys:r_s32_ex(gun_obj:section(), "slot") or 2
+        target_s = (raw == 1) and 1 or 2
+    end
+    
+    -- Check if gun is already in target_s
+    local cur_target = db.actor:item_in_slot(target_s)
+    if cur_target and cur_target:id() == gun_id then
+        pcall(function() db.actor:activate_slot(target_s) end)
+        return target_s
+    end
+
+    -- Clear target slot if occupied by another item
+    if cur_target and cur_target:id() ~= gun_id then
+        pcall(function() db.actor:move_to_ruck(cur_target) end)
+    end
+    
+    -- Try moving to target_s
+    pcall(function() db.actor:move_to_slot(gun_obj, target_s) end)
+    
+    local s_check = db.actor:item_in_slot(target_s)
+    if s_check and s_check:id() == gun_id then
+        pcall(function() db.actor:activate_slot(target_s) end)
+        return target_s
+    end
+
+    -- If gun is not in target_s, try alternative slots (e.g. slot 3 in GAMMA, slot 2 in Anomaly)
+    for _, alt in ipairs({ 3, 2, 1 }) do
+        if alt ~= target_s then
+            local alt_cur = db.actor:item_in_slot(alt)
+            if not alt_cur or alt_cur:id() == gun_id then
+                pcall(function() db.actor:move_to_slot(gun_obj, alt) end)
+                local alt_check = db.actor:item_in_slot(alt)
+                if alt_check and alt_check:id() == gun_id then
+                    pcall(function() db.actor:activate_slot(alt) end)
+                    return alt
+                end
+            end
+        end
+    end
+    
+    -- Find which slot the gun ended up in and activate that slot
+    for _, s in ipairs({ target_s, 2, 3, 1 }) do
+        local check_obj = db.actor:item_in_slot(s)
+        if check_obj and check_obj:id() == gun_id then
+            pcall(function() db.actor:activate_slot(s) end)
+            return s
+        end
+    end
+    pcall(function() db.actor:activate_slot(target_s) end)
+    return target_s
+end
+
 function attach_arena_scope(weapon, requested_scope)
-    if not (weapon and IsWeapon(nil, weapon:clsid()) and not (IsKnife and IsKnife(nil, weapon:clsid()))) then return end
+    if not (weapon and is_gun(weapon)) then return end
     local parent = ini_sys:r_string_ex(weapon:section(), "parent_section") or weapon:section()
     if weapon:section() ~= parent then return end
     local scopes = get_weapon_scopes(parent)
@@ -3029,6 +3119,7 @@ function attach_arena_scope(weapon, requested_scope)
             if scope_item.set_condition then
                 pcall(scope_item.set_condition, scope_item, 1.0)
             end
+            pcall(function() db.actor:activate_slot(0) end)
             local ok = pcall(item_weapon.attach_scope, scope_item, source_weapon)
             if ok then
                 local restore_attempts = 0
@@ -3037,8 +3128,8 @@ function attach_arena_scope(weapon, requested_scope)
                     if not db.actor then return true end
                     local attached_weapon = nil
                     db.actor:iterate_inventory(function(_, item)
-                        if item and IsWeapon(nil, item:clsid()) then
-                            if item:section() == child_section or item:id() == weapon_id then
+                        if item and is_gun(item) and item:id() ~= weapon_id then
+                            if item:section() == child_section or string.find(item:section(), scope_sec) then
                                 attached_weapon = item
                                 return true
                             end
@@ -3046,7 +3137,7 @@ function attach_arena_scope(weapon, requested_scope)
                     end, db.actor)
                     if not attached_weapon then
                         db.actor:iterate_inventory(function(_, item)
-                            if item and IsWeapon(nil, item:clsid()) and (not saved_actor_item_ids or not saved_actor_item_ids[item:id()]) then
+                            if item and is_gun(item) and item:id() ~= weapon_id and (not saved_actor_item_ids or not saved_actor_item_ids[item:id()]) then
                                 attached_weapon = item
                                 return true
                             end
@@ -3054,44 +3145,11 @@ function attach_arena_scope(weapon, requested_scope)
                     end
                     if attached_weapon then
                         temporary_arena_item_ids[attached_weapon:id()] = true
-                        local target_s = restore_slot or 2
+                        local actual_s = safe_equip_gun(attached_weapon, restore_slot or 2)
                         
-                        -- Clear slot if occupied by another item
-                        local cur_in_slot = db.actor:item_in_slot(target_s)
-                        if cur_in_slot and cur_in_slot:id() ~= attached_weapon:id() then
-                            pcall(function() db.actor:move_to_ruck(cur_in_slot) end)
-                        end
-                        pcall(function() db.actor:move_to_slot(attached_weapon, target_s) end)
-                        
-                        -- Anomaly fallback for slot 3
-                        if db.actor:item_in_slot(target_s) ~= attached_weapon and target_s == 2 then
-                            local in_3 = db.actor:item_in_slot(3)
-                            if not in_3 then
-                                pcall(function() db.actor:move_to_slot(attached_weapon, 3) end)
-                                if db.actor:item_in_slot(3) == attached_weapon then
-                                    target_s = 3
-                                end
-                            end
-                        end
-                        
-                        if db.actor.make_item_active then
-                            pcall(function() db.actor:make_item_active(attached_weapon) end)
-                        end
-                        pcall(function() db.actor:activate_slot(target_s) end)
-                        
-                        -- Follow-up confirmation timer to guarantee weapon is in hands
                         CreateTimeEvent("arena_3dssg_draw_confirm", "scope_draw_" .. tostring(attached_weapon:id()), 0.35, function()
                             if not db.actor then return true end
-                            local in_s = db.actor:item_in_slot(target_s)
-                            if in_s and in_s:id() == attached_weapon:id() then
-                                pcall(function() db.actor:activate_slot(target_s) end)
-                            else
-                                pcall(function() db.actor:move_to_slot(attached_weapon, target_s) end)
-                                if db.actor.make_item_active then
-                                    pcall(function() db.actor:make_item_active(attached_weapon) end)
-                                end
-                                pcall(function() db.actor:activate_slot(target_s) end)
-                            end
+                            safe_equip_gun(attached_weapon, actual_s or restore_slot or 2)
                             return true
                         end)
 
@@ -3177,7 +3235,7 @@ function release_actor_arena_item(id)
     end
     local obj = level.object_by_id(id)
     if obj and db.actor then
-        if db.actor.move_to_ruck then pcall(function() db.actor:move_to_ruck(obj) end) end
+        pcall(function() db.actor:drop_item(obj) end)
     end
     local se_item = alife_object(id)
     if se_item then
@@ -3636,7 +3694,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
         local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
         if not wpn_obj then
             db.actor:iterate_inventory(function(_, itm)
-                if temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                if temporary_arena_item_ids[itm:id()] and is_gun(itm) then
                     wpn_obj = itm
                     return true
                 end
@@ -3654,13 +3712,13 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
         
         if spawned_pistol_id then
             local p_obj = level.object_by_id(spawned_pistol_id)
-            if p_obj and not (IsKnife and IsKnife(nil, p_obj:clsid())) then
+            if p_obj and is_gun(p_obj) then
                 db.actor:move_to_slot(p_obj, 1)
             end
         end
 
         db.actor:iterate_inventory(function(_, itm)
-            if temporary_arena_item_ids[itm:id()] and IsKnife and IsKnife(nil, itm:clsid()) then
+            if temporary_arena_item_ids[itm:id()] and is_knife(itm) then
                 db.actor:move_to_slot(itm, 0)
             end
         end, db.actor)
@@ -3672,7 +3730,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
         CreateTimeEvent("arena_equip_3dssg", "arena_equip_3dssg", 1.1, function()
             if not db.actor then return true end
             db.actor:iterate_inventory(function(_, itm)
-                if temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                if temporary_arena_item_ids[itm:id()] and is_gun(itm) then
                     attach_arena_scope(itm, scope_mode == "custom" and forced_scope_sec or nil)
                 end
             end, db.actor)
@@ -5386,7 +5444,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
         local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
         if not wpn_obj then
             db.actor:iterate_inventory(function(_, itm)
-                if temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                if temporary_arena_item_ids[itm:id()] and is_gun(itm) then
                     wpn_obj = itm
                     return true
                 end
@@ -5480,7 +5538,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
                 local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
                 if not wpn_obj then
                     db.actor:iterate_inventory(function(_, itm)
-                        if temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                        if temporary_arena_item_ids[itm:id()] and is_gun(itm) then
                             wpn_obj = itm
                             return true
                         end
@@ -5514,7 +5572,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
         CreateTimeEvent("arena_equip_endless_3dssg", "arena_equip_endless_3dssg", 1.1, function()
             if not db.actor then return true end
             db.actor:iterate_inventory(function(_, itm)
-                if temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                if temporary_arena_item_ids[itm:id()] and is_gun(itm) then
                     attach_arena_scope(itm, nil)
                 end
             end, db.actor)
@@ -5665,40 +5723,75 @@ function install_item_parts_safeguard()
     end
 end
 
-function install_itms_manager_safeguard()
-    if itms_manager and not itms_manager.__arena_safeguard_installed then
-        if itms_manager.bolt_manager then
-            itms_manager.bolt_manager = function()
-                pcall(ResetTimeEvent, "cycle", "bolt_manager", 60)
-                if not db.actor then return false end
-                local bolt_max_num = (ini_manager and ini_manager.r_float_ex and ini_manager:r_float_ex("settings", "bolt_max_num")) or 99
-                local cnt = 0
-                local function safe_itr(temp, obj)
-                    if not obj then return end
-                    local ok, sec = pcall(function() return obj:section() end)
-                    if not (ok and sec) then return end
-                    if (sec == "bolt") or (sec == "bolt_bullet") then
-                        cnt = cnt + 1
-                        if cnt > bolt_max_num then
-                            local ok_id, o_id = pcall(function() return obj:id() end)
-                            if ok_id and o_id then
-                                local se_obj = alife_object(o_id)
-                                if se_obj then
-                                    if safe_release_manager and safe_release_manager.release then
-                                        pcall(safe_release_manager.release, se_obj)
-                                    else
-                                        pcall(alife_release, se_obj)
-                                    end
-                                end
-                            end
+local function safe_bolt_manager_functor()
+    pcall(ResetTimeEvent, "cycle", "bolt_manager", 60)
+    if not db.actor then return false end
+    local bolt_max_num = (ini_manager and ini_manager.r_float_ex and ini_manager:r_float_ex("settings", "bolt_max_num")) or 99
+    local cnt = 0
+    local function safe_itr(temp, obj)
+        if not obj then return end
+        local ok, sec = pcall(function() return obj:section() end)
+        if not (ok and sec) then return end
+        if (sec == "bolt") or (sec == "bolt_bullet") then
+            cnt = cnt + 1
+            if cnt > bolt_max_num then
+                local ok_id, o_id = pcall(function() return obj:id() end)
+                if ok_id and o_id then
+                    local se_obj = alife_object(o_id)
+                    if se_obj then
+                        if safe_release_manager and safe_release_manager.release then
+                            pcall(safe_release_manager.release, se_obj)
+                        else
+                            pcall(alife_release, se_obj)
                         end
                     end
                 end
-                pcall(function() db.actor:iterate_ruck(safe_itr, nil) end)
-                return false
             end
         end
-        if itms_manager.save_state then
+    end
+    pcall(function() db.actor:iterate_ruck(safe_itr, nil) end)
+    return false
+end
+
+function install_itms_manager_safeguard()
+    -- 1. Hook CreateTimeEvent globally so any time bolt_manager is created, it uses our safe handler
+    if not _G.__arena_bolt_manager_hooked then
+        _G.__arena_bolt_manager_hooked = true
+        local orig_CreateTimeEvent = _G.CreateTimeEvent
+        if orig_CreateTimeEvent then
+            _G.CreateTimeEvent = function(ev_id, act_id, timer, f, ...)
+                if act_id == "bolt_manager" then
+                    f = safe_bolt_manager_functor
+                end
+                return orig_CreateTimeEvent(ev_id, act_id, timer, f, ...)
+            end
+        end
+    end
+
+    -- 2. Hook game_object.iterate_ruck globally to guard against nil/destroyed objects in any ruck iteration
+    if game_object and game_object.iterate_ruck and not game_object.__arena_iterate_ruck_hooked then
+        game_object.__arena_iterate_ruck_hooked = true
+        local orig_iterate_ruck = game_object.iterate_ruck
+        game_object.iterate_ruck = function(self, func, user_data)
+            if type(func) ~= "function" then
+                return orig_iterate_ruck(self, func, user_data)
+            end
+            local safe_func = function(p1, p2)
+                if p2 == nil then return end
+                return func(p1, p2)
+            end
+            return orig_iterate_ruck(self, safe_func, user_data)
+        end
+    end
+
+    -- 3. Replace module bolt_manager and force-update the active event in the engine queue
+    if itms_manager then
+        itms_manager.bolt_manager = safe_bolt_manager_functor
+        pcall(RemoveTimeEvent, "cycle", "bolt_manager")
+        pcall(CreateTimeEvent, "cycle", "bolt_manager", 60, safe_bolt_manager_functor)
+
+        if itms_manager.save_state and not itms_manager.__arena_save_safeguarded then
+            itms_manager.__arena_save_safeguarded = true
             itms_manager.save_state = function(m_data)
                 if not (m_data and db.actor) then return end
                 local bolts = {}

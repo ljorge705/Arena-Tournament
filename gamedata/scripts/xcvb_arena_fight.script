@@ -2114,6 +2114,9 @@ function actor_on_before_hit(s_hit, bone_id, flags)
 end
 
 function actor_on_before_death(whoID, flags)
+    if xcvb_arena_utils and xcvb_arena_utils.install_itms_manager_safeguard then
+        pcall(xcvb_arena_utils.install_itms_manager_safeguard)
+    end
     if is_spectator_mode() then
         if flags then flags.ret_value = false end
         if db.actor then db.actor.health = 1.0 end
@@ -2403,8 +2406,9 @@ function actor_on_first_update()
 end
 
 function on_game_start()
-    if xcvb_arena_utils and xcvb_arena_utils.install_item_parts_safeguard then
-        pcall(xcvb_arena_utils.install_item_parts_safeguard)
+    if xcvb_arena_utils then
+        if xcvb_arena_utils.install_item_parts_safeguard then pcall(xcvb_arena_utils.install_item_parts_safeguard) end
+        if xcvb_arena_utils.install_itms_manager_safeguard then pcall(xcvb_arena_utils.install_itms_manager_safeguard) end
     end
     RegisterScriptCallback("actor_on_update", actor_on_update)
     RegisterScriptCallback("actor_on_before_death", actor_on_before_death)

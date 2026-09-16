@@ -191,6 +191,69 @@ end
 -- ENDLESS LOADOUT SPAWNER
 -- ─────────────────────────────────────────────────────────────────────────────
 
+local function is_knife(itm)
+    if xcvb_arena_utils and xcvb_arena_utils.is_knife then
+        return xcvb_arena_utils.is_knife(itm)
+    end
+    if not itm then return false end
+    local c = nil
+    pcall(function() c = itm:clsid() end)
+    if c then
+        if clsid and (c == clsid.wpn_knife or c == clsid.wpn_knife_s) then return true end
+        if IsMelee and IsMelee(itm, c) then return true end
+        if IsKnife and IsKnife(itm, c) then return true end
+    end
+    local sec = nil
+    pcall(function() sec = itm:section() end)
+    if sec and (string.find(sec, "knife") or string.find(sec, "axe") or string.find(sec, "machete")) then return true end
+    return false
+end
+
+local function is_gun(itm)
+    if xcvb_arena_utils and xcvb_arena_utils.is_gun then
+        return xcvb_arena_utils.is_gun(itm)
+    end
+    if not itm then return false end
+    if is_knife(itm) then return false end
+    local ok, c = pcall(function() return itm:clsid() end)
+    if ok and c and IsWeapon(nil, c) then return true end
+    return false
+end
+
+local function safe_equip_gun(gun_obj, preferred_slot)
+    if xcvb_arena_utils and xcvb_arena_utils.safe_equip_gun then
+        return xcvb_arena_utils.safe_equip_gun(gun_obj, preferred_slot)
+    end
+    if not (gun_obj and db.actor and is_gun(gun_obj)) then return nil end
+    local target_s = preferred_slot
+    if not target_s then
+        local raw = ini_sys:r_s32_ex(gun_obj:section(), "slot") or 2
+        target_s = (raw == 1) and 1 or 2
+    end
+    local cur = db.actor:item_in_slot(target_s)
+    if cur and cur:id() ~= gun_obj:id() then pcall(function() db.actor:move_to_ruck(cur) end) end
+    pcall(function() db.actor:move_to_slot(gun_obj, target_s) end)
+    if db.actor:item_in_slot(target_s) ~= gun_obj then
+        for _, alt in ipairs({ 3, 2, 1 }) do
+            if alt ~= target_s then
+                pcall(function() db.actor:move_to_slot(gun_obj, alt) end)
+                if db.actor:item_in_slot(alt) == gun_obj then
+                    target_s = alt
+                    break
+                end
+            end
+        end
+    end
+    for _, s in ipairs({ target_s, 2, 3, 1 }) do
+        if db.actor:item_in_slot(s) == gun_obj then
+            pcall(function() db.actor:activate_slot(s) end)
+            return s
+        end
+    end
+    pcall(function() db.actor:activate_slot(target_s) end)
+    return target_s
+end
+
 function equip_endless_loadout(wave, difficulty, use_3dssg)
     local cur_wave = wave or 1
     local diff = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
@@ -403,20 +466,15 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
         local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
         if not wpn_obj and db.actor then
             db.actor:iterate_inventory(function(_, itm)
-                if xcvb_arena_utils.temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                if xcvb_arena_utils.temporary_arena_item_ids[itm:id()] and is_gun(itm) then
                     wpn_obj = itm
                     return true
                 end
             end, db.actor)
         end
         if wpn_obj then
-            if ini_sys:line_exist(wpn_obj:section(), "slot") then
-                local s = ini_sys:r_s32(wpn_obj:section(), "slot")
-                if s == 1 or s == 2 then
-                    endless_target_slot = s
-                end
-            end
-            db.actor:move_to_slot(wpn_obj, endless_target_slot)
+            local act_s = safe_equip_gun(wpn_obj, endless_target_slot)
+            if act_s then endless_target_slot = act_s end
         end
 
         -- Purge stray ammunition that does not match the equipped weapon
@@ -491,32 +549,30 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
     CreateTimeEvent("arena_equip_endless_draw_e1", "arena_equip_endless_draw_a1", 0.65, function()
         if not db.actor then return true end
         local in_slot = db.actor:item_in_slot(endless_target_slot)
-        if not in_slot then
-            local other_slot = (endless_target_slot == 2) and 1 or 2
-            if db.actor:item_in_slot(other_slot) then
-                endless_target_slot = other_slot
-            else
-                local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
-                if not wpn_obj then
-                    db.actor:iterate_inventory(function(_, itm)
-                        if xcvb_arena_utils.temporary_arena_item_ids[itm:id()] and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
-                            wpn_obj = itm
-                            return true
-                        end
-                    end, db.actor)
-                end
-                if wpn_obj then
-                    db.actor:move_to_slot(wpn_obj, endless_target_slot)
-                end
+        if not (in_slot and is_gun(in_slot)) then
+            local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)
+            if not wpn_obj then
+                db.actor:iterate_inventory(function(_, itm)
+                    if xcvb_arena_utils.temporary_arena_item_ids[itm:id()] and is_gun(itm) then
+                        wpn_obj = itm
+                        return true
+                    end
+                end, db.actor)
             end
+            if wpn_obj then
+                local act_s = safe_equip_gun(wpn_obj, endless_target_slot)
+                if act_s then endless_target_slot = act_s end
+            end
+        else
+            pcall(function() db.actor:activate_slot(endless_target_slot) end)
         end
-        db.actor:activate_slot(endless_target_slot)
         return true
     end)
 
     -- Timer 4: Weapon Draw Verification Retry
     CreateTimeEvent("arena_equip_endless_draw_e2", "arena_equip_endless_draw_a2", 1.1, function()
         if not db.actor then return true end
+        if is_dssg then return true end
         if db.actor:active_slot() ~= endless_target_slot then
             local in_slot = db.actor:item_in_slot(endless_target_slot)
             if not in_slot then
@@ -544,7 +600,7 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
             if not db.actor then return true end
             db.actor:iterate_inventory(function(_, itm)
                 if xcvb_arena_utils and xcvb_arena_utils.temporary_arena_item_ids and xcvb_arena_utils.temporary_arena_item_ids[itm:id()]
-                    and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+                    and is_gun(itm) then
                     local forced_scope = (custom_loadout.enabled and custom_loadout.scope_sec) or nil
                     if forced_scope == "off" then forced_scope = nil end
                     if xcvb_arena_utils and xcvb_arena_utils.attach_arena_scope then
@@ -571,45 +627,63 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
     -- Timer 6: 3DSSG Slot & Draw Verification (1.6s)
     CreateTimeEvent("arena_equip_endless_3dssg_draw_verify1", "arena_equip_endless_3dssg_draw_verify1", 1.6, function()
         if not db.actor then return true end
-        local in_slot = db.actor:item_in_slot(endless_target_slot)
-        if not in_slot then
-            local wpn_candidate = nil
-            db.actor:iterate_inventory(function(_, itm)
-                if itm and xcvb_arena_utils and xcvb_arena_utils.temporary_arena_item_ids and xcvb_arena_utils.temporary_arena_item_ids[itm:id()]
-                    and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
-                    wpn_candidate = itm
-                    return true
-                end
-            end, db.actor)
-            if wpn_candidate then
-                pcall(function() db.actor:move_to_slot(wpn_candidate, endless_target_slot) end)
-                if db.actor:item_in_slot(endless_target_slot) ~= wpn_candidate and endless_target_slot == 2 then
-                    pcall(function() db.actor:move_to_slot(wpn_candidate, 3) end)
-                    if db.actor:item_in_slot(3) == wpn_candidate then
-                        endless_target_slot = 3
+        local unslotted_gun = nil
+        db.actor:iterate_inventory(function(_, itm)
+            if itm and is_gun(itm) and xcvb_arena_utils and xcvb_arena_utils.temporary_arena_item_ids and xcvb_arena_utils.temporary_arena_item_ids[itm:id()] then
+                local in_any_s = false
+                for _, s in ipairs({ 1, 2, 3 }) do
+                    local cur = db.actor:item_in_slot(s)
+                    if cur and cur:id() == itm:id() then
+                        in_any_s = true
+                        endless_target_slot = s
+                        break
                     end
                 end
-                if db.actor.make_item_active then
-                    pcall(function() db.actor:make_item_active(wpn_candidate) end)
+                if not in_any_s then
+                    unslotted_gun = itm
                 end
             end
+        end, db.actor)
+
+        if unslotted_gun then
+            local act_s = safe_equip_gun(unslotted_gun, endless_target_slot or 2)
+            if act_s then endless_target_slot = act_s end
+        else
+            pcall(function() db.actor:activate_slot(endless_target_slot) end)
         end
-        pcall(function() db.actor:activate_slot(endless_target_slot) end)
         return true
     end)
 
     -- Timer 7: Final Active Slot Draw Confirmation (2.2s)
     CreateTimeEvent("arena_equip_endless_3dssg_draw_verify2", "arena_equip_endless_3dssg_draw_verify2", 2.2, function()
         if not db.actor then return true end
-        if db.actor:active_slot() ~= endless_target_slot then
-            local in_slot = db.actor:item_in_slot(endless_target_slot)
-            if not in_slot then
-                for _, s in ipairs({ 2, 3, 1 }) do
-                    local itm = db.actor:item_in_slot(s)
-                    if itm and IsWeapon(nil, itm:clsid()) and not (IsKnife and IsKnife(nil, itm:clsid())) then
+        local unslotted_gun = nil
+        db.actor:iterate_inventory(function(_, itm)
+            if itm and is_gun(itm) and xcvb_arena_utils and xcvb_arena_utils.temporary_arena_item_ids and xcvb_arena_utils.temporary_arena_item_ids[itm:id()] then
+                local in_any_s = false
+                for _, s in ipairs({ 1, 2, 3 }) do
+                    local cur = db.actor:item_in_slot(s)
+                    if cur and cur:id() == itm:id() then
+                        in_any_s = true
                         endless_target_slot = s
                         break
                     end
+                end
+                if not in_any_s then
+                    unslotted_gun = itm
+                end
+            end
+        end, db.actor)
+
+        if unslotted_gun then
+            local act_s = safe_equip_gun(unslotted_gun, endless_target_slot or 2)
+            if act_s then endless_target_slot = act_s end
+        else
+            for _, s in ipairs({ 2, 3, 1 }) do
+                local itm = db.actor:item_in_slot(s)
+                if itm and is_gun(itm) then
+                    endless_target_slot = s
+                    break
                 end
             end
             pcall(function() db.actor:activate_slot(endless_target_slot) end)
