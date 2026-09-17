@@ -5768,23 +5768,7 @@ function install_itms_manager_safeguard()
         end
     end
 
-    -- 2. Hook game_object.iterate_ruck globally to guard against nil/destroyed objects in any ruck iteration
-    if game_object and game_object.iterate_ruck and not game_object.__arena_iterate_ruck_hooked then
-        game_object.__arena_iterate_ruck_hooked = true
-        local orig_iterate_ruck = game_object.iterate_ruck
-        game_object.iterate_ruck = function(self, func, user_data)
-            if type(func) ~= "function" then
-                return orig_iterate_ruck(self, func, user_data)
-            end
-            local safe_func = function(p1, p2)
-                if p2 == nil then return end
-                return func(p1, p2)
-            end
-            return orig_iterate_ruck(self, safe_func, user_data)
-        end
-    end
-
-    -- 3. Replace module bolt_manager and force-update the active event in the engine queue
+    -- 2. Replace module bolt_manager and force-update the active event in the engine queue
     if itms_manager then
         itms_manager.bolt_manager = safe_bolt_manager_functor
         pcall(RemoveTimeEvent, "cycle", "bolt_manager")
