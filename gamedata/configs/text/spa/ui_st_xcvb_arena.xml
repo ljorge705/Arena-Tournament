@@ -1341,7 +1341,7 @@
 		<text>Costo: %d RU</text>
 	</string>
 	<string id="st_arena_companion_active_title">
-		<text>ï¿½ TUS ALIADOS ï¿½</text>
+		<text>[ TUS COMPAÑEROS ]</text>
 	</string>
 	<string id="st_arena_companion_btn_hire">
 		<text>CONTRATAR</text>
@@ -1420,9 +1420,6 @@
 	</string>
 	<string id="st_arena_companion_normal_money">
 		<text>Dinero: %d RU</text>
-	</string>
-	<string id="st_arena_companion_cost_fmt">
-		<text>Costo: %d RU</text>
 	</string>
 	<string id="st_arena_companion_err_arena_money">
 		<text>No tienes suficientes CLP. Necesitas %d CLP (tienes %d).</text>
@@ -1507,6 +1504,12 @@
 	</string>
 	<string id="st_arena_wpn_menu_count">
 		<text>%d armas disponibles</text>
+	</string>
+	<string id="st_arena_night_mode_tip_on">
+		<text>MODO NOCHE activado (02:30) - Luces apagadas.</text>
+	</string>
+	<string id="st_arena_night_mode_tip_off">
+		<text>Modo normal restaurado - Luces encendidas.</text>
 	</string>
 </string_table>
 

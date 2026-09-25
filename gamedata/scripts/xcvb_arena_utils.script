@@ -278,8 +278,15 @@ function get_weapon_special_ammos(weapon_sec)
                     or string.find(low_name, "damaged ", 1, true)
                     or string.find(low_name, "viejo", 1, true)
                     or string.find(low_name, "dañado", 1, true)
-                    or string.find(low_name, "старый", 1, true)
-                    or string.find(low_name, "поврежден", 1, true)
+                    or string.find(low_name, "стар", 1, true)
+                    or string.find(full_name, "Стар", 1, true)
+                    or string.find(short_name, "Стар", 1, true)
+                    or string.find(low_name, "поврежд", 1, true)
+                    or string.find(full_name, "Поврежд", 1, true)
+                    or string.find(short_name, "Поврежд", 1, true)
+                    or string.find(low_name, "поношен", 1, true)
+                    or string.find(full_name, "Поношен", 1, true)
+                    or string.find(short_name, "Поношен", 1, true)
                     
                 if not name_is_old then
                     local is_spec = false

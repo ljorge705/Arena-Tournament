@@ -46,9 +46,13 @@ function nm_toggle_from_menu()
       local on = false
       if night_mode_manager ~= nil then on = night_mode_manager.is_active() end
       if on then
-        news_manager.send_tip(db.actor, "MODO NOCHE activado (02:30)", 0, nil, 5000)
+        local msg = game.translate_string("st_arena_night_mode_tip_on")
+        if not msg or msg == "" or msg == "st_arena_night_mode_tip_on" then msg = "MODO NOCHE activado (02:30)" end
+        news_manager.send_tip(db.actor, msg, 0, nil, 5000)
       else
-        news_manager.send_tip(db.actor, "Modo normal restaurado", 0, nil, 5000)
+        local msg = game.translate_string("st_arena_night_mode_tip_off")
+        if not msg or msg == "" or msg == "st_arena_night_mode_tip_off" then msg = "Modo normal restaurado" end
+        news_manager.send_tip(db.actor, msg, 0, nil, 5000)
       end
     end
   end)

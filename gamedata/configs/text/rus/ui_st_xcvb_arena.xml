@@ -176,7 +176,7 @@
 		<text>Раунд 7: Столкновение с «Долгом»</text>
 	</string>
 	<string id="st_arena_s_round_7_enemies">
-		<text>3x Штурмовика «Долга» с АС Вал и Грозой</text>
+		<text>3x Штурмовика «Долга» с АС «Вал» и «Грозой»</text>
 	</string>
 	<string id="st_arena_s_round_7_desc">
 		<text>Бойцы «Долга», закаленные в зачистках мутантов. Одеты в броню ПСЗ-9д и заряжены бронебойными 9x39.</text>
@@ -200,7 +200,7 @@
 		<text>Раунд 9: Элитный отряд наемников</text>
 	</string>
 	<string id="st_arena_s_round_9_enemies">
-		<text>4x Ветерана-наемника в СЕВА со штурмовыми винтовками</text>
+		<text>4x Ветерана-наёмника в «СЕВЕ» со штурмовыми винтовками</text>
 	</string>
 	<string id="st_arena_s_round_9_desc">
 		<text>Слаженная ударная группа, активно применяющая гранаты и непрерывный подавляющий огонь бронебойными пулями.</text>
@@ -212,7 +212,7 @@
 		<text>Раунд 10: Тяжелая пехота военных</text>
 	</string>
 	<string id="st_arena_s_round_10_enemies">
-		<text>4x Спецназовца в броне «Берилл» с ПКМ и Сайгой</text>
+		<text>4x Спецназовца в броне «Берилл» с ПКМ и «Сайгой»</text>
 	</string>
 	<string id="st_arena_s_round_10_desc">
 		<text>Армейский спецназ. Колоссальная пулестойкость и сокрушительная огневая мощь пулеметов.</text>
@@ -224,7 +224,7 @@
 		<text>Раунд 11: Ударная группа синдиката</text>
 	</string>
 	<string id="st_arena_s_round_11_enemies">
-		<text>4x Наемника в тяжелой броне с «Винторезами»</text>
+		<text>4x Наёмника в тяжёлой броне с ВСС «Винторез»</text>
 	</string>
 	<string id="st_arena_s_round_11_desc">
 		<text>Элитные наемники синдиката, нанятые для жесткого штурма. Действуют расчетливо и хладнокровно.</text>
@@ -272,7 +272,7 @@
 		<text>Раунд 15: Великий Чемпион: Палач</text>
 	</string>
 	<string id="st_arena_s_round_15_enemies">
-		<text>«Палач» в Носороге + 2 элитных телохранителя в экзоскелетах</text>
+		<text>«Палач» в «Носороге» + 2 элитных телохранителя в экзоскелетах</text>
 	</string>
 	<string id="st_arena_s_round_15_desc">
 		<text>Финальная гладиаторская битва. Палач удерживает непобедимый трон Арены в усиленной броне «Носорог» с пулеметом.</text>
@@ -308,7 +308,7 @@
 		<text>Раунд 3: Яростный натиск</text>
 	</string>
 	<string id="st_arena_m_round_3_enemies">
-		<text>2x Слепых пса + 2x Быстрых псевдособаки</text>
+		<text>2x Слепых пса + 2x Быстрые псевдособаки</text>
 	</string>
 	<string id="st_arena_m_round_3_desc">
 		<text>Смешанная свора во главе со свирепыми псевдособаками, гораздо более живучими и опасными, чем обычные псы.</text>
@@ -428,7 +428,7 @@
 		<text>Раунд 13: Двуглавый кошмар</text>
 	</string>
 	<string id="st_arena_m_round_13_enemies">
-		<text>2x Взрослых диких химеры</text>
+		<text>2x Взрослые дикие химеры</text>
 	</string>
 	<string id="st_arena_m_round_13_desc">
 		<text>Верховные хищники Зоны. Огромные прыжки, невероятная скорость и смертоносные когти.</text>
@@ -440,7 +440,7 @@
 		<text>Раунд 14: Психический тиран</text>
 	</string>
 	<string id="st_arena_m_round_14_enemies">
-		<text>1x Контроллер + 3x Вооруженных зомбированных</text>
+		<text>1x Контроллер + 3x Вооружённых зомбированных</text>
 	</string>
 	<string id="st_arena_m_round_14_desc">
 		<text>Контроллер бьет по мозгам пси-волнами издалека, пока его зомбированные марионетки поливают вас свинцом.</text>
@@ -452,7 +452,7 @@
 		<text>Раунд 15: Дуэт апокалипсиса</text>
 	</string>
 	<string id="st_arena_m_round_15_enemies">
-		<text>2x Черных химеры + 1x Титанический псевдогигант</text>
+		<text>2x Чёрные химеры + 1x Титанический псевдогигант</text>
 	</string>
 	<string id="st_arena_m_round_15_desc">
 		<text>Финальное испытание на выживание: самые опасные и ужасающие монстры Зоны спущены на вас одновременно.</text>
@@ -590,7 +590,7 @@
 		<text>Пистолет-пулемет</text>
 	</string>
 	<string id="st_arena_class_sniper">
-		<text>Снайперская</text>
+		<text>Снайперская винтовка</text>
 	</string>
 	<string id="st_arena_tier_auto">
 		<text>Авто</text>
@@ -710,13 +710,13 @@
 		<text>Налобный фонарь (Стандартный)</text>
 	</string>
 	<string id="st_arena_dev_nvg1">
-		<text>Прибор ночного видения Пок 1 (ПНВ-57Е)</text>
+		<text>Прибор ночного видения Пок. 1 (ПНВ-57Е)</text>
 	</string>
 	<string id="st_arena_dev_nvg2">
-		<text>Прибор ночного видения Пок 2 (1ПН93)</text>
+		<text>Прибор ночного видения Пок. 2 (1ПН93)</text>
 	</string>
 	<string id="st_arena_dev_nvg3">
-		<text>Прибор ночного видения Пок 3 (GPNVG-18)</text>
+		<text>Прибор ночного видения Пок. 3 (GPNVG-18)</text>
 	</string>
 	<string id="st_arena_dev_none">
 		<text>Без прибора (Полная тьма)</text>
@@ -725,13 +725,13 @@
 		<text>[ Налобный фонарь ]</text>
 	</string>
 	<string id="st_arena_dev_btn_nvg1">
-		<text>[ ПНВ Пок 1 ]</text>
+		<text>[ ПНВ Пок. 1 ]</text>
 	</string>
 	<string id="st_arena_dev_btn_nvg2">
-		<text>[ ПНВ Пок 2 ]</text>
+		<text>[ ПНВ Пок. 2 ]</text>
 	</string>
 	<string id="st_arena_dev_btn_nvg3">
-		<text>[ ПНВ Пок 3 ]</text>
+		<text>[ ПНВ Пок. 3 ]</text>
 	</string>
 	<string id="st_arena_dev_btn_none">
 		<text>[ Без прибора ]</text>
@@ -926,13 +926,13 @@
 		<text>Плоть</text>
 	</string>
 	<string id="st_arena_mut_dog">
-		<text>Слепые псы</text>
+		<text>Слепой пёс</text>
 	</string>
 	<string id="st_arena_mut_zombie">
 		<text>Зомби</text>
 	</string>
 	<string id="st_arena_mut_tushkano">
-		<text>Тушканы</text>
+		<text>Тушкан</text>
 	</string>
 	<string id="st_arena_loadout_ammo_title">
 		<text>ТИП ПАТРОНОВ:</text>
@@ -1058,7 +1058,7 @@
 		<text>- Тактический выход [F]: покиньте арену в любой момент, забрав 100% денег.</text>
 	</string>
 	<string id="st_arena_endless_rule_line3">
-		<text>- Эвакуация медиков: при падении в бою медики спасут вас в Бар за 2,500 RU.</text>
+		<text>- Медицинская эвакуация: при падении в бою медики спасут вас в Бар за 2,500 RU.</text>
 	</string>
 	<string id="st_arena_endless_desc_stalkers">
 		<text>Вооруженные люди (Бандиты, Наемники, Военные и др.). Используют огнестрел, укрытия и обходы. Победа над ними обновляет ваше оружие.</text>
@@ -1301,79 +1301,79 @@
 		<text>Пачки: %s</text>
 	</string>
 	<string id="st_arena_bosses">
-		<text>BOSSES</text>
+		<text>БОССЫ</text>
 	</string>
 	<string id="st_arena_boss_hunter_name">
-		<text>The Hunter</text>
+		<text>Охотник</text>
 	</string>
 	<string id="st_arena_boss_hunter_desc">
-		<text>Duel against a veteran with a SPAS-12 shotgun. Use cover to control the distance.</text>
+		<text>Дуэль против ветерана с дробовиком SPAS-12. Используйте укрытия, чтобы контролировать дистанцию.</text>
 	</string>
 	<string id="st_arena_boss_hunter_enemies">
-		<text>1x Veteran / SPAS-12</text>
+		<text>1x Ветеран / SPAS-12</text>
 	</string>
 	<string id="st_arena_boss_hunter_reward">
-		<text>35000 RU + Scientific medkit</text>
+		<text>35,000 RU + Научная аптечка</text>
 	</string>
 	<string id="st_arena_boss_ghost_name">
-		<text>The Ghost</text>
+		<text>Призрак</text>
 	</string>
 	<string id="st_arena_boss_ghost_desc">
-		<text>Duel against an SVD marksman. Avoid crossing the exposed center of the arena.</text>
+		<text>Дуэль против снайпера с СВД. Избегайте открытого центра арены.</text>
 	</string>
 	<string id="st_arena_boss_ghost_enemies">
-		<text>1x Marksman / SVD</text>
+		<text>1x Снайпер / СВД</text>
 	</string>
 	<string id="st_arena_boss_ghost_reward">
-		<text>45000 RU + Scientific medkit</text>
+		<text>45,000 RU + Научная аптечка</text>
 	</string>
 	<string id="st_arena_boss_executioner_name">
-		<text>The Executioner: final duel</text>
+		<text>Палач: финальная дуэль</text>
 	</string>
 	<string id="st_arena_boss_executioner_desc">
-		<text>The champion returns for a duel with a PKM. Use his reloads to move between cover.</text>
+		<text>Чемпион возвращается для дуэли с ПКМ. Используйте моменты его перезарядки для смены укрытия.</text>
 	</string>
 	<string id="st_arena_boss_executioner_enemies">
-		<text>1x Champion / PKM</text>
+		<text>1x Чемпион / ПКМ</text>
 	</string>
 	<string id="st_arena_boss_executioner_reward">
-		<text>65000 RU + Scientific medkit</text>
+		<text>65,000 RU + Научная аптечка</text>
 	</string>
 	<string id="st_arena_boss_matriarch_name">
-		<text>The Matriarch</text>
+		<text>Матриарх</text>
 	</string>
 	<string id="st_arena_boss_matriarch_desc">
-		<text>A strong chimera and two pseudodogs. Separate the pack before facing the Matriarch.</text>
+		<text>Мощная химера и две псевдособаки. Разделите стаю, прежде чем атаковать Матриарха.</text>
 	</string>
 	<string id="st_arena_boss_matriarch_enemies">
-		<text>1x Chimera + 2x Pseudodogs</text>
+		<text>1x Химера + 2x Псевдособаки</text>
 	</string>
 	<string id="st_arena_boss_matriarch_reward">
-		<text>35000 RU + Scientific medkit</text>
+		<text>35,000 RU + Научная аптечка</text>
 	</string>
 	<string id="st_arena_boss_whisper_name">
-		<text>The Whisper</text>
+		<text>Шёпот</text>
 	</string>
 	<string id="st_arena_boss_whisper_desc">
-		<text>A controller protected by two zombies. Its escorts obstruct your approach to the boss.</text>
+		<text>Контроллер под защитой двух зомбированных. Охрана мешает подобраться к боссу.</text>
 	</string>
 	<string id="st_arena_boss_whisper_enemies">
-		<text>1x Controller + 2x Zombies</text>
+		<text>1x Контроллер + 2x Зомбированных</text>
 	</string>
 	<string id="st_arena_boss_whisper_reward">
-		<text>45000 RU + Scientific medkit</text>
+		<text>45,000 RU + Научная аптечка</text>
 	</string>
 	<string id="st_arena_boss_colossus_name">
-		<text>The Colossus</text>
+		<text>Колосс</text>
 	</string>
 	<string id="st_arena_boss_colossus_desc">
-		<text>A strong pseudogiant with two snorks. Keep moving and eliminate the faster enemies first.</text>
+		<text>Огромный псевдогигант с двумя снорками. Не стойте на месте и первыми устраните быстрых врагов.</text>
 	</string>
 	<string id="st_arena_boss_colossus_enemies">
-		<text>1x Pseudogiant + 2x Snorks</text>
+		<text>1x Псевдогигант + 2x Снорка</text>
 	</string>
 	<string id="st_arena_boss_colossus_reward">
-		<text>65000 RU + Scientific medkit</text>
+		<text>65,000 RU + Научная аптечка</text>
 	</string>
 	<string id="st_arena_companion_use">
 		<text>Доска найма напарников ($$ACTION_USE$$)</text>
@@ -1436,7 +1436,7 @@
 		<text>Элитный наемник. Справляется с тяжелыми ситуациями.</text>
 	</string>
 	<string id="st_arena_companion_rank4_name">
-		<text>Военный спецназ</text>
+		<text>Боец спецназа</text>
 	</string>
 	<string id="st_arena_companion_rank4_desc">
 		<text>Элита спецподразделений. Лучшие бойцы, которых можно купить.</text>
@@ -1554,5 +1554,11 @@
 	</string>
 	<string id="st_arena_wpn_menu_count">
 		<text>Доступно оружия: %d</text>
+	</string>
+	<string id="st_arena_night_mode_tip_on">
+		<text>НОЧНОЙ РЕЖИМ активирован (02:30) — освещение арены отключено.</text>
+	</string>
+	<string id="st_arena_night_mode_tip_off">
+		<text>Обычный режим восстановлен — освещение арены включено.</text>
 	</string>
 </string_table>
