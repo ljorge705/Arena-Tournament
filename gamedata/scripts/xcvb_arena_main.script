@@ -496,6 +496,21 @@ function get_round_data(category, round_id)
 end
 
 function get_actor_rank_num()
+	local cr = db.actor and db.actor:character_rank() or 0
+	local tier_by_cr = 1
+	if cr >= 9000 then
+		tier_by_cr = 5
+	elseif cr >= 5000 then
+		tier_by_cr = 4
+	elseif cr >= 2500 then
+		tier_by_cr = 3
+	elseif cr >= 900 then
+		tier_by_cr = 2
+	else
+		tier_by_cr = 1
+	end
+
+	-- Also check engine rank name if available (awards whichever is higher)
 	local r_name = nil
 	if ranks and ranks.get_player_rank_name then
 		r_name = ranks.get_player_rank_name()
@@ -513,22 +528,9 @@ function get_actor_rank_num()
 		["master"] = 4,
 		["legend"] = 5,
 	}
-	if r_name and rank_name_to_tier[r_name] then
-		return rank_name_to_tier[r_name]
-	end
+	local tier_by_name = (r_name and rank_name_to_tier[r_name]) or 1
 
-	local cr = db.actor and db.actor:character_rank() or 0
-	if cr >= 36000 then
-		return 5
-	elseif cr >= 18000 then
-		return 4
-	elseif cr >= 4500 then
-		return 3
-	elseif cr >= 900 then
-		return 2
-	else
-		return 1
-	end
+	return math.max(tier_by_cr, tier_by_name)
 end
 
 function is_tier_unlocked_by_rank(tier)
@@ -546,8 +548,20 @@ function get_tier_required_rank_name(tier)
 		[4] = "st_rank_master",
 		[5] = "st_rank_legend",
 	}
-	local id = tier_rank_ids[math.min(5, tier)] or "st_rank_novice"
-	return game.translate_string(id)
+	local tier_pts = {
+		[1] = 0,
+		[2] = 900,
+		[3] = 2500,
+		[4] = 5000,
+		[5] = 9000,
+	}
+	local t = math.min(5, math.max(1, tier or 1))
+	local rank_name = game.translate_string(tier_rank_ids[t] or "st_rank_novice")
+	local pts = tier_pts[t] or 0
+	if pts > 0 then
+		return string.format("%s (%d pts)", rank_name, pts)
+	end
+	return rank_name
 end
 
 local function get_cooldown_duration_sec()
