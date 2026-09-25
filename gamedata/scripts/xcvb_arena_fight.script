@@ -249,6 +249,9 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
     pcall(level.show_indicators)
+    if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+        pcall(xcvb_arena_utils.ensure_weapon_raised)
+    end
     if xcvb_arena_main.night_mode_active then
         pcall(xcvb_arena_utils.enter_arena_night_mode)
         CreateTimeEvent("arena_torch_verify_e", "arena_torch_verify_a", 1.2, function()
@@ -350,6 +353,9 @@ function end_tournament_fight(is_victory)
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
     pcall(level.show_indicators)
+    if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+        pcall(xcvb_arena_utils.ensure_weapon_raised)
+    end
 
     if tournament_enemy_squad_id then
         xcvb_arena_utils.clean_tournament_squad(tournament_enemy_squad_id)
@@ -959,6 +965,9 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
     pcall(level.show_indicators)
+    if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+        pcall(xcvb_arena_utils.ensure_weapon_raised)
+    end
     if xcvb_arena_main.night_mode_active then
         pcall(xcvb_arena_utils.enter_arena_night_mode)
         CreateTimeEvent("arena_torch_verify_e", "arena_torch_verify_a", 1.2, function()
@@ -1203,6 +1212,9 @@ function end_endless_fight(is_victory, voluntary_leave)
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
     pcall(level.show_indicators)
+    if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+        pcall(xcvb_arena_utils.ensure_weapon_raised)
+    end
 
     if endless_enemy_squad_ids then
         for _, s_id in ipairs(endless_enemy_squad_ids) do

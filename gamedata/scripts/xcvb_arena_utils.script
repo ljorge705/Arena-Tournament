@@ -950,6 +950,33 @@ function get_actor_bar_safe_pos()
     return pos, lvid, gvid
 end
 
+function ensure_weapon_raised()
+    if exec_console_cmd then
+        pcall(function() exec_console_cmd("bodycam_vm_lowering_enable 0") end)
+    end
+    if game.actor_weapon_lowered and game.actor_weapon_lowered() then
+        if game.actor_lower_weapon then
+            pcall(game.actor_lower_weapon, false)
+        end
+    end
+    if rawget(_G, "weapon_cover_tilt") and weapon_cover_tilt.reset then
+        pcall(weapon_cover_tilt.reset)
+    end
+    if rawget(_G, "hud_adjust") and hud_adjust.enabled then
+        pcall(hud_adjust.enabled, false)
+    end
+    if rawget(_G, "lower_weapon_sprint") then
+        pcall(function()
+            lower_weapon_sprint.sprinting = false
+            lower_weapon_sprint.manually_lowered = false
+        end)
+    end
+    local wpn = db.actor and db.actor:active_item()
+    if wpn and IsWeapon(wpn) and wpn.switch_state then
+        pcall(function() wpn:switch_state(0) end)
+    end
+end
+
 function get_team_pos(n)
     if n == 1 then
         local pos = vector():set(151.2, -20.0543, 128.8)
@@ -3272,14 +3299,6 @@ function store_actor_inventory()
     RemoveTimeEvent("arena_restore_equip_e3", "arena_restore_equip_a3")
     RemoveTimeEvent("arena_restore_equip_e4", "arena_restore_equip_a4")
 
-    pcall(function() db.actor:activate_slot(0) end)
-    for s = 1, 15 do
-        local slot_itm = db.actor:item_in_slot(s)
-        if slot_itm and db.actor.move_to_ruck then
-            pcall(function() db.actor:move_to_ruck(slot_itm) end)
-        end
-    end
-
     local box = get_or_create_arena_box()
     if not box then
         printe("! xcvb arena: Could not find or create inventory storage box")
@@ -3291,7 +3310,7 @@ function store_actor_inventory()
     saved_actor_item_ids = {}
     saved_active_slot = db.actor and db.actor:active_slot()
 
-    -- 1. Record original equipped item slots (0 to 15)
+    -- 1. Record original equipped item slots (0 to 15) BEFORE moving to ruck
     for slot = 0, 15 do
         local itm = db.actor:item_in_slot(slot)
         if itm then
@@ -3306,6 +3325,14 @@ function store_actor_inventory()
                 saved_belt_items[item:id()] = true
             end
         end, db.actor)
+    end
+
+    pcall(function() db.actor:activate_slot(0) end)
+    for s = 1, 15 do
+        local slot_itm = db.actor:item_in_slot(s)
+        if slot_itm and db.actor.move_to_ruck then
+            pcall(function() db.actor:move_to_ruck(slot_itm) end)
+        end
     end
 
     -- 3. Gather items to store (excluding PDA, torch, bolt, quest items)
@@ -3749,6 +3776,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
             end
         end
         db.actor:activate_slot(tourn_target_slot)
+        ensure_weapon_raised()
         return true
     end)
     CreateTimeEvent("arena_equip_draw_e2", "arena_equip_draw_a2", 1.0, function()
@@ -3763,6 +3791,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
             end
             db.actor:activate_slot(tourn_target_slot)
         end
+        ensure_weapon_raised()
         return true
     end)
     
@@ -3958,6 +3987,7 @@ function restore_actor_equipped_slots()
         if slot_to_act then
             pcall(function() db.actor:activate_slot(slot_to_act) end)
         end
+        ensure_weapon_raised()
         return true
     end)
 
@@ -3981,6 +4011,7 @@ function restore_actor_equipped_slots()
             elseif db.actor:item_in_slot(1) then pcall(function() db.actor:activate_slot(1) end)
             end
         end
+        ensure_weapon_raised()
 
         saved_equipped_slots = {}
         saved_belt_items = {}
@@ -5550,6 +5581,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             end
         end
         db.actor:activate_slot(endless_target_slot)
+        ensure_weapon_raised()
         return true
     end)
 
@@ -5565,6 +5597,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             end
             db.actor:activate_slot(endless_target_slot)
         end
+        ensure_weapon_raised()
         return true
     end)
 

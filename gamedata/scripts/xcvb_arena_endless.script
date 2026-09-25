@@ -247,10 +247,16 @@ local function safe_equip_gun(gun_obj, preferred_slot)
     for _, s in ipairs({ target_s, 2, 3, 1 }) do
         if db.actor:item_in_slot(s) == gun_obj then
             pcall(function() db.actor:activate_slot(s) end)
+            if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+                pcall(xcvb_arena_utils.ensure_weapon_raised)
+            end
             return s
         end
     end
     pcall(function() db.actor:activate_slot(target_s) end)
+    if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+        pcall(xcvb_arena_utils.ensure_weapon_raised)
+    end
     return target_s
 end
 
@@ -565,6 +571,9 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
             end
         else
             pcall(function() db.actor:activate_slot(endless_target_slot) end)
+            if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+                pcall(xcvb_arena_utils.ensure_weapon_raised)
+            end
         end
         return true
     end)
@@ -582,6 +591,9 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
                 end
             end
             db.actor:activate_slot(endless_target_slot)
+        end
+        if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+            pcall(xcvb_arena_utils.ensure_weapon_raised)
         end
         return true
     end)
@@ -650,6 +662,9 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
             if act_s then endless_target_slot = act_s end
         else
             pcall(function() db.actor:activate_slot(endless_target_slot) end)
+            if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+                pcall(xcvb_arena_utils.ensure_weapon_raised)
+            end
         end
         return true
     end)
@@ -687,6 +702,9 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
                 end
             end
             pcall(function() db.actor:activate_slot(endless_target_slot) end)
+            if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+                pcall(xcvb_arena_utils.ensure_weapon_raised)
+            end
         end
         return true
     end)
