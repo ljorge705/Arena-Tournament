@@ -958,10 +958,11 @@ function get_actor_bar_safe_pos()
 end
 
 function ensure_weapon_raised()
-    if exec_console_cmd then
-        pcall(function() exec_console_cmd("bodycam_vm_lowering_enable 0") end)
-    end
-    if game.actor_weapon_lowered and game.actor_weapon_lowered() then
+    -- Do not change Bodycam/Lower Weapon Sprint settings or their private state
+    -- here.  Those addons own the sprint transition and changing only part of
+    -- their state leaves the viewmodel/camera stuck when sprint starts.
+    local was_lowered = game.actor_weapon_lowered and game.actor_weapon_lowered()
+    if was_lowered then
         if game.actor_lower_weapon then
             pcall(game.actor_lower_weapon, false)
         end
@@ -969,17 +970,10 @@ function ensure_weapon_raised()
     if rawget(_G, "weapon_cover_tilt") and weapon_cover_tilt.reset then
         pcall(weapon_cover_tilt.reset)
     end
-    if rawget(_G, "hud_adjust") and hud_adjust.enabled then
-        pcall(hud_adjust.enabled, false)
-    end
-    if rawget(_G, "lower_weapon_sprint") then
-        pcall(function()
-            lower_weapon_sprint.sprinting = false
-            lower_weapon_sprint.manually_lowered = false
-        end)
-    end
+    -- switch_state(0) is only needed to finish an actual raise transition.
+    -- Calling it unconditionally can interrupt a freshly equipped weapon.
     local wpn = db.actor and db.actor:active_item()
-    if wpn and IsWeapon(wpn) and wpn.switch_state then
+    if was_lowered and wpn and IsWeapon(wpn) and wpn.switch_state then
         pcall(function() wpn:switch_state(0) end)
     end
 end
@@ -2698,7 +2692,7 @@ tournament_loadouts_t = {
         outfits = { "novice_outfit", "bandit_novice_outfit", "trenchcoat_outfit", "cs_light_novice_outfit" },
         helmets = { "helm_respirator", "helm_cloth_mask" },
         weapons = {
-            "wpn_pm", "wpn_pm_custom", "wpn_pb", "wpn_pb_custom", "wpn_fort", "wpn_tt33", "wpn_tt33_modern",
+            "wpn_pm", "wpn_pm_custom", "wpn_fort", "wpn_tt33", "wpn_tt33_modern",
             "wpn_colt1911", "wpn_walther", "wpn_beretta", "wpn_hpsa", "wpn_cz75",
             "wpn_bm16", "wpn_bm16_full", "wpn_toz34_obrez", "wpn_toz34", "wpn_toz66",
             "wpn_kiparis", "wpn_vz61", "wpn_ppsh41", "wpn_pps43",
@@ -2709,7 +2703,7 @@ tournament_loadouts_t = {
         rifles = { "wpn_ak74u", "wpn_ak74u_old", "wpn_aks74u", "wpn_sks" },
         smgs = { "wpn_kiparis", "wpn_vz61", "wpn_ppsh41", "wpn_pps43" },
         snipers = { "wpn_mosin", "wpn_obrez", "wpn_sks", "wpn_toz34" },
-        pistols = { "wpn_pm", "wpn_pm_custom", "wpn_pb", "wpn_pb_custom", "wpn_fort", "wpn_tt33", "wpn_tt33_modern", "wpn_colt1911", "wpn_walther", "wpn_beretta", "wpn_hpsa", "wpn_cz75" },
+        pistols = { "wpn_pm", "wpn_pm_custom", "wpn_fort", "wpn_tt33", "wpn_tt33_modern", "wpn_colt1911", "wpn_walther", "wpn_beretta", "wpn_hpsa", "wpn_cz75" },
         ammo_count = 5,
         meds = { "bandage", "bandage", "medkit" },
         knife = "wpn_knife",
@@ -2798,11 +2792,23 @@ tournament_loadouts_t = {
 
 last_spawned_weapon_sec = nil
 
+-- These sections have incompatible lowered/sprint viewmodels in common
+-- Anomaly/GAMMA weapon packs.  Spawning one as actor-owned arena gear can leave
+-- it invisible while its HUD update keeps running every frame.
+local arena_weapon_blacklist = {
+    wpn_pb = true,
+    wpn_pb_custom = true,
+}
+
+function is_arena_weapon_allowed(sec)
+    return sec and not arena_weapon_blacklist[sec]
+end
+
 function pick_valid_section(list, exclude_sec)
     if not list then return nil end
     local valid = {}
     for _, sec in ipairs(list) do
-        if ini_sys:section_exist(sec) then
+        if is_arena_weapon_allowed(sec) and ini_sys:section_exist(sec) then
             table.insert(valid, sec)
         end
     end
@@ -2846,7 +2852,7 @@ function get_available_weapons(effective_tier, loadout_class)
     local valid = {}
     if wpn_list then
         for _, sec in ipairs(wpn_list) do
-            if ini_sys:section_exist(sec) then
+            if is_arena_weapon_allowed(sec) and ini_sys:section_exist(sec) then
                 table.insert(valid, sec)
             end
         end
@@ -3635,7 +3641,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
     end
     
     local wpn_sec = nil
-    if forced_weapon_sec and ini_sys:section_exist(forced_weapon_sec) then
+    if forced_weapon_sec and is_arena_weapon_allowed(forced_weapon_sec) and ini_sys:section_exist(forced_weapon_sec) then
         wpn_sec = forced_weapon_sec
     else
         wpn_sec = pick_valid_section(wpn_list, last_spawned_weapon_sec) or pick_valid_section(t_data.weapons, last_spawned_weapon_sec)
