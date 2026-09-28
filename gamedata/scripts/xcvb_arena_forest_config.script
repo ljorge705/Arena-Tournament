@@ -1,0 +1,206 @@
+-- ==============================================================================
+-- xcvb_arena_forest_config.script
+-- CONFIGURACIÓN Y PARÁMETROS DEL MAPA BOSQUE (FOREST ARENA)
+-- Modifica aquí cualquier parámetro del bosque sin tener que tocar los archivos generales.
+-- ==============================================================================
+
+-- -----------------------------------------------------------------------------
+-- 1. PUNTOS DE SPAWN DEL JUGADOR Y ENEMIGOS (COORDENADAS Y VERTICES LEVEL.AI)
+-- -----------------------------------------------------------------------------
+-- Spawn del Jugador (Sector Sur del bosque, despejado entre árboles)
+ACTOR_SPAWN = {
+    x    = 118.3,
+    y    = -21.060,
+    z    = 84.7,
+    pos  = vector():set(118.3, -21.060, 84.7),
+    lvid = 103737,
+    gvid = 1684,
+}
+
+-- Spawn Base del Enemigo en Torneo (Sector Norte del bosque)
+TOURNAMENT_ENEMY_SPAWN = {
+    x    = 107.1,
+    y    = -21.060,
+    z    = 128.1,
+    pos  = vector():set(107.1, -21.060, 128.1),
+    lvid = 102902,
+    gvid = 1684,
+}
+
+-- Formación táctica de spawn para escuadrones de torneo (hasta 8 miembros)
+-- Cada slot tiene una posición separada y su propio lvid libre de colisiones con árboles.
+TOURNAMENT_SLOTS = {
+    { x = 107.1, y = -21.060, z = 128.1, lvid = 102902 }, -- Slot 1: Centro Norte
+    { x = 110.6, y = -21.060, z = 126.7, lvid = 103174 }, -- Slot 2: Centro-Este
+    { x = 104.3, y = -20.976, z = 125.3, lvid = 102689 }, -- Slot 3: Centro-Oeste
+    { x = 116.2, y = -21.060, z = 122.5, lvid = 103610 }, -- Slot 4: Este exterior
+    { x = 102.9, y = -21.028, z = 123.2, lvid = 102577 }, -- Slot 5: Oeste exterior
+    { x = 100.1, y = -21.060, z = 121.8, lvid = 102388 }, -- Slot 6: Flanco Oeste profundo
+    { x = 116.2, y = -21.060, z = 121.8, lvid = 103609 }, -- Slot 7: Flanco Este profundo
+    { x = 107.1, y = -21.048, z = 126.7, lvid = 102900 }, -- Slot 8: Centro retaguardia
+}
+
+-- Zonas de spawn expandidas para Modo Supervivencia / Oleadas (Endless Mode)
+-- Cobertura total de sectores Norte, Noroeste, Noreste y flancos superiores
+ENDLESS_NORTH_ZONES = {
+    { x = 107.1, y = -21.060, z = 128.1, pos = vector():set(107.1, -21.060, 128.1), lvid = 102902, gvid = 1684, fallback_lvid = 102902 },
+    { x = 107.1, y = -21.048, z = 126.7, pos = vector():set(107.1, -21.048, 126.7), lvid = 102900, gvid = 1684, fallback_lvid = 102900 },
+    { x = 104.3, y = -20.976, z = 125.3, pos = vector():set(104.3, -20.976, 125.3), lvid = 102689, gvid = 1684, fallback_lvid = 102689 },
+    { x = 110.6, y = -21.060, z = 126.7, pos = vector():set(110.6, -21.060, 126.7), lvid = 103174, gvid = 1684, fallback_lvid = 103174 },
+    { x = 102.9, y = -21.004, z = 128.1, pos = vector():set(102.9, -21.004, 128.1), lvid = 102579, gvid = 1684, fallback_lvid = 102579 },
+    { x = 111.3, y = -21.060, z = 128.1, pos = vector():set(111.3, -21.060, 128.1), lvid = 103240, gvid = 1684, fallback_lvid = 103240 },
+    { x = 116.2, y = -21.024, z = 128.1, pos = vector():set(116.2, -21.024, 128.1), lvid = 103618, gvid = 1684, fallback_lvid = 103618 },
+    { x = 98.0,  y = -21.060, z = 128.1, pos = vector():set(98.0,  -21.060, 128.1), lvid = 102266, gvid = 1684, fallback_lvid = 102266 },
+    { x = 98.0,  y = -21.060, z = 125.3, pos = vector():set(98.0,  -21.060, 125.3), lvid = 102262, gvid = 1684, fallback_lvid = 102262 },
+    { x = 111.3, y = -21.060, z = 125.3, pos = vector():set(111.3, -21.060, 125.3), lvid = 103236, gvid = 1684, fallback_lvid = 103236 },
+    { x = 116.2, y = -21.040, z = 125.3, pos = vector():set(116.2, -21.040, 125.3), lvid = 103614, gvid = 1684, fallback_lvid = 103614 },
+    { x = 98.0,  y = -21.060, z = 121.8, pos = vector():set(98.0,  -21.060, 121.8), lvid = 102257, gvid = 1684, fallback_lvid = 102257 },
+    { x = 102.9, y = -21.060, z = 121.8, pos = vector():set(102.9, -21.060, 121.8), lvid = 102575, gvid = 1684, fallback_lvid = 102575 },
+    { x = 111.3, y = -21.060, z = 121.8, pos = vector():set(111.3, -21.060, 121.8), lvid = 103233, gvid = 1684, fallback_lvid = 103233 },
+    { x = 116.2, y = -21.060, z = 121.8, pos = vector():set(116.2, -21.060, 121.8), lvid = 103609, gvid = 1684, fallback_lvid = 103609 },
+    { x = 98.0,  y = -21.060, z = 119.0, pos = vector():set(98.0,  -21.060, 119.0), lvid = 102254, gvid = 1684, fallback_lvid = 102254 },
+    { x = 102.9, y = -21.060, z = 119.0, pos = vector():set(102.9, -21.060, 119.0), lvid = 102571, gvid = 1684, fallback_lvid = 102571 },
+    { x = 107.1, y = -20.923, z = 119.7, pos = vector():set(107.1, -20.923, 119.7), lvid = 102898, gvid = 1684, fallback_lvid = 102898 },
+    { x = 111.3, y = -21.041, z = 119.0, pos = vector():set(111.3, -21.041, 119.0), lvid = 103229, gvid = 1684, fallback_lvid = 103229 },
+    { x = 115.5, y = -21.060, z = 119.0, pos = vector():set(115.5, -21.060, 119.0), lvid = 103557, gvid = 1684, fallback_lvid = 103557 },
+    { x = 116.9, y = -21.060, z = 109.9, pos = vector():set(116.9, -21.060, 109.9), lvid = 103652, gvid = 1684, fallback_lvid = 103652 },
+    { x = 95.9,  y = -21.033, z = 109.9, pos = vector():set(95.9,  -21.033, 109.9), lvid = 102056, gvid = 1684, fallback_lvid = 102056 },
+}
+
+-- Cobertura total de sectores Sur, Sudoeste, Sudeste y flancos inferiores
+ENDLESS_SOUTH_ZONES = {
+    { x = 109.9, y = -21.060, z = 82.6, pos = vector():set(109.9, -21.060, 82.6), lvid = 103074, gvid = 1684, fallback_lvid = 103074 },
+    { x = 108.5, y = -21.037, z = 86.1, pos = vector():set(108.5, -21.037, 86.1), lvid = 102961, gvid = 1684, fallback_lvid = 102961 },
+    { x = 104.3, y = -21.060, z = 84.7, pos = vector():set(104.3, -21.060, 84.7), lvid = 102651, gvid = 1684, fallback_lvid = 102651 },
+    { x = 112.0, y = -20.979, z = 83.3, pos = vector():set(112.0, -20.979, 83.3), lvid = 103259, gvid = 1684, fallback_lvid = 103259 },
+    { x = 114.8, y = -21.041, z = 86.1, pos = vector():set(114.8, -21.041, 86.1), lvid = 103494, gvid = 1684, fallback_lvid = 103494 },
+    { x = 102.2, y = -21.060, z = 86.1, pos = vector():set(102.2, -21.060, 86.1), lvid = 102493, gvid = 1684, fallback_lvid = 102493 },
+    { x = 116.9, y = -21.060, z = 88.2, pos = vector():set(116.9, -21.060, 88.2), lvid = 103642, gvid = 1684, fallback_lvid = 103642 },
+    { x = 98.0,  y = -21.060, z = 77.0, pos = vector():set(98.0,  -21.060, 77.0), lvid = 102216, gvid = 1684, fallback_lvid = 102216 },
+    { x = 102.9, y = -21.029, z = 77.0, pos = vector():set(102.9, -21.029, 77.0), lvid = 102533, gvid = 1684, fallback_lvid = 102533 },
+    { x = 107.1, y = -21.060, z = 77.0, pos = vector():set(107.1, -21.060, 77.0), lvid = 102861, gvid = 1684, fallback_lvid = 102861 },
+    { x = 111.3, y = -21.060, z = 77.0, pos = vector():set(111.3, -21.060, 77.0), lvid = 103186, gvid = 1684, fallback_lvid = 103186 },
+    { x = 116.2, y = -21.036, z = 77.0, pos = vector():set(116.2, -21.036, 77.0), lvid = 103576, gvid = 1684, fallback_lvid = 103576 },
+    { x = 98.0,  y = -21.047, z = 79.8, pos = vector():set(98.0,  -21.047, 79.8), lvid = 102220, gvid = 1684, fallback_lvid = 102220 },
+    { x = 102.9, y = -21.025, z = 79.8, pos = vector():set(102.9, -21.025, 79.8), lvid = 102537, gvid = 1684, fallback_lvid = 102537 },
+    { x = 107.1, y = -21.060, z = 79.8, pos = vector():set(107.1, -21.060, 79.8), lvid = 102865, gvid = 1684, fallback_lvid = 102865 },
+    { x = 111.3, y = -21.060, z = 79.8, pos = vector():set(111.3, -21.060, 79.8), lvid = 103190, gvid = 1684, fallback_lvid = 103190 },
+    { x = 116.2, y = -21.021, z = 79.8, pos = vector():set(116.2, -21.021, 79.8), lvid = 103580, gvid = 1684, fallback_lvid = 103580 },
+    { x = 98.0,  y = -21.016, z = 82.6, pos = vector():set(98.0,  -21.016, 82.6), lvid = 102224, gvid = 1684, fallback_lvid = 102224 },
+    { x = 102.2, y = -21.040, z = 82.6, pos = vector():set(102.2, -21.040, 82.6), lvid = 102489, gvid = 1684, fallback_lvid = 102489 },
+    { x = 116.2, y = -21.043, z = 83.3, pos = vector():set(116.2, -21.043, 83.3), lvid = 103584, gvid = 1684, fallback_lvid = 103584 },
+    { x = 97.3,  y = -21.001, z = 85.4, pos = vector():set(97.3,  -21.001, 85.4), lvid = 102165, gvid = 1684, fallback_lvid = 102165 },
+    { x = 102.9, y = -21.060, z = 86.1, pos = vector():set(102.9, -21.060, 86.1), lvid = 102541, gvid = 1684, fallback_lvid = 102541 },
+    { x = 107.1, y = -21.060, z = 86.1, pos = vector():set(107.1, -21.060, 86.1), lvid = 102869, gvid = 1684, fallback_lvid = 102869 },
+    { x = 116.2, y = -21.060, z = 86.1, pos = vector():set(116.2, -21.060, 86.1), lvid = 103588, gvid = 1684, fallback_lvid = 103588 },
+    { x = 116.2, y = -21.060, z = 95.2, pos = vector():set(116.2, -21.060, 95.2), lvid = 103591, gvid = 1684, fallback_lvid = 103591 },
+    { x = 95.9,  y = -21.060, z = 100.1, pos = vector():set(95.9, -21.060, 100.1), lvid = 102042, gvid = 1684, fallback_lvid = 102042 },
+}
+
+-- -----------------------------------------------------------------------------
+-- 2. LÍMITES GEOMÉTRICOS DEL BOSQUE (PERÍMETRO Y SEGURIDAD)
+-- -----------------------------------------------------------------------------
+BOUNDS = {
+    min_x = 93.5,     -- Límite oeste (valla/pared rocosa)
+    max_x = 121.2,    -- Límite este (IMPORTANTE: El puente a Rostok inicia en 121.8; mantener <= 121.2)
+    min_z = 75.0,     -- Límite sur (fondo sector jugador)
+    max_z = 132.5,    -- Límite norte (fondo sector enemigos)
+    ground_y = -21.060,
+    max_y = -19.0,    -- Si Y > -19, el NPC cayó del mapa o está flotando
+    corridor_safe_x_max = 120.8, -- Máximo X permitido para generar destinos tácticos
+}
+
+-- -----------------------------------------------------------------------------
+-- 3. AVANCE HACIA EL CENTRO Y COMPORTAMIENTO NATIVO DE COMBATE
+-- -----------------------------------------------------------------------------
+-- Puntos de avance inicial hacia el centro del bosque (hacia donde caminan al spawnear)
+-- La zona central del bosque contiene las coberturas bajas, árboles y rocas (Z ~ 103..108).
+-- Al llegar al centro o al detectar al jugador, se detiene el avance guiado y la IA
+-- nativa del motor toma el control total para cubrirse y combatir.
+CENTER_ADVANCE_TARGETS = {
+    { x = 108.5, y = -21.060, z = 103.6, lvid = 102983, pos = vector():set(108.5, -21.060, 103.6) }, -- Centro principal
+    { x = 109.9, y = -20.990, z = 110.6, lvid = 103099, pos = vector():set(109.9, -20.990, 110.6) }, -- Centro-Norte
+    { x = 103.6, y = -21.016, z = 106.4, lvid = 102612, pos = vector():set(103.6, -21.016, 106.4) }, -- Centro-Oeste
+    { x = 113.4, y = -21.017, z = 103.6, lvid = 103406, pos = vector():set(113.4, -21.017, 103.6) }, -- Flanco Este
+    { x = 100.8, y = -20.908, z = 105.0, lvid = 102416, pos = vector():set(100.8, -20.908, 105.0) }, -- Flanco Oeste
+    { x = 108.5, y = -21.060, z = 102.9, lvid = 102982, pos = vector():set(108.5, -21.060, 102.9) }, -- Avanzada central sur
+    { x = 112.7, y = -21.060, z = 103.6, lvid = 103341, pos = vector():set(112.7, -21.060, 103.6) }, -- Avanzada este
+    { x = 101.5, y = -20.888, z = 105.0, lvid = 102458, pos = vector():set(101.5, -20.888, 105.0) }, -- Avanzada oeste
+}
+
+-- Circuito de exploración para Endless. Cada enemigo comienza en un punto
+-- diferente según su ID y recorre el bosque hasta encontrar al jugador.
+EXPLORATION_TARGETS = {
+    { x = 102.9, y = -21.060, z = 86.1,  lvid = 102541, pos = vector():set(102.9, -21.060, 86.1)  }, -- Sur-Oeste
+    { x = 116.2, y = -21.060, z = 86.1,  lvid = 103588, pos = vector():set(116.2, -21.060, 86.1)  }, -- Sur-Este
+    { x = 116.2, y = -21.060, z = 95.2,  lvid = 103591, pos = vector():set(116.2, -21.060, 95.2)  }, -- Este
+    { x = 111.3, y = -21.041, z = 119.0, lvid = 103229, pos = vector():set(111.3, -21.041, 119.0) }, -- Norte-Este
+    { x = 102.9, y = -21.060, z = 119.0, lvid = 102571, pos = vector():set(102.9, -21.060, 119.0) }, -- Norte-Oeste
+    { x = 95.9,  y = -21.060, z = 100.1, lvid = 102042, pos = vector():set(95.9,  -21.060, 100.1) }, -- Oeste
+    { x = 103.6, y = -21.016, z = 106.4, lvid = 102612, pos = vector():set(103.6, -21.016, 106.4) }, -- Centro-Oeste
+    { x = 113.4, y = -21.017, z = 103.6, lvid = 103406, pos = vector():set(113.4, -21.017, 103.6) }, -- Centro-Este
+}
+
+BEHAVIOR = {
+    -- Con el level.ai de Forest, la IA nativa ya puede llegar al jugador. Mantener
+    -- esto en false evita competir con xr_combat enviando destinos cada 500 ms.
+    force_initial_advance = false,
+
+    -- Umbral de pánico del NPC (0.0 = nunca se rinde o congela, pelea usando coberturas)
+    panic_threshold = 0.0,
+
+    -- Estado de animación al caminar hacia el centro al spawnear ("raid", "patrol")
+    -- "raid" = camina en guardia táctica con el arma levantada listo para el combate
+    initial_advance_state = "raid",
+
+    -- Distancia al punto central para considerar completado el avance inicial (en metros)
+    advance_arrival_dist = 4.5,
+
+    -- Distancia para cambiar al siguiente punto del circuito Endless.
+    explore_arrival_dist = 3.5,
+
+    -- En torneo normal continúan corriendo hacia el jugador hasta esta distancia,
+    -- incluso si ya existe contacto visual.
+    tournament_rush_stop_dist = 12.0,
+
+    -- A esta distancia los stalkers Endless dejan la ruta guiada y xr_combat
+    -- toma el control para avanzar, flanquear y utilizar coberturas.
+    endless_cover_control_dist = 28.0,
+}
+
+-- -----------------------------------------------------------------------------
+-- 4. VISIÓN NOCTURNA Y COMBATE NOCTURNO EN EL BOSQUE
+-- -----------------------------------------------------------------------------
+NIGHT = {
+    -- Rango de visión de NPCs con Linterna Frontal encendida (en metros)
+    torch_range = 45.0,
+    -- Rango de visión de NPCs Élite con Visor Nocturno (NVG) (en metros)
+    nvg_range   = 55.0,
+    -- Rango de visión de NPCs de pie en oscuridad total sin linterna (en metros)
+    dark_stand_range  = 24.0,
+    -- Rango de visión de NPCs agachados en oscuridad total (en metros)
+    dark_crouch_range = 18.0,
+    -- Distancia a la que se escuchan pasos al trotar/caminar en la oscuridad (en metros)
+    hearing_footsteps_range = 8.0,
+    -- Distancia a quemarropa donde siempre se detecta al enemigo (en metros)
+    point_blank_range = 4.0,
+    -- Ángulo de campo de visión (FOV en grados)
+    fov = 115.0,
+
+    -- Mantener el asalto activo de noche (evita que la IA busque irse a dormir al Bar de Rostok)
+    keep_rush_active = true,
+}
+
+-- -----------------------------------------------------------------------------
+-- 5. ANTI-WALLHACK Y COMPORTAMIENTO LIMPIO
+-- -----------------------------------------------------------------------------
+ANTI_WALLHACK = {
+    -- Si es false, se prohíbe terminantemente `make_enemy_visible` (la IA solo ve con línea de visión real)
+    allow_forced_visibility = false,
+
+    -- Si es false, se prohíben los pulsos de daño invisible `scr_hit` que revelaban al jugador en cobertura
+    allow_artificial_hits = false,
+
+    -- Alerta por disparo: si el jugador dispara o daña a un enemigo, la escuadra se coordina hacia la zona del disparo
+    alert_squad_on_player_fire = true,
+}

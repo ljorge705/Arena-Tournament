@@ -8,6 +8,8 @@ local saved_time_hours = nil
 local saved_time_mins = nil
 local saved_cvars = {}
 local turned_off_lamps = {}
+local cached_arena_lamp_ids = {}
+local cached_lamp_level = nil
 
 local CVAR_LIST = {
     { name = "r2_sun_lumscale",     night = "0.0" },
@@ -143,6 +145,10 @@ end
 --------------------------------------------------------------------------------
 local function is_within_arena_bounds(pos)
     if not pos then return false end
+    -- Check box bounds covering both original arena and underground forest sector (X:75-185, Z:60-150, Y:-26 to 25)
+    if (pos.x >= 75 and pos.x <= 185 and pos.z >= 60 and pos.z <= 150 and pos.y >= -26 and pos.y <= 25) then
+        return true
+    end
     local arena_center = vector():set(ARENA_CENTER_X, ARENA_CENTER_Y, ARENA_CENTER_Z)
     local d = pos:distance_to(arena_center)
     return d <= ARENA_RADIUS
@@ -150,6 +156,32 @@ end
 
 function turn_off_arena_lamps()
     turned_off_lamps = turned_off_lamps or {}
+    local level_name = level and level.name and level.name() or ""
+    if cached_lamp_level ~= level_name then
+        cached_lamp_level = level_name
+        cached_arena_lamp_ids = {}
+    end
+
+    -- Los reintentos nocturnos reutilizan la lista encontrada en el primer
+    -- barrido, en vez de consultar los 65.534 IDs otra vez.
+    if #cached_arena_lamp_ids > 0 then
+        local applied = 0
+        for _, id in ipairs(cached_arena_lamp_ids) do
+            local obj = level.object_by_id(id)
+            if obj then
+                local lamp = nil
+                pcall(function() lamp = obj:get_hanging_lamp() end)
+                if lamp then
+                    pcall(function() lamp:turn_off() end)
+                    turned_off_lamps[id] = true
+                    applied = applied + 1
+                end
+            end
+        end
+        if applied > 0 then return end
+        cached_arena_lamp_ids = {}
+    end
+
     for id = 1, 65534 do
         local obj = level.object_by_id(id)
         if obj then
@@ -166,6 +198,7 @@ function turn_off_arena_lamps()
                     end)
                     if was_on then
                         turned_off_lamps[id] = true
+                        cached_arena_lamp_ids[#cached_arena_lamp_ids + 1] = id
                         pcall(function() lamp:turn_off() end)
                     end
                 end

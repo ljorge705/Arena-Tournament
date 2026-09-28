@@ -965,7 +965,7 @@
 		<text>Modo Infinito</text>
 	</string>
 	<string id="st_arena_quick_endless_btn">
-		<text>[Testing] Endless Mode [Testing]</text>
+		<text>Modo Infinito</text>
 	</string>
 	<string id="st_arena_endless_diff_title">
 		<text>Dificultad:</text>
@@ -1022,7 +1022,7 @@
 		<text>Los enemigos apareceran en 3 seg</text>
 	</string>
 	<string id="st_arena_endless_wave_started">
-		<text>OLEADA %s: 1v%s - Sobrevive! (Presiona F para salir con tu botin)</text>
+		<text>OLEADA %s: 1v%s - Sobrevive! (Presiona %s para salir con tu botin)</text>
 	</string>
 	<string id="st_arena_endless_wave_cleared">
 		<text>OLEADA %s SUPERADA! Recompensa acumulada: %s RU. Preparando siguiente oleada...</text>

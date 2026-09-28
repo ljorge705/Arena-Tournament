@@ -164,10 +164,25 @@ function hire_companion(def_idx)
             local dir_z = (ap.z < 105.0) and 1 or -1
             local offset_x = (math.random() - 0.5) * 1.5
             local offset_z = dir_z * (2.5 + math.random() * 0.5)
-            local target_x = math.max(146.0, math.min(157.0, ap.x + offset_x))
-            local target_z = math.max(84.0, math.min(126.0, ap.z + offset_z))
+            local min_x, max_x, min_z, max_z
+            if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() and xcvb_arena_forest_config then
+                local b = xcvb_arena_forest_config.BOUNDS
+                min_x = b.min_x
+                max_x = b.corridor_safe_x_max
+                min_z = b.min_z
+                max_z = b.max_z
+            else
+                min_x = 146.0
+                max_x = 157.0
+                min_z = 84.0
+                max_z = 126.0
+            end
+            local target_x = math.max(min_x, math.min(max_x, ap.x + offset_x))
+            local target_z = math.max(min_z, math.min(max_z, ap.z + offset_z))
             spawn_pos = vector():set(target_x, ap.y, target_z)
-            if level and level.vertex_id then
+            if xcvb_arena_utils and xcvb_arena_utils.get_safe_arena_lvid then
+                spawn_lvid = xcvb_arena_utils.get_safe_arena_lvid(spawn_pos, spawn_lvid)
+            elseif level and level.vertex_id then
                 local vid = level.vertex_id(spawn_pos)
                 if vid and vid < 2^32 - 1 and vid > 0 then
                     spawn_lvid = vid
@@ -352,7 +367,11 @@ function _setup_single_companion_ai(entry, enemy_squad_ids)
     end
 
     -- 2. Prevent companion from leaving the arena
-    pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
+    if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() then
+        xcvb_arena_forest_ai.clamp_npc_position(npc)
+    else
+        pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
+    end
 
     -- 3. Permanent friend/goodwill with actor
     if db.actor then
@@ -560,6 +579,13 @@ end
 
 function on_enemy_eval(npc, enemy, flags)
     if not (npc and enemy and flags) then return end
+    -- Avoid doing ID/table work for the global AI callback unless companion
+    -- combat is actually active.
+    if #active_companions == 0 then return end
+    if not (xcvb_arena_fight and xcvb_arena_fight.is_endless_active
+        and xcvb_arena_fight.is_endless_active()) then
+        return
+    end
     local npc_id = npc:id()
     local enemy_id = enemy:id()
 

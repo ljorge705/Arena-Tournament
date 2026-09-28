@@ -19,28 +19,32 @@
 	</player_record>
 
 	<!-- Mode Switch Buttons -->
-	<practice_btn x="305" y="52" width="142" height="34" check_mode="0">
+	<practice_btn x="305" y="88" width="164" height="26" check_mode="0">
 		<text font="letterica16">st_arena_btn_practice</text>
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 	</practice_btn>
-	<mode_btn x="452" y="52" width="142" height="34" check_mode="0">
+	<mode_btn x="474" y="52" width="164" height="34" check_mode="0">
 		<text font="letterica16">st_arena_mode_spectator</text>
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 	</mode_btn>
-	<beta_btn x="599" y="52" width="151" height="34" check_mode="0">
+	<beta_btn x="643" y="52" width="167" height="34" check_mode="0">
 		<text font="letterica16">st_arena_btn_beta</text>
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 	</beta_btn>
 
-	<!-- Night Mode Testing Button (Main Screen) & Device Selector (Side by side) -->
-	<btn_night_mode x="305" y="88" width="215" height="26" check_mode="0">
+	<!-- Night Mode Button (Main Screen) & Device Selector -->
+	<btn_night_mode x="474" y="88" width="164" height="26" check_mode="0">
 		<text font="letterica16" align="c" vert_align="c">st_arena_btn_night_mode</text>
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 	</btn_night_mode>
-	<btn_night_device x="525" y="88" width="225" height="26" check_mode="0">
+	<btn_night_device x="643" y="88" width="167" height="26" check_mode="0">
 		<text font="letterica16" align="c" vert_align="c">st_arena_btn_night_device</text>
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 	</btn_night_device>
+	<btn_map x="305" y="52" width="164" height="34" check_mode="0">
+		<text font="letterica16" align="c" vert_align="c"></text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</btn_map>
 
 	<!-- ============================================== -->
 	<!-- TOURNAMENT CONTAINER -->

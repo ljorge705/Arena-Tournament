@@ -467,6 +467,9 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
             if magazine_binder and magazine_binder.update_loadout_slots then
                 pcall(magazine_binder.update_loadout_slots)
             end
+            if xcvb_arena_utils and xcvb_arena_utils.ensure_actor_default_comm then
+                pcall(xcvb_arena_utils.ensure_actor_default_comm)
+            end
         end
 
         local wpn_obj = spawned_wpn_id and level.object_by_id(spawned_wpn_id)

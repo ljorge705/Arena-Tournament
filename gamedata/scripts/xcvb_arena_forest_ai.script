@@ -1,0 +1,651 @@
+-- ==============================================================================
+-- xcvb_arena_forest_ai.script
+-- MOTOR TÁCTICO Y DE COMBATE PARA EL MAPA BOSQUE (FOREST ARENA)
+-- Modifica la lógica aquí sin tener que alterar los archivos base de la arena.
+-- ==============================================================================
+
+local CFG = xcvb_arena_forest_config
+
+local tactical_timer = 0
+local FOREST_NODE_START = 101874
+local INVALID_VERTEX = 4294967295
+local SPAWN_GUARD_MS = 2500
+local forest_combat_data = {
+    last_actor_pos = nil,
+    last_contact_tg = 0,
+    actor_spotted = false,
+}
+
+--------------------------------------------------------------------------------
+-- CONSULTAS DE ESTADO
+--------------------------------------------------------------------------------
+function is_active()
+    return xcvb_arena_main and xcvb_arena_main.selected_map == "forest"
+end
+
+local npc_advance_completed = {}
+local npc_spawn_guard = {}
+local npc_navigation_orders = {}
+local npc_patrol_routes = {}
+local resolved_point_cache = {}
+local npc_reengage_at = {}
+local npc_runtime_config_at = {}
+
+function on_fight_start()
+    tactical_timer = 0
+    npc_advance_completed = {}
+    npc_spawn_guard = {}
+    npc_navigation_orders = {}
+    npc_patrol_routes = {}
+    resolved_point_cache = {}
+    npc_reengage_at = {}
+    npc_runtime_config_at = {}
+end
+
+function reset_combat_data()
+    npc_advance_completed = {}
+    npc_navigation_orders = {}
+    npc_patrol_routes = {}
+    npc_reengage_at = {}
+    npc_runtime_config_at = {}
+end
+
+--------------------------------------------------------------------------------
+-- SPAWN & CONFIGURACIÓN DE ESCUADRONES
+--------------------------------------------------------------------------------
+local function copy_pos(pos)
+    return vector():set(pos.x, pos.y, pos.z)
+end
+
+local function configured_pos(sp, default_x, default_y, default_z)
+    return vector():set(
+        sp.x or (sp.pos and sp.pos.x) or default_x,
+        sp.y or (sp.pos and sp.pos.y) or default_y,
+        sp.z or (sp.pos and sp.pos.z) or default_z
+    )
+end
+
+-- Devuelve exclusivamente nodos de la malla nueva de Forest. La posición que se
+-- entrega a alife_create es la posición REAL del vértice, de modo que Y y lvid
+-- nunca describan dos superficies distintas (causa principal de los NPC flotando).
+local function validate_forest_vertex(lvid, requested_pos)
+    if type(lvid) ~= "number" or lvid < FOREST_NODE_START or lvid >= INVALID_VERTEX then
+        return nil
+    end
+    if not (level and level.vertex_position) then return nil end
+
+    local ok, node_pos = pcall(level.vertex_position, lvid)
+    if not (ok and node_pos) then return nil end
+
+    local b = CFG.BOUNDS
+    if node_pos.x < (b.min_x - 1.0) or node_pos.x > (b.max_x + 1.0)
+    or node_pos.z < (b.min_z - 1.0) or node_pos.z > (b.max_z + 1.0)
+    or math.abs(node_pos.y - b.ground_y) > 1.25 then
+        return nil
+    end
+
+    if requested_pos then
+        local dx = node_pos.x - requested_pos.x
+        local dz = node_pos.z - requested_pos.z
+        if (dx * dx + dz * dz) > (2.25 * 2.25) then
+            return nil
+        end
+    end
+    return copy_pos(node_pos)
+end
+
+function resolve_spawn_point(sp, fallback_lvid, cache_key)
+    sp = sp or {}
+    cache_key = cache_key or ((sp.lvid or sp.fallback_lvid) and ("node:" .. tostring(sp.lvid or sp.fallback_lvid)) or nil)
+    if cache_key and resolved_point_cache[cache_key] then
+        local cached = resolved_point_cache[cache_key]
+        return copy_pos(cached.pos), cached.lvid, cached.gvid
+    end
+
+    local requested = configured_pos(sp, 107.1, -21.060, 128.1)
+    local lvid = nil
+    local node_pos = nil
+
+    if level and level.vertex_id then
+        local ok, candidate = pcall(level.vertex_id, requested)
+        if ok then
+            node_pos = validate_forest_vertex(candidate, requested)
+            if node_pos then lvid = candidate end
+        end
+    end
+
+    if not node_pos then
+        local configured_lvid = sp.lvid or sp.fallback_lvid or fallback_lvid
+        node_pos = validate_forest_vertex(configured_lvid, requested)
+        if node_pos then lvid = configured_lvid end
+    end
+
+    -- Anclas verificadas dentro del level.ai incluido. Se usan solo si el motor
+    -- no logra proyectar el punto solicitado sobre la malla de Forest.
+    if not node_pos then
+        local anchor_lvid
+        if requested.z < 94.0 then
+            anchor_lvid = 103737 -- sur
+        elseif requested.z > 116.0 then
+            anchor_lvid = 102902 -- norte
+        else
+            anchor_lvid = 102983 -- centro
+        end
+        node_pos = validate_forest_vertex(anchor_lvid, nil)
+        lvid = anchor_lvid
+    end
+
+    local gvid = sp.gvid or 1684
+    if xcvb_arena_utils and xcvb_arena_utils.get_safe_arena_gvid then
+        gvid = xcvb_arena_utils.get_safe_arena_gvid(gvid)
+    end
+    local result_pos = node_pos or requested
+    local result_lvid = lvid or fallback_lvid or 102902
+    if cache_key then
+        resolved_point_cache[cache_key] = {
+            pos = copy_pos(result_pos),
+            lvid = result_lvid,
+            gvid = gvid,
+        }
+    end
+    return result_pos, result_lvid, gvid
+end
+
+function get_actor_spawn()
+    local sp = CFG.ACTOR_SPAWN
+    return resolve_spawn_point(sp, 103737)
+end
+
+function get_enemy_spawn()
+    local sp = CFG.TOURNAMENT_ENEMY_SPAWN
+    return resolve_spawn_point(sp, 102902)
+end
+
+function get_formation_slot(index)
+    local slots = CFG.TOURNAMENT_SLOTS
+    local idx = ((index - 1) % #slots) + 1
+    local slot = slots[idx]
+    return resolve_spawn_point(slot, 102902)
+end
+
+function get_endless_spawn_zones(is_north)
+    return is_north and CFG.ENDLESS_NORTH_ZONES or CFG.ENDLESS_SOUTH_ZONES
+end
+
+function register_spawn(npc_id, pos, lvid)
+    if not (npc_id and pos and lvid) then return end
+    -- setup_*_aggro puede reintentarse varias veces mientras los NPC pasan online.
+    -- No renovar el guard en cada intento o terminaría arrastrándolos al spawn.
+    if npc_spawn_guard[npc_id] then return end
+    local now = time_global()
+    npc_spawn_guard[npc_id] = {
+        pos = copy_pos(pos),
+        lvid = lvid,
+        created = now,
+        expires = now + SPAWN_GUARD_MS,
+    }
+end
+
+function forget_spawn(npc_id)
+    npc_spawn_guard[npc_id] = nil
+    npc_advance_completed[npc_id] = nil
+    npc_navigation_orders[npc_id] = nil
+    npc_patrol_routes[npc_id] = nil
+end
+
+local function place_npc_on_vertex(npc, pos, lvid)
+    if not (npc and pos and lvid) then return end
+    local se_obj = alife_object(npc:id())
+    if se_obj then
+        se_obj.position = copy_pos(pos)
+        se_obj.m_level_vertex_id = lvid
+    end
+    pcall(npc.set_npc_position, npc, pos)
+    pcall(function() npc:set_dest_level_vertex_id(lvid) end)
+end
+
+local function stabilize_spawn(npc)
+    local guard = npc_spawn_guard[npc:id()]
+    if not guard then return false end
+    if time_global() > guard.expires then
+        npc_spawn_guard[npc:id()] = nil
+        return false
+    end
+
+    local current = npc:position()
+    if not current then return false end
+
+    local dx = current.x - guard.pos.x
+    local dz = current.z - guard.pos.z
+    local horizontal_sq = dx * dx + dz * dz
+
+    -- En cuanto el NPC comienza a desplazarse, el motor vuelve a tener control
+    -- absoluto. Nunca corregirlo respecto a la altura de su punto de partida.
+    if horizontal_sq > (1.75 * 1.75) then
+        npc_spawn_guard[npc:id()] = nil
+        return false
+    end
+
+    -- Solo una corrección vertical, mientras aún está junto al spawn.
+    if math.abs(current.y - guard.pos.y) > 0.90 then
+        place_npc_on_vertex(npc, guard.pos, guard.lvid)
+        npc_spawn_guard[npc:id()] = nil
+        return true
+    end
+    return false
+end
+
+function setup_squad(squad, should_rush, is_exploring)
+    if not squad then return end
+    if should_rush == nil then should_rush = true end
+    should_rush = should_rush == true
+    is_exploring = is_exploring == true
+    -- Evitar reescribir el mismo estado del escuadron en cada tick. En X-Ray
+    -- estas asignaciones pueden reconstruir decisiones de IA y coberturas.
+    local target = is_exploring and squad.id or "actor"
+    local target_id = is_exploring and squad.id or 0
+    if squad.scripted_target ~= target then squad.scripted_target = target end
+    if squad.assigned_target_id ~= target_id then squad.assigned_target_id = target_id end
+    if squad.rush_to_target ~= should_rush then squad.rush_to_target = should_rush end
+end
+
+--------------------------------------------------------------------------------
+-- CONTACTO DE COMBATE
+--------------------------------------------------------------------------------
+function notify_actor_contact(pos)
+    -- Compatibilidad: Endless ya no actualiza objetivos mediante disparos.
+end
+
+function on_hit(npc, s_hit)
+    if not is_active() then return end
+    if not (npc and npc:alive()) then return end
+    if IsStalker and IsStalker(npc) and npc.set_mental_state then
+        pcall(npc.set_mental_state, npc, anim.danger)
+    end
+
+    -- El hit sintético de potencia 0 solo registra hostilidad. No debe convertir
+    -- el avance táctico de Endless en un rush directo.
+    if s_hit and s_hit.power ~= nil and s_hit.power <= 0 then return end
+
+    -- Al ser impactados por disparos, el avance inicial se da por completado para todo el escuadrón
+    local squad = get_object_squad(npc)
+    if squad then
+        for m in squad:squad_members() do
+            npc_advance_completed[m.id] = true
+        end
+    else
+        npc_advance_completed[npc:id()] = true
+    end
+
+end
+
+----------------------------------------------------------------------------------
+-- CONTROL DE LÍMITES PERIMETRALES (EVITA CAÍDAS, FUGAS Y SALIDA HACIA ROSTOK)
+--------------------------------------------------------------------------------
+function clamp_npc_position(npc, default_pos)
+    if not (npc and npc:alive()) then return end
+    local n_pos = npc:position()
+    if not n_pos then return end
+
+    local b = CFG.BOUNDS
+    local clamped = false
+    local safe_x = n_pos.x
+    local safe_z = n_pos.z
+    local safe_y = n_pos.y
+
+    -- 1. Control del corredor este (el puente a Rostok inicia en X >= 121.2)
+    if safe_x > b.corridor_safe_x_max then
+        safe_x = b.corridor_safe_x_max - 1.5 -- Reubicar a ~119.3 dentro del bosque
+        clamped = true
+    elseif safe_x < b.min_x then
+        safe_x = b.min_x + 2.0
+        clamped = true
+    end
+
+    -- 2. Límites norte y sur
+    if safe_z > b.max_z then
+        safe_z = b.max_z - 3.0
+        clamped = true
+    elseif safe_z < b.min_z then
+        safe_z = b.min_z + 3.0
+        clamped = true
+    end
+
+    -- 3. Verificación de elevación extrema. No se usa level_vertex_id como
+    -- disparador: durante la navegación puede cambiar temporalmente y provocaba
+    -- teletransportes enormes entre sectores.
+    local was_floating = (safe_y > b.max_y or safe_y < (b.ground_y - 2.5))
+    if was_floating then
+        safe_y = b.ground_y
+        clamped = true
+    end
+
+    if clamped then
+        local requested = default_pos or vector():set(safe_x, safe_y, safe_z)
+        local ok, candidate = pcall(level.vertex_id, requested)
+        if ok then
+            local target = validate_forest_vertex(candidate, requested)
+            if target then
+                place_npc_on_vertex(npc, target, candidate)
+                return true
+            end
+        end
+    end
+    return false
+end
+
+--------------------------------------------------------------------------------
+-- MONITOREO DEL ESCUADRÓN (AVANCE HACIA EL CENTRO + IA NATIVA DE COBERTURAS)
+-- Al spawnear, los enemigos caminan hacia el centro del bosque en guardia táctica.
+-- Tan pronto divisan al jugador o llegan al centro, se libera el movimiento y
+-- el motor nativo de Anomaly (xr_combat) toma el control para cubrirse tras árboles y rocas.
+--------------------------------------------------------------------------------
+local function get_patrol_target_index(npc_id, target_count, advance)
+    if target_count <= 0 then return nil end
+    local route = npc_patrol_routes[npc_id]
+    if not route or #route.indices ~= target_count then
+        local indices = {}
+        for i = 1, target_count do indices[i] = i end
+        for i = target_count, 2, -1 do
+            local j = math.random(i)
+            indices[i], indices[j] = indices[j], indices[i]
+        end
+        route = { indices = indices, cursor = 1 }
+        npc_patrol_routes[npc_id] = route
+    elseif advance then
+        route.cursor = (route.cursor % target_count) + 1
+        if route.cursor == 1 then
+            -- Al completar una vuelta se vuelve a mezclar para que la ruta no sea cíclica.
+            for i = target_count, 2, -1 do
+                local j = math.random(i)
+                route.indices[i], route.indices[j] = route.indices[j], route.indices[i]
+            end
+        end
+    end
+    return route.indices[route.cursor]
+end
+
+local function issue_navigation_order(npc, dest_pos, dest_lvid, state_name, tg, refresh_ms)
+    if not (npc and dest_pos and dest_lvid) then return end
+    local previous = npc_navigation_orders[npc:id()]
+    if previous and previous.lvid == dest_lvid and tg < previous.refresh_at then
+        return
+    end
+
+    if IsStalker and IsStalker(npc) and state_mgr and state_mgr.set_state then
+        pcall(state_mgr.set_state, npc, state_name or "raid")
+    end
+    pcall(function()
+        npc:set_path_type(game_object.level_path)
+        npc:set_body_state(move.standing)
+        if IsMonster and IsMonster(npc) then
+            npc:set_mental_state(anim.danger)
+        elseif IsStalker and IsStalker(npc) then
+            npc:set_mental_state(anim.danger)
+        end
+        npc:set_dest_level_vertex_id(dest_lvid)
+        if npc.set_desired_position then
+            npc:set_desired_position(dest_pos)
+        end
+        npc:set_movement_type(move.run)
+    end)
+
+    npc_navigation_orders[npc:id()] = {
+        lvid = dest_lvid,
+        refresh_at = tg + (refresh_ms or 3000),
+    }
+end
+
+-- Endless can occasionally retain an old sound/cover target outside Forest after
+-- several tactical updates.  Only refresh the actor target at close range (or
+-- with real line of sight), so distant enemies keep using native cover AI and we
+-- do not run the expensive visibility operations every frame.
+local function refresh_close_actor_combat(npc, actor_pos, tg)
+    if not (npc and actor_pos and db.actor and IsStalker and IsStalker(npc)) then
+        return false
+    end
+
+    local cur_pos = npc:position()
+    if not cur_pos then return false end
+    local dist = cur_pos:distance_to(actor_pos)
+    if dist > 18.0 then return false end
+
+    local sees_actor = false
+    if npc.see then
+        pcall(function() sees_actor = npc:see(db.actor) == true end)
+    end
+    if not sees_actor and dist > 8.0 then return false end
+
+    local npc_id = npc:id()
+    if tg < (npc_reengage_at[npc_id] or 0) then return true end
+    npc_reengage_at[npc_id] = tg + 1500
+
+    pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
+    pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
+    if npc.make_enemy_visible then
+        pcall(function() npc:make_enemy_visible(db.actor) end)
+    end
+    if npc.register_in_combat then
+        pcall(function() npc:register_in_combat() end)
+    end
+    if npc.set_mental_state then
+        pcall(function() npc:set_mental_state(anim.danger) end)
+    end
+    if npc.set_sight then
+        pcall(function() npc:set_sight(look.fire_point, actor_pos) end)
+    end
+
+    npc_advance_completed[npc_id] = true
+    npc_navigation_orders[npc_id] = nil
+    return true
+end
+
+function update_squad_tactics(squad_id, mode)
+    if not squad_id then return end
+    local squad = alife_object(squad_id)
+    if not (squad and squad.commander_id) then return end
+
+    mode = mode or "endless"
+    local tg = time_global()
+
+    -- Resolver cada objeto cliente una sola vez por tick. Antes se recorria el
+    -- escuadron dos veces y se repetian object_by_id(), alive() y position().
+    local members = {}
+    local squad_engaged = false
+    local squad_has_monster = false
+    local actor_pos = db.actor and db.actor:position()
+    local is_night = xcvb_arena_main and xcvb_arena_main.night_mode_active == true
+    local passive_control_dist = (CFG.BEHAVIOR and CFG.BEHAVIOR.endless_cover_control_dist) or 28.0
+    local contact_dist = is_night and ((CFG.NIGHT and CFG.NIGHT.point_blank_range) or 4.0)
+        or passive_control_dist
+    local contact_dist_sq = contact_dist * contact_dist
+
+    for m in squad:squad_members() do
+        local npc = level.object_by_id(m.id)
+        if npc and npc:alive() then
+            local pos = npc:position()
+            local is_monster = IsMonster and IsMonster(npc) or false
+            members[#members + 1] = { id = m.id, npc = npc, pos = pos, is_monster = is_monster }
+            if is_monster then squad_has_monster = true end
+
+            -- see() puede ser costoso: dejar de consultarlo en cuanto cualquier
+            -- integrante ya confirmo contacto y usar distancia al cuadrado.
+            if not squad_engaged and db.actor and npc.see then
+                local sees_actor = false
+                pcall(function() sees_actor = npc:see(db.actor) == true end)
+                if sees_actor then squad_engaged = true end
+            end
+            if not squad_engaged and actor_pos and pos then
+                local dx = pos.x - actor_pos.x
+                local dy = pos.y - actor_pos.y
+                local dz = pos.z - actor_pos.z
+                if (dx * dx + dy * dy + dz * dz) <= contact_dist_sq then
+                    squad_engaged = true
+                end
+            end
+            if npc_advance_completed[m.id] then
+                squad_engaged = true
+            end
+        end
+    end
+
+    -- Stalkers Endless mantienen rush_to_target=false incluso en combate para que
+    -- xr_combat avance usando coberturas. Los mutantes sí atacan directamente.
+    local should_rush = false
+    if mode == "tournament" then
+        should_rush = (not is_night) or squad_engaged
+    elseif mode == "endless" and squad_has_monster then
+        should_rush = (not is_night) or squad_engaged
+    end
+    setup_squad(squad, should_rush, is_night and not squad_engaged)
+
+    if squad_engaged and mode ~= "tournament" then
+        for _, entry in ipairs(members) do
+            npc_advance_completed[entry.id] = true
+            npc_navigation_orders[entry.id] = nil
+        end
+    end
+
+    -- 2. Procesar a cada miembro
+    local explore_targets = CFG.EXPLORATION_TARGETS or CFG.CENTER_ADVANCE_TARGETS or {}
+    local arrival_dist = (CFG.BEHAVIOR and CFG.BEHAVIOR.explore_arrival_dist) or 3.5
+    local arrival_dist_sq = arrival_dist * arrival_dist
+
+    for _, entry in ipairs(members) do
+        local npc = entry.npc
+        local npc_id = entry.id
+
+        -- Durante los primeros segundos, corregir cualquier empuje de colision
+        -- que intente dejar al NPC sobre una roca. Despues solo se vigila el perimetro.
+        if not stabilize_spawn(npc) then
+            clamp_npc_position(npc)
+        end
+
+        -- Este valor no necesita reescribirse dos veces por segundo.
+        if tg >= (npc_runtime_config_at[npc_id] or 0) then
+            npc_runtime_config_at[npc_id] = tg + 5000
+            if npc.set_custom_panic_threshold then
+                pcall(npc.set_custom_panic_threshold, npc, 0.0)
+            end
+        end
+
+        if mode == "endless" and actor_pos then
+            refresh_close_actor_combat(npc, actor_pos, tg)
+        end
+
+        if mode == "tournament" and actor_pos and ((not is_night) or squad_engaged) then
+            -- Torneo normal o contacto nocturno confirmado: avanzar hacia el actor.
+            local cur_pos = npc:position()
+            local rush_stop_dist = (CFG.BEHAVIOR and CFG.BEHAVIOR.tournament_rush_stop_dist) or 12.0
+            if cur_pos and cur_pos:distance_to(actor_pos) > rush_stop_dist then
+                local actor_target, actor_lvid = resolve_spawn_point({ pos = actor_pos }, 103737)
+                issue_navigation_order(npc, actor_target, actor_lvid, "raid", tg, 1000)
+            else
+                npc_navigation_orders[npc_id] = nil
+            end
+        elseif mode == "endless" and entry.is_monster and actor_pos
+        and ((not is_night) or squad_engaged) then
+            -- Los mutantes no usan coberturas: persecucion directa hasta contacto.
+            local cur_pos = npc:position()
+            if not squad_engaged and cur_pos and cur_pos:distance_to(actor_pos) > 4.0 then
+                local actor_target, actor_lvid = resolve_spawn_point({ pos = actor_pos }, 103737)
+                issue_navigation_order(npc, actor_target, actor_lvid, "raid", tg, 1000)
+            else
+                npc_navigation_orders[npc_id] = nil
+            end
+        elseif not squad_engaged and #explore_targets > 0
+        and (mode == "endless" or is_night) then
+            -- En Night Mode tambien el torneo explora el bosque. Cada NPC usa
+            -- una ruta distinta hasta que vista, escuche o alcance al actor.
+            local cur_pos = npc:position()
+            local t_idx = get_patrol_target_index(npc_id, #explore_targets, false)
+            local target = explore_targets[t_idx]
+            local dest_pos, dest_lvid = resolve_spawn_point(target, 102983, "explore:" .. tostring(t_idx))
+            if cur_pos and dest_pos then
+                local dx = cur_pos.x - dest_pos.x
+                local dy = cur_pos.y - dest_pos.y
+                local dz = cur_pos.z - dest_pos.z
+                if (dx * dx + dy * dy + dz * dz) <= arrival_dist_sq then
+                    t_idx = get_patrol_target_index(npc_id, #explore_targets, true)
+                    target = explore_targets[t_idx]
+                    dest_pos, dest_lvid = resolve_spawn_point(target, 102983, "explore:" .. tostring(t_idx))
+                end
+            end
+            issue_navigation_order(npc, dest_pos, dest_lvid, "raid", tg, 3500)
+        end
+        -- Tras el contacto, xr_combat controla en exclusiva el combate.
+    end
+end
+
+--------------------------------------------------------------------------------
+-- BUCLE PRINCIPAL (TICK PERIÓDICO)
+--------------------------------------------------------------------------------
+function on_tick(tg, tournament_squad_id, endless_squad_ids)
+    if not is_active() then return end
+
+    if tg > tactical_timer then
+        -- 750 ms conserva una reaccion rapida, pero reduce un 33% las consultas
+        -- de visibilidad, posiciones y objetos cliente frente al tick anterior.
+        tactical_timer = tg + 750
+
+        if tournament_squad_id then
+            update_squad_tactics(tournament_squad_id, "tournament")
+        end
+
+        if endless_squad_ids then
+            for _, s_id in ipairs(endless_squad_ids) do
+                update_squad_tactics(s_id, "endless")
+            end
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
+-- VISIÓN NOCTURNA FORESTAL
+--------------------------------------------------------------------------------
+function compute_night_vision(npc, prof, diff_mult, fov_mult, is_elite, has_torch, is_crouching, torch_on)
+    local n = CFG.NIGHT
+    local target_range
+    local target_fov
+
+    if is_elite then
+        target_range = n.nvg_range * diff_mult
+        target_fov   = math.min(130.0, n.fov * fov_mult)
+    elseif has_torch then
+        target_range = n.torch_range * diff_mult
+        target_fov   = math.min(120.0, n.fov * fov_mult)
+    elseif torch_on then
+        target_range = n.torch_range * diff_mult * 0.90
+        target_fov   = math.min(110.0, n.fov * fov_mult)
+    elseif is_crouching then
+        target_range = n.dark_crouch_range * diff_mult
+        target_fov   = math.min(100.0, (n.fov - 15.0) * fov_mult)
+    else
+        target_range = n.dark_stand_range * diff_mult
+        target_fov   = math.min(110.0, n.fov * fov_mult)
+    end
+
+    return target_range, target_fov
+end
+
+function check_night_detection(npc, dist, is_crouching, is_monster)
+    local n = CFG.NIGHT
+    -- 1. Visión real del motor (con oclusión física de mallas/árboles)
+    if npc.see and npc:see(db.actor) then
+        return true
+    end
+    -- 2. Distancia a quemarropa absoluta
+    if dist <= (n.point_blank_range or 4.0) then
+        return true
+    end
+    -- 3. Ruidos de pasos en proximidad (no agachado)
+    if (not is_crouching) and dist <= (n.hearing_footsteps_range or 8.0) then
+        return true
+    end
+    -- 4. Sentidos agudos de mutantes en la oscuridad
+    if is_monster and dist <= ((n.dark_stand_range or 24.0) * (is_crouching and 0.60 or 0.85)) then
+        return true
+    end
+    return false
+end
+

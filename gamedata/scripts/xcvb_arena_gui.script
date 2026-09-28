@@ -119,6 +119,11 @@ function UIXcvbArena:InitControls()
 	self.btn_beta = xml:Init3tButton("beta_btn", self.bg)
 	self:Register(self.btn_beta, "btn_beta")
 
+	self.btn_map = xml:Init3tButton("btn_map", self.bg)
+	if self.btn_map then
+		self:Register(self.btn_map, "btn_map")
+	end
+
 	self.btn_night_mode = xml:Init3tButton("btn_night_mode", self.bg)
 	if self.btn_night_mode then
 		self:Register(self.btn_night_mode, "btn_night_mode")
@@ -829,9 +834,11 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 	if self.tournament_cont then self.tournament_cont:Enable(allow_bg) end
 	if self.beta_cont then self.beta_cont:Enable(allow_bg) end
 	if self.spectator_cont then self.spectator_cont:Enable(allow_bg) end
-	if self.btn_mode then self.btn_mode:Enable(allow_bg) end
+	if self.btn_mode then self.btn_mode:Enable(allow_bg and not self:is_forest_map()) end
 	if self.btn_beta then self.btn_beta:Enable(allow_bg) end
 	if self.btn_practice then self.btn_practice:Enable(allow_bg) end
+	if self.btn_map then self.btn_map:Enable(allow_bg) end
+	if self.beta_tab_br then self.beta_tab_br:Enable(allow_bg and not self:is_forest_map()) end
 
 	if not any_modal_open then
 		self:update_loadout_buttons()
@@ -847,6 +854,7 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_endless_arti", ui_events.BUTTON_CLICKED, self.on_click_endless_arti_toggle, self)
 	self:AddCallback("btn_endless_arti_main", ui_events.BUTTON_CLICKED, self.on_click_endless_arti_toggle, self)
 	self:AddCallback("btn_beta", ui_events.BUTTON_CLICKED, self.on_click_beta_mode, self)
+	self:AddCallback("btn_map", ui_events.BUTTON_CLICKED, self.on_click_map, self)
 
 	-- Endless Mode Difficulty callbacks
 	self:AddCallback("btn_diff_easy", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("easy") end, self)
@@ -1194,7 +1202,48 @@ end
 -- MODE AND CATEGORY SWITCHING
 --------------------------------------------------------------------------------
 
+function UIXcvbArena:is_forest_map()
+	return xcvb_arena_main and xcvb_arena_main.selected_map == "forest"
+end
+
+function UIXcvbArena:update_map_button()
+	local is_forest = self:is_forest_map()
+	if self.btn_map and self.btn_map:TextControl() then
+		self.btn_map:TextControl():SetFont(GetFontLetterica18Russian())
+		self.btn_map:TextControl():SetText(is_forest and "AREA: FOREST" or "AREA: ARENA")
+		self.btn_map:TextControl():SetTextColor(is_forest and GetARGB(255, 120, 255, 120) or GetARGB(255, 255, 220, 140))
+	end
+	if self.btn_mode then
+		self.btn_mode:Enable(not is_forest)
+	end
+	if self.beta_tab_br then
+		self.beta_tab_br:Enable(not is_forest)
+	end
+end
+
+function UIXcvbArena:on_click_map()
+	local select_forest = not self:is_forest_map()
+	xcvb_arena_main.selected_map = select_forest and "forest" or "arena"
+
+	if select_forest then
+		-- Forest has no betting/spectator or Battle Royale support yet.
+		if self.current_mode == "spectator" then
+			self.current_mode = "tournament"
+		end
+		if self.beta_subview == "br" then
+			self.beta_subview = "endless"
+		end
+		xcvb_arena_main.team_bet = 0
+		xcvb_arena_main.cur_reward = 0
+		self.bc_bet_team = 0
+		self.bc_monster_bet_team = 0
+	end
+
+	self:update_view_mode()
+end
+
 function UIXcvbArena:on_click_mode()
+	if self:is_forest_map() then return end
 	if self.current_mode == "tournament" then
 		self.current_mode = "spectator"
 	else
@@ -1417,12 +1466,17 @@ function UIXcvbArena:on_click_action(row_idx)
 end
 
 function UIXcvbArena:update_view_mode()
+	if self:is_forest_map() then
+		if self.current_mode == "spectator" then self.current_mode = "tournament" end
+		if self.beta_subview == "br" then self.beta_subview = "endless" end
+	end
 	self:set_modal_active("endless_diff", false)
 	self:set_modal_active("dssg", false)
 	self:set_modal_active("mag", false)
 	self:set_modal_active("night_device", false)
 	self:set_modal_active("wpn", false)
 	self:update_practice_button()
+	self:update_map_button()
 	if self.btn_practice then
 		self.btn_practice:Show(self.current_mode == "tournament")
 	end
@@ -2380,6 +2434,7 @@ function UIXcvbArena:on_click_mult(row_idx, team_idx)
 end
 
 function UIXcvbArena:on_click_bet(row_idx, team_idx, dir)
+	if self:is_forest_map() then return end
 	local main_t = xcvb_arena_main.arena_main_t[row_idx]
 	if not main_t or not main_t.team1 or #main_t.team1 == 0 or not main_t.team2 or #main_t.team2 == 0 then
 		return
@@ -2505,6 +2560,7 @@ function UIXcvbArena:update_spectator_display()
 end
 
 function UIXcvbArena:on_click_spectator_start()
+	if self:is_forest_map() then return end
 	local bet = xcvb_arena_main.bet_amount or 0
 	local team = xcvb_arena_main.team_bet or 0
 	local bout_idx = xcvb_arena_main.selected_spec_bout or 1
@@ -2901,6 +2957,7 @@ function UIXcvbArena:update_bc_display()
 end
 
 function UIXcvbArena:on_click_bc_start()
+	if self:is_forest_map() then return end
 	local is_mutants = (self.bc_submode == "mutants")
 	local bet_team = is_mutants and self.bc_monster_bet_team or self.bc_bet_team
 	local bet_amount = is_mutants and (self.bc_monster_bet_amount or 0) or (self.bc_bet_amount or 0)
@@ -2944,6 +3001,7 @@ function UIXcvbArena:on_click_bc_start()
 end
 
 function UIXcvbArena:on_click_beta_tab(tab)
+	if tab == "br" and self:is_forest_map() then return end
 	self.beta_subview = tab
 	self:update_view_mode()
 end
@@ -2955,6 +3013,7 @@ function UIXcvbArena:update_beta_display()
 
 	-- Highlight Tab Buttons
 	if self.beta_tab_br then
+		self.beta_tab_br:Enable(not self:is_forest_map())
 		self.beta_tab_br:TextControl():SetTextColor(is_endless and GetARGB(255, 170, 170, 170) or GetARGB(255, 255, 220, 140))
 	end
 	if self.beta_tab_endless then

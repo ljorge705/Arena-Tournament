@@ -23,6 +23,7 @@ night_mode_saved_time = nil
 night_mode_saved_needs = nil
 night_mode_saved_render = nil
 night_mode_device = "device_torch_dummy"
+selected_map = "arena"
 
 -- Spectator Mode State Variables
 arena_main_t = {}
@@ -757,6 +758,7 @@ function save_state(m_data)
 	m_data.xcvb_night_mode_saved_needs = night_mode_saved_needs
 	m_data.xcvb_night_mode_saved_render = night_mode_saved_render
 	m_data.xcvb_night_mode_device = night_mode_device
+	m_data.xcvb_selected_map = selected_map
 end
 
 function load_state(m_data)
@@ -767,6 +769,7 @@ function load_state(m_data)
 	night_mode_saved_needs = m_data.xcvb_night_mode_saved_needs
 	night_mode_saved_render = m_data.xcvb_night_mode_saved_render
 	night_mode_device = m_data.xcvb_night_mode_device or "device_torch_dummy"
+	selected_map = (m_data.xcvb_selected_map == "forest") and "forest" or "arena"
 	arena_main_t = m_data.xcvb_arena_main_t or arena_main_t
 	current_period = m_data.xcvb_arena_current_period or 0
 	current_spec_filter = m_data.xcvb_arena_spec_filter or "all"
@@ -953,7 +956,10 @@ local next_board_check = 0
 function actor_on_update()
 	local tg = time_global()
 	if tg > next_board_check then
-		next_board_check = tg + 4000
+		-- If an object cannot be created, both checks fall back to 65k-ID ALife
+		-- sweeps. Reintentar una vez por minuto evita picos periodicos si otro mod
+		-- impide crear las pizarras; al entrar al nivel ya existe un chequeo inmediato.
+		next_board_check = tg + 60000
 		if level and level.name and level.name() == "l05_bar" then
 			xcvb_arena_utils.check_and_spawn_board()
 			xcvb_arena_utils.check_and_spawn_companion_boards()

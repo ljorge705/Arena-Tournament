@@ -965,7 +965,7 @@
 		<text>Endless Mode</text>
 	</string>
 	<string id="st_arena_quick_endless_btn">
-		<text>[Testing] Endless Mode [Testing]</text>
+		<text>Endless Mode</text>
 	</string>
 	<string id="st_arena_endless_diff_title">
 		<text>Difficulty:</text>
@@ -1022,7 +1022,7 @@
 		<text>Enemies will spawn in 3 sec</text>
 	</string>
 	<string id="st_arena_endless_wave_started">
-		<text>WAVE %s: 1v%s - Survive! (Press F to exit with your loot)</text>
+		<text>WAVE %s: 1v%s - Survive! (Press %s to exit with your loot)</text>
 	</string>
 	<string id="st_arena_endless_wave_cleared">
 		<text>WAVE %s CLEARED! Accumulated reward: %s RU. Preparing next wave...</text>

@@ -27,6 +27,33 @@ saved_active_slot = nil
 inventory_stored = false
 inventory_restore_pending = false
 inventory_return_candidates = nil
+endless_squad_spawn_pos = {}
+endless_squad_spawn_lvid = {}
+npc_forest_designated_pos = {}
+forest_tournament_aggro_hit_ids = {}
+forest_endless_aggro_hit_ids = {}
+
+--------------------------------------------------------------------------------
+-- FOREST DELEGATION FORWARDERS (Full logic in xcvb_arena_forest_ai.script)
+--------------------------------------------------------------------------------
+function notify_forest_actor_contact(pos)
+    if xcvb_arena_forest_ai then
+        xcvb_arena_forest_ai.notify_actor_contact(pos)
+    end
+end
+
+function reset_forest_combat_data()
+    if xcvb_arena_forest_ai then
+        xcvb_arena_forest_ai.reset_combat_data()
+    end
+end
+
+function update_forest_squad_tactics(squad_id)
+    if xcvb_arena_forest_ai then
+        xcvb_arena_forest_ai.update_squad_tactics(squad_id)
+    end
+end
+
 local excluded_ammo_keywords = {
     "acid", "shock", "burn", "lightn", "grav", "chaos", "reaper", "flinch", 
     "varma", "volcano", "dragon", "explos", "ratshot", "hunter", "sucker", 
@@ -929,6 +956,21 @@ function get_team_rank_string(ar)
     end
     return nil
 end
+-- Forest is the new arena built in Blender. It uses the same north/south layout
+-- as the original underground arena, shifted 43.756 metres on the X axis.
+local FOREST_ARENA_X_OFFSET = -43.756
+
+local function forest_arena_selected()
+    return xcvb_arena_main and xcvb_arena_main.selected_map == "forest"
+end
+
+local function get_selected_combat_pos(x, y, z, forest_y)
+    if forest_arena_selected() then
+        return vector():set(x + FOREST_ARENA_X_OFFSET, forest_y or y, z)
+    end
+    return vector():set(x, y, z)
+end
+
 function get_actor_arena_pos()
     local pos = vector():set(141.6, -13.35, 102.1)
     local lvid = 37386
@@ -937,6 +979,9 @@ function get_actor_arena_pos()
 end
 
 function get_actor_tournament_pos()
+    if forest_arena_selected() and xcvb_arena_forest_ai then
+        return xcvb_arena_forest_ai.get_actor_spawn()
+    end
     local pos = vector():set(152.6, -20.0598, 81.2)
     local lvid = 40761
     local gvid = 1684
@@ -944,6 +989,9 @@ function get_actor_tournament_pos()
 end
 
 function get_tournament_enemy_pos()
+    if forest_arena_selected() and xcvb_arena_forest_ai then
+        return xcvb_arena_forest_ai.get_enemy_spawn()
+    end
     local pos = vector():set(151.2, -20.0543, 128.8)
     local lvid = 40551
     local gvid = 1796
@@ -1098,12 +1146,26 @@ function spawn_tournament_squad(round_data)
     
 	squad.scripted_target = "actor"
     squad.assigned_target_id = 0
-    squad.rush_to_target = not (xcvb_arena_main.night_mode_active == true)
+    if forest_arena_selected() and xcvb_arena_forest_ai then
+        xcvb_arena_forest_ai.setup_squad(squad, not (xcvb_arena_main.night_mode_active == true))
+    else
+        squad.rush_to_target = not (xcvb_arena_main.night_mode_active == true)
+    end
 
     local ok, err = pcall(function()
-        for _, sec in ipairs(sections) do
-            local offset_pos = vector():set(pos.x + math.random(-5, 5), pos.y, pos.z + math.random(-5, 5))
-            squad:add_squad_member(sec, offset_pos, lvid, gvid)
+        for index, sec in ipairs(sections) do
+            local offset_pos, member_lvid, member_gvid
+            if forest_arena_selected() and xcvb_arena_forest_ai then
+                offset_pos, member_lvid, member_gvid = xcvb_arena_forest_ai.get_formation_slot(index)
+            else
+                local spread = 5
+                offset_pos = (index == 1)
+                    and vector():set(pos.x, pos.y, pos.z)
+                    or vector():set(pos.x + math.random(-spread, spread), pos.y, pos.z + math.random(-spread, spread))
+                member_lvid = get_safe_arena_lvid(offset_pos, lvid)
+                member_gvid = gvid
+            end
+            squad:add_squad_member(sec, offset_pos, member_lvid, member_gvid)
         end
         squad:set_squad_relation()
         squad:refresh()
@@ -1208,10 +1270,150 @@ end
 -- NIGHT MODE & ARENA LIGHTING SYSTEM
 --------------------------------------------------------------------------------
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- COMBAT AMBIENT LIGHTING SYSTEM (Anomaly underground visibility boost)
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Forward declaration is required: Lua only captures locals declared before
+-- the function body. Without this, the pcall silently saw a nil global and the
+-- daylight boost never reached the console.
+local VIDEO_RENDER_COMMANDS
+local get_console_val
+local gamma_modpack_cache = nil
+
+local function is_gamma_modpack()
+    if gamma_modpack_cache ~= nil then return gamma_modpack_cache end
+    gamma_modpack_cache = false
+    pcall(function()
+        local version = game and game.translate_string and game.translate_string("ui_st_game_version") or ""
+        gamma_modpack_cache = type(version) == "string" and string.find(version, "G.A.M.M.A.", 1, true) ~= nil
+    end)
+    -- Common GAMMA modules provide an additional fallback when a translation
+    -- pack replaces the version label.
+    if not gamma_modpack_cache then
+        gamma_modpack_cache = (_G.utils_catspaw_common and utils_catspaw_common.using_gamma_modpack == true)
+    end
+    return gamma_modpack_cache
+end
+
+function apply_combat_ambient_lighting(enable)
+    if enable then
+        if xcvb_arena_main and xcvb_arena_main.night_mode_active then return end
+        if not xcvb_arena_main.combat_ambient_saved then
+            local orig = {}
+            for _, cmd in ipairs(VIDEO_RENDER_COMMANDS) do
+                local v = get_console_val(cmd)
+                if v ~= nil and v ~= "" then
+                    orig[cmd] = tostring(v)
+                end
+            end
+            pcall(function() orig.__weather = level.get_weather and level.get_weather() end)
+            xcvb_arena_main.combat_ambient_saved = orig
+        end
+        -- Forest is physically below Rostok and receives almost no baked daylight.
+        -- Use the renderer's supported maximums while combat is active; night mode
+        -- restores absolute darkness through apply_night_mode_lighting().
+        pcall(function() exec_console_cmd("r2_sun_lumscale_amb 3.0") end)
+        pcall(function() exec_console_cmd("r2_sun_lumscale_hemi 3.0") end)
+        pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.001") end)
+        pcall(function() exec_console_cmd("r2_tonemap_middlegray 1.1") end)
+        pcall(function() exec_console_cmd("ssfx_is_underground 0") end)
+
+        -- Vanilla Anomaly continuously reapplies its current weather descriptor.
+        -- Cvars alone therefore produce a short flash and are overwritten on the
+        -- following frame. Override the live descriptor and freeze only the
+        -- weather transition for the duration of the arena round. Game time and
+        -- simulation continue normally.
+        -- GAMMA already supplies strong ambient weather and only needs the
+        -- renderer cvars above. Replacing its descriptor causes the near-white
+        -- image seen with SSS/GAMMA weather packs. Vanilla Anomaly needs the
+        -- descriptor override because its manager otherwise undoes the cvars.
+        if not is_gamma_modpack() and weather and weather.set_value_vector then
+            pcall(weather.set_value_vector, "sky_color", 0.42, 0.50, 0.62)
+            pcall(weather.set_value_vector, "ambient_color", 0.30, 0.34, 0.40)
+            pcall(weather.set_value_vector, "hemisphere_color", 0.62, 0.68, 0.78, 1.0)
+            pcall(weather.pause, true)
+            xcvb_arena_main.combat_ambient_weather_paused = true
+        end
+    else
+        if xcvb_arena_main and xcvb_arena_main.combat_ambient_saved then
+            local saved = xcvb_arena_main.combat_ambient_saved
+            for cmd, val in pairs(saved) do
+                if cmd ~= "__weather" then
+                    pcall(function() exec_console_cmd(cmd .. " " .. val) end)
+                end
+            end
+            if xcvb_arena_main.combat_ambient_weather_paused and weather then
+                pcall(weather.pause, false)
+                if saved.__weather and weather.set_weather then
+                    pcall(weather.set_weather, saved.__weather, true)
+                end
+                pcall(weather.reload)
+                pcall(function()
+                    if level_weathers and level_weathers.get_weather_manager then
+                        local wm = level_weathers.get_weather_manager()
+                        if wm then
+                            wm:forced_weather_change()
+                            wm:select_weather(true)
+                        end
+                    end
+                end)
+            end
+            xcvb_arena_main.combat_ambient_weather_paused = nil
+            xcvb_arena_main.combat_ambient_saved = nil
+        end
+    end
+end
+
+function refresh_combat_ambient_lighting()
+    if xcvb_arena_main and xcvb_arena_main.night_mode_active then return end
+
+    -- Applying once before set_actor_position is not enough in Anomaly/GAMMA:
+    -- the weather manager can rewrite these values during the next frames.
+    pcall(apply_combat_ambient_lighting, true)
+    CreateTimeEvent("arena_daylight_refresh_e", "arena_daylight_refresh_075", 0.75, function()
+        if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then
+            pcall(apply_combat_ambient_lighting, true)
+        end
+        return true
+    end)
+    CreateTimeEvent("arena_daylight_refresh_e", "arena_daylight_refresh_200", 2.0, function()
+        if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then
+            pcall(apply_combat_ambient_lighting, true)
+        end
+        return true
+    end)
+end
+
+local cached_arena_lamp_ids = {}
+
+local function set_cached_arena_lamps(turn_on)
+    local applied = 0
+    for _, id in ipairs(cached_arena_lamp_ids) do
+        local obj = level.object_by_id(id)
+        if obj then
+            pcall(function()
+                local lamp = obj:get_hanging_lamp()
+                if lamp then
+                    if turn_on then lamp:turn_on() else lamp:turn_off() end
+                    applied = applied + 1
+                end
+            end)
+        end
+    end
+    return applied
+end
+
 function toggle_arena_lights(turn_on)
-    -- Arena 3D volume bounding box (covers arena floor y=-20, side walls, overhead beams y=-10.8, and roof rafters y=4.0)
-    local x_min, x_max = 120, 185
-    local z_min, z_max = 65, 145
+    -- Enter scans once and caches the handful of arena lamps. Exit and later
+    -- toggles no longer traverse all 65k object IDs, avoiding a visible hitch.
+    if #cached_arena_lamp_ids > 0 and set_cached_arena_lamps(turn_on) > 0 then
+        return
+    end
+
+    cached_arena_lamp_ids = {}
+    -- Arena 3D volume bounding box (covers both forest sector X:75-125 and main arena X:120-185, floor y=-26 to y=25)
+    local x_min, x_max = 75, 185
+    local z_min, z_max = 60, 150
     local y_min, y_max = -26, 25
 
     local count = 0
@@ -1237,6 +1439,8 @@ function toggle_arena_lights(turn_on)
                         local is_arena_named = string.find(name, "light_big_glass_")
                             or string.find(name, "light_alarm_glass_")
                             or string.find(name, "light_galogen_")
+                            or string.find(name, "forest_light_")
+                            or string.find(name, "arena_light_")
                             or (string.find(name, "bar_lights_hanging_lamp_") and pos.z >= z_min)
 
                         if in_arena_box or (is_arena_named and pos.z >= 60) then
@@ -1245,6 +1449,7 @@ function toggle_arena_lights(turn_on)
                             else
                                 lamp:turn_off()
                             end
+                            cached_arena_lamp_ids[#cached_arena_lamp_ids + 1] = id
                             count = count + 1
                         end
                     end
@@ -1278,7 +1483,7 @@ function toggle_arena_lights(turn_on)
     end)
 end
 
-local VIDEO_RENDER_COMMANDS = {
+VIDEO_RENDER_COMMANDS = {
     -- Sun & Sky Lighting
     "r2_sun",
     "r2_sun_lumscale",
@@ -1347,7 +1552,7 @@ local DEFAULT_DAYLIGHT_SETTINGS = {
     ["ssfx_fog"]             = "(1,1,1,1)",
 }
 
-local function get_console_val(cmd_name)
+get_console_val = function(cmd_name)
     local val = nil
     local con = nil
     pcall(function() if get_console then con = get_console() end end)
@@ -1740,12 +1945,13 @@ end
 
 local npc_night_gear = {}
 local night_mode_combat_running = false
+local npc_light_check_at = {}
 
 function is_arena_night_combat_active()
     return night_mode_combat_running == true
 end
 
-function is_npc_elite_night(npc)
+function is_npc_elite_night(npc, vision_ctx)
     if not (npc and npc:alive() and IsStalker and IsStalker(npc)) then return false, nil end
 
     -- Check MCM toggle
@@ -1763,7 +1969,13 @@ function is_npc_elite_night(npc)
     end
 
     -- 2. Check arena tier / round
-    local tier, diff_mult = get_current_arena_vision_level()
+    local tier, diff_mult
+    if vision_ctx then
+        tier = vision_ctx.tier
+        diff_mult = vision_ctx.diff_mult
+    else
+        tier, diff_mult = get_current_arena_vision_level()
+    end
     if tier >= 4 then
         return true, (tier >= 5 and "device_torch_nv_3" or "device_torch_nv_2")
     end
@@ -1787,19 +1999,10 @@ function is_npc_elite_night(npc)
     return false, nil
 end
 
-function apply_realistic_night_vision(npc)
-    if not (npc and npc:alive()) then return end
-    if not (xcvb_arena_main and xcvb_arena_main.night_mode_active and night_mode_combat_running) then return end
-
-    local n_id = npc:id()
-    local torch_on = is_actor_flashlight_active()
-    local is_crouching = is_actor_crouching_night()
-
+-- Datos compartidos por todos los NPC de un mismo pulso nocturno. Construirlos
+-- una vez evita repetir consultas MCM, postura, linterna y dificultad por NPC.
+function build_night_vision_context()
     local tier, diff_mult, fov_mult = get_current_arena_vision_level()
-    local is_monster = IsMonster and IsMonster(npc)
-    local is_elite = (not is_monster) and (npc_night_gear[n_id] == "nvg" or is_npc_elite_night(npc))
-
-    -- MCM Options
     local mcm_base_dist = 24
     local mcm_mult = 1.0
     if xcvb_arena_mcm and xcvb_arena_mcm.get_config then
@@ -1807,6 +2010,64 @@ function apply_realistic_night_vision(npc)
         mcm_mult = xcvb_arena_mcm.get_config("night_vision_mult") or 1.0
     end
 
+    local stalker_factors = {
+        [1] = {38.0, 1.00, 0.58, 90.0, 65.0, 45.0},
+        [2] = {45.0, 1.20, 0.72, 100.0, 75.0, 55.0},
+        [3] = {52.0, 1.45, 0.90, 110.0, 85.0, 65.0},
+        [4] = {60.0, 1.70, 1.08, 120.0, 95.0, 75.0},
+        [5] = {70.0, 2.00, 1.25, 135.0, 105.0, 85.0},
+    }
+    local monster_factors = {
+        [1] = {32.0, 0.95, 0.58, 80.0, 60.0, 55.0},
+        [2] = {38.0, 1.15, 0.72, 90.0, 70.0, 65.0},
+        [3] = {45.0, 1.40, 0.90, 100.0, 80.0, 75.0},
+        [4] = {52.0, 1.65, 1.08, 110.0, 90.0, 85.0},
+        [5] = {60.0, 1.95, 1.25, 120.0, 100.0, 95.0},
+    }
+    local function make_profile(values)
+        return {
+            torch_r = values[1],
+            stand_r = mcm_base_dist * values[2],
+            crouch_r = mcm_base_dist * values[3],
+            torch_fov = values[4],
+            stand_fov = values[5],
+            crouch_fov = values[6],
+        }
+    end
+
+    tier = tier or 1
+    return {
+        tier = tier,
+        diff_mult = diff_mult or 1.0,
+        fov_mult = fov_mult or 1.0,
+        mcm_mult = mcm_mult,
+        torch_on = is_actor_flashlight_active(),
+        is_crouching = is_actor_crouching_night(),
+        is_forest = forest_arena_selected(),
+        stalker_profile = make_profile(stalker_factors[tier] or stalker_factors[3]),
+        monster_profile = make_profile(monster_factors[tier] or monster_factors[3]),
+    }
+end
+
+function apply_realistic_night_vision(npc, vision_ctx)
+    if not (npc and npc:alive()) then return end
+    if not (xcvb_arena_main and xcvb_arena_main.night_mode_active and night_mode_combat_running) then return end
+
+    local n_id = npc:id()
+    local ctx = vision_ctx or build_night_vision_context()
+    local torch_on = ctx.torch_on
+    local is_crouching = ctx.is_crouching
+    local tier = ctx.tier
+    local diff_mult = ctx.diff_mult
+    local fov_mult = ctx.fov_mult
+    local is_monster = IsMonster and IsMonster(npc)
+    local is_elite = (not is_monster) and (npc_night_gear[n_id] == "nvg" or is_npc_elite_night(npc, ctx))
+
+    local mcm_mult = ctx.mcm_mult
+
+    -- Perfiles legacy conservados como referencia, pero no se construyen por
+    -- NPC. build_night_vision_context ya preparo el perfil compartido.
+    if false then
     -- Per-tier vision profiles (Tier 1 Rookie -> Tier 5 Master/Legend)
     -- Easy standing range uses configurable mcm_base_dist (default 24m)
     local stalker_profiles = {
@@ -1825,19 +2086,32 @@ function apply_realistic_night_vision(npc)
         [5] = { torch_r = 60.0, stand_r = mcm_base_dist * 1.95, crouch_r = mcm_base_dist * 1.25, torch_fov = 120.0, stand_fov = 100.0, crouch_fov = 95.0 },
     }
 
-    local prof = is_monster and (monster_profiles[tier] or monster_profiles[3]) or (stalker_profiles[tier] or stalker_profiles[3])
+    end
+    local prof = is_monster and ctx.monster_profile or ctx.stalker_profile
     local target_range
     local target_fov
 
-    if torch_on then
-        target_range = prof.torch_r * diff_mult * (is_elite and 1.25 or 1.0)
-        target_fov   = math.min(150.0, prof.torch_fov * fov_mult)
+    local has_npc_torch = (npc_night_gear[n_id] == "torch") or (npc:object("device_torch") ~= nil)
+    local has_npc_nvg = is_elite or (npc_night_gear[n_id] == "nvg")
+
+    local is_forest = ctx.is_forest
+    if is_forest and xcvb_arena_forest_ai then
+        target_range, target_fov = xcvb_arena_forest_ai.compute_night_vision(npc, prof, diff_mult, fov_mult, is_elite, has_npc_torch, is_crouching, torch_on)
+    elseif has_npc_nvg then
+        target_range = prof.torch_r * diff_mult * 1.15
+        target_fov   = math.min(130.0, prof.torch_fov * fov_mult)
+    elseif has_npc_torch then
+        target_range = prof.torch_r * diff_mult
+        target_fov   = math.min(115.0, prof.torch_fov * fov_mult)
+    elseif torch_on then
+        target_range = prof.torch_r * diff_mult * 0.90
+        target_fov   = math.min(110.0, prof.torch_fov * fov_mult)
     elseif is_crouching then
-        target_range = prof.crouch_r * diff_mult * (is_elite and 1.20 or 1.0)
-        target_fov   = math.min(125.0, prof.crouch_fov * fov_mult)
+        target_range = math.max(18.0, prof.crouch_r * diff_mult * (is_elite and 1.20 or 1.0))
+        target_fov   = math.min(100.0, prof.crouch_fov * fov_mult)
     else
-        target_range = prof.stand_r * diff_mult * (is_elite and 1.30 or 1.0)
-        target_fov   = math.min(135.0, prof.stand_fov * fov_mult)
+        target_range = math.max(24.0, prof.stand_r * diff_mult * (is_elite and 1.30 or 1.0))
+        target_fov   = math.min(110.0, prof.stand_fov * fov_mult)
     end
 
     -- Apply MCM global multiplier
@@ -1865,36 +2139,40 @@ function apply_realistic_night_vision(npc)
                 local has_torch = (npc_night_gear[n_id] == "torch") or (npc:object("device_torch") ~= nil)
                 local detected = false
 
-                -- 1. Engine sight confirmation
-                if npc.see and npc:see(db.actor) then
-                    detected = true
-                -- 2. Point blank range (within 7m, cannot be missed even in total dark)
-                elseif dist <= 7.0 then
-                    detected = true
-                -- 3. Walking/running in close quarters (within 13m): heard by footsteps
-                elseif (not is_crouching) and dist <= 13.0 then
-                    detected = true
-                -- 4. Player's flashlight or device illuminates them across the arena
-                elseif torch_on and dist <= target_range * 1.05 then
-                    detected = true
-                -- 5. Elite enemy with NVG looking in player's general direction (within ~80 deg)
-                elseif is_elite and dot >= 0.15 and dist <= target_range * (is_crouching and 0.70 or 0.95) then
-                    detected = true
-                -- 6. Standard enemy: Player is in front of the enemy (dot >= 0.35 = ~70 deg cone), illuminated by enemy's flashlight beam!
-                elseif has_torch and dot >= 0.35 and dist <= target_range then
-                    detected = true
-                -- 7. Mutant night senses (smell & hearing)
-                elseif is_monster and dist <= target_range * (is_crouching and 0.65 or 0.90) then
-                    detected = true
+                if is_forest and xcvb_arena_forest_ai then
+                    detected = xcvb_arena_forest_ai.check_night_detection(npc, dist, is_crouching, is_monster)
+                else
+                    -- Standard Rostok Arena detection rules
+                    if npc.see and npc:see(db.actor) then
+                        detected = true
+                    elseif dist <= 7.0 then
+                        detected = true
+                    elseif (not is_crouching) and dist <= 13.0 then
+                        detected = true
+                    elseif torch_on and dist <= target_range * 1.05 then
+                        detected = true
+                    elseif is_elite and dot >= 0.15 and dist <= target_range * (is_crouching and 0.70 or 0.95) then
+                        detected = true
+                    elseif has_torch and dot >= 0.35 and dist <= target_range then
+                        detected = true
+                    elseif is_monster and dist <= target_range * (is_crouching and 0.65 or 0.90) then
+                        detected = true
+                    end
                 end
 
                 if detected then
                     set_bloodsucker_enemy(npc, db.actor)
-                    if npc.make_enemy_visible then
-                        pcall(function() npc:make_enemy_visible(db.actor) end)
-                    end
-                    if npc.set_sight and db.actor then
-                        pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                    if not is_forest then
+                        if npc.make_enemy_visible then
+                            pcall(function() npc:make_enemy_visible(db.actor) end)
+                        end
+                        if npc.set_sight and db.actor then
+                            pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                        end
+                    else
+                        if npc.set_sight and db.actor then
+                            pcall(function() npc:set_sight(look.danger, db.actor:position()) end)
+                        end
                     end
                     if npc.register_in_combat then
                         pcall(function() npc:register_in_combat() end)
@@ -1909,7 +2187,7 @@ function apply_realistic_night_vision(npc)
                         end
                     end)
 
-                    if not has_live_target then
+                    if not has_live_target and not is_forest then
                         -- Awaken AI combat reaction without delay (hit.wound stimulus)
                         xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
                     end
@@ -1973,7 +2251,7 @@ function is_stalker_in_arena(stalker)
     local l_name = level and level.name and level.name()
     if l_name == "l05_bar" then
         local pos = stalker:position()
-        if pos and pos.x >= 120 and pos.x <= 185 and pos.z >= 68 and pos.z <= 145 and pos.y >= -26 and pos.y <= 0 then
+        if pos and pos.x >= 91.5 and pos.x <= 185 and pos.z >= 68 and pos.z <= 145 and pos.y >= -26 and pos.y <= 0 then
             return true
         end
     end
@@ -2014,9 +2292,10 @@ function handle_arena_stalker_light(stalker)
         -- STANDARD ENEMY: Flashlight MUST BE TURNED ON! "Tienen que creer que es de noche"
         npc_night_gear[n_id] = "torch"
 
-        -- Respect special non-headlamp animations if any (wounded, sleep, guitar)
+        -- Respect stationary special animations. Forest exploration deliberately
+        -- uses sneak states at night, and those NPCs must keep their torch on.
         local anm = state_mgr and state_mgr.get_state and state_mgr.get_state(stalker)
-        if anm == "zat_b106_wounded_idle" or anm == "sleep" or anm == "play_guitar" or (anm and string.find(anm, "animpoint")) or (anm and string.find(anm, "sneak")) then
+        if anm == "zat_b106_wounded_idle" or anm == "sleep" or anm == "play_guitar" or (anm and string.find(anm, "animpoint")) then
             local torch = stalker:object("device_torch")
             if torch and torch.enable_attachable_item and torch:attachable_item_enabled() then
                 pcall(function() torch:enable_attachable_item(false) end)
@@ -2038,23 +2317,27 @@ function handle_arena_stalker_light(stalker)
         else
             local se_torch = alife_create_item("device_torch", stalker)
             if se_torch then
+                local activation_attempts = 0
                 CreateTimeEvent("arena_stk_torch_e_" .. tostring(n_id), "act_" .. tostring(n_id), 0.1, function()
+                    activation_attempts = activation_attempts + 1
                     local s = level.object_by_id(n_id)
-                    if s and s:alive() then
-                        local t = s:object("device_torch")
-                        if t then
-                            if t.set_condition and t:condition() < 0.2 then
-                                pcall(function() t:set_condition(1.0) end)
-                            end
-                            if t.enable_attachable_item and not t:attachable_item_enabled() then
-                                pcall(function() t:enable_attachable_item(true) end)
-                            end
-                            if t.enable_torch then
-                                pcall(function() t:enable_torch(true) end)
-                            end
+                    if not (s and s:alive()) then return true end
+                    local t = s:object("device_torch")
+                    if t then
+                        if t.set_condition and t:condition() < 0.2 then
+                            pcall(function() t:set_condition(1.0) end)
                         end
+                        if t.enable_attachable_item and not t:attachable_item_enabled() then
+                            pcall(function() t:enable_attachable_item(true) end)
+                        end
+                        if t.enable_torch then
+                            pcall(function() t:enable_torch(true) end)
+                        end
+                        return true
                     end
-                    return true
+                    -- Inventory synchronization can take more than one frame in
+                    -- heavily populated waves. Retry briefly instead of giving up.
+                    return activation_attempts >= 12
                 end)
             end
         end
@@ -2068,7 +2351,12 @@ function init_sr_light_hook()
         orig_sr_light_check_light = sr_light.check_light
         sr_light.check_light = function(stalker)
             if night_mode_combat_running and stalker and stalker:alive() and is_stalker_in_arena(stalker) then
-                handle_arena_stalker_light(stalker)
+                local npc_id = stalker:id()
+                local tg = time_global()
+                if tg >= (npc_light_check_at[npc_id] or 0) then
+                    npc_light_check_at[npc_id] = tg + 3000
+                    handle_arena_stalker_light(stalker)
+                end
                 return
             end
             return orig_sr_light_check_light(stalker)
@@ -2362,6 +2650,12 @@ end
 function enter_arena_night_mode()
     if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then return end
     night_mode_combat_running = true
+    -- Object ids can be reused between rounds; never inherit a previous NPC's
+    -- light throttle when a new wave enters the arena.
+    npc_light_check_at = {}
+
+    -- Ensure daytime ambient boost is cleared before plunging into night
+    pcall(apply_combat_ambient_lighting, false)
 
     -- Initialize stalker flashlight hook so combatants keep their lights ON
     pcall(init_sr_light_hook)
@@ -2377,6 +2671,9 @@ function enter_arena_night_mode()
 end
 
 function exit_arena_night_mode()
+    -- Always clear any combat ambient boost
+    pcall(apply_combat_ambient_lighting, false)
+
     if not night_mode_combat_running then
         -- Daytime fights and first update have no night settings to restore.
         if not xcvb_arena_main.night_mode_saved_render then return end
@@ -2397,6 +2694,7 @@ function exit_arena_night_mode()
 
     -- 4. Clear NPC night gear cache
     npc_night_gear = {}
+    npc_light_check_at = {}
 end
 
 function setup_tournament_squad_aggro(squad_id)
@@ -2404,33 +2702,79 @@ function setup_tournament_squad_aggro(squad_id)
         return setup_endless_squads_aggro(squad_id)
     end
     local squad = squad_id and alife_object(squad_id)
-    if not (squad and squad.commander_id) then return end
+    if not (squad and squad.commander_id) then return true end
     
+    local is_forest = forest_arena_selected()
     local is_night = (xcvb_arena_main.night_mode_active == true)
-    squad.rush_to_target = not is_night
+    if is_forest and xcvb_arena_forest_ai then
+        -- De noche el combate debe comenzar por detección real, no por una
+        -- orden de rush creada al inicializar la ronda.
+        xcvb_arena_forest_ai.setup_squad(squad, not is_night)
+    else
+        squad.rush_to_target = not is_night
+        squad.scripted_target = "actor"
+        squad.assigned_target_id = 0
+    end
+    local member_idx = 0
+    local total_count = 0
+    local online_count = 0
 
     for m in squad:squad_members() do
+        total_count = total_count + 1
+        local target_pos = nil
+        if is_forest and xcvb_arena_forest_ai then
+            member_idx = member_idx + 1
+            local s_pos, s_lvid, s_gvid = xcvb_arena_forest_ai.get_formation_slot(member_idx)
+            target_pos = s_pos
+            xcvb_arena_forest_ai.register_spawn(m.id, s_pos, s_lvid)
+        end
+
         local npc = level.object_by_id(m.id)
         if npc and npc:alive() then
-            pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
+            online_count = online_count + 1
+            if is_forest and xcvb_arena_forest_ai then
+                xcvb_arena_forest_ai.clamp_npc_position(npc)
+            else
+                pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
+            end
             pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
             pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
+
+            -- Forest Tournament: un hit real de potencia 0 registra al actor como
+            -- agresor sin quitar vida. Se aplica una sola vez por combatiente.
+            if is_forest and not is_night and db.actor
+            and not forest_tournament_aggro_hit_ids[m.id] then
+                forest_tournament_aggro_hit_ids[m.id] = true
+                if npc.register_in_combat then
+                    pcall(function() npc:register_in_combat() end)
+                end
+                xcvb_arena_utils.scr_hit(db.actor, npc, 0)
+            end
             
             if is_night then
                 apply_realistic_night_vision(npc)
                 equip_and_enable_npc_torch(npc)
             else
                 set_bloodsucker_enemy(npc, db.actor)
-                if npc.set_sight and db.actor then
-                    pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                if not is_forest then
+                    if npc.set_sight and db.actor then
+                        pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                    end
+                    if npc.make_enemy_visible and db.actor then
+                        pcall(function() npc:make_enemy_visible(db.actor) end)
+                    end
+                    if npc.register_in_combat then
+                        pcall(function() npc:register_in_combat() end)
+                    end
+                    xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
+                else
+                    if npc.register_in_combat then
+                        pcall(function() npc:register_in_combat() end)
+                    end
+                    if not is_forest and db.actor and npc.set_sight then
+                        pcall(function() npc:set_sight(look.danger, db.actor:position()) end)
+                    end
                 end
-                if npc.make_enemy_visible and db.actor then
-                    pcall(function() npc:make_enemy_visible(db.actor) end)
-                end
-                if npc.register_in_combat then
-                    pcall(function() npc:register_in_combat() end)
-                end
-                xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
             end
             
             if IsMonster and IsMonster(npc) then
@@ -2442,6 +2786,8 @@ function setup_tournament_squad_aggro(squad_id)
             end
         end
     end
+
+    return total_count > 0 and online_count >= total_count
 end
 
 function setup_endless_squads_aggro(squad_ids)
@@ -2453,22 +2799,57 @@ function setup_endless_squads_aggro(squad_ids)
     local total_members = 0
     local online_members = 0
     local is_night = (xcvb_arena_main.night_mode_active == true)
+    local is_forest = forest_arena_selected()
 
     for _, s_id in ipairs(squad_ids) do
         local squad = s_id and alife_object(s_id)
         if squad then
-            squad.scripted_target = "actor"
-            squad.assigned_target_id = 0
-            squad.rush_to_target = not is_night
+            if is_forest and xcvb_arena_forest_ai then
+                xcvb_arena_forest_ai.setup_squad(squad, false)
+            else
+                squad.scripted_target = "actor"
+                squad.assigned_target_id = 0
+                squad.rush_to_target = not is_night
+            end
+
+            local target_pos = endless_squad_spawn_pos[s_id]
+            local target_lvid = endless_squad_spawn_lvid[s_id]
+            if not target_pos and is_forest and xcvb_arena_forest_ai then
+                local f_pos, f_lvid = xcvb_arena_forest_ai.get_enemy_spawn()
+                target_pos = f_pos
+                target_lvid = f_lvid
+            end
+
             for m in squad:squad_members() do
                 total_members = total_members + 1
+                if is_forest and target_pos then
+                    xcvb_arena_forest_ai.register_spawn(m.id, target_pos, target_lvid or 102902)
+                end
+
                 local npc = level.object_by_id(m.id)
                 if npc and npc:alive() then
                     online_members = online_members + 1
                     table.insert(all_npcs, npc)
-                    pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
+                    if is_forest and xcvb_arena_forest_ai then
+                        xcvb_arena_forest_ai.clamp_npc_position(npc)
+                    else
+                        pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
+                    end
                     pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
                     pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
+
+                    -- Endless Forest: los stalkers reciben una sola provocación
+                    -- de potencia 0. Reconocen al actor como enemigo, pero la IA
+                    -- Forest mantiene rush_to_target desactivado para que avancen
+                    -- tácticamente usando coberturas.
+                    if is_forest and not is_night and db.actor and IsStalker and IsStalker(npc)
+                    and not forest_endless_aggro_hit_ids[m.id] then
+                        forest_endless_aggro_hit_ids[m.id] = true
+                        if npc.register_in_combat then
+                            pcall(function() npc:register_in_combat() end)
+                        end
+                        xcvb_arena_utils.scr_hit(db.actor, npc, 0)
+                    end
                     
                     if xcvb_arena_companions and xcvb_arena_companions.get_active_companions then
                         local comps = xcvb_arena_companions.get_active_companions()
@@ -2496,9 +2877,15 @@ function setup_endless_squads_aggro(squad_ids)
                             pcall(function() npc:register_in_combat() end)
                         end
                         -- Natural directional alert without wallhack:
-                        if db.actor then
+                        if not is_forest and db.actor then
                             pcall(function() npc:set_sight(look.danger, db.actor:position()) end)
                         end
+                    end
+                    
+                    if not is_forest and db.actor then
+                        if npc.make_enemy_visible then pcall(npc.make_enemy_visible, npc, db.actor) end
+                        pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
+                        xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
                     end
                     
                     if IsMonster and IsMonster(npc) then
@@ -2511,6 +2898,7 @@ function setup_endless_squads_aggro(squad_ids)
                     end
                 end
             end
+
         end
     end
     
@@ -2661,7 +3049,10 @@ function clean_arena_corpses()
 end
 
 function clean_tournament_squad(squad_id)
-    local squad = squad_id and alife_object(squad_id)
+    if not squad_id then return end
+    endless_squad_spawn_pos[squad_id] = nil
+    endless_squad_spawn_lvid[squad_id] = nil
+    local squad = alife_object(squad_id)
     if squad and string.find(squad:section_name(), "arena_") then
         pcall(function()
             local member_ids = {}
@@ -2670,6 +3061,12 @@ function clean_tournament_squad(squad_id)
             end
             for _, id in ipairs(member_ids) do
                 arena_spawned_combatant_ids[id] = nil
+                npc_forest_designated_pos[id] = nil
+                forest_tournament_aggro_hit_ids[id] = nil
+                forest_endless_aggro_hit_ids[id] = nil
+                if xcvb_arena_forest_ai and xcvb_arena_forest_ai.forget_spawn then
+                    xcvb_arena_forest_ai.forget_spawn(id)
+                end
                 if safe_release_manager and safe_release_manager.release then
                     safe_release_manager.release({id = id})
                 else
@@ -3305,7 +3702,23 @@ function purge_all_arena_mags()
 end
 
 function store_actor_inventory()
-    if inventory_stored or inventory_restore_pending or not db.actor then return false end
+    if not db.actor then return false end
+    -- If an equipment restore was still pending or queued, flush and clear it so new fight starts cleanly
+    if inventory_restore_pending then
+        cancel_inventory_events()
+        inventory_restore_pending = false
+        saved_equipped_slots = {}
+        saved_belt_items = {}
+        saved_actor_item_ids = {}
+        saved_active_slot = nil
+    end
+    if inventory_stored then
+        restore_actor_inventory()
+        if inventory_stored then
+            printe("! xcvb arena: Cannot store inventory, previous storage still active")
+            return false
+        end
+    end
     inventory_return_candidates = nil
     RemoveTimeEvent("arena_restore_equip_e1", "arena_restore_equip_a1")
     RemoveTimeEvent("arena_restore_equip_e2", "arena_restore_equip_a2")
@@ -3861,6 +4274,12 @@ function cancel_inventory_events()
         {"arena_equip_endless_3dssg", "arena_equip_endless_3dssg"},
     }
     for _, event in ipairs(equip_events) do RemoveTimeEvent(event[1], event[2]) end
+    inventory_restore_pending = false
+end
+
+function cancel_all_arena_events()
+    cancel_inventory_events()
+    inventory_restore_pending = false
 end
 
 function restore_actor_inventory(is_retry)
@@ -4006,33 +4425,35 @@ function restore_actor_equipped_slots()
 
     -- Stage 4 (1.6s): Verification check and notification
     CreateTimeEvent("arena_restore_equip_e4", "arena_restore_equip_a4", 1.6, function()
-        if not db.actor then return true end
-        for id, slot in pairs(saved_equipped_slots) do
-            if not db.actor:item_in_slot(slot) then
-                local itm = level.object_by_id(id)
-                if itm then
-                    pcall(function() db.actor:move_to_slot(itm, slot) end)
+        pcall(function()
+            if not db.actor then return end
+            for id, slot in pairs(saved_equipped_slots) do
+                if not db.actor:item_in_slot(slot) then
+                    local itm = level.object_by_id(id)
+                    if itm then
+                        pcall(function() db.actor:move_to_slot(itm, slot) end)
+                    end
                 end
             end
-        end
 
-        if saved_active_slot and db.actor:active_slot() ~= saved_active_slot then
-            pcall(function() db.actor:activate_slot(saved_active_slot) end)
-        elseif db.actor:active_slot() == 0 and not db.actor:item_in_slot(0) then
-            if db.actor:item_in_slot(2) then pcall(function() db.actor:activate_slot(2) end)
-            elseif db.actor:item_in_slot(3) then pcall(function() db.actor:activate_slot(3) end)
-            elseif db.actor:item_in_slot(1) then pcall(function() db.actor:activate_slot(1) end)
+            if saved_active_slot and db.actor:active_slot() ~= saved_active_slot then
+                pcall(function() db.actor:activate_slot(saved_active_slot) end)
+            elseif db.actor:active_slot() == 0 and not db.actor:item_in_slot(0) then
+                if db.actor:item_in_slot(2) then pcall(function() db.actor:activate_slot(2) end)
+                elseif db.actor:item_in_slot(3) then pcall(function() db.actor:activate_slot(3) end)
+                elseif db.actor:item_in_slot(1) then pcall(function() db.actor:activate_slot(1) end)
+                end
             end
-        end
-        ensure_weapon_raised()
+            ensure_weapon_raised()
+            pcall(ensure_actor_default_comm)
+            news_manager.send_tip(db.actor, game.translate_string("st_arena_gear_restored"), 0, nil, 8000)
+        end)
 
         saved_equipped_slots = {}
         saved_belt_items = {}
         saved_actor_item_ids = {}
         saved_active_slot = nil
         inventory_restore_pending = false
-
-        news_manager.send_tip(db.actor, game.translate_string("st_arena_gear_restored"), 0, nil, 8000)
         return true
     end)
     return true
@@ -4498,13 +4919,38 @@ end
 
 function get_safe_arena_lvid(pos, fallback_lvid)
     local def_lvid = fallback_lvid or 40551
+    if not pos then return def_lvid end
     if level and level.vertex_id then
         local ok, v = pcall(level.vertex_id, pos)
+        if ok and v and v > 0 and v < 4294967295 then
+            if level.vertex_position then
+                local ok_pos, v_pos = pcall(level.vertex_position, v)
+                if ok_pos and v_pos then
+                    -- Si el vertice devuelto esta a mas de 3.5m verticalmente de pos.y,
+                    -- pertenece a la superficie o techo exterior y NO al suelo de la arena.
+                    if math.abs(v_pos.y - pos.y) <= 3.5 then
+                        return v
+                    end
+                else
+                    return v
+                end
+            else
+                return v
+            end
+        end
+    end
+    return def_lvid
+end
+
+function get_safe_arena_gvid(fallback_gvid)
+    local def_gvid = fallback_gvid or 1684
+    if forest_arena_selected() and db and db.actor then
+        local ok, v = pcall(function() return db.actor:game_vertex_id() end)
         if ok and v and v > 0 and v < 4294967295 then
             return v
         end
     end
-    return def_lvid
+    return def_gvid
 end
 
 function get_battle_royale_pos(team_idx, total_teams)
@@ -5024,29 +5470,29 @@ local endless_forbidden_factions = {
 }
 
 local endless_north_spawn_zones = {
-    -- North Center Gate & Approach
-    { pos = vector():set(151.2, -20.0543, 128.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Gate
-    { pos = vector():set(151.2, -20.0543, 126.0), fallback_lvid = 40551, gvid = 1796 }, -- North Center Approach
-    { pos = vector():set(148.0, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 }, -- North West Gate
-    { pos = vector():set(154.5, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 }, -- North East Gate
+    -- North Center Gate & Approach (Exact ground elevations & verified lvids)
+    { pos = vector():set(151.2, -20.0543, 128.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(151.2, -20.0543, 126.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(148.0, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(154.5, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 },
     -- North Flanks & Corners
-    { pos = vector():set(145.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 }, -- North West Flank
-    { pos = vector():set(158.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 }, -- North East Flank
-    { pos = vector():set(144.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 }, -- North West Corner
-    { pos = vector():set(160.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 }, -- North East Corner
+    { pos = vector():set(145.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(158.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(144.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(160.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 },
 }
 
 local endless_south_spawn_zones = {
-    -- South Center Gate & Approach
-    { pos = vector():set(152.6, -20.0598, 81.5), fallback_lvid = 40761, gvid = 1684 }, -- South Center Gate
-    { pos = vector():set(152.6, -20.0598, 84.0), fallback_lvid = 40761, gvid = 1684 }, -- South Center Approach
-    { pos = vector():set(149.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 }, -- South West Gate
-    { pos = vector():set(156.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 }, -- South East Gate
+    -- South Center Gate & Approach (Exact ground elevations & verified lvids)
+    { pos = vector():set(152.6, -20.0598, 81.5), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(152.6, -20.0598, 84.0), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(149.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(156.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 },
     -- South Flanks & Corners
-    { pos = vector():set(145.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 }, -- South West Flank
-    { pos = vector():set(158.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 }, -- South East Flank
-    { pos = vector():set(144.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 }, -- South West Corner
-    { pos = vector():set(160.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 }, -- South East Corner
+    { pos = vector():set(145.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(158.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(144.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(160.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 },
 }
 
 local function get_safe_endless_spawn_positions(num_enemies)
@@ -5056,25 +5502,49 @@ local function get_safe_endless_spawn_positions(num_enemies)
         pcall(function() actor_pos = db.actor:position() end)
     end
     if not actor_pos then
-        actor_pos = vector():set(152.6, -20.0598, 81.2)
+        actor_pos = get_actor_tournament_pos()
     end
 
-    -- Centro de la arena en Z es ~105.0. Portón norte ~128.0, portón sur ~81.2.
-    -- Determinamos si el jugador está más cerca del sur o del norte para spawnear en el lado opuesto (más lejano)
+    -- Centro de la arena en Z es ~105.0. Porton norte ~128.0, porton sur ~81.2.
     local dist_to_north = math.abs(126.0 - actor_pos.z)
     local dist_to_south = math.abs(actor_pos.z - 83.5)
 
-    local primary_zones = (dist_to_north >= dist_to_south) and endless_north_spawn_zones or endless_south_spawn_zones
-    local backup_zones  = (dist_to_north >= dist_to_south) and endless_south_spawn_zones or endless_north_spawn_zones
+    local is_forest = forest_arena_selected() and xcvb_arena_forest_ai
+    local primary_zones
+    local backup_zones
+    if is_forest then
+        local is_north = (dist_to_north >= dist_to_south)
+        primary_zones = xcvb_arena_forest_ai.get_endless_spawn_zones(is_north)
+        backup_zones  = xcvb_arena_forest_ai.get_endless_spawn_zones(not is_north)
+    else
+        primary_zones = (dist_to_north >= dist_to_south) and endless_north_spawn_zones or endless_south_spawn_zones
+        backup_zones  = (dist_to_north >= dist_to_south) and endless_south_spawn_zones or endless_north_spawn_zones
+    end
 
-    local MIN_SAFE_DIST = 18.0 -- Distancia mínima absoluta en metros respecto al jugador
+    local MIN_SAFE_DIST = 18.0 -- Distancia minima absoluta en metros respecto al jugador
 
     local function evaluate_pool(pool)
         local candidates = {}
         for _, z in ipairs(pool) do
+            local mapped_zone
+            if is_forest then
+                local p, resolved_lvid, resolved_gvid = xcvb_arena_forest_ai.resolve_spawn_point(z, z.lvid or 102902)
+                mapped_zone = {
+                    pos = p,
+                    lvid = resolved_lvid,
+                    fallback_lvid = resolved_lvid,
+                    gvid = resolved_gvid,
+                }
+            else
+                mapped_zone = {
+                    pos = z.pos,
+                    fallback_lvid = z.fallback_lvid,
+                    gvid = z.gvid,
+                }
+            end
             local d = 0
-            pcall(function() d = actor_pos:distance_to(z.pos) end)
-            table.insert(candidates, { zone = z, dist = d })
+            pcall(function() d = actor_pos:distance_to(mapped_zone.pos) end)
+            table.insert(candidates, { zone = mapped_zone, dist = d })
         end
         table.sort(candidates, function(a, b) return a.dist > b.dist end)
         return candidates
@@ -5089,7 +5559,7 @@ local function get_safe_endless_spawn_positions(num_enemies)
         end
     end
 
-    -- Si la piscina primaria no tiene suficientes puntos sobre la distancia mínima, comprobar el respaldo
+    -- Si la piscina primaria no tiene suficientes puntos sobre la distancia minima, comprobar el respaldo
     if #safe_zones < n_req then
         local back_eval = evaluate_pool(backup_zones)
         for _, c in ipairs(back_eval) do
@@ -5099,7 +5569,7 @@ local function get_safe_endless_spawn_positions(num_enemies)
         end
     end
 
-    -- Respaldo de seguridad: si por algún motivo no hay zonas que cumplan la cota, usar las más lejanas de la primaria
+    -- Respaldo de seguridad: si por algun motivo no hay zonas que cumplan la cota, usar las mas lejanas de la primaria
     if #safe_zones == 0 then
         for _, c in ipairs(prim_eval) do
             table.insert(safe_zones, c.zone)
@@ -5115,11 +5585,11 @@ local function get_safe_endless_spawn_positions(num_enemies)
     local positions = {}
     for i = 1, n_req do
         local zone = safe_zones[((i - 1) % #safe_zones) + 1]
-        local ox = (math.random() * 1.0) - 0.5
-        local oz = (math.random() * 1.0) - 0.5
+        local ox = is_forest and 0 or ((math.random() * 1.0) - 0.5)
+        local oz = is_forest and 0 or ((math.random() * 1.0) - 0.5)
         local p = vector():set(zone.pos.x + ox, zone.pos.y, zone.pos.z + oz)
-        local lvid = get_safe_arena_lvid(p, zone.fallback_lvid)
-        local gvid = zone.gvid
+        local lvid = is_forest and (zone.lvid or zone.fallback_lvid or 102902) or get_safe_arena_lvid(p, zone.fallback_lvid)
+        local gvid = is_forest and (zone.gvid or get_safe_arena_gvid(1684)) or zone.gvid
         table.insert(positions, { pos = p, lvid = lvid, gvid = gvid })
     end
 
@@ -5131,8 +5601,11 @@ function get_random_endless_spawn_pos(prefer_idx)
     if positions and positions[1] then
         return positions[1].pos, positions[1].lvid, positions[1].gvid
     end
+    if forest_arena_selected() and xcvb_arena_forest_ai then
+        return xcvb_arena_forest_ai.get_enemy_spawn()
+    end
     local p = vector():set(151.2, -20.0543, 128.0)
-    return p, 40551, 1796
+    return p, get_safe_arena_lvid(p, 40551), 1796
 end
 
 function spawn_endless_squad(wave, enemy_type, difficulty)
@@ -5253,14 +5726,23 @@ function spawn_endless_squad(wave, enemy_type, difficulty)
             -- Cada combatiente se crea en su propio escuadron independiente para que no corran a reagruparse hacia un lado
             local sq = alife_create(squad_sec, m_pos, m_lvid, m_gvid)
             if sq then
-                sq.scripted_target = "actor"
-                sq.assigned_target_id = 0
-                sq.rush_to_target = not (xcvb_arena_main.night_mode_active == true)
+                endless_squad_spawn_pos[sq.id] = vector():set(m_pos.x, m_pos.y, m_pos.z)
+                endless_squad_spawn_lvid[sq.id] = m_lvid
+                if forest_arena_selected() and xcvb_arena_forest_ai then
+                    xcvb_arena_forest_ai.setup_squad(sq, false)
+                else
+                    sq.scripted_target = "actor"
+                    sq.assigned_target_id = 0
+                    sq.rush_to_target = not (xcvb_arena_main.night_mode_active == true)
+                end
                 sq:add_squad_member(sec, m_pos, m_lvid, m_gvid)
                 sq:set_squad_relation()
                 sq:refresh()
                 for m in sq:squad_members() do
                     arena_spawned_combatant_ids[m.id] = true
+                    if forest_arena_selected() and xcvb_arena_forest_ai then
+                        xcvb_arena_forest_ai.register_spawn(m.id, m_pos, m_lvid)
+                    end
                 end
                 table.insert(spawned_squads, sq)
             end
@@ -5845,12 +6327,182 @@ function install_itms_manager_safeguard()
     end
 end
 
+--------------------------------------------------------------------------------
+-- DISGUISE SYSTEM SAFEGUARD (ARENA & ENDLESS PROTECTION)
+--------------------------------------------------------------------------------
+-- Previene que Anomaly/GAMMA active la mecánica de disfraz o notificaciones
+-- al vestir armaduras de facción durante combates de la Arena o Modo Supervivencia.
+local actor_true_community = nil
+
+function get_actor_true_community()
+    if not actor_true_community and db.actor and character_community then
+        local c = character_community(db.actor):sub(7)
+        if c and c ~= "" and not endless_forbidden_factions[c] then
+            actor_true_community = c
+        end
+    end
+    return actor_true_community or (gameplay_disguise and gameplay_disguise.get_default_comm and gameplay_disguise.get_default_comm()) or "stalker"
+end
+
+function is_any_arena_fight_active()
+    -- 1. Flags explícitos de combate activo
+    if xcvb_arena_fight then
+        if (xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active()) or
+           (xcvb_arena_fight.is_endless_mode == true) or
+           (xcvb_arena_fight.tournament_enemy_squad_id ~= nil) or
+           (xcvb_arena_fight.current_tournament_category ~= nil) then
+            return true
+        end
+    end
+    if xcvb_arena_endless and xcvb_arena_endless.is_endless_mode then
+        return true
+    end
+
+    -- 2. Alife info portions
+    if has_alife_info then
+        if has_alife_info("bar_arena_fight") or
+           has_alife_info("bar_arena_fight_begin") or
+           has_alife_info("xcvb_arena_started") or
+           has_alife_info("xcvb_tournament_started") or
+           has_alife_info("xcvb_endless_started") or
+           has_alife_info("xcvb_battle_royale_started") then
+            return true
+        end
+    end
+    if db.actor and db.actor.has_info then
+        if db.actor:has_info("bar_arena_fight") or
+           db.actor:has_info("bar_arena_fight_begin") or
+           db.actor:has_info("xcvb_arena_started") or
+           db.actor:has_info("xcvb_tournament_started") or
+           db.actor:has_info("xcvb_endless_started") or
+           db.actor:has_info("xcvb_battle_royale_started") then
+            return true
+        end
+    end
+
+    -- 3. Verificación de presencia física en la Arena o Bosque de Rostok (l05_bar)
+    if db.actor and level and level.name and level.name() == "l05_bar" then
+        local p = db.actor:position()
+        if p then
+            -- Bosque de la arena: X ~ [85, 135], Z ~ [65, 140], Y < -15.0
+            if p.x >= 85 and p.x <= 135 and p.z >= 65 and p.z <= 140 and p.y < -15.0 then
+                return true
+            end
+            -- Foso de arena vanilla: X ~ [135, 180], Z ~ [20, 90], Y < -10.0
+            if p.x >= 135 and p.x <= 180 and p.z >= 20 and p.z <= 90 and p.y < -10.0 then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+function ensure_actor_default_comm()
+    if not (db.actor and character_community) then return end
+    local def_comm = get_actor_true_community()
+    local curr_comm = character_community(db.actor):sub(7)
+    if curr_comm ~= def_comm then
+        if db.actor.set_character_community then
+            pcall(db.actor.set_character_community, db.actor, "actor_" .. def_comm, 0, 0)
+        end
+        if gameplay_disguise and gameplay_disguise.set_comm then
+            pcall(gameplay_disguise.set_comm, def_comm)
+        end
+    end
+end
+
+local disguise_safeguard_installed = false
+function install_disguise_safeguard()
+    if disguise_safeguard_installed then return end
+
+    -- Guardar facción original del actor de inmediato
+    get_actor_true_community()
+
+    -- 1. Zona de exclusión: mientras se esté en cualquier combate o área de la arena
+    if gameplay_disguise then
+        local orig_inside_disguise_zone = gameplay_disguise.inside_disguise_zone
+        gameplay_disguise.inside_disguise_zone = function(...)
+            if is_any_arena_fight_active() then
+                return true
+            end
+            if orig_inside_disguise_zone then
+                return orig_inside_disguise_zone(...)
+            end
+            return false
+        end
+        _G.inside_disguise_zone = gameplay_disguise.inside_disguise_zone
+
+        -- 2. Supresión de cambio de facción por disfraz durante la arena
+        local orig_try_to_disguise = gameplay_disguise.try_to_disguise
+        gameplay_disguise.try_to_disguise = function(new_comm, naked, no_patch)
+            if is_any_arena_fight_active() then
+                ensure_actor_default_comm()
+                return
+            end
+            if orig_try_to_disguise then
+                return orig_try_to_disguise(new_comm, naked, no_patch)
+            end
+        end
+        _G.try_to_disguise = gameplay_disguise.try_to_disguise
+
+        -- 3. Supresión de cambio de comunidad en el motor de disfraz
+        local orig_set_comm = gameplay_disguise.set_comm
+        gameplay_disguise.set_comm = function(comm)
+            if is_any_arena_fight_active() then
+                local true_c = get_actor_true_community()
+                if comm ~= true_c then
+                    return
+                end
+            end
+            if orig_set_comm then
+                return orig_set_comm(comm)
+            end
+        end
+
+        -- 4. Supresión de carteles y avisos ("Estás disfrazado de...") durante la arena
+        local orig_set_msg = gameplay_disguise.set_msg
+        gameplay_disguise.set_msg = function(str, comm, comm2)
+            if is_any_arena_fight_active() then
+                return
+            end
+            if orig_set_msg then
+                return orig_set_msg(str, comm, comm2)
+            end
+        end
+        _G.set_msg = gameplay_disguise.set_msg
+    end
+
+    -- 5. Interceptar actor_menu.set_msg para silenciar carteles de disfraz en pantalla
+    if actor_menu and actor_menu.set_msg then
+        local orig_actor_menu_set_msg = actor_menu.set_msg
+        actor_menu.set_msg = function(typ, msg, tm, clr)
+            if is_any_arena_fight_active() and type(msg) == "string" then
+                local lmsg = msg:lower()
+                if lmsg:find("disfraz") or lmsg:find("disguis") or lmsg:find("parche") or lmsg:find("patch") then
+                    return
+                end
+            end
+            if orig_actor_menu_set_msg then
+                return orig_actor_menu_set_msg(typ, msg, tm, clr)
+            end
+        end
+    end
+
+    disguise_safeguard_installed = true
+end
+
 function on_game_start()
     pcall(install_item_parts_safeguard)
     pcall(install_itms_manager_safeguard)
+    pcall(install_disguise_safeguard)
+    RegisterScriptCallback("actor_on_first_update", function()
+        pcall(install_disguise_safeguard)
+    end)
 end
 
 pcall(init_sr_light_hook)
 pcall(install_item_parts_safeguard)
 pcall(install_itms_manager_safeguard)
+pcall(install_disguise_safeguard)
 

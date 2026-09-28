@@ -54,6 +54,46 @@ function is_endless_active()
     return is_endless_mode and not endless_fight_closed
 end
 
+local panic_key_labels = {
+    DIK_LCONTROL = "LEFT CTRL",
+    DIK_RCONTROL = "RIGHT CTRL",
+    DIK_LSHIFT = "LEFT SHIFT",
+    DIK_RSHIFT = "RIGHT SHIFT",
+    DIK_LALT = "LEFT ALT",
+    DIK_RALT = "RIGHT ALT",
+    DIK_RETURN = "ENTER",
+    DIK_ESCAPE = "ESC",
+    DIK_SPACE = "SPACE",
+    DIK_BACK = "BACKSPACE",
+    DIK_PRIOR = "PAGE UP",
+    DIK_NEXT = "PAGE DOWN",
+    DIK_CAPITAL = "CAPS LOCK",
+}
+
+local function get_panic_key_label()
+    local configured = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("panic_key"))
+        or (DIK_keys and DIK_keys.DIK_F)
+    local configured_number = tonumber(configured)
+
+    if DIK_keys then
+        local ok, label = pcall(function()
+            for name, value in pairs(DIK_keys) do
+                if value == configured or (configured_number and tonumber(value) == configured_number) then
+                    return panic_key_labels[name]
+                        or string.gsub(string.gsub(name, "^DIK_", ""), "NUMPAD", "NUMPAD ")
+                end
+            end
+        end)
+        if ok and label and label ~= "" then
+            return label
+        end
+    end
+
+    -- No volver a mostrar F si MCM entregó otra tecla que esta versión del
+    -- motor no permite convertir a nombre.
+    return configured_number and ("KEY " .. tostring(configured_number)) or tostring(configured or "F")
+end
+
 function reset_battle_royale_cache()
     battle_royale_initialized_npcs = {}
     xcvb_arena_utils.reset_battle_royale_relations()
@@ -258,6 +298,8 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
             pcall(xcvb_arena_utils.ensure_actor_torch_active)
             return true
         end)
+    else
+        pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
     current_tournament_category = category or "stalker"
     current_tournament_round_id = round_id
@@ -284,6 +326,9 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
         end)
     end
 
+    if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() then
+        xcvb_arena_forest_ai.on_fight_start()
+    end
     local enemy_squad = xcvb_arena_utils.spawn_tournament_squad(round_data)
     if not enemy_squad then
         printe("! xcvb arena: Failed to spawn tournament squad for %s round %s", current_tournament_category, round_id)
@@ -302,12 +347,18 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     end
     tournament_enemy_squad_id = enemy_squad.id
 
-    CreateTimeEvent("allow_tournament_aggro_e", "allow_tournament_aggro_a", 1, function()
+    local attempts = 0
+    CreateTimeEvent("allow_tournament_aggro_e", "allow_tournament_aggro_a", 0.6, function()
         if tournament_fight_closed then return true end
+        attempts = attempts + 1
         give_info("xcvb_tournament_started")
-        xcvb_arena_utils.setup_tournament_squad_aggro(tournament_enemy_squad_id)
-        news_manager.send_tip(db.actor, gt("st_arena_fight_started"), 0, nil, 7000)
-        return true
+        local done = xcvb_arena_utils.setup_tournament_squad_aggro(tournament_enemy_squad_id)
+        if done or attempts >= 6 then
+            news_manager.send_tip(db.actor, gt("st_arena_fight_started"), 0, nil, 7000)
+            return true
+        end
+        ResetTimeEvent("allow_tournament_aggro_e", "allow_tournament_aggro_a", 0.4)
+        return false
     end)
     return true
 end
@@ -454,6 +505,9 @@ end
 -- SPECTATOR MODE (Original Balcony Betting)
 --------------------------------------------------------------------------------
 function start_arena_fight(bout_idx)
+	if xcvb_arena_main and xcvb_arena_main.selected_map == "forest" then
+		return false
+	end
     spec_fight_ending = false
     spectator_fight_closed = false
     local b_idx = bout_idx or xcvb_arena_main.selected_spec_bout or 1
@@ -462,6 +516,8 @@ function start_arena_fight(bout_idx)
     
     if xcvb_arena_main.night_mode_active then
         pcall(xcvb_arena_utils.enter_arena_night_mode)
+    else
+        pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
@@ -485,6 +541,7 @@ function start_arena_fight(bout_idx)
     local squad1 = alife_create(sec1, pos1, lvid1, gvid1)
     if not squad1 then
         printe("! xcvb arena: Failed to spawn spectator team 1")
+        pcall(xcvb_arena_utils.exit_arena_night_mode)
         return
     end
     squad_team_1_id = squad1.id
@@ -497,6 +554,7 @@ function start_arena_fight(bout_idx)
         printe("! xcvb arena: Failed to spawn spectator team 2")
         pcall(alife_release_id, squad_team_1_id)
         squad_team_1_id = nil
+        pcall(xcvb_arena_utils.exit_arena_night_mode)
         return
     end
     squad_team_2_id = squad2.id
@@ -700,6 +758,9 @@ end
 -- BATALLA CAMPAL MULTIBANDO (BETA TESTING)
 --------------------------------------------------------------------------------
 function start_battle_royale_fight(br_data)
+	if xcvb_arena_main and xcvb_arena_main.selected_map == "forest" then
+		return false
+	end
     if not br_data then return end
     if br_data.submode ~= "mutants" then
         local factions = {}
@@ -731,6 +792,8 @@ function start_battle_royale_fight(br_data)
 
     if xcvb_arena_main.night_mode_active then
         pcall(xcvb_arena_utils.enter_arena_night_mode)
+    else
+        pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
@@ -974,6 +1037,8 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
             pcall(xcvb_arena_utils.ensure_actor_torch_active)
             return true
         end)
+    else
+        pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
 
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_tournament_pos()
@@ -991,6 +1056,9 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     end)
 
     give_info("xcvb_endless_started")
+    if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() then
+        xcvb_arena_forest_ai.on_fight_start()
+    end
 
     endless_enemy_squad_ids = {}
 
@@ -1025,7 +1093,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
 
         local enemy_count = #endless_enemy_squad_ids
         local diff_str = gt("st_arena_endless_diff_" .. (endless_difficulty or "medium"))
-        local tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count) .. " (" .. diff_str .. ")"
+        local tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count, get_panic_key_label()) .. " (" .. diff_str .. ")"
         news_manager.send_tip(db.actor, tip, 0, nil, 8000)
 
         local attempts = 0
@@ -1129,6 +1197,9 @@ function advance_endless_wave(resume_pending)
         heal_actor_completely()
 
         local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
+        if xcvb_arena_forest_ai then
+            pcall(xcvb_arena_forest_ai.reset_combat_data)
+        end
         endless_enemy_squad_ids = {}
         if next_squads then
             if next_squads.id then
@@ -1173,7 +1244,7 @@ function advance_endless_wave(resume_pending)
 
         local enemy_count = #endless_enemy_squad_ids
         local diff_str = gt("st_arena_endless_diff_" .. (endless_difficulty or "medium"))
-        local start_tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count) .. " (" .. diff_str .. ")"
+        local start_tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count, get_panic_key_label()) .. " (" .. diff_str .. ")"
         news_manager.send_tip(db.actor, start_tip, 0, nil, 7000)
 
         -- Reassign companion aggro to the new wave
@@ -1506,20 +1577,43 @@ local function continuous_fire_on_update()
 end
 
 local ending_state_start = 0
+local next_arena_logic_update = 0
+local night_light_refresh_at = {}
+local NIGHT_VISION_INTERVAL_MS = 1000
+local NIGHT_LIGHT_REFRESH_MS = 5000
+
+local function update_npc_night_state(npc, tg, vision_ctx)
+    xcvb_arena_utils.apply_realistic_night_vision(npc, vision_ctx)
+    local npc_id = npc:id()
+    if tg >= (night_light_refresh_at[npc_id] or 0) then
+        night_light_refresh_at[npc_id] = tg + NIGHT_LIGHT_REFRESH_MS
+        xcvb_arena_utils.equip_and_enable_npc_torch(npc)
+    end
+end
 
 function actor_on_update()
+    local tg_cur = time_global()
+    local tournament_active = HI("xcvb_tournament_started")
+    local endless_active = HI("xcvb_endless_started") or is_endless_mode
+    local spectator_active = HI("xcvb_arena_started")
+    local battle_royale_active = HI("xcvb_battle_royale_started")
+
+    if not (xcvb_arena_main and xcvb_arena_main.night_mode_active)
+    and next(night_light_refresh_at) then
+        night_light_refresh_at = {}
+    end
+
     if tourn_ending or endless_ending then
-        local tg = time_global()
         if ending_state_start == 0 then
-            ending_state_start = tg
-        elseif tg - ending_state_start > 5000 then
+            ending_state_start = tg_cur
+        elseif tg_cur - ending_state_start > 5000 then
             -- Failsafe timeout: never leave actor stuck in immortal ending state
             tourn_ending = false
             endless_ending = false
             ending_state_start = 0
         end
 
-        if not HI("xcvb_tournament_started") and not HI("xcvb_endless_started") and not is_endless_mode then
+        if not tournament_active and not endless_active then
             tourn_ending = false
             endless_ending = false
             ending_state_start = 0
@@ -1540,15 +1634,20 @@ function actor_on_update()
 
     continuous_fire_on_update()
 
-    local tg_cur = time_global()
     if tg_cur > sync_device_timer then
-        sync_device_timer = tg_cur + 500
-        if xcvb_arena_main and xcvb_arena_main.night_mode_active and (HI("xcvb_endless_started") or is_endless_mode or HI("xcvb_tournament_started")) then
+        sync_device_timer = tg_cur + 1000
+        if xcvb_arena_main and xcvb_arena_main.night_mode_active and (endless_active or tournament_active) then
             pcall(sync_night_mode_device_from_actor)
         end
     end
 
-    if HI("xcvb_tournament_started") then
+    -- Everything below performs AI, squad and relationship checks. Running it
+    -- five times per second is sufficient and avoids doing the same work every
+    -- rendered frame on high-refresh-rate systems.
+    if tg_cur < next_arena_logic_update then return end
+    next_arena_logic_update = tg_cur + 200
+
+    if tournament_active then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false and db.actor and db.actor:alive() then
             if db.actor.health <= 0.01 then
@@ -1557,8 +1656,17 @@ function actor_on_update()
         end
         
         local tg = time_global()
+        local is_forest = xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active()
+
+        -- Modulo Forest: Lógica táctica, avance, flanqueo y contención perimetral
+        if is_forest then
+            xcvb_arena_forest_ai.on_tick(tg, tournament_enemy_squad_id, nil)
+        end
+
         if tg > hit_timer then
-            hit_timer = tg + (xcvb_arena_main.night_mode_active and 250 or 2000)
+            local is_night = xcvb_arena_main.night_mode_active == true
+            hit_timer = tg + (is_night and NIGHT_VISION_INTERVAL_MS or 2000)
+            local vision_ctx = is_night and xcvb_arena_utils.build_night_vision_context() or nil
             if tournament_enemy_squad_id then
                 local squad = alife_object(tournament_enemy_squad_id)
                 if squad then
@@ -1571,10 +1679,9 @@ function actor_on_update()
                                         npc.bleeding = 0.5
                                     end
                                 end)
-                            elseif xcvb_arena_main.night_mode_active then
-                                xcvb_arena_utils.apply_realistic_night_vision(npc)
-                                xcvb_arena_utils.equip_and_enable_npc_torch(npc)
-                            elseif not has_live_enemy(npc) then
+                            elseif is_night then
+                                update_npc_night_state(npc, tg, vision_ctx)
+                            elseif not has_live_enemy(npc) and not is_forest then
                                 xcvb_arena_utils.scr_hit(db.actor, npc)
                             end
                         end
@@ -1584,7 +1691,7 @@ function actor_on_update()
         end
     end
 
-    if HI("xcvb_endless_started") or is_endless_mode then
+    if endless_active then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false and db.actor and db.actor:alive() then
             if db.actor.health <= 0.01 then
@@ -1593,16 +1700,28 @@ function actor_on_update()
         end
 
         local tg = time_global()
+        local is_forest = xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active()
+
+        -- Modulo Forest: Lógica táctica para Modo Supervivencia (Endless)
+        if is_forest then
+            xcvb_arena_forest_ai.on_tick(tg, nil, endless_enemy_squad_ids)
+        end
+
         if tg > hit_timer then
-            hit_timer = tg + (xcvb_arena_main.night_mode_active and 250 or 2000)
+            local is_night = (xcvb_arena_main.night_mode_active == true)
+            hit_timer = tg + (is_night and NIGHT_VISION_INTERVAL_MS or 2000)
+            local vision_ctx = is_night and xcvb_arena_utils.build_night_vision_context() or nil
             if endless_enemy_squad_ids then
                 for _, s_id in ipairs(endless_enemy_squad_ids) do
                     local squad = alife_object(s_id)
                     if squad then
                         squad.scripted_target = "actor"
                         squad.assigned_target_id = 0
-                        local is_night = (xcvb_arena_main.night_mode_active == true)
-                        squad.rush_to_target = not is_night
+                        -- Forest tiene su propio controlador táctico. No sobrescribirlo
+                        -- cada dos segundos, especialmente durante el sigilo nocturno.
+                        if not is_forest then
+                            squad.rush_to_target = not is_night
+                        end
                         for m in squad:squad_members() do
                             local npc = level.object_by_id(m.id)
                             if npc and npc:alive() then
@@ -1613,14 +1732,12 @@ function actor_on_update()
                                         end
                                     end)
                                 elseif is_night then
-                                    xcvb_arena_utils.apply_realistic_night_vision(npc)
-                                    xcvb_arena_utils.equip_and_enable_npc_torch(npc)
+                                    update_npc_night_state(npc, tg, vision_ctx)
                                 else
-                                    if not has_live_enemy(npc) then
+                                    if not has_live_enemy(npc) and not is_forest then
                                         xcvb_arena_utils.scr_hit(db.actor, npc)
                                     end
                                     xcvb_arena_utils.set_bloodsucker_enemy(npc, db.actor)
-                                    -- Wallhack removed: natural AI line-of-sight engagement only
                                     if IsStalker and IsStalker(npc) and npc.set_mental_state then
                                         pcall(function() npc:set_mental_state(anim.danger) end)
                                     end
@@ -1633,7 +1750,7 @@ function actor_on_update()
         end
     end
 
-    if HI("xcvb_arena_started") then
+    if spectator_active then
         if not spec_fight_ending and not spectator_fight_closed then
             local tg = time_global()
             if next_spectator_hint == 0 then
@@ -1681,7 +1798,7 @@ function actor_on_update()
         next_spectator_hint = 0
     end
     
-    if HI("xcvb_battle_royale_started") then
+    if battle_royale_active then
         if not battle_royale_ending and not battle_royale_closed then
             local tg = time_global()
             if next_br_hint == 0 then
@@ -1713,7 +1830,7 @@ function actor_on_update()
         if next(battle_royale_initialized_npcs) then reset_battle_royale_cache() end
     end
 
-    if HI("xcvb_tournament_started") and tourn_saved_actor_reputation then
+    if tournament_active and tourn_saved_actor_reputation then
         local cur_rep = db.actor:character_reputation()
         if cur_rep < tourn_saved_actor_reputation then
             db.actor:change_character_reputation(tourn_saved_actor_reputation - cur_rep)
@@ -1822,6 +1939,15 @@ function on_enemy_eval(npc, enemy, flags)
             flags.override = true
             flags.result = false
         end
+        return
+    end
+
+    -- This callback is invoked extremely often for every online NPC pair.
+    -- Leave immediately outside arena combat so the mod has near-zero AI cost
+    -- during normal freeplay.
+    if not (HI("xcvb_endless_started") or is_endless_mode
+        or HI("xcvb_tournament_started") or HI("xcvb_arena_started")
+        or HI("xcvb_battle_royale_started")) then
         return
     end
 
@@ -1941,6 +2067,11 @@ function npc_on_before_hit(npc, s_hit)
     if s_hit.type == hit.wound and (s_hit.power or 0) < 0.01 and is_npc_wounded(npc) then
         s_hit.power = 0
         return
+    end
+
+    -- In Forest mode: let dedicated forest AI handle contact alerts and assault lane convergence
+    if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() then
+        xcvb_arena_forest_ai.on_hit(npc, s_hit)
     end
 
     -- In active combat modes (Endless or Tournament), if player shoots a wounded enemy, ensure lethal damage
@@ -2307,6 +2438,7 @@ function load_state(m_data)
     tourn_ending, endless_ending, endless_transitioning = false, false, false
     spec_fight_ending, battle_royale_ending, is_medic_rescuing = false, false, false
     next_spectator_hint, next_br_hint, next_br_status, sync_device_timer, hit_timer = 0, 0, 0, 0, 0
+    night_light_refresh_at = {}
     reset_battle_royale_cache()
     battle_royale_announced_eliminations = {}
     battle_royale_last_status = ""
