@@ -1153,12 +1153,6 @@ function advance_endless_wave(resume_pending)
         end
     end -- On load the wave reward and checkpoint have already been recorded.
 
-    cont_fire_last_wpn_id = nil
-    cont_fire_was_firing = false
-    cont_fire_aim_trans = false
-    cont_fire_last_zoomed = false
-    cont_fire_retriggered = false
-
     CreateTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a", 1.0, function()
         if endless_ending or endless_fight_closed then return true end
         local msg_spawn = gt("st_arena_endless_enemies_spawning_3s")
@@ -1362,40 +1356,6 @@ local function has_live_enemy(npc)
     return is_alive
 end
 
---------------------------------------------------------------------------------
--- CONTINUOUS FIRE (Hip-fire to ADS and ADS to Hip-fire)
---------------------------------------------------------------------------------
-local cont_fire_last_wpn_id = nil
-local cont_fire_was_firing = false
-local cont_fire_aim_trans = false
-local cont_fire_last_zoomed = false
-local cont_fire_retriggered = false
-
-local function is_weapon_auto_mode(wpn)
-    if not wpn then return false end
-    local ok, fm = pcall(function()
-        if wpn.GetFireMode then return wpn:GetFireMode() end
-        local c = wpn.cast_Weapon and wpn:cast_Weapon()
-        if c and c.GetFireMode then return c:GetFireMode() end
-        return nil
-    end)
-    if ok and fm then
-        if fm == -1 or fm > 1 then
-            return true
-        elseif fm == 1 then
-            return false
-        end
-    end
-    local sec = wpn:section()
-    local modes = ini_sys:r_string_ex(sec, "fire_modes")
-    if modes then
-        if string.find(modes, "-1") and not (string.find(modes, "1,") or string.find(modes, ", 1") or modes == "1") then
-            return true
-        end
-    end
-    return false
-end
-
 function actor_on_hud_animation_play(anm_table, item)
     if not anm_table or not anm_table.anm_name then return end
     local anm = anm_table.anm_name
@@ -1440,140 +1400,6 @@ function actor_on_hud_animation_play(anm_table, item)
         end
     end
 
-    if string.find(anm, "aim_start") or string.find(anm, "aim_end") then
-        local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
-        local lmb_held = key_state(fire_dik) ~= 0
-        if lmb_held and cont_fire_was_firing then
-            if string.find(anm, "aim_start") then
-                anm_table.anm_name = string.find(anm, "empty") and "anm_idle_aim_empty" or "anm_idle_aim"
-            else
-                anm_table.anm_name = string.find(anm, "empty") and "anm_idle_empty" or "anm_idle"
-            end
-        end
-    end
-end
-
-function actor_on_weapon_zoom_in(wpn)
-    -- Weapon aim transitions are not scripted hand motions. Stopping a hand
-    -- motion here can use the engine's inactive part (255) or cancel another mod.
-    cont_fire_aim_trans = true
-    local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
-    if key_state(fire_dik) ~= 0 and cont_fire_was_firing and wpn and IsWeapon(wpn) then
-        level.release_action(fire_dik)
-        level.press_action(fire_dik)
-        pcall(function() wpn:switch_state(5) end)
-    end
-end
-
-function actor_on_weapon_zoom_out(wpn)
-    cont_fire_aim_trans = true
-    local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
-    if key_state(fire_dik) ~= 0 and cont_fire_was_firing and wpn and IsWeapon(wpn) then
-        level.release_action(fire_dik)
-        level.press_action(fire_dik)
-        pcall(function() wpn:switch_state(5) end)
-    end
-end
-
-local function continuous_fire_on_update()
-    if not db.actor or not db.actor:alive() then
-        cont_fire_was_firing = false
-        cont_fire_aim_trans = false
-        cont_fire_retriggered = false
-        return
-    end
-
-    -- Skip if UI / inventory / PDA is open
-    if (actor_menu and actor_menu.last_mode ~= 0)
-        or (pda and pda.dialog_closed == false)
-        or (Check_UI and Check_UI())
-        or db.actor:has_info("ui_pda") then
-        cont_fire_was_firing = false
-        cont_fire_aim_trans = false
-        cont_fire_retriggered = false
-        return
-    end
-
-    local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
-    local lmb_held = key_state(fire_dik) ~= 0
-
-    if not lmb_held then
-        cont_fire_was_firing = false
-        cont_fire_aim_trans = false
-        cont_fire_retriggered = false
-        return
-    end
-
-    local wpn = db.actor:active_item()
-    if not wpn or not IsWeapon(wpn) then
-        cont_fire_was_firing = false
-        cont_fire_aim_trans = false
-        cont_fire_retriggered = false
-        return
-    end
-
-    local wpn_id = wpn:id()
-    if wpn_id ~= cont_fire_last_wpn_id then
-        cont_fire_last_wpn_id = wpn_id
-        cont_fire_was_firing = false
-        cont_fire_aim_trans = false
-        cont_fire_retriggered = false
-    end
-
-    local kind = ini_sys:r_string_ex(wpn:section(), "kind")
-    if kind == "w_melee" or kind == "w_misc" then
-        return
-    end
-
-    local state = wpn:get_state()
-    local is_zoomed = (axr_main and axr_main.weapon_is_zoomed) or false
-
-    if is_zoomed ~= cont_fire_last_zoomed then
-        cont_fire_aim_trans = true
-        cont_fire_last_zoomed = is_zoomed
-    end
-
-    if state == 5 then -- eFire
-        cont_fire_was_firing = true
-        cont_fire_retriggered = false
-    end
-
-    -- Seamlessly continue firing when weapon becomes idle during aim transitions
-    if lmb_held and (state == 0 or state == 11 or state == 12) then
-        local ammo = wpn:get_ammo_in_magazine()
-        
--- Verificación segura de encasquillamiento (Soporta Vanilla + Arti's Jamming)
-		local is_jammed = (wpn:get_state() == 7) -- 7 representa 'eMisfire' en Vanilla
-		if rawget(_G, "arti_jamming") then
-			if type(_G.arti_jamming.get_jammed) == "function" then
-				local ok, res = pcall(_G.arti_jamming.get_jammed, wpn:id())
-				if ok and res then is_jammed = true end
-			elseif type(_G.arti_jamming.check_unjam) == "function" then
-				local ok, res = pcall(_G.arti_jamming.check_unjam, wpn)
-				if ok and res then is_jammed = true end
-			end
-		end
-        
-        local is_lowered = (game.actor_weapon_lowered and game.actor_weapon_lowered()) or false
-
-        if ammo > 0 and not is_jammed and not is_lowered then
-            local is_auto = is_weapon_auto_mode(wpn)
-            if is_auto and cont_fire_was_firing then
-                level.release_action(fire_dik)
-                level.press_action(fire_dik)
-                pcall(function() wpn:switch_state(5) end)
-            elseif cont_fire_aim_trans and not cont_fire_retriggered then
-                cont_fire_retriggered = true
-                cont_fire_aim_trans = false
-                level.release_action(fire_dik)
-                level.press_action(fire_dik)
-                pcall(function() wpn:switch_state(5) end)
-            end
-        else
-            cont_fire_was_firing = false
-            cont_fire_aim_trans = false
-        end
-    end
 end
 
 local ending_state_start = 0
@@ -1631,8 +1457,6 @@ function actor_on_update()
     else
         ending_state_start = 0
     end
-
-    continuous_fire_on_update()
 
     if tg_cur > sync_device_timer then
         sync_device_timer = tg_cur + 1000
@@ -1840,13 +1664,6 @@ end
 
 function on_before_key_press(key, bind, dis, flags)
 	local cur_bind = bind or dik_to_bind(key)
-	if cur_bind == key_bindings.kWPN_ZOOM or dik_to_bind(key) == key_bindings.kWPN_ZOOM then
-		local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
-		if key_state(fire_dik) ~= 0 then
-			cont_fire_aim_trans = true
-		end
-	end
-
 	local panic_key = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("panic_key")) or DIK_keys.DIK_F
 
 	if HI("xcvb_tournament_started") then
@@ -1921,16 +1738,6 @@ function on_before_key_press(key, bind, dis, flags)
 		return
 	end
 	flags.ret_value = false
-end
-
-function on_key_release(key)
-	local cur_bind = dik_to_bind(key)
-	if cur_bind == key_bindings.kWPN_ZOOM then
-		local fire_dik = bind_to_dik(key_bindings.kWPN_FIRE)
-		if key_state(fire_dik) ~= 0 then
-			cont_fire_aim_trans = true
-		end
-	end
 end
 
 function on_enemy_eval(npc, enemy, flags)
@@ -2561,9 +2368,6 @@ function on_game_start()
     RegisterScriptCallback("npc_on_before_hit", npc_on_before_hit)
     RegisterScriptCallback("actor_on_before_hit", actor_on_before_hit)
     RegisterScriptCallback("on_before_key_press", on_before_key_press)
-    RegisterScriptCallback("on_key_release", on_key_release)
-    RegisterScriptCallback("actor_on_weapon_zoom_in", actor_on_weapon_zoom_in)
-    RegisterScriptCallback("actor_on_weapon_zoom_out", actor_on_weapon_zoom_out)
     RegisterScriptCallback("actor_on_hud_animation_play", actor_on_hud_animation_play)
     RegisterScriptCallback("save_state", save_state)
     RegisterScriptCallback("load_state", load_state)
