@@ -953,15 +953,8 @@ local function init_arena_main_t()
 end
 
 local next_board_check = 0
-local next_lighting_scope_check = 0
 function actor_on_update()
 	local tg = time_global()
-	if tg > next_lighting_scope_check then
-		next_lighting_scope_check = tg + 250
-		if xcvb_arena_utils and xcvb_arena_utils.lighting_scope_watchdog then
-			pcall(xcvb_arena_utils.lighting_scope_watchdog)
-		end
-	end
 	if tg > next_board_check then
 		-- If an object cannot be created, both checks fall back to 65k-ID ALife
 		-- sweeps. Reintentar una vez por minuto evita picos periodicos si otro mod

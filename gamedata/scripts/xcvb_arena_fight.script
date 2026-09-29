@@ -292,6 +292,15 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
         pcall(xcvb_arena_utils.ensure_weapon_raised)
     end
+    if xcvb_arena_main.night_mode_active then
+        pcall(xcvb_arena_utils.enter_arena_night_mode)
+        CreateTimeEvent("arena_torch_verify_e", "arena_torch_verify_a", 1.2, function()
+            pcall(xcvb_arena_utils.ensure_actor_torch_active)
+            return true
+        end)
+    else
+        pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
+    end
     current_tournament_category = category or "stalker"
     current_tournament_round_id = round_id
 
@@ -306,15 +315,6 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
 
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_tournament_pos()
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
-    if xcvb_arena_main.night_mode_active then
-        pcall(xcvb_arena_utils.enter_arena_night_mode)
-        CreateTimeEvent("arena_torch_verify_e", "arena_torch_verify_a", 1.2, function()
-            pcall(xcvb_arena_utils.ensure_actor_torch_active)
-            return true
-        end)
-    else
-        pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
-    end
     db.actor:set_actor_direction(0) 
 
     if random_eq ~= false then
@@ -514,13 +514,13 @@ function start_arena_fight(bout_idx)
     local main_t = xcvb_arena_main.arena_main_t[b_idx]
     if not main_t or not main_t.team1 or #main_t.team1 == 0 or not main_t.team2 or #main_t.team2 == 0 then return end
     
-    local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
-    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     if xcvb_arena_main.night_mode_active then
         pcall(xcvb_arena_utils.enter_arena_night_mode)
     else
         pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
+    local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
+    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     local arena_center = vector():set(152.0, -20.0, 105.0)
     local look_dir = vector():sub(arena_center, ac_pos)
     db.actor:set_actor_direction(-look_dir:getH())
@@ -790,13 +790,13 @@ function start_battle_royale_fight(br_data)
     battle_royale_bet_team = br_data.bet_team or 0
     battle_royale_reward = br_data.reward or 0
 
-    local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
-    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     if xcvb_arena_main.night_mode_active then
         pcall(xcvb_arena_utils.enter_arena_night_mode)
     else
         pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
+    local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
+    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     local arena_center = vector():set(152.0, -20.0, 105.0)
     local look_dir = vector():sub(arena_center, ac_pos)
     db.actor:set_actor_direction(-look_dir:getH())
@@ -1031,8 +1031,6 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
         pcall(xcvb_arena_utils.ensure_weapon_raised)
     end
-    local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_tournament_pos()
-    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     if xcvb_arena_main.night_mode_active then
         pcall(xcvb_arena_utils.enter_arena_night_mode)
         CreateTimeEvent("arena_torch_verify_e", "arena_torch_verify_a", 1.2, function()
@@ -1042,6 +1040,9 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     else
         pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
+
+    local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_tournament_pos()
+    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     db.actor:set_actor_direction(0)
 
     CreateTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a", 0.3, function()
