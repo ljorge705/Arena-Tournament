@@ -364,23 +364,47 @@ local function on_save_state(m_data)
 end
 
 local function on_load_state(m_data)
-    if not m_data.xcvb_arena_night then return end
-    is_night_active = (m_data.xcvb_arena_night.active == true)
-    saved_time_hours = m_data.xcvb_arena_night.saved_h
-    saved_time_mins  = m_data.xcvb_arena_night.saved_m
-    if type(m_data.xcvb_arena_night.saved_cvars) == "table" then
+    -- This legacy module used to reapply global cvars and lamp state on every
+    -- loaded level.  Discard that obsolete persisted state; the current arena
+    -- controller owns night-mode persistence and restoration.
+    if m_data and m_data.xcvb_arena_night
+        and type(m_data.xcvb_arena_night.saved_cvars) == "table" then
         saved_cvars = m_data.xcvb_arena_night.saved_cvars
+        pcall(restore_saved_cvars)
     end
-    if type(m_data.xcvb_arena_night.turned_off_lamps) == "table" then
-        turned_off_lamps = m_data.xcvb_arena_night.turned_off_lamps
-    end
+    is_night_active = false
+    saved_time_hours = nil
+    saved_time_mins = nil
+    saved_cvars = {}
+    turned_off_lamps = {}
+    pcall(function() RemoveTimeEvent("xcvb_night_load_reapply_e", "xcvb_night_load_reapply_a") end)
+end
 
-    if is_night_active then
-        CreateTimeEvent("xcvb_night_load_reapply_e", "xcvb_night_load_reapply_a", 1.0, function()
-            turn_off_arena_lamps()
-            return true
-        end)
+-- Keep compatibility for third-party bindings, but never run the old global
+-- renderer/time/lamp implementation.
+function enable()
+    if not (xcvb_arena_main and xcvb_arena_main.night_mode_active
+        and xcvb_arena_utils and xcvb_arena_utils.is_actor_in_arena_lighting_volume
+        and xcvb_arena_utils.is_actor_in_arena_lighting_volume()) then
+        is_night_active = false
+        return false
     end
+    pcall(xcvb_arena_utils.enter_arena_night_mode)
+    is_night_active = true
+    return true
+end
+
+function disable()
+    if xcvb_arena_utils and xcvb_arena_utils.exit_arena_night_mode then
+        pcall(xcvb_arena_utils.exit_arena_night_mode)
+    end
+    is_night_active = false
+    saved_time_hours = nil
+    saved_time_mins = nil
+    saved_cvars = {}
+    turned_off_lamps = {}
+    pcall(function() RemoveTimeEvent("xcvb_night_lamps_recheck_e", "xcvb_night_lamps_recheck_a") end)
+    return true
 end
 
 function on_game_start()

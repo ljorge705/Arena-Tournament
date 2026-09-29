@@ -1280,6 +1280,29 @@ local VIDEO_RENDER_COMMANDS
 local get_console_val
 local gamma_modpack_cache = nil
 
+-- Renderer/weather cvars are global to the whole level.  Never apply the
+-- underground arena profile while the actor is on the Rostok surface (or in a
+-- different level), even if a stale fight info portion still exists.
+function is_actor_in_arena_lighting_volume()
+    if not (db.actor and level and level.name and level.name() == "l05_bar") then
+        return false
+    end
+
+    local ok, pos = pcall(function() return db.actor:position() end)
+    if not ok or not pos or pos.y > -8.0 then return false end
+
+    local in_forest = pos.x >= 80 and pos.x <= 135
+        and pos.z >= 60 and pos.z <= 145
+    local in_original_arena = pos.x >= 132 and pos.x <= 188
+        and pos.z >= 15 and pos.z <= 155
+    return in_forest or in_original_arena
+end
+
+local function cancel_combat_ambient_refresh_events()
+    pcall(function() RemoveTimeEvent("arena_daylight_refresh_e", "arena_daylight_refresh_075") end)
+    pcall(function() RemoveTimeEvent("arena_daylight_refresh_e", "arena_daylight_refresh_200") end)
+end
+
 local function is_gamma_modpack()
     if gamma_modpack_cache ~= nil then return gamma_modpack_cache end
     gamma_modpack_cache = false
@@ -1298,6 +1321,7 @@ end
 function apply_combat_ambient_lighting(enable)
     if enable then
         if xcvb_arena_main and xcvb_arena_main.night_mode_active then return end
+        if not is_actor_in_arena_lighting_volume() then return end
         if not xcvb_arena_main.combat_ambient_saved then
             local orig = {}
             for _, cmd in ipairs(VIDEO_RENDER_COMMANDS) do
@@ -1335,6 +1359,7 @@ function apply_combat_ambient_lighting(enable)
             xcvb_arena_main.combat_ambient_weather_paused = true
         end
     else
+        cancel_combat_ambient_refresh_events()
         if xcvb_arena_main and xcvb_arena_main.combat_ambient_saved then
             local saved = xcvb_arena_main.combat_ambient_saved
             for cmd, val in pairs(saved) do
@@ -1367,17 +1392,21 @@ end
 function refresh_combat_ambient_lighting()
     if xcvb_arena_main and xcvb_arena_main.night_mode_active then return end
 
-    -- Applying once before set_actor_position is not enough in Anomaly/GAMMA:
-    -- the weather manager can rewrite these values during the next frames.
+    cancel_combat_ambient_refresh_events()
+
+    -- The weather manager can rewrite these values during the next frames, so
+    -- revalidate both delayed passes against the underground arena volume.
     pcall(apply_combat_ambient_lighting, true)
     CreateTimeEvent("arena_daylight_refresh_e", "arena_daylight_refresh_075", 0.75, function()
-        if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then
+        if not (xcvb_arena_main and xcvb_arena_main.night_mode_active)
+            and is_actor_in_arena_lighting_volume() then
             pcall(apply_combat_ambient_lighting, true)
         end
         return true
     end)
     CreateTimeEvent("arena_daylight_refresh_e", "arena_daylight_refresh_200", 2.0, function()
-        if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then
+        if not (xcvb_arena_main and xcvb_arena_main.night_mode_active)
+            and is_actor_in_arena_lighting_volume() then
             pcall(apply_combat_ambient_lighting, true)
         end
         return true
@@ -1385,6 +1414,7 @@ function refresh_combat_ambient_lighting()
 end
 
 local cached_arena_lamp_ids = {}
+local cached_arena_lamp_level = nil
 
 local function set_cached_arena_lamps(turn_on)
     local applied = 0
@@ -1394,8 +1424,14 @@ local function set_cached_arena_lamps(turn_on)
             pcall(function()
                 local lamp = obj:get_hanging_lamp()
                 if lamp then
-                    if turn_on then lamp:turn_on() else lamp:turn_off() end
-                    applied = applied + 1
+                    local pos = obj:position()
+                    local still_in_arena = pos and pos.x >= 75 and pos.x <= 185
+                        and pos.z >= 60 and pos.z <= 150
+                        and pos.y >= -30 and pos.y <= -5
+                    if still_in_arena then
+                        if turn_on then lamp:turn_on() else lamp:turn_off() end
+                        applied = applied + 1
+                    end
                 end
             end)
         end
@@ -1404,6 +1440,14 @@ local function set_cached_arena_lamps(turn_on)
 end
 
 function toggle_arena_lights(turn_on)
+    local current_level = nil
+    pcall(function() current_level = level.name() end)
+    if current_level ~= "l05_bar" then return end
+    if cached_arena_lamp_level ~= current_level then
+        cached_arena_lamp_ids = {}
+        cached_arena_lamp_level = current_level
+    end
+
     -- Enter scans once and caches the handful of arena lamps. Exit and later
     -- toggles no longer traverse all 65k object IDs, avoiding a visible hitch.
     if #cached_arena_lamp_ids > 0 and set_cached_arena_lamps(turn_on) > 0 then
@@ -1414,7 +1458,9 @@ function toggle_arena_lights(turn_on)
     -- Arena 3D volume bounding box (covers both forest sector X:75-125 and main arena X:120-185, floor y=-26 to y=25)
     local x_min, x_max = 75, 185
     local z_min, z_max = 60, 150
-    local y_min, y_max = -26, 25
+    -- Both arenas are underground.  The previous y_max=25 also selected
+    -- surface Rostok lamps in the same X/Z rectangle.
+    local y_min, y_max = -30, -5
 
     local count = 0
     for id = 1, 65534 do
@@ -1443,7 +1489,7 @@ function toggle_arena_lights(turn_on)
                             or string.find(name, "arena_light_")
                             or (string.find(name, "bar_lights_hanging_lamp_") and pos.z >= z_min)
 
-                        if in_arena_box or (is_arena_named and pos.z >= 60) then
+                        if in_arena_box and (is_arena_named or pos.y <= y_max) then
                             if turn_on then
                                 lamp:turn_on()
                             else
@@ -1468,7 +1514,9 @@ function toggle_arena_lights(turn_on)
                     local proj = obj:get_projector()
                     if proj then
                         local pos = obj:position()
-                        if pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max then
+                        if pos.x >= x_min and pos.x <= x_max
+                            and pos.z >= z_min and pos.z <= z_max
+                            and pos.y >= y_min and pos.y <= y_max then
                             proj:Action(CProjector.eSwitch, turn_on and 1 or 0, "")
                         end
                     end
@@ -1595,6 +1643,7 @@ end
 
 function apply_night_mode_lighting(enable)
     if enable then
+        if not is_actor_in_arena_lighting_volume() then return end
         -- 1. Save original render settings if not already saved
         if not xcvb_arena_main.night_mode_saved_render then
             -- Save file-level backup in appdata/arena_night_backup.ltx
@@ -2649,6 +2698,7 @@ end
 
 function enter_arena_night_mode()
     if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then return end
+    if not is_actor_in_arena_lighting_volume() then return end
     night_mode_combat_running = true
     -- Object ids can be reused between rounds; never inherit a previous NPC's
     -- light throttle when a new wave enters the arena.
@@ -2671,13 +2721,18 @@ function enter_arena_night_mode()
 end
 
 function exit_arena_night_mode()
+    cancel_combat_ambient_refresh_events()
     -- Always clear any combat ambient boost
     pcall(apply_combat_ambient_lighting, false)
 
     if not night_mode_combat_running then
         -- Daytime fights and first update have no night settings to restore.
         if not xcvb_arena_main.night_mode_saved_render then return end
-        toggle_arena_lights(true)
+        pcall(function()
+            if level and level.name and level.name() == "l05_bar" then
+                toggle_arena_lights(true)
+            end
+        end)
         apply_night_mode_lighting(false)
         return
     end
@@ -2687,7 +2742,11 @@ function exit_arena_night_mode()
     turn_off_actor_nightvision()
 
     -- 2. Turn arena lights back on
-    toggle_arena_lights(true)
+    pcall(function()
+        if level and level.name and level.name() == "l05_bar" then
+            toggle_arena_lights(true)
+        end
+    end)
 
     -- 3. Restore original daytime lighting & weather
     apply_night_mode_lighting(false)
@@ -2695,6 +2754,19 @@ function exit_arena_night_mode()
     -- 4. Clear NPC night gear cache
     npc_night_gear = {}
     npc_light_check_at = {}
+end
+
+-- Renderer and weather settings are global to the loaded level. Restore them
+-- immediately if a round is interrupted or the actor leaves the underground
+-- arena volumes without passing through a normal fight-ending path.
+function lighting_scope_watchdog()
+    if not xcvb_arena_main then return end
+    local owns_lighting = xcvb_arena_main.combat_ambient_saved ~= nil
+        or xcvb_arena_main.night_mode_saved_render ~= nil
+        or night_mode_combat_running == true
+    if owns_lighting and not is_actor_in_arena_lighting_volume() then
+        exit_arena_night_mode()
+    end
 end
 
 function setup_tournament_squad_aggro(squad_id)
@@ -4278,6 +4350,7 @@ function cancel_inventory_events()
 end
 
 function cancel_all_arena_events()
+    cancel_combat_ambient_refresh_events()
     cancel_inventory_events()
     inventory_restore_pending = false
 end

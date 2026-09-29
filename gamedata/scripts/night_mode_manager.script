@@ -533,6 +533,39 @@ night_mode_manager.turn_off_lamps       = turn_off_lamps
 night_mode_manager.nerf_npc_vision      = nerf_npc_vision
 night_mode_manager.restore_npc_vision   = restore_npc_vision
 
+-- Compatibility shim for old console bindings.  The former standalone manager
+-- changed weather and every lamp in whatever level was loaded.  Route legacy
+-- requests through the arena-scoped implementation instead.
+local function arena_night_scope_is_valid()
+  return xcvb_arena_main ~= nil
+    and xcvb_arena_main.night_mode_active == true
+    and xcvb_arena_utils ~= nil
+    and xcvb_arena_utils.is_actor_in_arena_lighting_volume ~= nil
+    and xcvb_arena_utils.is_actor_in_arena_lighting_volume()
+end
+
+night_mode_manager.enable = function(opts)
+  if not arena_night_scope_is_valid() then
+    is_enabled = false
+    pending_time_jump = false
+    return false
+  end
+  pcall(xcvb_arena_utils.enter_arena_night_mode)
+  is_enabled = true
+  pending_time_jump = false
+  return true
+end
+
+night_mode_manager.disable = function()
+  if xcvb_arena_utils and xcvb_arena_utils.exit_arena_night_mode then
+    pcall(xcvb_arena_utils.exit_arena_night_mode)
+  end
+  is_enabled = false
+  pending_time_jump = false
+  saved_cvars = {}
+  return true
+end
+
 -- Aliases globales legacy (los que usan los bindings de teclado / xr_effects)
 function enable_night_mode(opts)  return night_mode_manager.enable(opts) end
 function disable_night_mode()     return night_mode_manager.disable() end
@@ -576,17 +609,16 @@ function on_game_start()
   pcall(function()
     RegisterScriptCallback("actor_on_first_update", function()
       if is_enabled == true then
-        if pending_time_jump == true then
+        if arena_night_scope_is_valid() then
+          pcall(xcvb_arena_utils.enter_arena_night_mode)
+        else
+          -- Migrate saves made with the obsolete global mode without touching
+          -- the lighting or lamps of the newly loaded level.
+          pcall(restore_saved_cvars)
+          is_enabled = false
           pending_time_jump = false
-          local stats = capture_actor_stats()
-          jump_to_0230()
-          schedule_stats_restore(stats)
+          saved_cvars = {}
         end
-        CreateTimeEvent("night_mode_vision_e", "night_mode_vision_a", 1.0, function()
-          nerf_npc_vision()
-          turn_off_lamps()
-          return true
-        end)
       end
       pcall(function()
         if _G.night_mode_ui_refresh ~= nil then night_mode_ui_refresh() end
