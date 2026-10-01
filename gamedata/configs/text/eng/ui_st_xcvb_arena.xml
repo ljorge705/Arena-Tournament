@@ -1333,7 +1333,7 @@
 		<text>Cost: %d RU</text>
 	</string>
 	<string id="st_arena_companion_active_title">
-		<text>ï¿½ YOUR COMPANIONS ï¿½</text>
+		<text>[ YOUR COMPANIONS ]</text>
 	</string>
 	<string id="st_arena_companion_btn_hire">
 		<text>HIRE</text>
@@ -1836,6 +1836,24 @@
 	</string>
 	<string id="ui_mcm_xcvb_arena_rank_gating_desc">
 		<text>Require appropriate stalker rank (Rookie, Veteran, Legend) to unlock higher tournament tiers.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval">
+		<text>Endless Map Rotation Interval</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval_desc">
+		<text>Rotates the combat map between Arena and Forest every X cleared waves (0 = disabled).</text>
+	</string>
+	<string id="st_arena_endless_swap_to_forest">
+		<text>WAVE %s - SECTOR ROTATION: FOREST! Enemies will attack through the woods.</text>
+	</string>
+	<string id="st_arena_endless_swap_to_arena">
+		<text>WAVE %s - SECTOR ROTATION: ARENA! Returning to the closed combat arena.</text>
+	</string>
+	<string id="st_arena_map_forest_short">
+		<text>FOREST</text>
+	</string>
+	<string id="st_arena_forced_forest_desc">
+		<text>Mandatory Location: Forest Arena.</text>
 	</string>
 </string_table>
 

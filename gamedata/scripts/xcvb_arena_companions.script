@@ -681,6 +681,63 @@ end
 -- SAVE / LOAD
 -- ─────────────────────────────────────────────────────────────────────────────
 
+
+function relocate_companions_to_actor()
+    if not db.actor then return end
+    local ap = db.actor:position()
+    if not ap then return end
+    local gvid = db.actor:game_vertex_id()
+    local is_forest = xcvb_arena_utils and xcvb_arena_utils.forest_arena_selected and xcvb_arena_utils.forest_arena_selected()
+
+    local idx = 0
+    for _, comp_data in ipairs(active_companions) do
+        local npc_id = comp_data.npc_id
+        local npc = npc_id and level.object_by_id(npc_id)
+        local se_npc = npc_id and alife_object(npc_id)
+        if se_npc and (not npc or npc:alive()) then
+            idx = idx + 1
+            local dir_z = (ap.z < 105.0) and 1 or -1
+            local offset_x = (idx % 2 == 1) and (1.6 * idx) or (-1.6 * idx)
+            local offset_z = dir_z * (2.0 + (idx * 0.4))
+
+            local min_x, max_x, min_z, max_z
+            if is_forest and xcvb_arena_forest_config then
+                local b = xcvb_arena_forest_config.BOUNDS
+                min_x = b.min_x
+                max_x = b.corridor_safe_x_max
+                min_z = b.min_z
+                max_z = b.max_z
+            else
+                min_x = 146.0
+                max_x = 157.0
+                min_z = 84.0
+                max_z = 126.0
+            end
+            local target_x = math.max(min_x, math.min(max_x, ap.x + offset_x))
+            local target_z = math.max(min_z, math.min(max_z, ap.z + offset_z))
+            local target_pos = vector():set(target_x, ap.y, target_z)
+            local target_lvid = nil
+            if level and level.vertex_id then
+                local vid = level.vertex_id(target_pos)
+                if vid and vid > 0 and vid < 2^32 - 1 then
+                    target_lvid = vid
+                end
+            end
+            if not target_lvid then
+                target_lvid = db.actor:level_vertex_id()
+            end
+
+            se_npc.position = vector():set(target_pos.x, target_pos.y, target_pos.z)
+            se_npc.m_level_vertex_id = target_lvid
+            se_npc.m_game_vertex_id = gvid
+            if npc then
+                pcall(npc.set_npc_position, npc, target_pos)
+                pcall(function() npc:set_dest_level_vertex_id(target_lvid) end)
+            end
+        end
+    end
+end
+
 function save_state(m_data)
     local saved = {}
     for _, entry in ipairs(active_companions) do

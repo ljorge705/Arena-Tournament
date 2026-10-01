@@ -1004,7 +1004,7 @@
 		<text>Базовая награда зависит от сложности: Легко (800 RU), Средне (1,400 RU), Сложно (2,000 RU) + бонус за волну</text>
 	</string>
 	<string id="st_arena_endless_stats_reward_tokens">
-		<text>Р‘Р°Р·РѕРІР°СЏ РЅР°РіСЂР°РґР°: Р›РµРіРєРѕ (8 Р–РµС‚РѕРЅРѕРІ), РЎСЂРµРґРЅРµ (14 Р–РµС‚РѕРЅРѕРІ), РЎР»РѕР¶РЅРѕ (20 Р–РµС‚РѕРЅРѕРІ) + Р±РѕРЅСѓСЃ Р·Р° РІРѕР»РЅСѓ</text>
+		<text>Базовая награда: Легко (8 Жетонов), Средне (14 Жетонов), Сложно (20 Жетонов) + бонус за волну</text>
 	</string>
 	<string id="st_arena_endless_type_title">
 		<text>ТИП ВРАГОВ:</text>
@@ -1031,7 +1031,7 @@
 		<text>ВОЛНА %s ПРОЙДЕНА! Накопленная награда: %s RU. Готовим следующую волну...</text>
 	</string>
 	<string id="st_arena_endless_wave_cleared_tokens">
-		<text>Р’РћР›РќРђ s РџР РћР™Р”Р•РќРђ! РќР°РєРѕРїР»РµРЅРѕ: s Р–РµС‚РѕРЅРѕРІ РђСЂРµРЅС‹. Р“РѕС‚РѕРІРёС‚СЃСЏ СЃР»РµРґСѓСЋС‰Р°СЏ РІРѕР»РЅР°...</text>
+		<text>ВОЛНА %s ПРОЙДЕНА! Накоплено: %s Жетонов Арены. Готовится следующая волна...</text>
 	</string>
 	<string id="st_arena_endless_exit_tip">
 		<text>Вы покинули Арену. Пройдено волн: %s. Получено награды: %s RU.</text>
@@ -1265,17 +1265,18 @@
 		<text>Элитные противники (мастера, легенды, «Монолит» и ветераны) экипируют ПНВ и НЕ включают фонари.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_arena_light_mult">
-		<text>?zN????µN‰?µ?????µ - ???????°N€ ??N€?µ??N‹</text>
+		<text>Освещение - Ангар Арены</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_arena_light_mult_desc">
-		<text>???????¶??N‚?µ?»N? ????N€N??¶?°NZN‰?µ???? ??N????µN‰?µ????N? ?? ?°?????°N€?µ ???±N‹N‡?????? ?°N€?µ??N‹ (???? N??????»N‡?°????NZ: 2.8).</text>
+		<text>Множитель окружающего освещения в ангаре обычной арены (по умолчанию: 2.8).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_forest_light_mult">
-		<text>?zN????µN‰?µ?????µ - ?›?µN????°N? ??N€?µ???°</text>
+		<text>Освещение - Лесная Арена</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_forest_light_mult_desc">
-		<text>???????¶??N‚?µ?»N? ????N€N??¶?°NZN‰?µ???? ??N????µN‰?µ????N? ???° ???°N€N‚?µ ?›?µN??????? ??N€?µ??N‹ (???? N??????»N‡?°????NZ: 1.4).</text>
-	</string>	<string id="st_arena_loadout_mag_title">
+		<text>Множитель окружающего освещения на карте Лесной Арены (по умолчанию: 1.4).</text>
+	</string>
+	<string id="st_arena_loadout_mag_title">
 		<text>МАГАЗИН</text>
 	</string>
 	<string id="st_arena_loadout_mag_none">
@@ -1580,72 +1581,72 @@
 	</string>
 <!-- Arena Tokens & Store System -->
 	<string id="st_arena_btn_shop">
-		<text>ARENA STORE</text>
+		<text>МАГАЗИН АРЕНЫ</text>
 	</string>
 	<string id="st_arena_tokens_header_label">
-		<text>Tokens: %d Pts</text>
+		<text>Жетоны: %d оч.</text>
 	</string>
 	<string id="st_arena_reward_tokens">
-		<text>Arena victory! You received %d Arena Tokens.</text>
+		<text>Победа на Арене! Вы получили %d жетонов Арены.</text>
 	</string>
 	<string id="st_arena_reward_tokens_fmt">
-		<text>%d Arena Tokens</text>
+		<text>%d жетонов Арены</text>
 	</string>
 	<string id="st_arena_endless_exit_tip_tokens">
-		<text>Endless Run Ended (%d Waves). You earned %d Arena Tokens!</text>
+		<text>Забег в Endless завершен (%d волн). Вы заработали %d жетонов Арены!</text>
 	</string>
 	<string id="st_arena_voucher_rental_used">
-		<text>Free Equipment Rental Voucher applied! (0 RU charged)</text>
+		<text>Применен талон бесплатной аренды! (Списано 0 RU)</text>
 	</string>
 	<string id="st_arena_voucher_medic_used">
-		<text>Arena Medical Rescue Voucher applied! No rescue fee was charged.</text>
+		<text>Применен медицинский талон! Плата за спасение не взималась.</text>
 	</string>
 	<string id="st_arena_medic_rescue_voucher">
-		<text>The arena medic patched you up using your Medical Rescue Voucher (0 RU fee).</text>
+		<text>Медик арены оказал помощь по медицинскому талону (0 RU).</text>
 	</string>
 	<string id="st_arena_companion_err_tokens">
-		<text>Not enough Arena Tokens to hire this companion (Requires %d Tokens).</text>
+		<text>Недостаточно жетонов Арены для найма (требуется %d жетонов).</text>
 	</string>
 	<string id="st_arena_companion_cost_tokens_fmt">
-		<text>%d Tokens</text>
+		<text>%d жетонов</text>
 	</string>
 	<string id="st_arena_companion_arena_money">
-		<text>Arena Tokens: %d Pts</text>
+		<text>Жетоны Арены: %d оч.</text>
 	</string>
 
 	<!-- Arena Shop Strings -->
 	<string id="st_arena_shop_title">
-		<text>ARENA STORE &amp; EXCHANGE</text>
+		<text>МАГАЗИН И ОБМЕН АРЕНЫ</text>
 	</string>
 	<string id="st_arena_shop_tokens_fmt">
-		<text>Arena Tokens: %d Pts</text>
+		<text>Жетоны: %d оч.</text>
 	</string>
 	<string id="st_arena_shop_money_fmt">
-		<text>Cash: %d RU</text>
+		<text>Деньги: %d RU</text>
 	</string>
 	<string id="st_arena_shop_daily_cashout_fmt">
-		<text>Arnie's Daily Cashout Remaining: %d / %d RU</text>
+		<text>Дневной лимит обналичивания Арни: %d / %d RU</text>
 	</string>
 	<string id="st_arena_shop_tab_rubles">
-		<text>Rubles</text>
+		<text>Рубли</text>
 	</string>
 	<string id="st_arena_shop_tab_medical">
-		<text>Medicine</text>
+		<text>Медикаменты</text>
 	</string>
 	<string id="st_arena_shop_tab_ammo">
-		<text>Ammunition</text>
+		<text>Боеприпасы</text>
 	</string>
 	<string id="st_arena_shop_tab_services">
-		<text>Services</text>
+		<text>Услуги</text>
 	</string>
 	<string id="st_arena_shop_btn_buy">
-		<text>Purchase</text>
+		<text>Купить</text>
 	</string>
 	<string id="st_arena_shop_btn_no_tokens">
-		<text>Need Tokens</text>
+		<text>Мало жетонов</text>
 	</string>
 	<string id="st_arena_shop_btn_limit_reached">
-		<text>Limit Reached</text>
+		<text>Лимит исчерпан</text>
 	</string>
 	<string id="st_arena_shop_btn_rank_locked">
 		<text>Ранг: %s</text>
@@ -1654,170 +1655,170 @@
 		<text>Недостаточный ранг: Для покупки требуется ранг %s.</text>
 	</string>
 	<string id="st_arena_shop_btn_companions">
-		<text>HIRE GLADIATORS</text>
+		<text>НАЙТИ ГЛАДИАТОРОВ</text>
 	</string>
 	<string id="st_arena_shop_cost_fmt">
-		<text>%d Pts</text>
+		<text>%d оч.</text>
 	</string>
 	<string id="st_arena_shop_cashout_success">
-		<text>Exchange successful: Received %d RU in exchange for %d Arena Tokens.</text>
+		<text>Обмен успешен: получено %d RU за %d жетонов Арены.</text>
 	</string>
 	<string id="st_arena_shop_err_limit">
-		<text>Arnie has reached his liquidity limit for today. Come back tomorrow!</text>
+		<text>У Арни закончились наличные на сегодня. Приходите завтра!</text>
 	</string>
 	<string id="st_arena_shop_item_bought">
-		<text>Purchased: %s (%d Tokens).</text>
+		<text>Куплено: %s (%d жетонов).</text>
 	</string>
 	<string id="st_arena_shop_voucher_rental_bought">
-		<text>Acquired: Free Equipment Rental Voucher (Applies to your next match).</text>
+		<text>Получен: Талон бесплатной аренды снаряжения (на следующий бой).</text>
 	</string>
 	<string id="st_arena_shop_voucher_medic_bought">
-		<text>Acquired: Arena Medical Rescue Voucher (Covers 1 emergency medical extraction).</text>
+		<text>Получен: Медицинский талон спасения (покрывает 1 эвакуацию медиком).</text>
 	</string>
 
 	<!-- Shop Item Descriptions -->
 	<string id="st_arena_shop_cash_50_name">
-		<text>Pocket Money (750 RU)</text>
+		<text>Карманные деньги (750 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_50_desc">
-		<text>Exchange 50 Arena Tokens for 750 Roubles in cash.</text>
+		<text>Обменять 50 жетонов Арены на 750 рублей наличными.</text>
 	</string>
 	<string id="st_arena_shop_cash_150_name">
-		<text>Small Payout (2,250 RU)</text>
+		<text>Небольшая выплата (2 250 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_150_desc">
-		<text>Exchange 150 Arena Tokens for 2,250 Roubles in cash.</text>
+		<text>Обменять 150 жетонов Арены на 2 250 рублей наличными.</text>
 	</string>
 	<string id="st_arena_shop_cash_300_name">
-		<text>Gladiator Paycheck (4,500 RU)</text>
+		<text>Гонорар гладиатора (4 500 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_300_desc">
-		<text>Exchange 300 Arena Tokens for 4,500 Roubles in cash.</text>
+		<text>Обменять 300 жетонов Арены на 4 500 рублей наличными.</text>
 	</string>
 	<string id="st_arena_shop_cash_600_name">
-		<text>Major Purse (9,000 RU)</text>
+		<text>Крупный куш (9 000 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_600_desc">
-		<text>Exchange 600 Arena Tokens for 9,000 Roubles in cash.</text>
+		<text>Обменять 600 жетонов Арены на 9 000 рублей наличными.</text>
 	</string>
 	<string id="st_arena_shop_cash_1000_name">
-		<text>Champion's Bounty (15,000 RU)</text>
+		<text>Чемпионская награда (15 000 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_1000_desc">
-		<text>Exchange 1,000 Arena Tokens for 15,000 Roubles in cash.</text>
+		<text>Обменять 1 000 жетонов Арены на 15 000 рублей наличными.</text>
 	</string>
 
 	<string id="st_arena_shop_med_bandage_name">
-		<text>Combat Bandage Pack (x3)</text>
+		<text>Упаковка армейских бинтов (x3)</text>
 	</string>
 	<string id="st_arena_shop_med_bandage_desc">
-		<text>Three sterile military compression bandages for immediate clotting.</text>
+		<text>Три стерильных компрессионных бинта для быстрой остановки кровотечений.</text>
 	</string>
 	<string id="st_arena_shop_med_army_name">
-		<text>Military First-Aid Kit</text>
+		<text>Армейская аптечка</text>
 	</string>
 	<string id="st_arena_shop_med_army_desc">
-		<text>Specialized army field kit with coagulants and pain relief stimulants.</text>
+		<text>Специализированный военный комплект с коагулянтами и обезболивающими.</text>
 	</string>
 	<string id="st_arena_shop_med_sci_name">
-		<text>Scientific Medical Kit</text>
+		<text>Научная аптечка</text>
 	</string>
 	<string id="st_arena_shop_med_sci_desc">
-		<text>Ecologist field kit with advanced broad-spectrum antitoxins and radioprotectors.</text>
+		<text>Комплект экологов с антитоксинами широкого спектра и радиопротекторами.</text>
 	</string>
 	<string id="st_arena_shop_med_stim_name">
-		<text>Combat Stimpack</text>
+		<text>Боевой стимулятор</text>
 	</string>
 	<string id="st_arena_shop_med_stim_desc">
-		<text>Rapid adrenaline and analgesic injector designed for severe combat trauma.</text>
+		<text>Инъектор адреналина и анальгетиков при тяжелых ранениях в бою.</text>
 	</string>
 	<string id="st_arena_shop_med_coag_name">
-		<text>Coagulant Injector</text>
+		<text>Коагулянт</text>
 	</string>
 	<string id="st_arena_shop_med_coag_desc">
-		<text>Rapid-acting hemostatic drug that drastically seals open bleeding wounds.</text>
+		<text>Быстродействующий гемостатик для эффективной остановки кровотечения.</text>
 	</string>
 
 	<string id="st_arena_shop_ammo_buck_name">
-		<text>12x70 Buckshot Box</text>
+		<text>Патроны 12x70 Картечь</text>
 	</string>
 	<string id="st_arena_shop_ammo_buck_desc">
-		<text>Box of standard heavy buckshot pellets for close-range mutant defense.</text>
+		<text>Коробка тяжелой свинцовой картечи для защиты от мутантов в ближнем бою.</text>
 	</string>
 	<string id="st_arena_shop_ammo_zhekan_name">
-		<text>12x76 Zhekan Slug Box</text>
+		<text>Патроны 12x76 Жекан</text>
 	</string>
 	<string id="st_arena_shop_ammo_zhekan_desc">
-		<text>Solid heavy lead slugs capable of fracturing mutant carapace and light armor.</text>
+		<text>Тяжелые пули, пробивающие хитин крупных мутантов и легкую броню.</text>
 	</string>
 	<string id="st_arena_shop_ammo_545_name">
-		<text>5.45x39 mm 7N10 (AP)</text>
+		<text>5.45x39 мм 7Н10 (БП)</text>
 	</string>
 	<string id="st_arena_shop_ammo_545_desc">
-		<text>Hardened steel core rounds engineered to defeat body armor and helmets.</text>
+		<text>Патроны повышенной пробиваемости со стальным сердечником.</text>
 	</string>
 	<string id="st_arena_shop_ammo_556_name">
-		<text>5.56x45 mm M855A1 (AP)</text>
+		<text>5.56x45 мм M855A1 (БП)</text>
 	</string>
 	<string id="st_arena_shop_ammo_556_desc">
-		<text>High-velocity NATO penetrator rounds with exceptional ballistics.</text>
+		<text>Высокоскоростные бронебойные патроны НАТО с превосходной баллистикой.</text>
 	</string>
 	<string id="st_arena_shop_ammo_939_name">
-		<text>9x39 mm SP-6 (AP)</text>
+		<text>9x39 мм СП-6 (БП)</text>
 	</string>
 	<string id="st_arena_shop_ammo_939_desc">
-		<text>Heavy subsonic tungsten-core rounds for VSS Vintorez and AS Val platforms.</text>
+		<text>Тяжелые дозвуковые патроны с вольфрамовым сердечником для ВСС и АС Вал.</text>
 	</string>
 
 	<string id="st_arena_shop_srv_clean_name">
-		<text>Firearms Cleaning Kit</text>
+		<text>Набор для чистки оружия</text>
 	</string>
 	<string id="st_arena_shop_srv_clean_desc">
-		<text>Universal cleaning solvent and rods to service weapon mechanisms.</text>
+		<text>Шомпол и чистящий состав для обслуживания механизмов оружия.</text>
 	</string>
 	<string id="st_arena_shop_srv_oil_name">
-		<text>Gun Lubricant Grease</text>
+		<text>Оружейная смазка</text>
 	</string>
 	<string id="st_arena_shop_srv_oil_desc">
-		<text>Heavy synthetic grease to reduce bolt friction and prevent jams.</text>
+		<text>Синтетическая оружейная смазка для устранения трения и заклиниваний.</text>
 	</string>
 	<string id="st_arena_shop_srv_sew_name">
-		<text>Textile Sewing Kit</text>
+		<text>Набор для шитья</text>
 	</string>
 	<string id="st_arena_shop_srv_sew_desc">
-		<text>Heavy-duty thread and Kevlar patches to patch punctured stalker suits.</text>
+		<text>Прочные кевларовые заплатки и нити для латания сталкерских комбинезонов.</text>
 	</string>
 	<string id="st_arena_shop_srv_rental_name">
-		<text>Free Equipment Rental Voucher</text>
+		<text>Талон бесплатной аренды снаряжения</text>
 	</string>
 	<string id="st_arena_shop_srv_rental_desc">
-		<text>A voucher that waives all loadout rental fees for your next arena match.</text>
+		<text>Талон, освобождающий от оплаты аренды экипировки на следующий бой.</text>
 	</string>
 	<string id="st_arena_shop_srv_medic_name">
-		<text>Medical Rescue Voucher</text>
+		<text>Медицинский талон спасения</text>
 	</string>
 	<string id="st_arena_shop_srv_medic_desc">
-		<text>Guarantees free emergency extraction by the arena medic if you fall in combat.</text>
+		<text>Гарантирует бесплатную экстренную помощь медика арены при падении в бою.</text>
 	</string>
 
 	<!-- MCM Settings Localization -->
 	<string id="ui_mcm_xcvb_arena_economy_mode">
-		<text>Economy System Mode</text>
+		<text>Режим экономики</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_economy_mode_desc">
-		<text>Select between Arena Tokens &amp; Store (balanced, survival/GAMMA recommended) or Classic Rubles (original flat payouts).</text>
+		<text>Выбор между Жетонами и Магазином (сбалансировано для выживания/GAMMA) или классическими рублями (стандартные прямые выплаты).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_econ_tokens">
-		<text>Arena Tokens &amp; Store (Recommended)</text>
+		<text>Жетоны Арены и Магазин (Рекомендуется)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_econ_classic">
-		<text>Classic Direct Rubles (Legacy)</text>
+		<text>Классические рубли (Старый режим)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_token_reward_mult">
-		<text>Token Reward Multiplier</text>
+		<text>Множитель награды жетонами</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_token_reward_mult_desc">
-		<text>Scale the amount of Arena Tokens earned from tournament victories and waves.</text>
+		<text>Масштабирует количество получаемых жетонов Арены за турниры и волны.</text>
 	</string>
 		<string id="ui_mcm_xcvb_arena_shop_price_mult">
 		<text>Множитель цен в магазине</text>
@@ -1826,18 +1827,36 @@
 		<text>Регулирует стоимость товаров в жетонах в Магазине Арены (увеличьте для строгого баланса GAMMA или уменьшите для облегчения).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_daily_cashout_limit">
-		<text>Daily Cashout Limit (RU)</text>
+		<text>Дневной лимит обналичивания (RU)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_daily_cashout_limit_desc">
-		<text>Maximum rubles Arnie can cash out per in-game day (Prevents economic inflation).</text>
+		<text>Максимум рублей, которые Арни может выдать за один игровой день (предотвращает инфляцию).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_rank_gating">
-		<text>Stalker Rank Gating (Tier Locks)</text>
+		<text>Ограничение по рангу сталкера</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_rank_gating_desc">
-		<text>Require appropriate stalker rank (Rookie, Veteran, Legend) to unlock higher tournament tiers.</text>
+		<text>Требовать соответствующий ранг (Новичок, Ветеран, Легенда) для доступа к высшим уровням турнира.</text>
 	</string>
 
 
 
+	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval">
+		<text>Интервал смены локации в Endless</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval_desc">
+		<text>Переключает арену между Ареной и Лесом каждые X пройденных волн (0 = выключено).</text>
+	</string>
+	<string id="st_arena_endless_swap_to_forest">
+		<text>ВОЛНА %s - СМЕНА СЕКТОРА: ЛЕС! Враги атакуют среди деревьев.</text>
+	</string>
+	<string id="st_arena_endless_swap_to_arena">
+		<text>ВОЛНА %s - СМЕНА СЕКТОРА: АРЕНА! Возвращение в закрытый сектор арены.</text>
+	</string>
+	<string id="st_arena_map_forest_short">
+		<text>ЛЕС</text>
+	</string>
+	<string id="st_arena_forced_forest_desc">
+		<text>Обязательная локация: Лесная Арена.</text>
+	</string>
 </string_table>

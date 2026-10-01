@@ -67,6 +67,7 @@ tournament_stalker_tiers_t = {
 				reward_items = { "bandage", "bandage", "medkit" },
 				squad_type = "stalker",
 				sections = { "sim_default_bandit_0" },
+				weapons = { "wpn_pm" },
 			},
 			[2] = {
 				id = 2, tier = 1, category = "stalker",
@@ -79,6 +80,8 @@ tournament_stalker_tiers_t = {
 				reward_items = { "ammo_12x70_buck", "bandage" },
 				squad_type = "stalker",
 				sections = { "sim_default_renegade_0", "sim_default_renegade_0" },
+				forced_map = "forest",
+				weapons = { "wpn_bm16", "wpn_bm16" },
 			},
 			[3] = {
 				id = 3, tier = 1, category = "stalker",
@@ -91,6 +94,7 @@ tournament_stalker_tiers_t = {
 				reward_items = { "cleaning_kit_p", "bandage" },
 				squad_type = "stalker",
 				sections = { "sim_default_bandit_0", "sim_default_bandit_0", "sim_default_bandit_1" },
+				weapons = { "wpn_pm", "wpn_bm16", "wpn_pm" },
 			},
 		}
 	},
@@ -108,6 +112,7 @@ tournament_stalker_tiers_t = {
 				reward_items = { "ammo_9x19_fmj", "stimpack" },
 				squad_type = "stalker",
 				sections = { "sim_default_bandit_1", "sim_default_bandit_1", "sim_default_bandit_2" },
+				weapons = { "wpn_mp5", "wpn_mp5", "wpn_mp5" },
 			},
 			[5] = {
 				id = 5, tier = 2, category = "stalker",
@@ -120,6 +125,8 @@ tournament_stalker_tiers_t = {
 				reward_items = { "medkit_army", "ammo_12x70_buck" },
 				squad_type = "stalker",
 				sections = { "sim_default_renegade_1", "sim_default_renegade_2", "sim_default_renegade_1" },
+				forced_map = "forest",
+				weapons = { "wpn_wincheaster1300", "wpn_sks", "wpn_spas12" },
 			},
 			[6] = {
 				id = 6, tier = 2, category = "stalker",
@@ -132,6 +139,7 @@ tournament_stalker_tiers_t = {
 				reward_items = { "toolkit_r_1", "bandage" },
 				squad_type = "stalker",
 				sections = { "sim_default_killer_1", "sim_default_killer_2", "sim_default_killer_2" },
+				weapons = { "wpn_lr300", "wpn_lr300", "wpn_lr300" },
 			},
 		}
 	},
@@ -149,6 +157,7 @@ tournament_stalker_tiers_t = {
 				reward_items = { "ammo_9x39_ap", "medkit_army" },
 				squad_type = "stalker",
 				sections = { "sim_default_duty_2", "sim_default_duty_3", "sim_default_duty_2" },
+				weapons = { "wpn_val", "wpn_groza", "wpn_val" },
 			},
 			[8] = {
 				id = 8, tier = 3, category = "stalker",
@@ -161,6 +170,8 @@ tournament_stalker_tiers_t = {
 				reward_items = { "sewing_kit_b", "ammo_5.56x45_ap" },
 				squad_type = "stalker",
 				sections = { "sim_default_freedom_2", "sim_default_freedom_3", "sim_default_freedom_3" },
+				forced_map = "forest",
+				weapons = { "wpn_g36", "wpn_svd", "wpn_g36" },
 			},
 			[9] = {
 				id = 9, tier = 3, category = "stalker",
@@ -173,6 +184,7 @@ tournament_stalker_tiers_t = {
 				reward_items = { "toolkit_r_2", "stimpack_army" },
 				squad_type = "stalker",
 				sections = { "sim_default_killer_3", "sim_default_killer_3", "sim_default_killer_3", "sim_default_killer_4" },
+				weapons = { "wpn_sig550", "wpn_l85", "wpn_lr300", "wpn_sig550" },
 			},
 		}
 	},
@@ -190,6 +202,8 @@ tournament_stalker_tiers_t = {
 				reward_items = { "ammo_7.62x54_ap", "medkit_scientic" },
 				squad_type = "stalker",
 				sections = { "sim_default_military_3", "sim_default_military_3", "sim_default_military_4", "sim_default_military_4" },
+				forced_map = "forest",
+				weapons = { "wpn_pkm", "wpn_saiga12s", "wpn_pkm", "wpn_saiga12s" },
 			},
 			[11] = {
 				id = 11, tier = 4, category = "stalker",
@@ -202,6 +216,7 @@ tournament_stalker_tiers_t = {
 				reward_items = { "ammo_9x39_ap", "stimpack_army" },
 				squad_type = "stalker",
 				sections = { "sim_default_killer_3", "sim_default_killer_3", "sim_default_killer_4", "sim_default_killer_4" },
+				weapons = { "wpn_vintorez", "wpn_val", "wpn_vintorez", "wpn_val" },
 			},
 			[12] = {
 				id = 12, tier = 4, category = "stalker",
@@ -214,6 +229,8 @@ tournament_stalker_tiers_t = {
 				reward_items = { "toolkit_r_3", "drug_antidot" },
 				squad_type = "stalker",
 				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
+				forced_map = "forest",
+				weapons = { "wpn_pkm", "wpn_pkm", "wpn_pkm", "wpn_pkm" },
 			},
 		}
 	},
@@ -231,6 +248,7 @@ tournament_stalker_tiers_t = {
 				reward_items = { "medkit_scientic", "stimpack_army", "grenade_f1" },
 				squad_type = "stalker",
 				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
+				weapons = { "wpn_fn2000", "wpn_scar", "wpn_fn2000", "wpn_val" },
 			},
 			[14] = {
 				id = 14, tier = 5, category = "stalker",
@@ -243,6 +261,8 @@ tournament_stalker_tiers_t = {
 				reward_items = { "ammo_gauss", "af_medusa", "medkit_scientic" },
 				squad_type = "stalker",
 				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
+				forced_map = "forest",
+				weapons = { "wpn_gauss", "wpn_pkm", "wpn_gauss", "wpn_pkm" },
 			},
 			[15] = {
 				id = 15, tier = 5, category = "stalker",
@@ -255,6 +275,7 @@ tournament_stalker_tiers_t = {
 				reward_items = { "af_fireball", "medkit_scientic", "stimpack_army" },
 				squad_type = "stalker",
 				sections = { "sim_default_killer_4", "sim_default_killer_4", "sim_default_killer_4" },
+				weapons = { "wpn_pkm", "wpn_fn2000", "wpn_pkm" },
 			},
 		}
 	}
@@ -291,6 +312,7 @@ tournament_mutant_tiers_t = {
 				reward_items = { "ammo_12x70_buck", "medkit" },
 				squad_type = "mutant",
 				sections = { "dog_weak_red", "dog_normal_white", "dog_normal_brown", "dog_normal_bulterier" },
+				forced_map = "forest",
 			},
 			[3] = {
 				id = 3, tier = 1, category = "mutant",
@@ -320,6 +342,7 @@ tournament_mutant_tiers_t = {
 				reward_items = { "ammo_12x76_zhekan", "stimpack" },
 				squad_type = "mutant",
 				sections = { "boar_normal", "boar_strong", "flesh_strong" },
+				forced_map = "forest",
 			},
 			[5] = {
 				id = 5, tier = 2, category = "mutant",
@@ -332,6 +355,7 @@ tournament_mutant_tiers_t = {
 				reward_items = { "medkit_army", "stimpack" },
 				squad_type = "mutant",
 				sections = { "cat_normal_a", "cat_normal_b", "cat_strong_a", "cat_strong_b" },
+				forced_map = "forest",
 			},
 			[6] = {
 				id = 6, tier = 2, category = "mutant",
@@ -361,6 +385,7 @@ tournament_mutant_tiers_t = {
 				reward_items = { "drug_coagulant", "ammo_5.45x39_ap" },
 				squad_type = "mutant",
 				sections = { "lurker_1_normal", "lurker_2_normal", "lurker_3_strong" },
+				forced_map = "forest",
 			},
 			[8] = {
 				id = 8, tier = 3, category = "mutant",
@@ -385,6 +410,7 @@ tournament_mutant_tiers_t = {
 				reward_items = { "drug_psy_blockade", "stimpack_army" },
 				squad_type = "mutant",
 				sections = { "psysucker_3_strong", "psysucker_3_strong", "fracture_strong", "fracture_3" },
+				forced_map = "forest",
 			},
 		}
 	},
@@ -402,6 +428,7 @@ tournament_mutant_tiers_t = {
 				reward_items = { "drug_psy_blockade", "stimpack_army" },
 				squad_type = "mutant",
 				sections = { "psy_dog_normal", "psy_dog_normal", "pseudodog_grey_strong" },
+				forced_map = "forest",
 			},
 			[11] = {
 				id = 11, tier = 4, category = "mutant",
@@ -443,6 +470,7 @@ tournament_mutant_tiers_t = {
 				reward_items = { "mutant_part_chimera_claw", "medkit_scientic" },
 				squad_type = "mutant",
 				sections = { "chimera_strong", "chimera_normal" },
+				forced_map = "forest",
 			},
 			[14] = {
 				id = 14, tier = 5, category = "mutant",
@@ -455,6 +483,7 @@ tournament_mutant_tiers_t = {
 				reward_items = { "af_electra_flash", "medkit_scientic" },
 				squad_type = "mutant",
 				sections = { "m_controller_normal", "zombie_strong", "zombie_strong", "zombie_blind" },
+				forced_map = "forest",
 			},
 			[15] = {
 				id = 15, tier = 5, category = "mutant",
@@ -476,6 +505,17 @@ tournament_mutant_tiers_t = {
 -- HELPER FUNCTIONS
 --------------------------------------------------------------------------------
 
+
+
+function is_round_forest(category, round_id)
+	local r_data = get_round_data(category, round_id)
+	return r_data and (r_data.forced_map == "forest" or r_data.map == "forest")
+end
+
+function get_round_forced_map(category, round_id)
+	local r_data = get_round_data(category, round_id)
+	return r_data and (r_data.forced_map or r_data.map)
+end
 
 function get_category_tiers(category)
 	if category == "mutant" then

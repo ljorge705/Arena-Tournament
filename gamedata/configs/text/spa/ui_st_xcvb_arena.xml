@@ -707,7 +707,7 @@
 		<text>Selecciona la linterna o visor nocturno para el combate</text>
 	</string>
 	<string id="st_arena_dev_torch">
-		<text>Linterna Frontal (EstÃ¡ndar)</text>
+		<text>Linterna Frontal (Estandar)</text>
 	</string>
 	<string id="st_arena_dev_nvg1">
 		<text>Visor Nocturno Gen 1 (PNV-57E)</text>
@@ -857,10 +857,10 @@
 		<text>Mutantes</text>
 	</string>
 	<string id="st_arena_btn_mvm">
-		<text>Monster vs Monster</text>
+		<text>Monstruo vs Monstruo</text>
 	</string>
 	<string id="st_arena_mvm_title">
-		<text>Monster vs Monster</text>
+		<text>Monstruo vs Monstruo</text>
 	</string>
 	<string id="st_arena_mvm_desc">
 		<text>Combate simultaneo de mutantes en la Arena. Guerra total de bestias de la Zona.</text>
@@ -1031,7 +1031,7 @@
 		<text>OLEADA %s SUPERADA! Recompensa acumulada: %s RU. Preparando siguiente oleada...</text>
 	</string>
 	<string id="st_arena_endless_wave_cleared_tokens">
-		<text>¡OLEADA %s SUPERADA! Fichas acumuladas: %s Fichas. Preparando siguiente oleada...</text>
+		<text>OLEADA %s SUPERADA! Fichas acumuladas: %s Fichas. Preparando siguiente oleada...</text>
 	</string>
 	<string id="st_arena_endless_exit_tip">
 		<text>Has salido de la Arena. Oleadas superadas: %s. Recompensa cobrada: %s RU.</text>
@@ -1106,7 +1106,7 @@
 		<text>Sin municion especial</text>
 	</string>
 	<string id="st_arena_fight_won_looting">
-		<text>VICTORY! You have 12s to loot the fallen. Press [F] to exit immediately.</text>
+		<text>VICTORIA! Tienes 12s para saquear a los caidos. Presiona [F] para salir de inmediato.</text>
 	</string>
 	<string id="st_arena_status_locked_rank">
 		<text>[BLOQUEADO: RANGO]</text>
@@ -1241,28 +1241,28 @@
 		<text>Ajusta el coste al elegir armas, niveles o municiones especificas (0 = Gratis, 1.0 = Predeterminado).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_auto_reopen_gui">
-		<text>Reabrir menÃº tras combate</text>
+		<text>Reabrir menu tras combate</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_auto_reopen_gui_desc">
-		<text>Abre automÃ¡ticamente el panel de la Arena al finalizar un combate del torneo o modo infinito.</text>
+		<text>Abre automaticamente el panel de la Arena al finalizar un combate del torneo o modo infinito.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_base_dist">
-		<text>Distancia de VisiÃ³n Nocturna Base (FÃ¡cil)</text>
+		<text>Distancia de Vision Nocturna Base (Facil)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_base_dist_desc">
-		<text>Distancia en metros a la que los enemigos novatos o en dificultad fÃ¡cil te ven de pie en la oscuridad (predeterminado: 24m).</text>
+		<text>Distancia en metros a la que los enemigos novatos o en dificultad facil te ven de pie en la oscuridad (predeterminado: 24m).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_mult">
-		<text>Multiplicador General de VisiÃ³n Nocturna</text>
+		<text>Multiplicador General de Vision Nocturna</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_mult_desc">
-		<text>Ajusta globalmente el alcance de visiÃ³n de todos los enemigos y mutantes en Modo Noche (0.5x a 2.0x).</text>
+		<text>Ajusta globalmente el alcance de vision de todos los enemigos y mutantes en Modo Noche (0.5x a 2.0x).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_elite_nvg">
-		<text>NVG en Enemigos de Ã‰lite</text>
+		<text>NVG en Enemigos de Elite</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_elite_nvg_desc">
-		<text>Los enemigos de Ã©lite (Maestros, Leyendas, Monolith y veteranos) equipan visores nocturnos y NO encienden linternas para mantener el sigilo.</text>
+		<text>Los enemigos de elite (Maestros, Leyendas, Monolith y veteranos) equipan visores nocturnos y NO encienden linternas para mantener el sigilo.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_arena_light_mult">
 		<text>Iluminacion - Hangar de la Arena</text>
@@ -1358,7 +1358,7 @@
 		<text>Costo: %d RU</text>
 	</string>
 	<string id="st_arena_companion_active_title">
-		<text>[ TUS COMPAÑEROS ]</text>
+		<text>[ TUS COMPANEROS ]</text>
 	</string>
 	<string id="st_arena_companion_btn_hire">
 		<text>CONTRATAR</text>
@@ -1400,7 +1400,7 @@
 		<text>Mercenario Experto</text>
 	</string>
 	<string id="st_arena_companion_rank3_desc">
-		<text>Killer de elite. Maneja situaciones difï¿½ciles.</text>
+		<text>Killer de elite. Maneja situaciones dificiles.</text>
 	</string>
 	<string id="st_arena_companion_rank4_name">
 		<text>Elite Militar</text>
@@ -1536,19 +1536,19 @@
 		<text>Fichas: %d Pts</text>
 	</string>
 	<string id="st_arena_reward_tokens">
-		<text>¡Victoria en la Arena! Has recibido %d Fichas de la Arena.</text>
+		<text>Victoria en la Arena! Has recibido %d Fichas de la Arena.</text>
 	</string>
 	<string id="st_arena_reward_tokens_fmt">
 		<text>%d Fichas de Arena</text>
 	</string>
 	<string id="st_arena_endless_exit_tip_tokens">
-		<text>Modo Infinito finalizado (%d Oleadas). ¡Has ganado %d Fichas de Arena!</text>
+		<text>Modo Infinito finalizado (%d Oleadas). Has ganado %d Fichas de Arena!</text>
 	</string>
 	<string id="st_arena_voucher_rental_used">
-		<text>¡Vale de Alquiler de Equipo aplicado! (0 RU cobrados)</text>
+		<text>Vale de Alquiler de Equipo aplicado! (0 RU cobrados)</text>
 	</string>
 	<string id="st_arena_voucher_medic_used">
-		<text>¡Vale de Rescate Medico aplicado! No se cobro tasa medica de rescate.</text>
+		<text>Vale de Rescate Medico aplicado! No se cobro tasa medica de rescate.</text>
 	</string>
 	<string id="st_arena_medic_rescue_voucher">
 		<text>El medico de la arena te atendio usando tu Vale de Rescate Medico (0 RU de coste).</text>
@@ -1786,6 +1786,24 @@
 	</string>
 	<string id="ui_mcm_xcvb_arena_rank_gating_desc">
 		<text>Exige alcanzar el rango correspondiente (Novato, Veterano, Leyenda) para desbloquear tiers altos.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval">
+		<text>Rotacion de Mapa en Endless (Oleadas)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval_desc">
+		<text>Cambia de mapa entre Arena y Bosque cada X oleadas superadas (0 = desactivado).</text>
+	</string>
+	<string id="st_arena_endless_swap_to_forest">
+		<text>OLEADA %s - CAMBIO DE SECTOR: BOSQUE! Los enemigos atacaran entre la vegetacion y los arboles.</text>
+	</string>
+	<string id="st_arena_endless_swap_to_arena">
+		<text>OLEADA %s - CAMBIO DE SECTOR: ARENA! Regresando al foso de combate cerrado.</text>
+	</string>
+	<string id="st_arena_map_forest_short">
+		<text>BOSQUE</text>
+	</string>
+	<string id="st_arena_forced_forest_desc">
+		<text>Ubicacion Obligatoria: Bosque de la Arena.</text>
 	</string>
 </string_table>
 

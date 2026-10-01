@@ -1648,7 +1648,9 @@ function UIXcvbArena:update_tournament_display()
 				end
 			end
 
-						row.name:SetText(gt(r_data.name))
+						local is_forest_round = (r_data.forced_map == "forest" or r_data.map == "forest")
+			local map_tag = is_forest_round and (" [" .. gt("st_arena_map_forest_short") .. "]") or ""
+			row.name:SetText(gt(r_data.name) .. map_tag)
 			row.diff:SetText(gt("st_arena_difficulty_label") .. " " .. gt(r_data.diff_str))
 			row.enemies:SetText(gt("st_arena_enemies_label") .. " " .. enemy_label)
 			local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
@@ -1729,8 +1731,15 @@ function UIXcvbArena:update_tournament_display()
 
 		self:update_tourn_start_button()
 
-		self.detail_title:SetText(gt(sel_data.name) .. " - " .. gt(sel_data.diff_str))
+		local sel_is_forest = (sel_data.forced_map == "forest" or sel_data.map == "forest")
+		local sel_map_tag = sel_is_forest and (" [" .. gt("st_arena_map_forest_short") .. "]") or ""
+		if sel_is_forest then
+			sel_desc = sel_desc .. "\n\n" .. gt("st_arena_forced_forest_desc")
+		end
+		self.detail_title:SetText(gt(sel_data.name) .. sel_map_tag .. " - " .. gt(sel_data.diff_str))
 		self.detail_desc:SetText(sel_desc)
+		xcvb_arena_main.selected_map = sel_is_forest and "forest" or "arena"
+		self:update_map_button()
 	end
 
 	self:update_loadout_buttons()
@@ -2434,6 +2443,9 @@ function UIXcvbArena:on_click_tourn_start()
 	xcvb_arena_main.selected_modifier_team2 = "none"
 
 	self:Close()
+	local sel_rd = xcvb_arena_main.get_round_data(cat, self.selected_round_id)
+	local is_forest_round = sel_rd and (sel_rd.forced_map == "forest" or sel_rd.map == "forest")
+	xcvb_arena_main.selected_map = is_forest_round and "forest" or "arena"
 	local started = xcvb_arena_fight.start_tournament_fight(cat, self.selected_round_id, chosen_cls, chosen_tier, chosen_ammo, chosen_weapon, chosen_forced_ammo, chosen_3dssg_mode, chosen_3dssg_scope, chosen_mag, chosen_mag_count, chosen_ammo_count)
 	if started == false and not is_practice and fee > 0 and db.actor then
 		db.actor:give_money(fee)

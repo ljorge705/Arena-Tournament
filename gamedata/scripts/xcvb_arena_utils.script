@@ -991,24 +991,93 @@ function get_actor_arena_pos()
     return pos, lvid, gvid
 end
 
-function get_actor_tournament_pos()
+local ARENA_SPAWN_SITES = {
+    [1] = {
+        -- Variante 1: Actor en Porton Sur, Enemigos en Porton Norte (Clasico)
+        actor = { pos = vector():set(152.6, -20.0598, 81.2), lvid = 40761, gvid = 1684, dir = 0 },
+        enemy_base = { pos = vector():set(151.2, -20.0543, 128.8), lvid = 40551, gvid = 1796 },
+        enemy_slots = {
+            { pos = vector():set(151.2, -20.0543, 128.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(148.0, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(154.5, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(145.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(158.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(144.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(160.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(151.2, -20.0543, 126.0), fallback_lvid = 40551, gvid = 1796 },
+        },
+    },
+    [2] = {
+        -- Variante 2: Actor en Porton Norte, Enemigos en Porton Sur (Invertido)
+        actor = { pos = vector():set(151.2, -20.0543, 128.8), lvid = 40551, gvid = 1796, dir = 3.14159 },
+        enemy_base = { pos = vector():set(152.6, -20.0598, 81.2), lvid = 40761, gvid = 1684 },
+        enemy_slots = {
+            { pos = vector():set(152.6, -20.0598, 81.5), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(149.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(156.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(145.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(158.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(144.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(160.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(152.6, -20.0598, 84.0), fallback_lvid = 40761, gvid = 1684 },
+        },
+    },
+    [3] = {
+        -- Variante 3: Actor en Flanco Sudoeste, Enemigos en Noreste
+        actor = { pos = vector():set(145.5, -20.0598, 87.0), lvid = 40761, gvid = 1684, dir = -0.7 },
+        enemy_base = { pos = vector():set(158.5, -20.0543, 123.0), lvid = 40551, gvid = 1796 },
+        enemy_slots = {
+            { pos = vector():set(158.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(160.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(154.5, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(151.2, -20.0543, 128.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(156.0, -20.0543, 120.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(151.2, -20.0543, 124.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(158.0, -20.0543, 118.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(153.0, -20.0543, 121.0), fallback_lvid = 40551, gvid = 1796 },
+        },
+    },
+    [4] = {
+        -- Variante 4: Actor en Flanco Noroeste, Enemigos en Sudeste
+        actor = { pos = vector():set(145.5, -20.0543, 123.0), lvid = 40551, gvid = 1796, dir = 2.3 },
+        enemy_base = { pos = vector():set(158.5, -20.0598, 87.0), lvid = 40761, gvid = 1684 },
+        enemy_slots = {
+            { pos = vector():set(158.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(160.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(156.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(152.6, -20.0598, 81.5), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(156.0, -20.0598, 90.0), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(152.6, -20.0598, 86.0), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(158.0, -20.0598, 92.0), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(153.0, -20.0598, 89.0), fallback_lvid = 40761, gvid = 1684 },
+        },
+    },
+}
+
+function get_actor_tournament_pos(round_or_wave)
+    local r_idx = tonumber(round_or_wave) or 1
     if forest_arena_selected() and xcvb_arena_forest_ai then
-        return xcvb_arena_forest_ai.get_actor_spawn()
+        return xcvb_arena_forest_ai.get_actor_spawn(r_idx)
     end
-    local pos = vector():set(152.6, -20.0598, 81.2)
-    local lvid = 40761
-    local gvid = 1684
-    return pos, lvid, gvid
+    local num_sites = (ARENA_SPAWN_SITES and #ARENA_SPAWN_SITES > 0) and #ARENA_SPAWN_SITES or 1
+    local s_idx = (((r_idx - 1) % num_sites) + 1)
+    local site = ARENA_SPAWN_SITES[s_idx] or ARENA_SPAWN_SITES[1]
+    local p = site.actor.pos
+    local pos = vector():set(p.x, p.y, p.z)
+    return pos, site.actor.lvid, site.actor.gvid, site.actor.dir
 end
 
-function get_tournament_enemy_pos()
+function get_tournament_enemy_pos(round_or_wave)
+    local r_idx = tonumber(round_or_wave) or 1
     if forest_arena_selected() and xcvb_arena_forest_ai then
-        return xcvb_arena_forest_ai.get_enemy_spawn()
+        return xcvb_arena_forest_ai.get_enemy_spawn(r_idx)
     end
-    local pos = vector():set(151.2, -20.0543, 128.8)
-    local lvid = 40551
-    local gvid = 1796
-    return pos, lvid, gvid
+    local num_sites = (ARENA_SPAWN_SITES and #ARENA_SPAWN_SITES > 0) and #ARENA_SPAWN_SITES or 1
+    local s_idx = (((r_idx - 1) % num_sites) + 1)
+    local site = ARENA_SPAWN_SITES[s_idx] or ARENA_SPAWN_SITES[1]
+    local p = site.enemy_base.pos
+    local pos = vector():set(p.x, p.y, p.z)
+    return pos, site.enemy_base.lvid, site.enemy_base.gvid
 end
 
 function get_actor_bar_safe_pos()
@@ -1165,7 +1234,8 @@ function spawn_tournament_squad(round_data)
         sections[#sections + 1] = safe_sec
     end
     if #sections == 0 then return nil end
-    local pos, lvid, gvid = get_tournament_enemy_pos()
+    local r_idx = round_data.id or (round_data.wave or 1)
+    local pos, lvid, gvid = get_tournament_enemy_pos(r_idx)
     local squad_sec = (round_data.squad_type == "mutant") and "arena_tournament_mutant_squad" or "arena_tournament_enemy_squad"
     local squad = alife_create(squad_sec, pos, lvid, gvid)
     if not squad then return nil end
@@ -1182,14 +1252,31 @@ function spawn_tournament_squad(round_data)
         for index, sec in ipairs(sections) do
             local offset_pos, member_lvid, member_gvid
             if forest_arena_selected() and xcvb_arena_forest_ai then
-                offset_pos, member_lvid, member_gvid = xcvb_arena_forest_ai.get_formation_slot(index)
+                offset_pos, member_lvid, member_gvid = xcvb_arena_forest_ai.get_formation_slot(index, r_idx)
             else
-                local spread = 5
-                offset_pos = (index == 1)
-                    and vector():set(pos.x, pos.y, pos.z)
-                    or vector():set(pos.x + math.random(-spread, spread), pos.y, pos.z + math.random(-spread, spread))
-                member_lvid = get_safe_arena_lvid(offset_pos, lvid)
-                member_gvid = gvid
+                local num_sites = (ARENA_SPAWN_SITES and #ARENA_SPAWN_SITES > 0) and #ARENA_SPAWN_SITES or 1
+                local s_idx = ((r_idx - 1) % num_sites) + 1
+                local site = ARENA_SPAWN_SITES[s_idx]
+                if site and site.enemy_slots and site.enemy_slots[index] then
+                    local sl = site.enemy_slots[index]
+                    if sl.pos then
+                        offset_pos = vector():set(sl.pos.x, sl.pos.y, sl.pos.z)
+                    elseif sl[1] then
+                        offset_pos = vector():set(sl[1], sl[2], sl[3])
+                    else
+                        offset_pos = vector():set(pos.x, pos.y, pos.z)
+                    end
+                    local raw_lvid = sl.fallback_lvid or sl.lvid or sl[4] or lvid
+                    member_lvid = get_safe_arena_lvid(offset_pos, raw_lvid)
+                    member_gvid = sl.gvid or gvid
+                else
+                    local spread = 5
+                    offset_pos = (index == 1)
+                        and vector():set(pos.x, pos.y, pos.z)
+                        or vector():set(pos.x + math.random(-spread, spread), pos.y, pos.z + math.random(-spread, spread))
+                    member_lvid = get_safe_arena_lvid(offset_pos, lvid)
+                    member_gvid = gvid
+                end
             end
             squad:add_squad_member(sec, offset_pos, member_lvid, member_gvid)
         end
@@ -2770,6 +2857,122 @@ function exit_arena_night_mode()
     pcall(collectgarbage, "collect")
 end
 
+function equip_tournament_combatant_loadout(npc, round_data, member_idx)
+    if not (npc and npc:alive() and IsStalker and IsStalker(npc)) then return end
+    if not (round_data and round_data.weapons and #round_data.weapons > 0) then return end
+
+    local wpn_idx = ((member_idx - 1) % #round_data.weapons) + 1
+    local wpn_sec = round_data.weapons[wpn_idx]
+    if not wpn_sec then return end
+
+    -- Safe fallbacks in case specific weapon variant is missing in player's game installation
+    if not ini_sys:section_exist(wpn_sec) then
+        if wpn_sec == "wpn_scar" and ini_sys:section_exist("wpn_fn2000") then
+            wpn_sec = "wpn_fn2000"
+        elseif wpn_sec == "wpn_pkp" and ini_sys:section_exist("wpn_pkm") then
+            wpn_sec = "wpn_pkm"
+        elseif wpn_sec == "wpn_toz34_obrez" and ini_sys:section_exist("wpn_bm16") then
+            wpn_sec = "wpn_bm16"
+        elseif wpn_sec == "wpn_saiga12" and ini_sys:section_exist("wpn_saiga12s") then
+            wpn_sec = "wpn_saiga12s"
+        end
+    end
+    if not ini_sys:section_exist(wpn_sec) then return end
+
+    local already_has = false
+    npc:iterate_inventory(function(owner, item)
+        if item and item:section() == wpn_sec then
+            already_has = true
+        end
+    end, npc)
+    if already_has then
+        ensure_npc_combat_loadout(npc)
+        return
+    end
+
+    -- Remove other weapons to ensure the exact weapon from the round description
+    local items_to_remove = {}
+    npc:iterate_inventory(function(owner, item)
+        if item and IsWeapon and IsWeapon(nil, item:clsid()) then
+            table.insert(items_to_remove, item:id())
+        end
+    end, npc)
+    for _, id in ipairs(items_to_remove) do
+        alife_release_id(id)
+    end
+
+    -- Create specified weapon in inventory
+    alife_create_item(wpn_sec, npc)
+    local ammo_sec = get_weapon_ammo(wpn_sec)
+    if ammo_sec and ini_sys:section_exist(ammo_sec) then
+        for _ = 1, 8 do
+            alife_create_item(ammo_sec, npc)
+        end
+    end
+
+    -- Gran Campeon (Ronda 15): 'El Verdugo'
+    if round_data.id == 15 and member_idx == 1 then
+        pcall(function()
+            if npc.set_character_name then
+                npc:set_character_name("El Verdugo")
+            end
+        end)
+    end
+    ensure_npc_combat_loadout(npc)
+end
+
+function apply_endless_ai_difficulty(npc, is_monster, diff)
+    if not (npc and npc:alive()) then return end
+    diff = diff or (xcvb_arena_fight and xcvb_arena_fight.endless_difficulty) or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
+
+    if is_monster then
+        if diff == "hard" then
+            pcall(function() npc:berserk() end)
+            pcall(function() npc:set_custom_panic_threshold(0.0) end)
+        elseif diff == "medium" then
+            pcall(function() npc:berserk() end)
+            pcall(function() npc:set_custom_panic_threshold(0.0) end)
+        else -- "easy"
+            pcall(function() npc:set_custom_panic_threshold(0.25) end)
+        end
+        return
+    end
+
+    if not (IsStalker and IsStalker(npc)) then return end
+
+    pcall(function() npc:set_mental_state(anim.danger) end)
+    ensure_npc_combat_loadout(npc)
+
+    if diff == "hard" then
+        -- Dificil: Veteranos tacticos, moral de hierro, uso de granadas y estimulantes
+        pcall(function() npc:set_custom_panic_threshold(0.0) end)
+        -- Granadas para forzar al jugador a abandonar coberturas
+        local rnd_gr = math.random(1, 100)
+        if rnd_gr <= 65 then
+            local gr = (rnd_gr <= 35) and "grenade_f1" or "grenade_rgd5"
+            if ini_sys:section_exist(gr) then
+                alife_create_item(gr, npc)
+            end
+        end
+        -- Stimpack para curarse tras coberturas
+        if math.random(1, 100) <= 45 and ini_sys:section_exist("stimpack") then
+            alife_create_item("stimpack", npc)
+        end
+    elseif diff == "medium" then
+        -- Intermedio: Combatientes competentes balanceados
+        pcall(function() npc:set_custom_panic_threshold(0.08) end)
+        if math.random(1, 100) <= 25 and ini_sys:section_exist("grenade_rgd5") then
+            alife_create_item("grenade_rgd5", npc)
+        end
+        if math.random(1, 100) <= 25 and ini_sys:section_exist("bandage") then
+            alife_create_item("bandage", npc)
+        end
+    else -- "easy"
+        -- Facil: Reclutas menos agresivos, vacilan con frecuencia
+        pcall(function() npc:set_custom_panic_threshold(0.35) end)
+    end
+end
+
 function setup_tournament_squad_aggro(squad_id)
     if type(squad_id) == "table" then
         return setup_endless_squads_aggro(squad_id)
@@ -2791,12 +2994,16 @@ function setup_tournament_squad_aggro(squad_id)
     local member_idx = 0
     local total_count = 0
     local online_count = 0
+    local r_data = nil
+    if xcvb_arena_fight and xcvb_arena_fight.current_tournament_category and xcvb_arena_fight.current_tournament_round_id then
+        r_data = xcvb_arena_main.get_round_data(xcvb_arena_fight.current_tournament_category, xcvb_arena_fight.current_tournament_round_id)
+    end
 
     for m in squad:squad_members() do
         total_count = total_count + 1
+        member_idx = member_idx + 1
         local target_pos = nil
         if is_forest and xcvb_arena_forest_ai then
-            member_idx = member_idx + 1
             local s_pos, s_lvid, s_gvid = xcvb_arena_forest_ai.get_formation_slot(member_idx)
             target_pos = s_pos
             xcvb_arena_forest_ai.register_spawn(m.id, s_pos, s_lvid)
@@ -2856,6 +3063,7 @@ function setup_tournament_squad_aggro(squad_id)
             elseif IsStalker and IsStalker(npc) then
                 pcall(function() npc:set_mental_state(anim.danger) end)
                 pcall(function() npc:set_custom_panic_threshold(0.05) end)
+                equip_tournament_combatant_loadout(npc, r_data, member_idx)
             end
         end
     end
@@ -2962,12 +3170,9 @@ function setup_endless_squads_aggro(squad_ids)
                     end
                     
                     if IsMonster and IsMonster(npc) then
-                        pcall(function() npc:berserk() end)
-                        pcall(function() npc:set_custom_panic_threshold(0) end)
+                        apply_endless_ai_difficulty(npc, true)
                     elseif IsStalker and IsStalker(npc) then
-                        pcall(function() npc:set_mental_state(anim.danger) end)
-                        pcall(function() npc:set_custom_panic_threshold(0.05) end)
-                        ensure_npc_combat_loadout(npc)
+                        apply_endless_ai_difficulty(npc, false)
                     end
                 end
             end

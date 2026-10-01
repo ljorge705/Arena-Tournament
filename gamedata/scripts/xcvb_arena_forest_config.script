@@ -40,6 +40,61 @@ TOURNAMENT_SLOTS = {
     { x = 107.1, y = -21.048, z = 126.7, lvid = 102900 }, -- Slot 8: Centro retaguardia
 }
 
+-- Sitios de spawn dinámicos rotativos para el Bosque (cambian de sector según la ronda/oleada)
+SPAWN_SITES = {
+    [1] = {
+        -- Variante 1: Actor al Sur, Enemigos al Norte (Clásico)
+        actor = { x = 118.3, y = -21.060, z = 84.7, lvid = 103737, gvid = 1684, dir = 0 },
+        enemy_base = { x = 107.1, y = -21.060, z = 128.1, lvid = 102902, gvid = 1684 },
+        enemy_slots = TOURNAMENT_SLOTS,
+    },
+    [2] = {
+        -- Variante 2: Actor al Norte, Enemigos al Sur (Invertido)
+        actor = { x = 107.1, y = -21.048, z = 126.7, lvid = 102900, gvid = 1684, dir = 3.14159 },
+        enemy_base = { x = 109.9, y = -21.060, z = 82.6, lvid = 103074, gvid = 1684 },
+        enemy_slots = {
+            { x = 109.9, y = -21.060, z = 82.6, lvid = 103074 },
+            { x = 108.5, y = -21.037, z = 86.1, lvid = 102961 },
+            { x = 104.3, y = -21.060, z = 84.7, lvid = 102651 },
+            { x = 112.0, y = -20.979, z = 83.3, lvid = 103259 },
+            { x = 114.8, y = -21.041, z = 86.1, lvid = 103494 },
+            { x = 102.2, y = -21.060, z = 86.1, lvid = 102493 },
+            { x = 116.9, y = -21.060, z = 88.2, lvid = 103642 },
+            { x = 107.1, y = -21.060, z = 77.0, lvid = 102861 },
+        },
+    },
+    [3] = {
+        -- Variante 3: Actor al Oeste, Enemigos al Este (Flanco Este-Oeste)
+        actor = { x = 98.0, y = -21.060, z = 100.1, lvid = 102042, gvid = 1684, dir = -1.57 },
+        enemy_base = { x = 116.2, y = -21.060, z = 109.9, lvid = 103652, gvid = 1684 },
+        enemy_slots = {
+            { x = 116.9, y = -21.060, z = 109.9, lvid = 103652 },
+            { x = 116.2, y = -21.060, z = 121.8, lvid = 103609 },
+            { x = 115.5, y = -21.060, z = 119.0, lvid = 103557 },
+            { x = 116.2, y = -21.060, z = 95.2,  lvid = 103591 },
+            { x = 116.2, y = -21.043, z = 83.3,  lvid = 103584 },
+            { x = 114.8, y = -21.041, z = 86.1,  lvid = 103494 },
+            { x = 116.2, y = -21.060, z = 122.5, lvid = 103610 },
+            { x = 113.4, y = -21.017, z = 103.6, lvid = 103406 },
+        },
+    },
+    [4] = {
+        -- Variante 4: Actor al Este, Enemigos al Oeste (Flanco Oeste-Este)
+        actor = { x = 116.2, y = -21.060, z = 95.2, lvid = 103591, gvid = 1684, dir = 1.57 },
+        enemy_base = { x = 98.0, y = -21.060, z = 119.0, lvid = 102254, gvid = 1684 },
+        enemy_slots = {
+            { x = 98.0,  y = -21.060, z = 119.0, lvid = 102254 },
+            { x = 98.0,  y = -21.060, z = 121.8, lvid = 102257 },
+            { x = 100.1, y = -21.060, z = 121.8, lvid = 102388 },
+            { x = 95.9,  y = -21.060, z = 100.1, lvid = 102042 },
+            { x = 97.3,  y = -21.001, z = 85.4,  lvid = 102165 },
+            { x = 98.0,  y = -21.016, z = 82.6,  lvid = 102224 },
+            { x = 102.9, y = -21.060, z = 121.8, lvid = 102575 },
+            { x = 100.8, y = -20.908, z = 105.0, lvid = 102416 },
+        },
+    },
+}
+
 -- Zonas de spawn expandidas para Modo Supervivencia / Oleadas (Endless Mode)
 -- Cobertura total de sectores Norte, Noroeste, Noreste y flancos superiores
 ENDLESS_NORTH_ZONES = {

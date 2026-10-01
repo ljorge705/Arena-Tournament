@@ -151,21 +151,39 @@ function resolve_spawn_point(sp, fallback_lvid, cache_key)
     return result_pos, result_lvid, gvid
 end
 
-function get_actor_spawn()
+function get_actor_spawn(round_idx)
+    local sites = CFG.SPAWN_SITES
+    if sites and #sites > 0 then
+        local idx = (((round_idx or 1) - 1) % #sites) + 1
+        local sp = sites[idx].actor
+        local pos, lvid, gvid = resolve_spawn_point(sp, sp.lvid or 103737)
+        return pos, lvid, gvid, sp.dir or 0
+    end
     local sp = CFG.ACTOR_SPAWN
     return resolve_spawn_point(sp, 103737)
 end
 
-function get_enemy_spawn()
+function get_enemy_spawn(round_idx)
+    local sites = CFG.SPAWN_SITES
+    if sites and #sites > 0 then
+        local idx = (((round_idx or 1) - 1) % #sites) + 1
+        local sp = sites[idx].enemy_base
+        return resolve_spawn_point(sp, sp.lvid or 102902)
+    end
     local sp = CFG.TOURNAMENT_ENEMY_SPAWN
     return resolve_spawn_point(sp, 102902)
 end
 
-function get_formation_slot(index)
+function get_formation_slot(index, round_idx)
+    local sites = CFG.SPAWN_SITES
     local slots = CFG.TOURNAMENT_SLOTS
+    if sites and #sites > 0 then
+        local s_idx = (((round_idx or 1) - 1) % #sites) + 1
+        slots = sites[s_idx].enemy_slots or slots
+    end
     local idx = ((index - 1) % #slots) + 1
     local slot = slots[idx]
-    return resolve_spawn_point(slot, 102902)
+    return resolve_spawn_point(slot, slot.lvid or 102902)
 end
 
 function get_endless_spawn_zones(is_north)
@@ -205,6 +223,8 @@ local function place_npc_on_vertex(npc, pos, lvid)
 end
 
 local function stabilize_spawn(npc)
+    if not (npc and npc:alive()) then return false end
+    if xcvb_arena_utils and xcvb_arena_utils.is_npc_wounded and xcvb_arena_utils.is_npc_wounded(npc) then return false end
     local guard = npc_spawn_guard[npc:id()]
     if not guard then return false end
     if time_global() > guard.expires then
@@ -259,6 +279,10 @@ end
 function on_hit(npc, s_hit)
     if not is_active() then return end
     if not (npc and npc:alive()) then return end
+    if xcvb_arena_utils and xcvb_arena_utils.is_npc_wounded and xcvb_arena_utils.is_npc_wounded(npc) then
+        npc_navigation_orders[npc:id()] = nil
+        return
+    end
     if IsStalker and IsStalker(npc) and npc.set_mental_state then
         pcall(npc.set_mental_state, npc, anim.danger)
     end
@@ -284,6 +308,7 @@ end
 --------------------------------------------------------------------------------
 function clamp_npc_position(npc, default_pos)
     if not (npc and npc:alive()) then return end
+    if xcvb_arena_utils and xcvb_arena_utils.is_npc_wounded and xcvb_arena_utils.is_npc_wounded(npc) then return end
     local n_pos = npc:position()
     if not n_pos then return end
 
@@ -367,6 +392,10 @@ end
 
 local function issue_navigation_order(npc, dest_pos, dest_lvid, state_name, tg, refresh_ms)
     if not (npc and dest_pos and dest_lvid) then return end
+    if xcvb_arena_utils and xcvb_arena_utils.is_npc_wounded and xcvb_arena_utils.is_npc_wounded(npc) then
+        npc_navigation_orders[npc:id()] = nil
+        return
+    end
     local previous = npc_navigation_orders[npc:id()]
     if previous and previous.lvid == dest_lvid and tg < previous.refresh_at then
         return
@@ -402,6 +431,9 @@ end
 -- do not run the expensive visibility operations every frame.
 local function refresh_close_actor_combat(npc, actor_pos, tg)
     if not (npc and actor_pos and db.actor and IsStalker and IsStalker(npc)) then
+        return false
+    end
+    if xcvb_arena_utils and xcvb_arena_utils.is_npc_wounded and xcvb_arena_utils.is_npc_wounded(npc) then
         return false
     end
 
@@ -515,7 +547,11 @@ function update_squad_tactics(squad_id, mode)
         local npc = entry.npc
         local npc_id = entry.id
 
-        -- Durante los primeros segundos, corregir cualquier empuje de colision
+        if xcvb_arena_utils and xcvb_arena_utils.is_npc_wounded and xcvb_arena_utils.is_npc_wounded(npc) then
+            npc_advance_completed[npc_id] = true
+            npc_navigation_orders[npc_id] = nil
+        else
+            -- Durante los primeros segundos, corregir cualquier empuje de colision
         -- que intente dejar al NPC sobre una roca. Despues solo se vigila el perimetro.
         if not stabilize_spawn(npc) then
             clamp_npc_position(npc)
@@ -525,7 +561,13 @@ function update_squad_tactics(squad_id, mode)
         if tg >= (npc_runtime_config_at[npc_id] or 0) then
             npc_runtime_config_at[npc_id] = tg + 5000
             if npc.set_custom_panic_threshold then
-                pcall(npc.set_custom_panic_threshold, npc, 0.0)
+                local p_thresh = 0.0
+                if mode == "endless" and xcvb_arena_fight and xcvb_arena_fight.endless_difficulty == "easy" then
+                    p_thresh = 0.35
+                elseif mode == "endless" and xcvb_arena_fight and xcvb_arena_fight.endless_difficulty == "medium" then
+                    p_thresh = 0.08
+                end
+                pcall(npc.set_custom_panic_threshold, npc, p_thresh)
             end
         end
 
@@ -572,6 +614,7 @@ function update_squad_tactics(squad_id, mode)
                 end
             end
             issue_navigation_order(npc, dest_pos, dest_lvid, "raid", tg, 3500)
+        end
         end
         -- Tras el contacto, xr_combat controla en exclusiva el combate.
     end
