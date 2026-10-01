@@ -10,16 +10,19 @@ local gt = game.translate_string
 GUI_COMPANION = nil
 
 function open_companion_ui()
-    if not GUI_COMPANION then
-        GUI_COMPANION = UIXcvbCompanion()
-    end
-    if GUI_COMPANION and not GUI_COMPANION:IsShown() then
-        GUI_COMPANION:ShowDialog(true)
-        Register_UI("UIXcvbCompanion", "xcvb_arena_companion_ui")
-    end
     if GUI_COMPANION then
-        GUI_COMPANION:refresh()
+        if GUI_COMPANION:IsShown() then
+            GUI_COMPANION:HideDialog()
+        end
+        Unregister_UI("UIXcvbCompanion")
+        GUI_COMPANION = nil
     end
+
+    GUI_COMPANION = UIXcvbCompanion()
+    GUI_COMPANION:ShowDialog(true)
+    GUI_COMPANION:Enable(true)
+    Register_UI("UIXcvbCompanion", "xcvb_arena_companion_ui")
+    GUI_COMPANION:refresh()
 end
 
 if rawget(_G, "xr_effects") then
@@ -113,8 +116,11 @@ function UIXcvbCompanion:InitCallbacks()
 end
 
 function UIXcvbCompanion:OnClose()
-    self:HideDialog()
+    if self:IsShown() then
+        self:HideDialog()
+    end
     Unregister_UI("UIXcvbCompanion")
+    GUI_COMPANION = nil
 end
 
 function UIXcvbCompanion:OnHire(def_idx)
@@ -153,12 +159,15 @@ function UIXcvbCompanion:refresh()
     local max_count = xcvb_arena_companions.get_max_companions()
     local normal_m = db.actor and db.actor:money() or 0
     local in_endless = xcvb_arena_fight and xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active()
+    local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+    local tokens = (xcvb_arena_main and xcvb_arena_main.get_arena_tokens and xcvb_arena_main.get_arena_tokens()) or 0
 
     if self.status then
         self.status:SetText(string.format(gt("st_arena_companion_status"), active_count, max_count))
     end
     if self.arena_money then
-        self.arena_money:Show(false)
+        self.arena_money:Show(true)
+        self.arena_money:SetText(string.format(gt("st_arena_companion_arena_money"), tokens))
     end
     if self.normal_money then
         self.normal_money:SetText(string.format(gt("st_arena_companion_normal_money"), normal_m))
@@ -169,13 +178,25 @@ function UIXcvbCompanion:refresh()
         local row = self.rows[i]
         local def = defs[i]
         if row and def then
-            local can_hire = in_endless and (active_count < max_count) and (normal_m >= def.cost)
-            row.btn_hire:Enable(can_hire)
-            row.cost:SetText(string.format(gt("st_arena_companion_cost_fmt"), def.cost))
-            if normal_m < def.cost then
-                row.cost:SetTextColor(GetARGB(255, 230, 80, 80))
+            if econ_mode == "tokens" then
+                local token_cost = math.max(10, math.floor(def.cost / 100))
+                local can_hire = in_endless and (active_count < max_count) and (tokens >= token_cost)
+                row.btn_hire:Enable(can_hire)
+                row.cost:SetText(string.format(gt("st_arena_companion_cost_tokens_fmt"), token_cost))
+                if tokens < token_cost then
+                    row.cost:SetTextColor(GetARGB(255, 230, 80, 80))
+                else
+                    row.cost:SetTextColor(GetARGB(255, 100, 220, 255))
+                end
             else
-                row.cost:SetTextColor(GetARGB(255, 140, 220, 140))
+                local can_hire = in_endless and (active_count < max_count) and (normal_m >= def.cost)
+                row.btn_hire:Enable(can_hire)
+                row.cost:SetText(string.format(gt("st_arena_companion_cost_fmt"), def.cost))
+                if normal_m < def.cost then
+                    row.cost:SetTextColor(GetARGB(255, 230, 80, 80))
+                else
+                    row.cost:SetTextColor(GetARGB(255, 140, 220, 140))
+                end
             end
         end
     end

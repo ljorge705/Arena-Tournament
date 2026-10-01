@@ -1003,6 +1003,9 @@
 	<string id="st_arena_endless_stats_reward">
 		<text>Recompensa base segun dificultad: Facil (800 RU), Media (1,400 RU), Dificil (2,000 RU) + bono por oleada</text>
 	</string>
+	<string id="st_arena_endless_stats_reward_tokens">
+		<text>Recompensa base segun dificultad: Facil (8 Fichas), Media (14 Fichas), Dificil (20 Fichas) + bono por oleada</text>
+	</string>
 	<string id="st_arena_endless_type_title">
 		<text>TIPO DE ENEMIGOS:</text>
 	</string>
@@ -1026,6 +1029,9 @@
 	</string>
 	<string id="st_arena_endless_wave_cleared">
 		<text>OLEADA %s SUPERADA! Recompensa acumulada: %s RU. Preparando siguiente oleada...</text>
+	</string>
+	<string id="st_arena_endless_wave_cleared_tokens">
+		<text>¡OLEADA %s SUPERADA! Fichas acumuladas: %s Fichas. Preparando siguiente oleada...</text>
 	</string>
 	<string id="st_arena_endless_exit_tip">
 		<text>Has salido de la Arena. Oleadas superadas: %s. Recompensa cobrada: %s RU.</text>
@@ -1055,7 +1061,7 @@
 		<text>- Escalado de Amenaza: 1v1 en Oleada 1, aumentando progresivamente hasta 1v6 enemigos.</text>
 	</string>
 	<string id="st_arena_endless_rule_line2">
-		<text>- Retirada Tactica [F]: Sal de la arena en cualquier momento cobrando el 100% del dinero acumulado.</text>
+		<text>- Retirada Tactica [F]: Sal de la arena en cualquier momento cobrando el 100% de la recompensa acumulada.</text>
 	</string>
 	<string id="st_arena_endless_rule_line3">
 		<text>- Rescate Medico: Si caes abatido en combate, el medico te salvara en el Bar cobrando 2,500 RU.</text>
@@ -1258,7 +1264,18 @@
 	<string id="ui_mcm_xcvb_arena_night_elite_nvg_desc">
 		<text>Los enemigos de Ã©lite (Maestros, Leyendas, Monolith y veteranos) equipan visores nocturnos y NO encienden linternas para mantener el sigilo.</text>
 	</string>
-	<string id="st_arena_loadout_mag_title">
+	<string id="ui_mcm_xcvb_arena_arena_light_mult">
+		<text>Iluminacion - Hangar de la Arena</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_arena_light_mult_desc">
+		<text>Multiplicador de luz ambiental en el hangar de la arena normal (predeterminado: 2.8). Aumenta para mayor claridad o reduce si tu shader o reshade es muy brillante.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_forest_light_mult">
+		<text>Iluminacion - Mapa Bosque (Forest)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_forest_light_mult_desc">
+		<text>Multiplicador de luz ambiental en el mapa bosque al aire libre (predeterminado: 1.4). Ajusta la visibilidad entre los arboles.</text>
+	</string>	<string id="st_arena_loadout_mag_title">
 		<text>CARGADOR</text>
 	</string>
 	<string id="st_arena_loadout_mag_none">
@@ -1510,6 +1527,265 @@
 	</string>
 	<string id="st_arena_night_mode_tip_off">
 		<text>Modo normal restaurado - Luces encendidas.</text>
+	</string>
+	<!-- Arena Tokens & Store System (Espanol) -->
+	<string id="st_arena_btn_shop">
+		<text>TIENDA DE LA ARENA</text>
+	</string>
+	<string id="st_arena_tokens_header_label">
+		<text>Fichas: %d Pts</text>
+	</string>
+	<string id="st_arena_reward_tokens">
+		<text>¡Victoria en la Arena! Has recibido %d Fichas de la Arena.</text>
+	</string>
+	<string id="st_arena_reward_tokens_fmt">
+		<text>%d Fichas de Arena</text>
+	</string>
+	<string id="st_arena_endless_exit_tip_tokens">
+		<text>Modo Infinito finalizado (%d Oleadas). ¡Has ganado %d Fichas de Arena!</text>
+	</string>
+	<string id="st_arena_voucher_rental_used">
+		<text>¡Vale de Alquiler de Equipo aplicado! (0 RU cobrados)</text>
+	</string>
+	<string id="st_arena_voucher_medic_used">
+		<text>¡Vale de Rescate Medico aplicado! No se cobro tasa medica de rescate.</text>
+	</string>
+	<string id="st_arena_medic_rescue_voucher">
+		<text>El medico de la arena te atendio usando tu Vale de Rescate Medico (0 RU de coste).</text>
+	</string>
+	<string id="st_arena_companion_err_tokens">
+		<text>No tienes suficientes Fichas de Arena para contratar a este companero (Requiere %d Fichas).</text>
+	</string>
+	<string id="st_arena_companion_cost_tokens_fmt">
+		<text>%d Fichas</text>
+	</string>
+	<string id="st_arena_companion_arena_money">
+		<text>Fichas de Arena: %d Pts</text>
+	</string>
+
+	<!-- Arena Shop Strings (Espanol) -->
+	<string id="st_arena_shop_title">
+		<text>TIENDA Y CAMBIO DE LA ARENA</text>
+	</string>
+	<string id="st_arena_shop_tokens_fmt">
+		<text>Fichas de Arena: %d Pts</text>
+	</string>
+	<string id="st_arena_shop_money_fmt">
+		<text>Dinero: %d RU</text>
+	</string>
+	<string id="st_arena_shop_daily_cashout_fmt">
+		<text>Fondo de liquidez diario de Arnie: %d / %d RU</text>
+	</string>
+	<string id="st_arena_shop_tab_rubles">
+		<text>Rublos</text>
+	</string>
+	<string id="st_arena_shop_tab_medical">
+		<text>Medicina</text>
+	</string>
+	<string id="st_arena_shop_tab_ammo">
+		<text>Municion</text>
+	</string>
+	<string id="st_arena_shop_tab_services">
+		<text>Servicios</text>
+	</string>
+	<string id="st_arena_shop_btn_buy">
+		<text>Canjear</text>
+	</string>
+	<string id="st_arena_shop_btn_no_tokens">
+		<text>Sin Fichas</text>
+	</string>
+	<string id="st_arena_shop_btn_limit_reached">
+		<text>Limite Diario</text>
+	</string>
+	<string id="st_arena_shop_btn_rank_locked">
+		<text>Rango: %s</text>
+	</string>
+	<string id="st_arena_shop_err_rank">
+		<text>Rango insuficiente: Debes alcanzar el rango de %s para comprar esta municion.</text>
+	</string>
+	<string id="st_arena_shop_btn_companions">
+		<text>GLADIADORES</text>
+	</string>
+	<string id="st_arena_shop_cost_fmt">
+		<text>%d Pts</text>
+	</string>
+	<string id="st_arena_shop_cashout_success">
+		<text>Cambio realizado: Has recibido %d RU a cambio de %d Fichas de la Arena.</text>
+	</string>
+	<string id="st_arena_shop_err_limit">
+		<text>Arnie no tiene mas fondos para cambiar por hoy. Vuelve manana.</text>
+	</string>
+	<string id="st_arena_shop_item_bought">
+		<text>Canjeado: %s (%d Fichas).</text>
+	</string>
+	<string id="st_arena_shop_voucher_rental_bought">
+		<text>Adquirido: Vale de Alquiler de Equipo Gratis (se aplicara en tu proximo combate).</text>
+	</string>
+	<string id="st_arena_shop_voucher_medic_bought">
+		<text>Adquirido: Vale de Rescate Medico (cubre 1 rescate de emergencia en la arena).</text>
+	</string>
+
+	<!-- Shop Item Descriptions (Espanol) -->
+	<string id="st_arena_shop_cash_50_name">
+		<text>Dinero para gastos (750 RU)</text>
+	</string>
+	<string id="st_arena_shop_cash_50_desc">
+		<text>Cambia 50 Fichas de la Arena por 750 rublos en efectivo.</text>
+	</string>
+	<string id="st_arena_shop_cash_150_name">
+		<text>Paga pequena (2.250 RU)</text>
+	</string>
+	<string id="st_arena_shop_cash_150_desc">
+		<text>Cambia 150 Fichas de la Arena por 2.250 rublos en efectivo.</text>
+	</string>
+	<string id="st_arena_shop_cash_300_name">
+		<text>Sueldo de gladiador (4.500 RU)</text>
+	</string>
+	<string id="st_arena_shop_cash_300_desc">
+		<text>Cambia 300 Fichas de la Arena por 4.500 rublos en efectivo.</text>
+	</string>
+	<string id="st_arena_shop_cash_600_name">
+		<text>Bolsa importante (9.000 RU)</text>
+	</string>
+	<string id="st_arena_shop_cash_600_desc">
+		<text>Cambia 600 Fichas de la Arena por 9.000 rublos en efectivo.</text>
+	</string>
+	<string id="st_arena_shop_cash_1000_name">
+		<text>Premio de Campeon (15.000 RU)</text>
+	</string>
+	<string id="st_arena_shop_cash_1000_desc">
+		<text>Cambia 1.000 Fichas de la Arena por 15.000 rublos en efectivo.</text>
+	</string>
+
+	<string id="st_arena_shop_med_bandage_name">
+		<text>Pack de Vendajes (x3)</text>
+	</string>
+	<string id="st_arena_shop_med_bandage_desc">
+		<text>Tres vendajes militares esterilizados de compresion para detener hemorragias.</text>
+	</string>
+	<string id="st_arena_shop_med_army_name">
+		<text>Botiquin Militar</text>
+	</string>
+	<string id="st_arena_shop_med_army_desc">
+		<text>Botiquin de campana del ejercito con analgesicos y coagulantes potentes.</text>
+	</string>
+	<string id="st_arena_shop_med_sci_name">
+		<text>Botiquin Cientifico</text>
+	</string>
+	<string id="st_arena_shop_med_sci_desc">
+		<text>Equipo medico ecologista avanzado con radioprotectores y antitoxinas.</text>
+	</string>
+	<string id="st_arena_shop_med_stim_name">
+		<text>Estimulante de Combate</text>
+	</string>
+	<string id="st_arena_shop_med_stim_desc">
+		<text>Inyector de adrenalina y analgesico rapido para traumas graves de combate.</text>
+	</string>
+	<string id="st_arena_shop_med_coag_name">
+		<text>Inyector Coagulante</text>
+	</string>
+	<string id="st_arena_shop_med_coag_desc">
+		<text>Farmaco hemostatico de accion inmediata que frena hemorragias criticas.</text>
+	</string>
+
+	<string id="st_arena_shop_ammo_buck_name">
+		<text>Caja 12x70 Perdigones</text>
+	</string>
+	<string id="st_arena_shop_ammo_buck_desc">
+		<text>Cartuchos estandar de perdigones pesados para defensa cercana contra mutantes.</text>
+	</string>
+	<string id="st_arena_shop_ammo_zhekan_name">
+		<text>Caja 12x76 Bala Zhekan</text>
+	</string>
+	<string id="st_arena_shop_ammo_zhekan_desc">
+		<text>Proyectiles solidos de plomo pesado capaces de fracturar caparazones y blindajes.</text>
+	</string>
+	<string id="st_arena_shop_ammo_545_name">
+		<text>5.45x39 mm 7N10 (AP)</text>
+	</string>
+	<string id="st_arena_shop_ammo_545_desc">
+		<text>Municion perforante con nucleo de acero reforzado contra chalecos y cascos.</text>
+	</string>
+	<string id="st_arena_shop_ammo_556_name">
+		<text>5.56x45 mm M855A1 (AP)</text>
+	</string>
+	<string id="st_arena_shop_ammo_556_desc">
+		<text>Proyectiles perforantes de alta velocidad OTAN con excelente balistica.</text>
+	</string>
+	<string id="st_arena_shop_ammo_939_name">
+		<text>9x39 mm SP-6 (AP)</text>
+	</string>
+	<string id="st_arena_shop_ammo_939_desc">
+		<text>Municion pesada subsonica perforante para fusiles VSS Vintorez y AS Val.</text>
+	</string>
+
+	<string id="st_arena_shop_srv_clean_name">
+		<text>Kit de Limpieza de Armas</text>
+	</string>
+	<string id="st_arena_shop_srv_clean_desc">
+		<text>Solvente universal y baquetas para el mantenimiento de armas de fuego.</text>
+	</string>
+	<string id="st_arena_shop_srv_oil_name">
+		<text>Grasa Lubricante de Armas</text>
+	</string>
+	<string id="st_arena_shop_srv_oil_desc">
+		<text>Grasa sintetica pesada para reducir la friccion y prevenir encasquillamientos.</text>
+	</string>
+	<string id="st_arena_shop_srv_sew_name">
+		<text>Kit de Costura Textil</text>
+	</string>
+	<string id="st_arena_shop_srv_sew_desc">
+		<text>Hilo reforzado y parches de Kevlar para remendar trajes stalker danados.</text>
+	</string>
+	<string id="st_arena_shop_srv_rental_name">
+		<text>Vale de Alquiler de Equipo Gratis</text>
+	</string>
+	<string id="st_arena_shop_srv_rental_desc">
+		<text>Vale especial que cubre el coste total de alquiler de armas para tu proximo combate.</text>
+	</string>
+	<string id="st_arena_shop_srv_medic_name">
+		<text>Vale de Rescate Medico</text>
+	</string>
+	<string id="st_arena_shop_srv_medic_desc">
+		<text>Garantiza extraccion medica gratuita si caes abatido dentro de la arena.</text>
+	</string>
+
+	<!-- MCM Settings Localization (Espanol) -->
+	<string id="ui_mcm_xcvb_arena_economy_mode">
+		<text>Modo de Economia</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_economy_mode_desc">
+		<text>Elige entre Fichas y Tienda de Arena (balanceado e inmersivo, ideal GAMMA) o Rublos Directos (clasico).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_econ_tokens">
+		<text>Fichas y Tienda de Arena (Recomendado)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_econ_classic">
+		<text>Rublos Directos Clasicos (Legacy)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_token_reward_mult">
+		<text>Multiplicador de Fichas</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_token_reward_mult_desc">
+		<text>Escala la cantidad de Fichas de la Arena obtenidas en victorias de torneo y oleadas.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_shop_price_mult">
+		<text>Multiplicador de Precios de Tienda</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_shop_price_mult_desc">
+		<text>Ajusta el costo en fichas de los objetos en la Tienda de la Arena (aumenta para mayor rigor GAMMA o reduce para facilitar).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_daily_cashout_limit">
+		<text>Limite Diario de Cambio a Rublos (RU)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_daily_cashout_limit_desc">
+		<text>Cantidad maxima de rublos que Arnie puede cambiar por dia (previene inflacion desmedida).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_rank_gating">
+		<text>Bloqueo por Rango Stalker (Rank Gating)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_rank_gating_desc">
+		<text>Exige alcanzar el rango correspondiente (Novato, Veterano, Leyenda) para desbloquear tiers altos.</text>
 	</string>
 </string_table>
 

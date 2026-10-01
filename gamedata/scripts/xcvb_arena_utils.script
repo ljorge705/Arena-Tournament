@@ -543,6 +543,21 @@ ignore_small_objects
     return se_obj
 end
 
+local function iterate_alife(callback)
+    local sim = alife()
+    if not sim then return end
+    if sim.iterate_objects then
+        sim:iterate_objects(callback)
+    else
+        for i = 1, 65534 do
+            local se = sim:object(i)
+            if se then
+                callback(se)
+            end
+        end
+    end
+end
+
 function check_and_spawn_board()
     if not (level and level.name and level.name() == "l05_bar") then return end
     local sim = alife()
@@ -558,31 +573,24 @@ function check_and_spawn_board()
     local board_found = false
     local balcony_found = false
     
-    for i = 1, 65534 do
-        local se = sim:object(i)
-        if se then
-            local sec = se:section_name()
-            if sec == "xcvb_arena_board" then
-                -- A saved physics binder may retain a disabled use scheme.
-                -- Changing server custom_data cannot reinitialize that binder.
-                -- Recreate this static prop once after load, including old duplicates.
-                if not board_respawned or board_found then
-                    alife_release(se)
-                else
-                    board_found = true
-                    board_id = i
-                end
-            elseif sec == "xcvb_arena_balcony" then
-                -- Al cargar partida, elimina el balcon viejo atascado en el savegame
-                if not balcony_respawned then
-                    alife_release(se)
-                else
-                    balcony_found = true
-                    balcony_id = i
-                end
+    iterate_alife(function(se)
+        local sec = se:section_name()
+        if sec == "xcvb_arena_board" then
+            if not board_respawned or board_found then
+                alife_release(se)
+            else
+                board_found = true
+                board_id = se.id
+            end
+        elseif sec == "xcvb_arena_balcony" then
+            if not balcony_respawned then
+                alife_release(se)
+            else
+                balcony_found = true
+                balcony_id = se.id
             end
         end
-    end
+    end)
     
     if not board_found then
         local obj = spawn_board()
@@ -649,9 +657,8 @@ function check_and_spawn_companion_boards()
     local actor_found = false
     local enemy_found = false
 
-    for i = 1, 65534 do
-        local se = sim:object(i)
-        if se and se:section_name() == "xcvb_arena_companion_board" then
+    iterate_alife(function(se)
+        if se:section_name() == "xcvb_arena_companion_board" then
             if not companion_boards_respawned or (actor_found and enemy_found) then
                 alife_release(se)
             else
@@ -659,21 +666,21 @@ function check_and_spawn_companion_boards()
                 if pos.z < 105 then
                     if not actor_found then
                         actor_found = true
-                        companion_board_actor_id = i
+                        companion_board_actor_id = se.id
                     else
                         alife_release(se)
                     end
                 else
                     if not enemy_found then
                         enemy_found = true
-                        companion_board_enemy_id = i
+                        companion_board_enemy_id = se.id
                     else
                         alife_release(se)
                     end
                 end
             end
         end
-    end
+    end)
 
     -- Tablero 1: Atrás de donde spawnea el actor por default (pos actor: 152.6, -20.06, 81.2)
     -- Lo ubicamos en Z = 78.5, mirando de frente al actor (hacia el norte / centro de la arena)
@@ -964,6 +971,12 @@ local function forest_arena_selected()
     return xcvb_arena_main and xcvb_arena_main.selected_map == "forest"
 end
 
+function is_forest()
+    return forest_arena_selected()
+end
+xcvb_arena_utils.forest_arena_selected = forest_arena_selected
+xcvb_arena_utils.is_forest = forest_arena_selected
+
 local function get_selected_combat_pos(x, y, z, forest_y)
     if forest_arena_selected() then
         return vector():set(x + FOREST_ARENA_X_OFFSET, forest_y or y, z)
@@ -1042,13 +1055,26 @@ end
 
 function arena_fade_in_out(in_dly)
     local fade_in_delay = in_dly or 0
-    local fade_out_delay = fade_in_delay + 2
+    local fade_out_delay = fade_in_delay + 0.8
+    local cleanup_delay = fade_out_delay + 1.2
+
+    pcall(level.remove_pp_effector, 987123)
     CreateTimeEvent("xcvb_arena_fade_in_e", "xcvb_arena_fade_in_a", fade_in_delay, function()
-        level.add_pp_effector("fade_in.ppe", 987123)
+        pcall(level.remove_pp_effector, 987123)
+        pcall(level.add_pp_effector, "fade_in.ppe", 987123, false)
         return true
     end)
     CreateTimeEvent("xcvb_arena_fade_out_e", "xcvb_arena_fade_out_a", fade_out_delay, function()
-        level.add_pp_effector("fade_out.ppe", 987124)
+        pcall(level.remove_pp_effector, 987123)
+        pcall(level.remove_pp_effector, 987124)
+        pcall(level.remove_pp_effector, 987125)
+        pcall(level.add_pp_effector, "fade_out.ppe", 987124, false)
+        return true
+    end)
+    CreateTimeEvent("xcvb_arena_fade_clean_e", "xcvb_arena_fade_clean_a", cleanup_delay, function()
+        pcall(level.remove_pp_effector, 987123)
+        pcall(level.remove_pp_effector, 987124)
+        pcall(level.remove_pp_effector, 987125)
         return true
     end)
 end
@@ -1273,14 +1299,113 @@ end
 -- ─────────────────────────────────────────────────────────────────────────────
 -- COMBAT AMBIENT LIGHTING SYSTEM (Anomaly underground visibility boost)
 -- ─────────────────────────────────────────────────────────────────────────────
--- Forward declaration is required: Lua only captures locals declared before
--- the function body. Without this, the pcall silently saw a nil global and the
--- daylight boost never reached the console.
-local VIDEO_RENDER_COMMANDS
-local get_console_val
+VIDEO_RENDER_COMMANDS = {
+    -- Sun & Sky Lighting
+    "r2_sun",
+    "r2_sun_lumscale",
+    "r2_sun_lumscale_amb",
+    "r2_sun_lumscale_hemi",
+    "r2_sun_depth_near_scale",
+    "r2_sun_depth_far_scale",
+    "r2_sun_depth_near_bias",
+    "r2_sun_depth_far_bias",
+    "r2_sun_far",
+    "r2_sun_near",
+    "r2_sun_near_border",
+    "r2_sun_tsm_bias",
+    "r2_sun_tsm_proj",
+    "r2_sunshafts_min",
+    "r2_sunshafts_value",
+    -- Tonemapping & Color
+    "r2_tonemap",
+    "r2_tonemap_amount",
+    "r2_tonemap_adaptation",
+    "r2_tonemap_lowlum",
+    "r2_tonemap_middlegray",
+    "rs_c_brightness",
+    "rs_c_contrast",
+    "rs_c_gamma",
+    "r__gamma",
+    "r__exposure",
+    "r__saturation",
+    "r__color_grading",
+    -- Screen Space Shaders & Fog
+    "ssfx_is_underground",
+    "ssfx_fog_scattering",
+    "ssfx_fog",
+    "ssfx_hud_hemi",
+    "ssfx_shadow_bias",
+    "ssfx_water",
+    "ssfx_bloom_use_presets",
+    "ssfx_ao",
+    "ssfx_ao_quality",
+    -- Details & Volumetrics
+    "r2_gloss_factor",
+    "r2_gloss_min",
+    "r2_steep_parallax",
+    "r2_detail_bump",
+    "r2_volumetric_lights",
+    "scope_factor",
+}
+
+local DEFAULT_DAYLIGHT_SETTINGS = {
+    ["r2_sun_lumscale"]      = "1.0",
+    ["r2_sun_lumscale_amb"]  = "1.0",
+    ["r2_sun_lumscale_hemi"] = "1.0",
+    ["r2_tonemap_lowlum"]    = "0.0001",
+    ["r2_tonemap_middlegray"]= "1.0",
+    ["ssfx_is_underground"]  = "0",
+    ["ssfx_fog_scattering"]  = "1",
+    ["ssfx_fog"]             = "(1,1,1,1)",
+}
+
+local get_console_val = function(cmd_name)
+    local val = nil
+    local con = nil
+    pcall(function() if get_console then con = get_console() end end)
+    if con then
+        pcall(function()
+            if con.get_string then
+                val = con:get_string(cmd_name)
+            end
+        end)
+        if val ~= nil and val ~= "" then return tostring(val) end
+        pcall(function()
+            if con.get_float then
+                val = con:get_float(cmd_name)
+            end
+        end)
+        if val ~= nil then return tostring(val) end
+        pcall(function()
+            if con.get_bool then
+                val = con:get_bool(cmd_name)
+            end
+        end)
+        if val ~= nil then return val and "1" or "0" end
+        pcall(function()
+            if con.get then
+                val = con:get(cmd_name)
+            end
+        end)
+        if val ~= nil and val ~= "" then return tostring(val) end
+    end
+    if get_console_cmd then
+        pcall(function() val = get_console_cmd(0, cmd_name) end)
+        if val ~= nil and val ~= "" then return tostring(val) end
+        pcall(function() val = get_console_cmd(2, cmd_name) end)
+        if val ~= nil and val ~= "" then return tostring(val) end
+        pcall(function() val = get_console_cmd(1, cmd_name) end)
+        if val ~= nil and val ~= "" then return tostring(val) end
+    end
+    return nil
+end
+
 local gamma_modpack_cache = nil
 
 local function is_gamma_modpack()
+    if xcvb_arena_env and xcvb_arena_env.is_gamma then
+        return xcvb_arena_env.is_gamma()
+    end
     if gamma_modpack_cache ~= nil then return gamma_modpack_cache end
     gamma_modpack_cache = false
     pcall(function()
@@ -1298,68 +1423,113 @@ end
 function apply_combat_ambient_lighting(enable)
     if enable then
         if xcvb_arena_main and xcvb_arena_main.night_mode_active then return end
+
         if not xcvb_arena_main.combat_ambient_saved then
+            -- Guardar una copia exacta y fiel de todos los comandos de renderizado del motor antes de cambiarlos
             local orig = {}
             for _, cmd in ipairs(VIDEO_RENDER_COMMANDS) do
                 local v = get_console_val(cmd)
-                if v ~= nil and v ~= "" then
+                if DEFAULT_DAYLIGHT_SETTINGS[cmd] and (v == nil or v == "" or v == "0" or v == "0.0" or v == "(0,0,0,0)") then
+                    orig[cmd] = DEFAULT_DAYLIGHT_SETTINGS[cmd]
+                elseif v ~= nil and v ~= "" then
                     orig[cmd] = tostring(v)
                 end
             end
             pcall(function() orig.__weather = level.get_weather and level.get_weather() end)
             xcvb_arena_main.combat_ambient_saved = orig
         end
-        -- Forest is physically below Rostok and receives almost no baked daylight.
-        -- Use the renderer's supported maximums while combat is active; night mode
-        -- restores absolute darkness through apply_night_mode_lighting().
-        pcall(function() exec_console_cmd("r2_sun_lumscale_amb 3.0") end)
-        pcall(function() exec_console_cmd("r2_sun_lumscale_hemi 3.0") end)
-        pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.001") end)
-        pcall(function() exec_console_cmd("r2_tonemap_middlegray 1.1") end)
-        pcall(function() exec_console_cmd("ssfx_is_underground 0") end)
 
-        -- Vanilla Anomaly continuously reapplies its current weather descriptor.
-        -- Cvars alone therefore produce a short flash and are overwritten on the
-        -- following frame. Override the live descriptor and freeze only the
-        -- weather transition for the duration of the arena round. Game time and
-        -- simulation continue normally.
-        -- GAMMA already supplies strong ambient weather and only needs the
-        -- renderer cvars above. Replacing its descriptor causes the near-white
-        -- image seen with SSS/GAMMA weather packs. Vanilla Anomaly needs the
-        -- descriptor override because its manager otherwise undoes the cvars.
-        if not is_gamma_modpack() and weather and weather.set_value_vector then
-            pcall(weather.set_value_vector, "sky_color", 0.42, 0.50, 0.62)
-            pcall(weather.set_value_vector, "ambient_color", 0.30, 0.34, 0.40)
-            pcall(weather.set_value_vector, "hemisphere_color", 0.62, 0.68, 0.78, 1.0)
-            pcall(weather.pause, true)
-            xcvb_arena_main.combat_ambient_weather_paused = true
+        local is_forest = forest_arena_selected()
+
+        if is_forest then
+            -- =====================================================================
+            -- MAPA BOSQUE (FOREST): Menos iluminado, atmÃ³sfera natural de bosque
+            -- =====================================================================
+            local f_mult = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("forest_light_mult")) or 1.4
+            pcall(function() exec_console_cmd(string.format("r2_sun_lumscale_amb %.2f", f_mult)) end)
+            pcall(function() exec_console_cmd(string.format("r2_sun_lumscale_hemi %.2f", f_mult)) end)
+            pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.01") end)
+            pcall(function() exec_console_cmd("r2_tonemap_middlegray 1.05") end)
+            pcall(function() exec_console_cmd("ssfx_is_underground 0") end)
+            pcall(function() exec_console_cmd("ssfx_hud_hemi 0.45") end)
+
+            if not is_gamma_modpack() and weather and weather.set_value_vector then
+                pcall(weather.set_value_vector, "sky_color", 0.35, 0.40, 0.48)
+                pcall(weather.set_value_vector, "ambient_color", 0.22, 0.25, 0.30)
+                pcall(weather.set_value_vector, "hemisphere_color", 0.45, 0.50, 0.58, 1.0)
+                pcall(weather.pause, true)
+                xcvb_arena_main.combat_ambient_weather_paused = true
+            end
+        else
+            -- =====================================================================
+            -- ARENA NORMAL: Bien iluminado, hangar despejado y claro, alta visibilidad
+            -- =====================================================================
+            local a_mult = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("arena_light_mult")) or 2.8
+            pcall(function() exec_console_cmd(string.format("r2_sun_lumscale_amb %.2f", a_mult)) end)
+            pcall(function() exec_console_cmd(string.format("r2_sun_lumscale_hemi %.2f", a_mult)) end)
+            pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.0005") end)
+            pcall(function() exec_console_cmd("r2_tonemap_middlegray 1.35") end)
+            pcall(function() exec_console_cmd("ssfx_is_underground 0") end)
+            pcall(function() exec_console_cmd("ssfx_hud_hemi 0.90") end)
+
+            -- Encender todas las lÃ¡mparas de techo y proyectores de la arena
+            pcall(toggle_arena_lights, true)
+
+            if not is_gamma_modpack() and weather and weather.set_value_vector then
+                pcall(weather.set_value_vector, "sky_color", 0.55, 0.60, 0.70)
+                pcall(weather.set_value_vector, "ambient_color", 0.38, 0.42, 0.48)
+                pcall(weather.set_value_vector, "hemisphere_color", 0.75, 0.80, 0.88, 1.0)
+                pcall(weather.pause, true)
+                xcvb_arena_main.combat_ambient_weather_paused = true
+            end
         end
     else
         if xcvb_arena_main and xcvb_arena_main.combat_ambient_saved then
             local saved = xcvb_arena_main.combat_ambient_saved
+
+            -- Restaurar EXACTAMENTE los valores originales de vÃ­deo que tenÃ­a el jugador
+            if getFS():exist("$app_data_root$", "arena_ambient_backup.ltx") then
+                pcall(function() exec_console_cmd("cfg_load arena_ambient_backup") end)
+            else
+                pcall(function() exec_console_cmd("cfg_load user") end)
+            end
+
+            -- Restaurar explÃ­citamente cualquier cvar guardado
             for cmd, val in pairs(saved) do
-                if cmd ~= "__weather" then
+                if cmd ~= "__weather" and val and val ~= "" then
                     pcall(function() exec_console_cmd(cmd .. " " .. val) end)
                 end
             end
-            if xcvb_arena_main.combat_ambient_weather_paused and weather then
+
+            -- Restaurar clima original si se pausó o alteró
+            if weather then
                 pcall(weather.pause, false)
-                if saved.__weather and weather.set_weather then
+                if saved and saved.__weather and weather.set_weather then
                     pcall(weather.set_weather, saved.__weather, true)
                 end
-                pcall(weather.reload)
-                pcall(function()
-                    if level_weathers and level_weathers.get_weather_manager then
-                        local wm = level_weathers.get_weather_manager()
-                        if wm then
-                            wm:forced_weather_change()
-                            wm:select_weather(true)
-                        end
-                    end
-                end)
             end
+
+            if ssfx_fog and ssfx_fog.apply_fog_settings then
+                pcall(ssfx_fog.apply_fog_settings)
+            end
+
+            pcall(function()
+                if level_weathers and level_weathers.get_weather_manager then
+                    local wm = level_weathers.get_weather_manager()
+                    if wm then
+                        wm:forced_weather_change()
+                        wm:select_weather(true)
+                    end
+                end
+            end)
+
             xcvb_arena_main.combat_ambient_weather_paused = nil
             xcvb_arena_main.combat_ambient_saved = nil
+        else
+            -- Si no habÃ­a tabla guardada en memoria, asegurar recarga de settings originales
+            if getFS():exist("$app_data_root$", "arena_ambient_backup.ltx") then
+                pcall(function() exec_console_cmd("cfg_load arena_ambient_backup") end)
+            end
         end
     end
 end
@@ -1417,64 +1587,78 @@ function toggle_arena_lights(turn_on)
     local y_min, y_max = -26, 25
 
     local count = 0
-    for id = 1, 65534 do
-        local obj = level.object_by_id(id)
-        if obj then
-            local is_lamp = false
-            pcall(function()
-                local c = obj:clsid()
-                local sec = obj:section()
-                if (clsid and (c == clsid.hlamp_s or c == clsid.hanging_lamp)) or (sec == "lights_hanging_lamp" or sec == "lights_signal_light") then
-                    is_lamp = true
-                end
-            end)
-
-            if is_lamp then
-                pcall(function()
-                    local lamp = obj:get_hanging_lamp()
-                    if lamp then
-                        local pos = obj:position()
-                        local in_arena_box = (pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max and pos.y >= y_min and pos.y <= y_max)
-                        local name = obj:name() or ""
-                        local is_arena_named = string.find(name, "light_big_glass_")
-                            or string.find(name, "light_alarm_glass_")
-                            or string.find(name, "light_galogen_")
-                            or string.find(name, "forest_light_")
-                            or string.find(name, "arena_light_")
-                            or (string.find(name, "bar_lights_hanging_lamp_") and pos.z >= z_min)
-
-                        if in_arena_box or (is_arena_named and pos.z >= 60) then
-                            if turn_on then
-                                lamp:turn_on()
-                            else
-                                lamp:turn_off()
-                            end
-                            cached_arena_lamp_ids[#cached_arena_lamp_ids + 1] = id
-                            count = count + 1
-                        end
-                    end
-                end)
+    local function check_obj_lamp(obj)
+        if not obj then return end
+        local is_lamp = false
+        pcall(function()
+            local c = obj:clsid()
+            local sec = obj:section()
+            if (clsid and (c == clsid.hlamp_s or c == clsid.hanging_lamp)) or (sec == "lights_hanging_lamp" or sec == "lights_signal_light") then
+                is_lamp = true
             end
+        end)
 
-            local is_proj = false
+        if is_lamp then
             pcall(function()
-                if clsid and clsid.projector and obj:clsid() == clsid.projector then
-                    is_proj = true
+                local lamp = obj:get_hanging_lamp()
+                if lamp then
+                    local pos = obj:position()
+                    local in_arena_box = (pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max and pos.y >= y_min and pos.y <= y_max)
+                    local name = obj:name() or ""
+                    local is_arena_named = string.find(name, "light_big_glass_")
+                        or string.find(name, "light_alarm_glass_")
+                        or string.find(name, "light_galogen_")
+                        or string.find(name, "forest_light_")
+                        or string.find(name, "arena_light_")
+                        or (string.find(name, "bar_lights_hanging_lamp_") and pos.z >= z_min)
+
+                    if in_arena_box or (is_arena_named and pos.z >= 60) then
+                        if turn_on then
+                            lamp:turn_on()
+                        else
+                            lamp:turn_off()
+                        end
+                        cached_arena_lamp_ids[#cached_arena_lamp_ids + 1] = obj:id()
+                        count = count + 1
+                    end
                 end
             end)
+        end
 
-            if is_proj then
-                pcall(function()
-                    local proj = obj:get_projector()
-                    if proj then
-                        local pos = obj:position()
-                        if pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max then
-                            proj:Action(CProjector.eSwitch, turn_on and 1 or 0, "")
-                        end
+        local is_proj = false
+        pcall(function()
+            if clsid and clsid.projector and obj:clsid() == clsid.projector then
+                is_proj = true
+            end
+        end)
+
+        if is_proj then
+            pcall(function()
+                local proj = obj:get_projector()
+                if proj then
+                    local pos = obj:position()
+                    if pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max then
+                        proj:Action(CProjector.eSwitch, turn_on and 1 or 0, "")
                     end
-                end)
+                end
+            end)
+        end
+    end
+
+    if db and db.storage then
+        for id, _ in pairs(db.storage) do
+            local obj = level.object_by_id(id)
+            if obj then
+                check_obj_lamp(obj)
             end
         end
+    else
+        iterate_alife(function(se)
+            local obj = level.object_by_id(se.id)
+            if obj then
+                check_obj_lamp(obj)
+            end
+        end)
     end
     printf(string.format("[ARENA_LIGHTS] Toggled %d arena lamps to %s", count, turn_on and "ON" or "OFF"))
     pcall(function()
@@ -1483,123 +1667,10 @@ function toggle_arena_lights(turn_on)
     end)
 end
 
-VIDEO_RENDER_COMMANDS = {
-    -- Sun & Sky Lighting
-    "r2_sun",
-    "r2_sun_lumscale",
-    "r2_sun_lumscale_amb",
-    "r2_sun_lumscale_hemi",
-    "r2_sun_depth_near_scale",
-    "r2_sun_depth_far_scale",
-    "r2_sun_depth_near_bias",
-    "r2_sun_depth_far_bias",
-    "r2_sun_far",
-    "r2_sun_near",
-    "r2_sun_near_border",
-    "r2_sun_tsm_bias",
-    "r2_sun_tsm_proj",
-    "r2_sunshafts_min",
-    "r2_sunshafts_value",
-    -- Tonemapping & Color
-    "r2_tonemap",
-    "r2_tonemap_amount",
-    "r2_tonemap_adaptation",
-    "r2_tonemap_lowlum",
-    "r2_tonemap_middlegray",
-    "rs_c_brightness",
-    "rs_c_contrast",
-    "rs_c_gamma",
-    "r__gamma",
-    "r__exposure",
-    "r__saturation",
-    "r__color_grading",
-    -- Screen Space Shaders & Fog
-    "ssfx_is_underground",
-    "ssfx_fog_scattering",
-    "ssfx_fog",
-    "ssfx_hud_hemi",
-    "ssfx_shadow_bias",
-    "ssfx_water",
-    "ssfx_bloom_use_presets",
-    "ssfx_ao",
-    "ssfx_ao_quality",
-    "ssfx_florafixes_enable",
-    -- Details & Volumetrics
-    "r2_gloss_factor",
-    "r2_gloss_min",
-    "r2_steep_parallax",
-    "r2_detail_bump",
-    "r2_volumetric_lights",
-    "scope_factor",
-    -- Custom Shader Params
-    "shader_param_1",
-    "shader_param_2",
-    "shader_param_3",
-    "shader_param_4",
-    "shader_param_5",
-    "shader_param_6",
-    "shader_param_7",
-}
-
-local DEFAULT_DAYLIGHT_SETTINGS = {
-    ["r2_sun_lumscale"]      = "1.0",
-    ["r2_sun_lumscale_amb"]  = "1.0",
-    ["r2_sun_lumscale_hemi"] = "1.0",
-    ["r2_tonemap_lowlum"]    = "0.0001",
-    ["r2_tonemap_middlegray"]= "1.0",
-    ["ssfx_is_underground"]  = "0",
-    ["ssfx_fog_scattering"]  = "1",
-    ["ssfx_fog"]             = "(1,1,1,1)",
-}
-
-get_console_val = function(cmd_name)
-    local val = nil
-    local con = nil
-    pcall(function() if get_console then con = get_console() end end)
-    if con then
-        pcall(function()
-            if con.get_string then
-                val = con:get_string(cmd_name)
-            end
-        end)
-        if val ~= nil and val ~= "" then return tostring(val) end
-        pcall(function()
-            if con.get_float then
-                val = con:get_float(cmd_name)
-            end
-        end)
-        if val ~= nil then return tostring(val) end
-        pcall(function()
-            if con.get_bool then
-                val = con:get_bool(cmd_name)
-            end
-        end)
-        if val ~= nil then return val and "1" or "0" end
-        pcall(function()
-            if con.get then
-                val = con:get(cmd_name)
-            end
-        end)
-        if val ~= nil and val ~= "" then return tostring(val) end
-    end
-    if get_console_cmd then
-        pcall(function() val = get_console_cmd(0, cmd_name) end)
-        if val ~= nil and val ~= "" then return tostring(val) end
-        pcall(function() val = get_console_cmd(2, cmd_name) end)
-        if val ~= nil and val ~= "" then return tostring(val) end
-        pcall(function() val = get_console_cmd(1, cmd_name) end)
-        if val ~= nil and val ~= "" then return tostring(val) end
-    end
-    return nil
-end
-
 function apply_night_mode_lighting(enable)
     if enable then
         -- 1. Save original render settings if not already saved
         if not xcvb_arena_main.night_mode_saved_render then
-            -- Save file-level backup in appdata/arena_night_backup.ltx
-            pcall(function() exec_console_cmd("cfg_save arena_night_backup") end)
-
             local orig = {}
             for _, cmd in ipairs(VIDEO_RENDER_COMMANDS) do
                 local v = get_console_val(cmd)
@@ -1668,7 +1739,6 @@ function apply_night_mode_lighting(enable)
         if saved.__weather and weather and weather.set_weather then
             pcall(weather.pause, false)
             pcall(weather.set_weather, saved.__weather, true)
-            pcall(weather.reload)
         end
 
         if ssfx_fog and ssfx_fog.apply_fog_settings then
@@ -1677,7 +1747,6 @@ function apply_night_mode_lighting(enable)
 
         if weather then
             pcall(weather.pause, false)
-            pcall(weather.reload)
         end
 
         pcall(function()
@@ -2650,6 +2719,7 @@ end
 function enter_arena_night_mode()
     if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then return end
     night_mode_combat_running = true
+    pcall(collectgarbage, "collect")
     -- Object ids can be reused between rounds; never inherit a previous NPC's
     -- light throttle when a new wave enters the arena.
     npc_light_check_at = {}
@@ -2668,6 +2738,7 @@ function enter_arena_night_mode()
 
     -- 3. Equip actor with chosen night device
     ensure_actor_torch_active()
+    pcall(collectgarbage, "collect")
 end
 
 function exit_arena_night_mode()
@@ -2679,6 +2750,7 @@ function exit_arena_night_mode()
         if not xcvb_arena_main.night_mode_saved_render then return end
         toggle_arena_lights(true)
         apply_night_mode_lighting(false)
+        pcall(collectgarbage, "collect")
         return
     end
     night_mode_combat_running = false
@@ -2695,6 +2767,7 @@ function exit_arena_night_mode()
     -- 4. Clear NPC night gear cache
     npc_night_gear = {}
     npc_light_check_at = {}
+    pcall(collectgarbage, "collect")
 end
 
 function setup_tournament_squad_aggro(squad_id)
@@ -2923,24 +2996,38 @@ end
 function give_tournament_rewards(round_data)
     if not round_data then return end
     
-    local mult = xcvb_arena_mcm.get_config("reward_mult") or 1.0
-    local money = math.ceil(round_data.reward_money * mult)
-    db.actor:give_money(money)
-    
-    local str = string.format(game.translate_string("st_arena_reward_money"), money)
-    news_manager.send_tip(db.actor, str, 0, nil, 10000)
-    
-    local give_items = xcvb_arena_mcm.get_config("give_items")
-    if give_items ~= false and round_data.reward_items then
-        local items_given = false
-        for _, item_sec in ipairs(round_data.reward_items) do
-            if ini_sys:section_exist(item_sec) then
-                alife_create_item(item_sec, db.actor)
-                items_given = true
-            end
+    local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+    if econ_mode == "tokens" then
+        local mult = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("token_reward_mult")) or 1.0
+        local base_tokens = (xcvb_arena_main and xcvb_arena_main.get_round_reward_tokens and xcvb_arena_main.get_round_reward_tokens(round_data)) or math.floor((round_data.reward_money or 3000) / 100)
+        local total_tokens = math.ceil(base_tokens * mult)
+        if xcvb_arena_main and xcvb_arena_main.add_arena_tokens then
+            xcvb_arena_main.add_arena_tokens(total_tokens)
         end
-        if items_given then
-            news_manager.send_tip(db.actor, game.translate_string("st_arena_reward_items"), 0, nil, 10000)
+        local str = string.format(game.translate_string("st_arena_reward_tokens"), total_tokens)
+        news_manager.send_tip(db.actor, str, 0, nil, 10000)
+    else
+        local mult = xcvb_arena_mcm.get_config("reward_mult") or 1.0
+        local money = math.ceil(round_data.reward_money * mult)
+        db.actor:give_money(money)
+        
+        local str = string.format(game.translate_string("st_arena_reward_money"), money)
+        news_manager.send_tip(db.actor, str, 0, nil, 10000)
+    end
+    
+    if econ_mode ~= "tokens" then
+        local give_items = xcvb_arena_mcm.get_config("give_items")
+        if give_items ~= false and round_data.reward_items then
+            local items_given = false
+            for _, item_sec in ipairs(round_data.reward_items) do
+                if ini_sys:section_exist(item_sec) then
+                    alife_create_item(item_sec, db.actor)
+                    items_given = true
+                end
+            end
+            if items_given then
+                news_manager.send_tip(db.actor, game.translate_string("st_arena_reward_items"), 0, nil, 10000)
+            end
         end
     end
 end
@@ -2998,10 +3085,10 @@ function clean_arena_corpses()
             local se = sim:object(id)
             if se then
                 local pos = se.position
-                -- Online objects belong to the current level; identical coordinates
-                -- in other ALife levels must never qualify for arena cleanup.
-                local online = pos and pos.x >= 125 and pos.x <= 175 and pos.y <= -6
-                    and pos.z >= 65 and pos.z <= 145 and level.object_by_id(id)
+                -- Online objects belong to the current level; covers both main arena and forest arena sectors
+                local in_arena_bounds = pos and pos.x >= 75 and pos.x <= 185 and pos.y <= -6
+                    and pos.z >= 60 and pos.z <= 150
+                local online = in_arena_bounds and level.object_by_id(id)
                 if online then
                     local parent = se.parent_id
                     if id == 0 or parent == 0 then
@@ -3011,7 +3098,6 @@ function clean_arena_corpses()
                         if not is_safe then
                             local cls = se:clsid()
                             local is_npc = IsStalker(nil, cls) or IsMonster(nil, cls)
-                            local is_item = IsWeapon(nil, cls) or IsAmmo(nil, cls) or IsOutfit(nil, cls) or IsHeadgear(nil, cls)
                             if is_npc then
                                 -- Jamas borrar a un NPC o mutante que este vivo
                                 local ok, is_alive = pcall(function() return online:alive() end)
@@ -3019,7 +3105,8 @@ function clean_arena_corpses()
                                     safe_release_by_id(id)
                                     found_anything = true
                                 end
-                            elseif is_item and (parent == nil or parent == 65535) then
+                            elseif (parent == nil or parent == 65535 or parent == 0xFFFF) then
+                                -- Limpiar cualquier residuo de combate en el suelo (armas danadas, cargadores vacios, loot de mutantes huÃ©rfano)
                                 safe_release_by_id(id)
                                 found_anything = true
                             end
@@ -3150,12 +3237,12 @@ tournament_loadouts_t = {
         helmets = { "helm_tactic", "helm_ach7ex", "helm_battle" },
         weapons = {
             "wpn_desert_eagle", "wpn_deagle", "wpn_sr1m", "wpn_usp_tac_45", "wpn_glock17_m1", "wpn_pl15_tan",
-            "wpn_saiga12s_custom", "wpn_saiga12s_m1", "wpn_vepr", "wpn_protecta_custom", "wpn_mts_255",
+            "wpn_saiga12s_custom", "wpn_saiga12s_m1", "wpn_vepr", "wpn_protecta_custom", "wpn_spas12",
             "wpn_val", "wpn_groza", "wpn_fn2000", "wpn_scar", "wpn_scar_h", "wpn_m4_tac", "wpn_m4a1_siber", "wpn_xm4", "wpn_car15_bd", "wpn_hk416", "wpn_ak12", "wpn_ak74_isg", "wpn_akm_isg", "wpn_aksu_isg", "wpn_fal", "wpn_grot", "wpn_ash12", "wpn_rpk74",
             "wpn_p90", "wpn_p90_gunslinger", "wpn_mp7", "wpn_sr2_veresk", "wpn_val_modern",
             "wpn_vintorez", "wpn_svd_custom", "wpn_sv98_custom", "wpn_m98b", "wpn_sr25", "wpn_dvl10", "wpn_trg42", "wpn_g3sg1", "wpn_hk417",
         },
-        shotguns = { "wpn_saiga12s_custom", "wpn_saiga12s_m1", "wpn_vepr", "wpn_protecta_custom", "wpn_mts_255" },
+        shotguns = { "wpn_saiga12s_custom", "wpn_saiga12s_m1", "wpn_vepr", "wpn_protecta_custom", "wpn_spas12" },
         rifles = { "wpn_val", "wpn_groza", "wpn_fn2000", "wpn_scar", "wpn_scar_h", "wpn_m4_tac", "wpn_m4a1_siber", "wpn_xm4", "wpn_car15_bd", "wpn_hk416", "wpn_ak12", "wpn_ak74_isg", "wpn_akm_isg", "wpn_aksu_isg", "wpn_fal", "wpn_grot", "wpn_ash12", "wpn_rpk74" },
         smgs = { "wpn_p90", "wpn_p90_gunslinger", "wpn_mp7", "wpn_sr2_veresk", "wpn_val_modern" },
         snipers = { "wpn_vintorez", "wpn_svd_custom", "wpn_sv98_custom", "wpn_m98b", "wpn_sr25", "wpn_dvl10", "wpn_trg42", "wpn_g3sg1", "wpn_hk417" },
@@ -3934,10 +4021,29 @@ end
 function power_up_exoskeleton(spawned_outfit_id, outfit_sec)
     if not outfit_sec then return end
     
+    -- In modpacks without exo power systems (Forgotten Zone, Vanilla Anomaly, etc.),
+    -- exoskeletons do not use PSUs or batteries.
+    if xcvb_arena_env and not xcvb_arena_env.has_exo_power_system() then
+        return
+    end
+
     local is_an_exo = false
     if item_exo_device and item_exo_device.is_exo then
-        local dummy = { section = function() return outfit_sec end }
-        is_an_exo = item_exo_device.is_exo(dummy)
+        local outfit_obj = spawned_outfit_id and level.object_by_id(spawned_outfit_id)
+        if outfit_obj then
+            local ok, res = pcall(item_exo_device.is_exo, outfit_obj)
+            if ok and res then is_an_exo = true end
+        else
+            -- If creating a dummy, provide clsid to satisfy wrappers like IsOutfit
+            local cls = (ini_sys:section_exist(outfit_sec) and ini_sys:r_clsid(outfit_sec, "class")) or clsid.equ_stalker
+            local dummy = {
+                section = function() return outfit_sec end,
+                clsid = function() return cls end,
+                id = function() return spawned_outfit_id or 0 end,
+            }
+            local ok, res = pcall(item_exo_device.is_exo, dummy)
+            if ok and res then is_an_exo = true end
+        end
     end
     if not is_an_exo then
         is_an_exo = string.find(outfit_sec, "exo") ~= nil or string.find(outfit_sec, "nosorog") ~= nil

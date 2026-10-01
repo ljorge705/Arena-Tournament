@@ -1,0 +1,139 @@
+<w>
+	<!-- Main Dialog Background -->
+	<dialog x="232" y="50" width="560" height="660" stretch="1">
+		<texture>ui_inGame2_opt_dialog_window</texture>
+	</dialog>
+
+	<!-- Title -->
+	<title x="232" y="64" width="560" height="26">
+		<text r="240" g="210" b="120" font="graffiti22" align="c" vert_align="c">st_arena_shop_title</text>
+	</title>
+
+	<!-- Player Tokens & Money Header -->
+	<tokens_lbl x="250" y="92" width="250" height="18">
+		<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+	</tokens_lbl>
+
+	<money_lbl x="520" y="92" width="250" height="18">
+		<text r="140" g="220" b="140" font="letterica18" align="r" vert_align="c"></text>
+	</money_lbl>
+
+	<cashout_limit_lbl x="250" y="112" width="520" height="18">
+		<text r="210" g="210" b="160" font="letterica16" align="c" vert_align="c"></text>
+	</cashout_limit_lbl>
+
+	<!-- Top Separator -->
+	<sep_top x="245" y="132" width="534" height="2" stretch="1">
+		<texture>ui_inGame2_line_dialog</texture>
+	</sep_top>
+
+	<!-- Category Tab Buttons (3 balanced tabs: Rubles, Medicine, Ammunition) -->
+	<tab_rubles x="246" y="138" width="168" height="26" check_mode="0">
+		<text font="letterica16">st_arena_shop_tab_rubles</text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</tab_rubles>
+	<tab_medical x="424" y="138" width="168" height="26" check_mode="0">
+		<text font="letterica16">st_arena_shop_tab_medical</text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</tab_medical>
+	<tab_ammo x="602" y="138" width="168" height="26" check_mode="0">
+		<text font="letterica16">st_arena_shop_tab_ammo</text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</tab_ammo>
+
+	<!-- 5 Items Rows (Clean 2-line layout: Name + Cost on left, Button on right) -->
+	<row_1 x="246" y="168" width="524" height="74" stretch="1">
+		<texture>xcvb_arena_gui_row_frame</texture>
+		<name x="16" y="14" width="360" height="22">
+			<text r="240" g="220" b="160" font="graffiti19" align="l" vert_align="c"></text>
+		</name>
+		<cost x="16" y="40" width="360" height="20">
+			<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+		</cost>
+		<btn_buy x="388" y="20" width="124" height="34" check_mode="0">
+			<text font="letterica16">st_arena_shop_btn_buy</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_buy>
+	</row_1>
+
+	<row_2 x="246" y="246" width="524" height="74" stretch="1">
+		<texture>xcvb_arena_gui_row_frame</texture>
+		<name x="16" y="14" width="360" height="22">
+			<text r="240" g="220" b="160" font="graffiti19" align="l" vert_align="c"></text>
+		</name>
+		<cost x="16" y="40" width="360" height="20">
+			<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+		</cost>
+		<btn_buy x="388" y="20" width="124" height="34" check_mode="0">
+			<text font="letterica16">st_arena_shop_btn_buy</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_buy>
+	</row_2>
+
+	<row_3 x="246" y="324" width="524" height="74" stretch="1">
+		<texture>xcvb_arena_gui_row_frame</texture>
+		<name x="16" y="14" width="360" height="22">
+			<text r="240" g="220" b="160" font="graffiti19" align="l" vert_align="c"></text>
+		</name>
+		<cost x="16" y="40" width="360" height="20">
+			<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+		</cost>
+		<btn_buy x="388" y="20" width="124" height="34" check_mode="0">
+			<text font="letterica16">st_arena_shop_btn_buy</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_buy>
+	</row_3>
+
+	<row_4 x="246" y="402" width="524" height="74" stretch="1">
+		<texture>xcvb_arena_gui_row_frame</texture>
+		<name x="16" y="14" width="360" height="22">
+			<text r="240" g="220" b="160" font="graffiti19" align="l" vert_align="c"></text>
+		</name>
+		<cost x="16" y="40" width="360" height="20">
+			<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+		</cost>
+		<btn_buy x="388" y="20" width="124" height="34" check_mode="0">
+			<text font="letterica16">st_arena_shop_btn_buy</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_buy>
+	</row_4>
+
+	<row_5 x="246" y="480" width="524" height="74" stretch="1">
+		<texture>xcvb_arena_gui_row_frame</texture>
+		<name x="16" y="14" width="360" height="22">
+			<text r="240" g="220" b="160" font="graffiti19" align="l" vert_align="c"></text>
+		</name>
+		<cost x="16" y="40" width="360" height="20">
+			<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+		</cost>
+		<btn_buy x="388" y="20" width="124" height="34" check_mode="0">
+			<text font="letterica16">st_arena_shop_btn_buy</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_buy>
+	</row_5>
+
+	<!-- Bottom Separator -->
+	<sep_bottom x="245" y="562" width="534" height="2" stretch="1">
+		<texture>ui_inGame2_line_dialog</texture>
+	</sep_bottom>
+
+	<!-- Bottom Controls: Pagination and Close -->
+	<btn_page_prev x="246" y="574" width="70" height="32" check_mode="0">
+		<text font="letterica18">&lt;</text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</btn_page_prev>
+
+	<page_info x="322" y="574" width="90" height="32">
+		<text r="240" g="220" b="160" font="letterica18" align="c" vert_align="c"></text>
+	</page_info>
+
+	<btn_page_next x="418" y="574" width="70" height="32" check_mode="0">
+		<text font="letterica18">&gt;</text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</btn_page_next>
+
+	<btn_close x="510" y="574" width="260" height="32" check_mode="0">
+		<text font="letterica16">st_arena_companion_btn_close</text>
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+	</btn_close>
+</w>

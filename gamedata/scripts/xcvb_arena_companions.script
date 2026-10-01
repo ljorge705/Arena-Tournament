@@ -82,19 +82,32 @@ function is_companion(npc_id)
     return false
 end
 
--- Compatibility helper: now returns the actor's real game money
+-- Compatibility helper: returns arena tokens or actor money depending on economy mode
 function get_arena_credits()
+    if xcvb_arena_main and xcvb_arena_main.get_arena_tokens then
+        return xcvb_arena_main.get_arena_tokens()
+    end
     return (db.actor and db.actor:money()) or 0
 end
 
 function add_arena_credits(amount)
+    if xcvb_arena_main and xcvb_arena_main.add_arena_tokens then
+        return xcvb_arena_main.add_arena_tokens(amount)
+    end
     return get_arena_credits()
 end
 
 function spend_arena_credits(amount)
-    if db.actor and db.actor:money() >= (amount or 0) then
-        db.actor:give_money(-(amount or 0))
-        return true
+    local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+    if econ_mode == "tokens" then
+        if xcvb_arena_main and xcvb_arena_main.spend_arena_tokens then
+            return xcvb_arena_main.spend_arena_tokens(amount)
+        end
+    else
+        if db.actor and db.actor:money() >= (amount or 0) then
+            db.actor:give_money(-(amount or 0))
+            return true
+        end
     end
     return false
 end
@@ -146,9 +159,18 @@ function hire_companion(def_idx)
         return false, string.format(gt("st_arena_companion_err_max"), MAX_COMPANIONS)
     end
 
-    local actor_money = (db.actor and db.actor:money()) or 0
-    if actor_money < def.cost then
-        return false, string.format(gt("st_arena_companion_err_money"), def.cost)
+    local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+    if econ_mode == "tokens" then
+        local token_cost = math.max(10, math.floor(def.cost / 100))
+        local tokens = (xcvb_arena_main and xcvb_arena_main.get_arena_tokens and xcvb_arena_main.get_arena_tokens()) or 0
+        if tokens < token_cost then
+            return false, string.format(gt("st_arena_companion_err_tokens"), token_cost)
+        end
+    else
+        local actor_money = (db.actor and db.actor:money()) or 0
+        if actor_money < def.cost then
+            return false, string.format(gt("st_arena_companion_err_money"), def.cost)
+        end
     end
 
     local sec = _get_safe_companion_section(def.section)
@@ -230,8 +252,16 @@ function hire_companion(def_idx)
         end
     end
 
-    if db.actor and db.actor.give_money then
-        db.actor:give_money(-def.cost)
+    local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+    if econ_mode == "tokens" then
+        local token_cost = math.max(10, math.floor(def.cost / 100))
+        if xcvb_arena_main and xcvb_arena_main.spend_arena_tokens then
+            xcvb_arena_main.spend_arena_tokens(token_cost)
+        end
+    else
+        if db.actor and db.actor.give_money then
+            db.actor:give_money(-def.cost)
+        end
     end
 
     local entry = {

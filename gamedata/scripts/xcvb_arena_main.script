@@ -25,6 +25,12 @@ night_mode_saved_render = nil
 night_mode_device = "device_torch_dummy"
 selected_map = "arena"
 
+arena_tokens = 0
+daily_cashout_done = 0
+last_cashout_day = 0
+free_rental_vouchers = 0
+free_medic_vouchers = 0
+
 -- Spectator Mode State Variables
 arena_main_t = {}
 current_spec_filter = "all"
@@ -538,7 +544,131 @@ function is_tier_unlocked_by_rank(tier)
 	if practice_mode_active == true then
 		return true
 	end
+	if xcvb_arena_mcm and xcvb_arena_mcm.get_config("rank_gating") == false then return true end
 	return get_actor_rank_num() >= math.min(5, tier)
+end
+
+--------------------------------------------------------------------------------
+-- ARENA TOKENS, CASHOUT & VOUCHERS
+--------------------------------------------------------------------------------
+
+local function get_current_day_number()
+	if level and level.get_time_days then
+		return level.get_time_days()
+	end
+	if game and game.get_game_time then
+		local Y, M, D = game.get_game_time():get()
+		return (Y or 2012) * 365 + (M or 1) * 31 + (D or 1)
+	end
+	return 0
+end
+
+function get_arena_tokens()
+	return arena_tokens or 0
+end
+
+function add_arena_tokens(amount)
+	if not amount or amount <= 0 then return arena_tokens or 0 end
+	arena_tokens = (arena_tokens or 0) + math.floor(amount)
+	return arena_tokens
+end
+
+function spend_arena_tokens(amount)
+	if not amount or amount <= 0 then return true end
+	if (arena_tokens or 0) >= amount then
+		arena_tokens = arena_tokens - math.floor(amount)
+		return true
+	end
+	return false
+end
+
+function get_round_reward_tokens(round_data)
+	if not round_data then return 0 end
+	if round_data.reward_tokens then
+		return round_data.reward_tokens
+	end
+	local base_money = round_data.reward_money or 3000
+	return math.max(10, math.floor(base_money / 100))
+end
+
+function check_and_reset_daily_cashout()
+	local cur_day = get_current_day_number()
+	if last_cashout_day ~= cur_day then
+		last_cashout_day = cur_day
+		daily_cashout_done = 0
+	end
+end
+
+function get_daily_cashout_limit()
+	if xcvb_arena_mcm then
+		return xcvb_arena_mcm.get_config("daily_cashout_limit") or 15000
+	end
+	return 15000
+end
+
+function get_daily_cashout_remaining()
+	check_and_reset_daily_cashout()
+	local limit = get_daily_cashout_limit()
+	return math.max(0, limit - (daily_cashout_done or 0))
+end
+
+function can_cashout(rubles)
+	check_and_reset_daily_cashout()
+	local remaining = get_daily_cashout_remaining()
+	return remaining >= rubles
+end
+
+function perform_cashout(tokens, rubles)
+	check_and_reset_daily_cashout()
+	if (arena_tokens or 0) < tokens then
+		return false, "insufficient_tokens"
+	end
+	if not can_cashout(rubles) then
+		return false, "daily_limit_exceeded"
+	end
+	arena_tokens = arena_tokens - tokens
+	daily_cashout_done = (daily_cashout_done or 0) + rubles
+	if db.actor then
+		db.actor:give_money(rubles)
+		pcall(function()
+			local snd = sound_object([[monsters\\money_drop]])
+			if not snd then snd = sound_object([[detectors\\contact_1]]) end
+			if snd then snd:play(db.actor, 0, sound_object.s2d) end
+		end)
+	end
+	return true
+end
+
+function has_free_rental_voucher()
+	return (free_rental_vouchers or 0) > 0
+end
+
+function use_free_rental_voucher()
+	if (free_rental_vouchers or 0) > 0 then
+		free_rental_vouchers = free_rental_vouchers - 1
+		return true
+	end
+	return false
+end
+
+function add_free_rental_voucher(count)
+	free_rental_vouchers = (free_rental_vouchers or 0) + (count or 1)
+end
+
+function has_free_medic_voucher()
+	return (free_medic_vouchers or 0) > 0
+end
+
+function use_free_medic_voucher()
+	if (free_medic_vouchers or 0) > 0 then
+		free_medic_vouchers = free_medic_vouchers - 1
+		return true
+	end
+	return false
+end
+
+function add_free_medic_voucher(count)
+	free_medic_vouchers = (free_medic_vouchers or 0) + (count or 1)
 end
 
 function get_tier_required_rank_name(tier)
@@ -759,6 +889,11 @@ function save_state(m_data)
 	m_data.xcvb_night_mode_saved_render = night_mode_saved_render
 	m_data.xcvb_night_mode_device = night_mode_device
 	m_data.xcvb_selected_map = selected_map
+	m_data.xcvb_arena_tokens = arena_tokens
+	m_data.xcvb_daily_cashout_done = daily_cashout_done
+	m_data.xcvb_last_cashout_day = last_cashout_day
+	m_data.xcvb_free_rental_vouchers = free_rental_vouchers
+	m_data.xcvb_free_medic_vouchers = free_medic_vouchers
 end
 
 function load_state(m_data)
@@ -770,6 +905,11 @@ function load_state(m_data)
 	night_mode_saved_render = m_data.xcvb_night_mode_saved_render
 	night_mode_device = m_data.xcvb_night_mode_device or "device_torch_dummy"
 	selected_map = (m_data.xcvb_selected_map == "forest") and "forest" or "arena"
+	arena_tokens = m_data.xcvb_arena_tokens or 0
+	daily_cashout_done = m_data.xcvb_daily_cashout_done or 0
+	last_cashout_day = m_data.xcvb_last_cashout_day or 0
+	free_rental_vouchers = m_data.xcvb_free_rental_vouchers or 0
+	free_medic_vouchers = m_data.xcvb_free_medic_vouchers or 0
 	arena_main_t = m_data.xcvb_arena_main_t or arena_main_t
 	current_period = m_data.xcvb_arena_current_period or 0
 	current_spec_filter = m_data.xcvb_arena_spec_filter or "all"

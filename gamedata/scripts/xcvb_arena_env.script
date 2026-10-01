@@ -1,0 +1,192 @@
+-- ==============================================================================
+-- Arena Tournament - Environment & Modpack Detection System
+-- Detects runtime platform: GAMMA, Forgotten Zone (OWA), EFP, Custom, Vanilla Anomaly.
+-- Provides capability flags so features adapt seamlessly across modpacks.
+-- ==============================================================================
+
+local env_cache = nil
+
+local function detect_environment()
+    if env_cache then return env_cache end
+
+    local version_str = ""
+    pcall(function()
+        if game and game.translate_string then
+            version_str = game.translate_string("ui_st_game_version") or ""
+        end
+    end)
+    local v_lower = string.lower(version_str)
+
+    -- 1. Check for G.A.M.M.A.
+    local is_gamma = false
+    if string.find(v_lower, "gamma") or string.find(v_lower, "g.a.m.m.a") then
+        is_gamma = true
+    elseif _G.utils_catspaw_common and utils_catspaw_common.using_gamma_modpack == true then
+        is_gamma = true
+    elseif _G.gamma_economy ~= nil or _G.gamma_utils ~= nil then
+        is_gamma = true
+    elseif ini_sys:section_exist("mod_gamma_economy") or ini_sys:section_exist("gamma_version") then
+        is_gamma = true
+    end
+
+    if is_gamma then
+        env_cache = {
+            id = "gamma",
+            name = "G.A.M.M.A.",
+            is_gamma = true,
+            is_forgotten_zone = false,
+            is_efp = false,
+            is_vanilla = false,
+            is_custom = false,
+        }
+        printf("[Arena Tournament] Detected Environment: %s (id: %s)", env_cache.name, env_cache.id)
+        return env_cache
+    end
+
+    -- 2. Check for Forgotten Zone / Old World Addon (OWA)
+    local is_fz = false
+    if string.find(v_lower, "forgotten") or string.find(v_lower, "old world") or string.find(v_lower, "owa") then
+        is_fz = true
+    elseif ini_sys:section_exist("tch_device") or ini_sys:section_exist("tch_repair") or ini_sys:section_exist("tch_detector") then
+        is_fz = true
+    elseif ini_sys:section_exist("w_oldworld_clear") or ini_sys:section_exist("environment_owa_regular") then
+        is_fz = true
+    elseif _G.old_world_addon ~= nil or ini_sys:section_exist("mod_system_features_restored") then
+        is_fz = true
+    end
+
+    if is_fz then
+        env_cache = {
+            id = "forgotten_zone",
+            name = "Forgotten Zone (Old World)",
+            is_gamma = false,
+            is_forgotten_zone = true,
+            is_efp = false,
+            is_vanilla = false,
+            is_custom = false,
+        }
+        printf("[Arena Tournament] Detected Environment: %s (id: %s)", env_cache.name, env_cache.id)
+        return env_cache
+    end
+
+    -- 3. Check for Escape from Pripyat (EFP)
+    local is_efp = false
+    if string.find(v_lower, "efp") or string.find(v_lower, "escape from pripyat") then
+        is_efp = true
+    elseif ini_sys:section_exist("efp_version") or _G.efp_weather ~= nil or _G.efp_hud ~= nil then
+        is_efp = true
+    end
+
+    if is_efp then
+        env_cache = {
+            id = "efp",
+            name = "Escape from Pripyat (EFP)",
+            is_gamma = false,
+            is_forgotten_zone = false,
+            is_efp = true,
+            is_vanilla = false,
+            is_custom = false,
+        }
+        printf("[Arena Tournament] Detected Environment: %s (id: %s)", env_cache.name, env_cache.id)
+        return env_cache
+    end
+
+    -- 4. Check for Custom Modpack vs Pure Vanilla Anomaly
+    local is_custom = false
+    if _G.ui_mcm ~= nil and (ini_sys:section_exist("mod_system_zzzz_arena_critfix") or ini_sys:section_exist("rax_icon_layers") or ini_sys:section_exist("item_repair")) then
+        is_custom = true
+    end
+
+    if is_custom then
+        env_cache = {
+            id = "custom",
+            name = "Anomaly Custom Modpack",
+            is_gamma = false,
+            is_forgotten_zone = false,
+            is_efp = false,
+            is_vanilla = false,
+            is_custom = true,
+        }
+    else
+        env_cache = {
+            id = "anomaly",
+            name = "S.T.A.L.K.E.R. Anomaly",
+            is_gamma = false,
+            is_forgotten_zone = false,
+            is_efp = false,
+            is_vanilla = true,
+            is_custom = false,
+        }
+    end
+
+    printf("[Arena Tournament] Detected Environment: %s (id: %s)", env_cache.name, env_cache.id)
+    return env_cache
+end
+
+function get_env()
+    return detect_environment()
+end
+
+function get_id()
+    return detect_environment().id
+end
+
+function get_name()
+    return detect_environment().name
+end
+
+function is_gamma()
+    return detect_environment().is_gamma
+end
+
+function is_forgotten_zone()
+    return detect_environment().is_forgotten_zone
+end
+
+function is_efp()
+    return detect_environment().is_efp
+end
+
+function is_vanilla_anomaly()
+    return detect_environment().is_vanilla
+end
+
+function is_custom()
+    return detect_environment().is_custom
+end
+
+-- ==============================================================================
+-- System & Capability Checks
+-- ==============================================================================
+
+function has_exo_power_system()
+    -- Only active if modpack uses exoskeleton power supplies & batteries (e.g. GAMMA)
+    -- In vanilla Anomaly and Forgotten Zone / OWA, exoskeletons do not use PSUs.
+    if is_forgotten_zone() or is_vanilla_anomaly() then
+        return false
+    end
+    if ini_sys:section_exist("exo_power_supply") 
+       or ini_sys:section_exist("exo_power_supply_military") 
+       or ini_sys:section_exist("exo_power_supply_proto") 
+       or ini_sys:section_exist("batteries_exo") then
+        return true
+    end
+    return false
+end
+
+function has_magazines()
+    return ini_sys:section_exist("mag_ammo_type") or _G.magazine_binder ~= nil or _G.z_magazines ~= nil
+end
+
+function get_recommended_economy_mode()
+    if is_gamma() then
+        return "tokens"
+    elseif is_forgotten_zone() or is_vanilla_anomaly() then
+        return "classic"
+    end
+    return "tokens"
+end
+
+function on_game_start()
+    detect_environment()
+end

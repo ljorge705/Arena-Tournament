@@ -1,0 +1,541 @@
+-- =============================================================================
+-- xcvb_arena_shop.script
+-- Arena Store & Token Exchange System
+-- Provides a lore-friendly, balanced shop to trade Arena Tokens for
+-- controlled cashouts, medical supplies, and ammunition.
+-- Features dynamic ammunition detection, rank gating per tier,
+-- increased prices for elite rounds, and clean visual layout.
+-- =============================================================================
+
+local gt = game.translate_string
+GUI_SHOP = nil
+
+function open_shop()
+    if GUI_SHOP then
+        if GUI_SHOP:IsShown() then
+            GUI_SHOP:HideDialog()
+        end
+        Unregister_UI("UIXcvbShop")
+        GUI_SHOP = nil
+    end
+
+    GUI_SHOP = UIXcvbShop()
+    GUI_SHOP:ShowDialog(true)
+    GUI_SHOP:Enable(true)
+    Register_UI("UIXcvbShop", "xcvb_arena_shop")
+    GUI_SHOP:refresh()
+end
+
+if rawget(_G, "xr_effects") then
+    _G.xr_effects.open_arena_shop = function(actor, npc)
+        open_shop()
+    end
+end
+
+function on_game_start()
+    if xr_effects then
+        xr_effects.open_arena_shop = function(actor, npc)
+            open_shop()
+        end
+    end
+end
+
+-- =============================================================================
+-- SHOP ITEMS CATALOG (BALANCED FOR GAMMA / ANOMALY ECONOMY)
+-- =============================================================================
+
+local SHOP_CATALOG = {
+    ["rubles"] = {
+        { id = "cash_50", name_key = "st_arena_shop_cash_50_name", cost = 50, rubles = 750, is_cashout = true },
+        { id = "cash_150", name_key = "st_arena_shop_cash_150_name", cost = 150, rubles = 2250, is_cashout = true },
+        { id = "cash_300", name_key = "st_arena_shop_cash_300_name", cost = 300, rubles = 4500, is_cashout = true },
+        { id = "cash_600", name_key = "st_arena_shop_cash_600_name", cost = 600, rubles = 9000, is_cashout = true },
+        { id = "cash_1000", name_key = "st_arena_shop_cash_1000_name", cost = 1000, rubles = 15000, is_cashout = true },
+    },
+    ["medical"] = {
+        { id = "med_bandage", name_key = "st_arena_shop_med_bandage_name", cost = 65, items = { "bandage", "bandage", "bandage" } },
+        { id = "med_army", name_key = "st_arena_shop_med_army_name", cost = 190, items = { "medkit_army" } },
+        { id = "med_scientic", name_key = "st_arena_shop_med_sci_name", cost = 300, items = { "medkit_scientic" } },
+        { id = "med_stim", name_key = "st_arena_shop_med_stim_name", cost = 160, items = { "stimpack_army" } },
+        { id = "med_coag", name_key = "st_arena_shop_med_coag_name", cost = 110, items = { "drug_coagulant" } },
+    },
+}
+
+local RANK_TIER_NAMES = {
+    [1] = "st_rank_novice",
+    [2] = "st_rank_experienced",
+    [3] = "st_rank_veteran",
+    [4] = "st_rank_master",
+    [5] = "st_rank_legend",
+}
+
+local function get_current_rank_tier()
+    if xcvb_arena_main and xcvb_arena_main.practice_mode_active then
+        return 5
+    end
+    if xcvb_arena_mcm and xcvb_arena_mcm.get_config("rank_gating") == false then
+        return 5
+    end
+    local r = 1
+    if xcvb_arena_main and xcvb_arena_main.get_actor_rank_num then
+        r = xcvb_arena_main.get_actor_rank_num()
+    end
+    return r or 1
+end
+
+-- =============================================================================
+-- MASTER AMMUNITION CANDIDATE LIST (TIER & RANK GATED)
+-- =============================================================================
+local AMMO_CANDIDATES = {
+    -- -------------------------------------------------------------------------
+    -- TIER 1: NOVICE / TRAINEE (Min Rank: 1)
+    -- Basic pistol and standard shotgun buckshot
+    -- -------------------------------------------------------------------------
+    { sec = "ammo_9x18_fmj", cost = 80, min_rank = 1 },
+    { sec = "ammo_9x19_fmj", cost = 95, min_rank = 1 },
+    { sec = "ammo_7.62x25_p", cost = 90, min_rank = 1 },
+    { sec = "ammo_12x70_buck", cost = 120, min_rank = 1 },
+    { sec = "ammo_20x70_buck", cost = 110, min_rank = 1 },
+
+    -- -------------------------------------------------------------------------
+    -- TIER 2: EXPERIENCED / PROFESSIONAL (Min Rank: 2)
+    -- Heavy hunting slugs, standard rifle calibers, improved pistol rounds
+    -- -------------------------------------------------------------------------
+    { sec = "ammo_9x18_pmm", cost = 140, min_rank = 2 },
+    { sec = "ammo_9x19_pbp", cost = 160, min_rank = 2 },
+    { sec = "ammo_11.43x23_fmj", cost = 150, min_rank = 2 },
+    { sec = "ammo_7.62x25_ps", cost = 140, min_rank = 2 },
+    { sec = "ammo_12x76_zhekan", cost = 220, min_rank = 2 },
+    { sec = "ammo_20x70_devastator", cost = 200, min_rank = 2 },
+    { sec = "ammo_5.45x39_fmj", cost = 240, min_rank = 2 },
+    { sec = "ammo_5.56x45_fmj", cost = 260, min_rank = 2 },
+    { sec = "ammo_7.62x39_fmj", cost = 280, min_rank = 2 },
+
+    -- -------------------------------------------------------------------------
+    -- TIER 3: VETERAN / EXPERT (Min Rank: 3)
+    -- Military AP rifle rounds, battle rifles, specialty heavy shotgun slugs
+    -- -------------------------------------------------------------------------
+    { sec = "ammo_9x18_ap", cost = 220, min_rank = 3 },
+    { sec = "ammo_9x19_ap", cost = 250, min_rank = 3 },
+    { sec = "ammo_11.43x23_hydro", cost = 260, min_rank = 3 },
+    { sec = "ammo_5.7x28_ss190", cost = 290, min_rank = 3 },
+    { sec = "ammo_5.7x28_ss195", cost = 260, min_rank = 3 },
+    { sec = "ammo_357_hp_mag", cost = 280, min_rank = 3 },
+    { sec = "ammo_12x76_dart", cost = 320, min_rank = 3 },
+    { sec = "ammo_23x75_shrapnel", cost = 380, min_rank = 3 },
+    { sec = "ammo_5.45x39_ap", cost = 450, min_rank = 3 },
+    { sec = "ammo_5.56x45_ap", cost = 480, min_rank = 3 },
+    { sec = "ammo_7.62x39_ap", cost = 520, min_rank = 3 },
+    { sec = "ammo_7.62x51_fmj", cost = 380, min_rank = 3 },
+    { sec = "ammo_9x39_pab9", cost = 360, min_rank = 3 },
+    { sec = "ammo_7.62x54_7h1", cost = 420, min_rank = 3 },
+    { sec = "ammo_vog-25", cost = 380, min_rank = 3 },
+    { sec = "ammo_m209", cost = 420, min_rank = 3 },
+
+    -- -------------------------------------------------------------------------
+    -- TIER 4: MASTER (Min Rank: 4)
+    -- Advanced tungsten AP, heavy battle rifle AP, special sniper calibers
+    -- -------------------------------------------------------------------------
+    { sec = "ammo_357_hp_mag_ap", cost = 390, min_rank = 4 },
+    { sec = "ammo_23x75_barrikada", cost = 480, min_rank = 4 },
+    { sec = "ammo_5.45x39_ep", cost = 620, min_rank = 4 },
+    { sec = "ammo_5.56x45_ss190", cost = 650, min_rank = 4 },
+    { sec = "ammo_7.62x51_ap", cost = 680, min_rank = 4 },
+    { sec = "ammo_9x39_ap", cost = 750, min_rank = 4 },
+    { sec = "ammo_7.62x54_7h14", cost = 680, min_rank = 4 },
+    { sec = "ammo_7.62x54_ap", cost = 720, min_rank = 4 },
+    { sec = "ammo_12.7x55_fmj", cost = 650, min_rank = 4 },
+    { sec = "ammo_og-7b", cost = 600, min_rank = 4 },
+
+    -- -------------------------------------------------------------------------
+    -- TIER 5: LEGEND (Min Rank: 5)
+    -- Anti-materiel, ultra-heavy snipers, Gauss energy cells
+    -- -------------------------------------------------------------------------
+    { sec = "ammo_12.7x55_ap", cost = 950, min_rank = 5 },
+    { sec = "ammo_12.7x108_fmj", cost = 900, min_rank = 5 },
+    { sec = "ammo_12.7x108_ap", cost = 1150, min_rank = 5 },
+    { sec = "ammo_magnum_338", cost = 900, min_rank = 5 },
+    { sec = "ammo_8.6x70_lapua", cost = 900, min_rank = 5 },
+    { sec = "ammo_8.6x70_ap", cost = 1100, min_rank = 5 },
+    { sec = "ammo_gauss", cost = 1400, min_rank = 5 },
+}
+
+local dynamic_ammo_catalog = nil
+
+local function get_ammo_catalog()
+    if dynamic_ammo_catalog then
+        return dynamic_ammo_catalog
+    end
+
+    dynamic_ammo_catalog = {}
+    local seen = {}
+
+    for _, cand in ipairs(AMMO_CANDIDATES) do
+        local sec = cand.sec
+        if ini_sys and ini_sys:section_exist(sec) and not seen[sec] then
+            seen[sec] = true
+
+            local box_size = 1
+            if xcvb_arena_utils and xcvb_arena_utils.get_ammo_box_size then
+                box_size = xcvb_arena_utils.get_ammo_box_size(sec)
+            elseif ini_sys and ini_sys:line_exist(sec, "box_size") then
+                box_size = ini_sys:r_u32(sec, "box_size")
+            end
+
+            local name_str = ""
+            if sec == "ammo_gauss" then
+                if box_size and box_size > 1 then
+                    name_str = string.format("Gauss Batteries (x%d)", box_size)
+                else
+                    name_str = "Gauss Batteries"
+                end
+            else
+                local inv_name = ini_sys:r_string_ex(sec, "inv_name")
+                name_str = (inv_name and gt(inv_name)) or sec
+                if box_size and box_size > 1 then
+                    name_str = string.format("%s (x%d)", name_str, box_size)
+                end
+            end
+
+            table.insert(dynamic_ammo_catalog, {
+                id = "dyn_" .. sec,
+                name = name_str,
+                cost = cand.cost,
+                min_rank = cand.min_rank or 1,
+                items = { sec },
+            })
+        end
+    end
+
+    return dynamic_ammo_catalog
+end
+
+local function get_category_items(cat)
+    if cat == "ammo" then
+        return get_ammo_catalog()
+    end
+    return SHOP_CATALOG[cat] or {}
+end
+
+local function get_effective_cost(item)
+    if not item then return 0 end
+    if item.is_cashout then
+        return item.cost
+    end
+    local mult = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("shop_price_mult")) or 1.0
+    return math.max(1, math.floor(item.cost * mult))
+end
+
+local function safe_play_sound(path)
+    pcall(function()
+        local snd = sound_object(path)
+        if snd then
+            snd:play(db.actor, 0, sound_object.s2d)
+        end
+    end)
+end
+
+local function safe_create_item(sec)
+    if not sec then return false end
+    if ini_sys and ini_sys:section_exist(sec) then
+        alife_create_item(sec, db.actor)
+        return true
+    end
+    local fallbacks = {
+        ["ammo_9x39_ap"] = "ammo_9x39_pab9",
+        ["ammo_12x76_dart"] = "ammo_12x76_zhekan",
+        ["ammo_5.45x39_ep"] = "ammo_5.45x39_ap",
+        ["ammo_5.56x45_ss190"] = "ammo_5.56x45_ap",
+    }
+    local fb = fallbacks[sec]
+    if fb and ini_sys and ini_sys:section_exist(fb) then
+        alife_create_item(fb, db.actor)
+        return true
+    end
+    return false
+end
+
+-- =============================================================================
+-- UI CLASS
+-- =============================================================================
+
+class "UIXcvbShop" (CUIScriptWnd)
+
+function UIXcvbShop:__init() super()
+    self.current_cat = "rubles"
+    self.current_page = 1
+    self:InitControls()
+    self:InitCallbacks()
+    self:refresh()
+end
+
+function UIXcvbShop:__finalize() end
+
+function UIXcvbShop:InitControls()
+    self:SetWndRect(Frect():set(0, 0, 1024, 768))
+    self:SetAutoDelete(true)
+    self:Enable(true)
+
+    local xml = CScriptXmlInit()
+    xml:ParseFile("ui_xcvb_arena_shop.xml")
+
+    self.dialog = xml:InitStatic("dialog", self)
+    self.title = xml:InitTextWnd("title", self)
+    self.tokens_lbl = xml:InitTextWnd("tokens_lbl", self)
+    self.money_lbl = xml:InitTextWnd("money_lbl", self)
+    self.cashout_limit_lbl = xml:InitTextWnd("cashout_limit_lbl", self)
+
+    xml:InitStatic("sep_top", self)
+    xml:InitStatic("sep_bottom", self)
+
+    -- Category Tabs (Rubles, Medicine, Ammunition)
+    self.cat_btns = {}
+    local cat_ids = { "rubles", "medical", "ammo" }
+    for _, cid in ipairs(cat_ids) do
+        local btn = xml:Init3tButton("tab_" .. cid, self)
+        self:Register(btn, "tab_" .. cid)
+        self.cat_btns[cid] = btn
+    end
+
+    -- 5 Item Rows
+    self.rows = {}
+    for i = 1, 5 do
+        local row = {}
+        row.frame = xml:InitStatic("row_" .. i, self)
+        row.name = xml:InitTextWnd("row_" .. i .. ":name", row.frame)
+        row.cost = xml:InitTextWnd("row_" .. i .. ":cost", row.frame)
+        row.btn_buy = xml:Init3tButton("row_" .. i .. ":btn_buy", row.frame)
+        self:Register(row.btn_buy, "btn_buy_" .. i)
+        self.rows[i] = row
+    end
+
+    -- Bottom Controls: Pagination and Close
+    self.btn_page_prev = xml:Init3tButton("btn_page_prev", self)
+    if self.btn_page_prev then
+        self:Register(self.btn_page_prev, "btn_page_prev")
+        self.btn_page_prev:TextControl():SetText("<")
+    end
+
+    self.page_info = xml:InitTextWnd("page_info", self)
+
+    self.btn_page_next = xml:Init3tButton("btn_page_next", self)
+    if self.btn_page_next then
+        self:Register(self.btn_page_next, "btn_page_next")
+        self.btn_page_next:TextControl():SetText(">")
+    end
+
+    self.btn_close = xml:Init3tButton("btn_close", self)
+    self:Register(self.btn_close, "btn_close")
+end
+
+function UIXcvbShop:InitCallbacks()
+    self:AddCallback("btn_close", ui_events.BUTTON_CLICKED, function()
+        self:OnClose()
+    end, self)
+
+    if self.btn_page_prev then
+        self:AddCallback("btn_page_prev", ui_events.BUTTON_CLICKED, function()
+            if self.current_page > 1 then
+                self.current_page = self.current_page - 1
+                self:refresh()
+            end
+        end, self)
+    end
+
+    if self.btn_page_next then
+        self:AddCallback("btn_page_next", ui_events.BUTTON_CLICKED, function()
+            local items = get_category_items(self.current_cat)
+            local total_pages = math.max(1, math.ceil(#items / 5))
+            if self.current_page < total_pages then
+                self.current_page = self.current_page + 1
+                self:refresh()
+            end
+        end, self)
+    end
+
+    local cat_ids = { "rubles", "medical", "ammo" }
+    for _, cid in ipairs(cat_ids) do
+        local selected = cid
+        self:AddCallback("tab_" .. selected, ui_events.BUTTON_CLICKED, function()
+            self.current_cat = selected
+            self.current_page = 1
+            self:refresh()
+        end, self)
+    end
+
+    for i = 1, 5 do
+        local slot_idx = i
+        self:AddCallback("btn_buy_" .. slot_idx, ui_events.BUTTON_CLICKED, function()
+            self:OnBuy(slot_idx)
+        end, self)
+    end
+end
+
+function UIXcvbShop:OnKeyboard(dik, keyboard_action)
+    local res = CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
+    if res then return res end
+    if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+        if dik == DIK_keys.DIK_ESCAPE then
+            self:OnClose()
+            return true
+        end
+    end
+    return false
+end
+
+function UIXcvbShop:OnClose()
+    if self:IsShown() then
+        self:HideDialog()
+    end
+    Unregister_UI("UIXcvbShop")
+    GUI_SHOP = nil
+end
+
+function UIXcvbShop:refresh()
+    local tokens = (xcvb_arena_main and xcvb_arena_main.get_arena_tokens and xcvb_arena_main.get_arena_tokens()) or 0
+    local money = (db.actor and db.actor:money()) or 0
+    local cashout_rem = (xcvb_arena_main and xcvb_arena_main.get_daily_cashout_remaining and xcvb_arena_main.get_daily_cashout_remaining()) or 0
+    local cashout_limit = (xcvb_arena_main and xcvb_arena_main.get_daily_cashout_limit and xcvb_arena_main.get_daily_cashout_limit()) or 15000
+    local cur_rank = get_current_rank_tier()
+
+    if self.tokens_lbl then
+        self.tokens_lbl:SetText(string.format(gt("st_arena_shop_tokens_fmt"), tokens))
+    end
+    if self.money_lbl then
+        self.money_lbl:SetText(string.format(gt("st_arena_shop_money_fmt"), money))
+    end
+    if self.cashout_limit_lbl then
+        self.cashout_limit_lbl:SetText(string.format(gt("st_arena_shop_daily_cashout_fmt"), cashout_rem, cashout_limit))
+    end
+
+    -- Highlight tabs
+    for cid, btn in pairs(self.cat_btns) do
+        if cid == self.current_cat then
+            btn:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
+        else
+            btn:TextControl():SetTextColor(GetARGB(255, 170, 170, 170))
+        end
+    end
+
+    -- Pagination state
+    local cat_items = get_category_items(self.current_cat)
+    local total_pages = math.max(1, math.ceil(#cat_items / 5))
+    if self.current_page > total_pages then
+        self.current_page = total_pages
+    end
+    if self.current_page < 1 then
+        self.current_page = 1
+    end
+
+    local show_pagination = (total_pages > 1)
+    if self.btn_page_prev then
+        self.btn_page_prev:Show(show_pagination)
+        self.btn_page_prev:Enable(self.current_page > 1)
+    end
+    if self.btn_page_next then
+        self.btn_page_next:Show(show_pagination)
+        self.btn_page_next:Enable(self.current_page < total_pages)
+    end
+    if self.page_info then
+        self.page_info:Show(show_pagination)
+        if show_pagination then
+            self.page_info:SetText(string.format("%d / %d", self.current_page, total_pages))
+        end
+    end
+
+    -- Populate 5 rows for current page
+    local start_idx = (self.current_page - 1) * 5
+    for i = 1, 5 do
+        local row = self.rows[i]
+        local item = cat_items[start_idx + i]
+        if row then
+            if item then
+                row.frame:Show(true)
+                local display_name = item.name or (item.name_key and gt(item.name_key)) or item.id
+                row.name:SetText(display_name)
+                local cost = get_effective_cost(item)
+                row.cost:SetText(string.format(gt("st_arena_shop_cost_fmt"), cost))
+
+                local req_rank = item.min_rank or 1
+                local can_rank = (cur_rank >= req_rank)
+                local can_afford = (tokens >= cost)
+                local can_cashout = true
+                if item.is_cashout then
+                    can_cashout = (cashout_rem >= item.rubles)
+                end
+
+                local can_buy = can_rank and can_afford and can_cashout
+                row.btn_buy:Enable(can_buy)
+
+                if not can_rank then
+                    row.cost:SetTextColor(GetARGB(255, 230, 80, 80))
+                    local r_name = gt(RANK_TIER_NAMES[req_rank] or "st_rank_novice")
+                    row.btn_buy:TextControl():SetText(string.format(gt("st_arena_shop_btn_rank_locked"), r_name))
+                elseif not can_afford then
+                    row.cost:SetTextColor(GetARGB(255, 230, 80, 80))
+                    row.btn_buy:TextControl():SetText(gt("st_arena_shop_btn_no_tokens"))
+                elseif not can_cashout then
+                    row.cost:SetTextColor(GetARGB(255, 230, 180, 80))
+                    row.btn_buy:TextControl():SetText(gt("st_arena_shop_btn_limit_reached"))
+                else
+                    row.cost:SetTextColor(GetARGB(255, 100, 220, 255))
+                    row.btn_buy:TextControl():SetText(gt("st_arena_shop_btn_buy"))
+                end
+            else
+                row.frame:Show(false)
+            end
+        end
+    end
+end
+
+function UIXcvbShop:OnBuy(slot_idx)
+    local cat_items = get_category_items(self.current_cat)
+    local actual_idx = (self.current_page - 1) * 5 + slot_idx
+    local item = cat_items[actual_idx]
+    if not item then return end
+
+    local req_rank = item.min_rank or 1
+    local cur_rank = get_current_rank_tier()
+    if cur_rank < req_rank then
+        local r_name = gt(RANK_TIER_NAMES[req_rank] or "st_rank_novice")
+        local msg = string.format(gt("st_arena_shop_err_rank"), r_name)
+        news_manager.send_tip(db.actor, msg, 0, nil, 5000)
+        return
+    end
+
+    local cost = get_effective_cost(item)
+    local tokens = (xcvb_arena_main and xcvb_arena_main.get_arena_tokens and xcvb_arena_main.get_arena_tokens()) or 0
+    if tokens < cost then
+        news_manager.send_tip(db.actor, gt("st_arena_companion_err_tokens"), 0, nil, 5000)
+        return
+    end
+
+    if item.is_cashout then
+        local success, err = xcvb_arena_main.perform_cashout(cost, item.rubles)
+        if success then
+            safe_play_sound([[interface\inv_money]])
+            local msg = string.format(gt("st_arena_shop_cashout_success"), item.rubles, cost)
+            news_manager.send_tip(db.actor, msg, 0, nil, 6000)
+        else
+            if err == "daily_limit_exceeded" then
+                news_manager.send_tip(db.actor, gt("st_arena_shop_err_limit"), 0, nil, 6000)
+            end
+        end
+        self:refresh()
+        return
+    end
+
+    if item.items then
+        if xcvb_arena_main and xcvb_arena_main.spend_arena_tokens(cost) then
+            for _, isec in ipairs(item.items) do
+                safe_create_item(isec)
+            end
+            safe_play_sound([[interface\inv_slot]])
+
+            local display_name = item.name or (item.name_key and gt(item.name_key)) or item.id
+            local msg = string.format(gt("st_arena_shop_item_bought"), display_name, cost)
+            news_manager.send_tip(db.actor, msg, 0, nil, 6000)
+        end
+        self:refresh()
+    end
+end

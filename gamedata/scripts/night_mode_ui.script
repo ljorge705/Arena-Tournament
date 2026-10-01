@@ -144,6 +144,7 @@ function night_mode_ui_show_fallback()
     NM_UI:refresh()
     if NM_UI:IsShown() ~= true then
       NM_UI:ShowDialog(true)
+      NM_UI:Enable(true)
     end
   end)
 end
@@ -151,7 +152,7 @@ end
 function night_mode_ui_hide_fallback()
   pcall(function()
     if NM_UI ~= nil and NM_UI:IsShown() == true then
-      NM_UI:ShowDialog(false)
+      NM_UI:HideDialog()
     end
   end)
 end

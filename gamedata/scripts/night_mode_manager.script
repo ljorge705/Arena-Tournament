@@ -253,32 +253,17 @@ local function is_lamp_se_object(se_obj)
 end
 
 local function turn_off_lamps()
-  local sim = nil
-  pcall(function() sim = alife() end)
-  if sim == nil then
-    return 0
-  end
   local count = 0
-  -- Patron estandar Monolith: barrido 1..65534 con sim:object(id)
-  for id = 1, 65534 do
-    local se = nil
-    pcall(function() se = sim:object(id) end)
-    if se ~= nil and is_lamp_se_object(se) then
-      -- El metodo :turn_off() vive en el objeto cliente (level.object_by_id),
-      -- no en el server object. Intentar ambos por compatibilidad.
-      pcall(function()
-        local online = nil
-        if level ~= nil and level.object_by_id ~= nil then
-          online = level.object_by_id(id)
-        end
-        if online ~= nil and online.turn_off ~= nil then
-          online:turn_off()
-          count = count + 1
-        elseif se.turn_off ~= nil then
-          se:turn_off()
+  if db and db.storage then
+    for id, _ in pairs(db.storage) do
+      local online = level and level.object_by_id and level.object_by_id(id)
+      if online and online.turn_off then
+        local ok_cls, cls = pcall(function() return online:clsid() end)
+        if ok_cls and clsid and (cls == clsid.hanging_lamp or cls == clsid.projector) then
+          pcall(online.turn_off, online)
           count = count + 1
         end
-      end)
+      end
     end
   end
   return count
@@ -369,37 +354,16 @@ local function for_each_online_squad_member(fn)
   if used_iterator then
     return touched
   end
-  -- Via 2 (universal Monolith): barrido de alife objects, filtrar squads
-  -- por presencia del metodo :squad_members().
-  for id = 1, 65534 do
-    local se = nil
-    pcall(function() se = sim:object(id) end)
-    if se ~= nil then
-      local is_squad = false
-      pcall(function()
-        if se.squad_members ~= nil then
-          -- squad_members es metodo; si existe, es squad (u objeto compatible)
-          is_squad = true
-        end
-      end)
-      if is_squad then
-        pcall(function()
-          for member in se:squad_members() do
-            local npc = nil
-            pcall(function()
-              if level ~= nil and level.object_by_id ~= nil then
-                npc = level.object_by_id(member.id)
-              end
-            end)
-            if npc == nil then
-              npc = member
-            end
-            local ok = fn(npc)
-            if ok then touched = touched + 1 end
-          end
-        end)
+  -- Via 2 (Zero-overhead online scan): direct scan of online objects in current level
+  if db and db.storage then
+    for id, _ in pairs(db.storage) do
+      local npc = level and level.object_by_id and level.object_by_id(id)
+      if npc and IsStalker and IsStalker(npc) and npc:alive() and (not db.actor or id ~= db.actor:id()) then
+        local ok = fn(npc)
+        if ok then touched = touched + 1 end
       end
     end
+    return touched
   end
   return touched
 end
@@ -482,6 +446,7 @@ function night_mode_manager.enable(opts)
   end
 
   is_enabled = true
+  pcall(collectgarbage, "collect")
   pcall(function()
     if _G.night_mode_ui_refresh ~= nil then night_mode_ui_refresh() end
   end)
@@ -508,6 +473,7 @@ function night_mode_manager.disable()
 
   is_enabled = false
   pending_time_jump = false
+  pcall(collectgarbage, "collect")
   pcall(function()
     if _G.night_mode_ui_refresh ~= nil then night_mode_ui_refresh() end
   end)

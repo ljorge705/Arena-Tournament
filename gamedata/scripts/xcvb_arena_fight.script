@@ -54,44 +54,54 @@ function is_endless_active()
     return is_endless_mode and not endless_fight_closed
 end
 
-local panic_key_labels = {
-    DIK_LCONTROL = "LEFT CTRL",
-    DIK_RCONTROL = "RIGHT CTRL",
-    DIK_LSHIFT = "LEFT SHIFT",
-    DIK_RSHIFT = "RIGHT SHIFT",
-    DIK_LALT = "LEFT ALT",
-    DIK_RALT = "RIGHT ALT",
-    DIK_RETURN = "ENTER",
-    DIK_ESCAPE = "ESC",
-    DIK_SPACE = "SPACE",
-    DIK_BACK = "BACKSPACE",
-    DIK_PRIOR = "PAGE UP",
-    DIK_NEXT = "PAGE DOWN",
-    DIK_CAPITAL = "CAPS LOCK",
+local DIK_NAMES = {
+    [1] = "ESC", [2] = "1", [3] = "2", [4] = "3", [5] = "4", [6] = "5", [7] = "6", [8] = "7", [9] = "8", [10] = "9", [11] = "0",
+    [12] = "-", [13] = "=", [14] = "BACKSPACE", [15] = "TAB",
+    [16] = "Q", [17] = "W", [18] = "E", [19] = "R", [20] = "T", [21] = "Y", [22] = "U", [23] = "I", [24] = "O", [25] = "P",
+    [26] = "[", [27] = "]", [28] = "ENTER", [29] = "LEFT CTRL",
+    [30] = "A", [31] = "S", [32] = "D", [33] = "F", [34] = "G", [35] = "H", [36] = "J", [37] = "K", [38] = "L",
+    [39] = ";", [40] = "'", [41] = "~", [42] = "LEFT SHIFT", [43] = "\\",
+    [44] = "Z", [45] = "X", [46] = "C", [47] = "V", [48] = "B", [49] = "N", [50] = "M",
+    [51] = ",", [52] = ".", [53] = "/", [54] = "RIGHT SHIFT", [55] = "NUMPAD *",
+    [56] = "LEFT ALT", [57] = "SPACE", [58] = "CAPS LOCK",
+    [59] = "F1", [60] = "F2", [61] = "F3", [62] = "F4", [63] = "F5", [64] = "F6", [65] = "F7", [66] = "F8", [67] = "F9", [68] = "F10",
+    [69] = "NUM LOCK", [70] = "SCROLL LOCK",
+    [71] = "NUMPAD 7", [72] = "NUMPAD 8", [73] = "NUMPAD 9", [74] = "NUMPAD -",
+    [75] = "NUMPAD 4", [76] = "NUMPAD 5", [77] = "NUMPAD 6", [78] = "NUMPAD +",
+    [79] = "NUMPAD 1", [80] = "NUMPAD 2", [81] = "NUMPAD 3", [82] = "NUMPAD 0", [83] = "NUMPAD .",
+    [87] = "F11", [88] = "F12",
+    [156] = "NUMPAD ENTER", [157] = "RIGHT CTRL", [181] = "NUMPAD /", [184] = "RIGHT ALT",
+    [199] = "HOME", [200] = "UP", [201] = "PAGE UP",
+    [203] = "LEFT", [205] = "RIGHT",
+    [207] = "END", [208] = "DOWN", [209] = "PAGE DOWN",
+    [210] = "INSERT", [211] = "DELETE",
 }
 
 local function get_panic_key_label()
     local configured = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("panic_key"))
-        or (DIK_keys and DIK_keys.DIK_F)
-    local configured_number = tonumber(configured)
+    if not configured and DIK_keys and DIK_keys.DIK_F then
+        configured = DIK_keys.DIK_F
+    end
+    configured = configured or 33
 
-    if DIK_keys then
-        local ok, label = pcall(function()
-            for name, value in pairs(DIK_keys) do
-                if value == configured or (configured_number and tonumber(value) == configured_number) then
-                    return panic_key_labels[name]
-                        or string.gsub(string.gsub(name, "^DIK_", ""), "NUMPAD", "NUMPAD ")
-                end
+    local num = tonumber(configured)
+    if num then
+        if ui_mcm and ui_mcm.display_key then
+            local ok, mcm_label = pcall(ui_mcm.display_key, num)
+            if ok and mcm_label and mcm_label ~= "<!!!>" and mcm_label ~= "" then
+                return mcm_label
             end
-        end)
-        if ok and label and label ~= "" then
-            return label
+        end
+        if DIK_NAMES[num] then
+            return DIK_NAMES[num]
         end
     end
 
-    -- No volver a mostrar F si MCM entregó otra tecla que esta versión del
-    -- motor no permite convertir a nombre.
-    return configured_number and ("KEY " .. tostring(configured_number)) or tostring(configured or "F")
+    if type(configured) == "string" and #configured > 0 then
+        return configured:gsub("^DIK_", "")
+    end
+
+    return "F"
 end
 
 function reset_battle_royale_cache()
@@ -398,6 +408,10 @@ function end_tournament_fight(is_victory)
         end
         local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
         db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
+        pcall(level.remove_pp_effector, 987123)
+        pcall(level.remove_pp_effector, 987124)
+        pcall(level.remove_pp_effector, 987125)
+        pcall(level.remove_cam_effector, 987126)
         pcall(level.enable_input)
     end
 
@@ -1139,7 +1153,14 @@ function advance_endless_wave(resume_pending)
             xcvb_arena_main.best_endless_wave = endless_wave
         end
 
-        local clear_tip = string.format(gt("st_arena_endless_wave_cleared"), endless_wave, endless_reward)
+        local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+        local clear_tip
+        if econ_mode == "tokens" then
+            local tokens_accum = math.max(1, math.floor(endless_reward / 100))
+            clear_tip = string.format(gt("st_arena_endless_wave_cleared_tokens"), tonumber(endless_wave) or 1, tonumber(tokens_accum) or 0)
+        else
+            clear_tip = string.format(gt("st_arena_endless_wave_cleared"), tonumber(endless_wave) or 1, tonumber(endless_reward) or 0)
+        end
         news_manager.send_tip(db.actor, clear_tip, 0, nil, 7000)
 
         heal_actor_completely()
@@ -1271,6 +1292,10 @@ function end_endless_fight(is_victory, voluntary_leave)
     if db.actor then
         local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
         db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
+        pcall(level.remove_pp_effector, 987123)
+        pcall(level.remove_pp_effector, 987124)
+        pcall(level.remove_pp_effector, 987125)
+        pcall(level.remove_cam_effector, 987126)
         pcall(level.enable_input)
     end
 
@@ -1303,13 +1328,23 @@ function end_endless_fight(is_victory, voluntary_leave)
         return true
     end)
 
-    local waves_cleared = voluntary_leave and (endless_wave - 1) or (is_victory and endless_wave or 0)
+    local waves_cleared = math.max(0, voluntary_leave and (endless_wave - 1) or (is_victory and endless_wave or 0))
     local actor_alive = db.actor and db.actor:alive()
-    if voluntary_leave and actor_alive then
+    if (voluntary_leave or is_victory) and actor_alive then
         if endless_reward > 0 then
-            db.actor:give_money(endless_reward)
-            local exit_tip = string.format(gt("st_arena_endless_exit_tip"), waves_cleared, endless_reward)
-            news_manager.send_tip(db.actor, exit_tip, 0, nil, 12000)
+            local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+            if econ_mode == "tokens" then
+                local tokens_gain = math.max(1, math.floor(endless_reward / 100))
+                if xcvb_arena_main and xcvb_arena_main.add_arena_tokens then
+                    xcvb_arena_main.add_arena_tokens(tokens_gain)
+                end
+                local exit_tip = string.format(gt("st_arena_endless_exit_tip_tokens"), tonumber(waves_cleared) or 0, tonumber(tokens_gain) or 0)
+                news_manager.send_tip(db.actor, exit_tip, 0, nil, 12000)
+            else
+                db.actor:give_money(endless_reward)
+                local exit_tip = string.format(gt("st_arena_endless_exit_tip"), tonumber(waves_cleared) or 0, tonumber(endless_reward) or 0)
+                news_manager.send_tip(db.actor, exit_tip, 0, nil, 12000)
+            end
         end
     end
 
@@ -1664,15 +1699,21 @@ end
 
 function on_before_key_press(key, bind, dis, flags)
 	local cur_bind = bind or dik_to_bind(key)
-	local panic_key = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("panic_key")) or DIK_keys.DIK_F
+	local panic_key = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("panic_key"))
+	if not panic_key and DIK_keys and DIK_keys.DIK_F then
+		panic_key = DIK_keys.DIK_F
+	end
+	panic_key = panic_key or 33
+
+	local is_panic = (key == panic_key) or (tonumber(panic_key) == 33 and cur_bind == key_bindings.kUSE) or (DIK_keys and panic_key == DIK_keys.DIK_F and cur_bind == key_bindings.kUSE)
 
 	if HI("xcvb_tournament_started") then
-		if key == panic_key or (panic_key == DIK_keys.DIK_F and cur_bind == key_bindings.kUSE) then
+		if is_panic then
 			if not tourn_ending and not tournament_fight_closed then
 				tourn_ending = true
-				xcvb_arena_utils.arena_fade_in_out(1)
+				xcvb_arena_utils.arena_fade_in_out(0.1)
 				local uid = tostring(math.random(100000))
-				CreateTimeEvent("xcvb_arena_exit_tourn_f_e", "tourn_f_a_" .. uid, 1.5, function()
+				CreateTimeEvent("xcvb_arena_exit_tourn_f_e", "tourn_f_a_" .. uid, 0.8, function()
 					end_tournament_fight(false)
 					return true
 				end)
@@ -1684,12 +1725,12 @@ function on_before_key_press(key, bind, dis, flags)
 	end
 
 	if HI("xcvb_endless_started") or is_endless_mode then
-		if key == panic_key or (panic_key == DIK_keys.DIK_F and cur_bind == key_bindings.kUSE) then
+		if is_panic then
 			if not endless_ending and not endless_fight_closed then
 				endless_ending = true
-				xcvb_arena_utils.arena_fade_in_out(1)
-                local uid = tostring(math.random(100000))
-				CreateTimeEvent("xcvb_arena_exit_endless_f_e", "endless_a_" .. uid, 1.5, function()
+				xcvb_arena_utils.arena_fade_in_out(0.1)
+				local uid = tostring(math.random(100000))
+				CreateTimeEvent("xcvb_arena_exit_endless_f_e", "endless_a_" .. uid, 0.8, function()
 					end_endless_fight(true, true)
 					return true
 				end)
@@ -1703,22 +1744,22 @@ function on_before_key_press(key, bind, dis, flags)
 	if not HI("xcvb_arena_started") and not HI("xcvb_battle_royale_started") then return end
 	local bind = dik_to_bind(key)
 
-	if key == panic_key or key == DIK_keys.DIK_F or bind == key_bindings.kUSE then
+	if is_panic or key == 33 or (DIK_keys and key == DIK_keys.DIK_F) or bind == key_bindings.kUSE then
 		if HI("xcvb_battle_royale_started") then
 			if not battle_royale_ending and not battle_royale_closed then
 				battle_royale_ending = true
-				xcvb_arena_utils.arena_fade_in_out(1)
-                local uid = tostring(math.random(100000))
-				CreateTimeEvent("xcvb_arena_exit_br_f_e", "br_f_a_" .. uid, 1.5, function()
+				xcvb_arena_utils.arena_fade_in_out(0.1)
+				local uid = tostring(math.random(100000))
+				CreateTimeEvent("xcvb_arena_exit_br_f_e", "br_f_a_" .. uid, 0.8, function()
 					end_battle_royale(0)
 					return true
 				end)
 			end
 		elseif not spec_fight_ending and not spectator_fight_closed then
 			spec_fight_ending = true
-			xcvb_arena_utils.arena_fade_in_out(1)
-            local uid = tostring(math.random(100000))
-			CreateTimeEvent("xcvb_arena_exit_f_e", "spec_f_a_" .. uid, 1.5, function()
+			xcvb_arena_utils.arena_fade_in_out(0.1)
+			local uid = tostring(math.random(100000))
+			CreateTimeEvent("xcvb_arena_exit_f_e", "spec_f_a_" .. uid, 0.8, function()
 				end_arena_fight(0)
 				return true
 			end)
@@ -1988,14 +2029,17 @@ function trigger_medic_rescue()
     pcall(level.add_pp_effector, "actor_death.ppe", 987125, false)
 
     local uid = tostring(math.random(100000))
-    CreateTimeEvent("xcvb_arena_fade_dark_e", "dark_a_" .. uid, 2.0, function()
+    CreateTimeEvent("xcvb_arena_fade_dark_e", "dark_a_" .. uid, 1.0, function()
         pcall(function()
+            level.remove_pp_effector(987123)
             level.add_pp_effector("fade_in.ppe", 987123, false)
         end)
         return true
     end)
 
-    CreateTimeEvent("xcvb_arena_rescue_e", "rescue_a_" .. uid, 3.5, function()
+    CreateTimeEvent("xcvb_arena_rescue_e", "rescue_a_" .. uid, 2.0, function()
+        pcall(level.remove_pp_effector, 987123)
+        pcall(level.remove_pp_effector, 987124)
         pcall(level.remove_pp_effector, 987125)
         pcall(level.remove_cam_effector, 987126)
 
@@ -2009,9 +2053,12 @@ function trigger_medic_rescue()
         tourn_ending = false
         endless_ending = false
         is_medic_rescuing = false
-        schedule_auto_open_arena_gui(3.2)
+        schedule_auto_open_arena_gui(2.5)
 
         pcall(function()
+            level.remove_pp_effector(987123)
+            level.remove_pp_effector(987124)
+            level.remove_pp_effector(987125)
             level.add_cam_effector("camera_effects\\wake_up.anm", 987128, false, "")
             level.add_pp_effector("fade_out.ppe", 987124, false)
         end)
@@ -2020,14 +2067,32 @@ function trigger_medic_rescue()
         pcall(level.enable_input)
         if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
 
+        CreateTimeEvent("xcvb_rescue_clean_e", "rescue_clean_a_" .. uid, 1.5, function()
+            pcall(level.remove_pp_effector, 987123)
+            pcall(level.remove_pp_effector, 987124)
+            pcall(level.remove_pp_effector, 987125)
+            return true
+        end)
+
+        local used_voucher = false
+        if xcvb_arena_main and xcvb_arena_main.has_free_medic_voucher and xcvb_arena_main.has_free_medic_voucher() then
+            xcvb_arena_main.use_free_medic_voucher()
+            used_voucher = true
+        end
+
         local fee = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("medic_rescue_fee")) or 2500
-        if db.actor and fee > 0 then
+        if not used_voucher and db.actor and fee > 0 then
             local to_take = math.min(db.actor:money(), fee)
             if to_take > 0 then
                 db.actor:give_money(-to_take)
             end
         end
-        local msg = string.format(gt("st_arena_medic_rescue"), fee)
+        local msg
+        if used_voucher then
+            msg = gt("st_arena_medic_rescue_voucher")
+        else
+            msg = string.format(gt("st_arena_medic_rescue"), fee)
+        end
         if db.actor then
             news_manager.send_tip(db.actor, msg, 0, nil, 12000)
         end

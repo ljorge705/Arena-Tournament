@@ -15,11 +15,13 @@
 	</status>
 
 	<!-- Arena Money (Pts) -->
-	<arena_money x="0" y="0" width="0" height="0"></arena_money>
+	<arena_money x="260" y="126" width="240" height="20">
+		<text r="100" g="220" b="255" font="letterica18" align="l" vert_align="c"></text>
+	</arena_money>
 
 	<!-- Normal Money (RU) -->
-	<normal_money x="240" y="126" width="544" height="20">
-		<text r="140" g="220" b="140" font="letterica18" align="c" vert_align="c"></text>
+	<normal_money x="524" y="126" width="240" height="20">
+		<text r="140" g="220" b="140" font="letterica18" align="r" vert_align="c"></text>
 	</normal_money>
 
 	<!-- Separator 1 -->

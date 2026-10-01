@@ -1003,6 +1003,9 @@
 	<string id="st_arena_endless_stats_reward">
 		<text>Base reward scales with difficulty: Easy (800 RU), Medium (1,400 RU), Hard (2,000 RU) + wave bonus</text>
 	</string>
+	<string id="st_arena_endless_stats_reward_tokens">
+		<text>Base reward scales with difficulty: Easy (8 Tokens), Medium (14 Tokens), Hard (20 Tokens) + wave bonus</text>
+	</string>
 	<string id="st_arena_endless_type_title">
 		<text>ENEMY TYPE:</text>
 	</string>
@@ -1026,6 +1029,9 @@
 	</string>
 	<string id="st_arena_endless_wave_cleared">
 		<text>WAVE %s CLEARED! Accumulated reward: %s RU. Preparing next wave...</text>
+	</string>
+	<string id="st_arena_endless_wave_cleared_tokens">
+		<text>WAVE %s CLEARED! Accumulated reward: %s Arena Tokens. Preparing next wave...</text>
 	</string>
 	<string id="st_arena_endless_exit_tip">
 		<text>You left the Arena. Waves cleared: %s. Reward claimed: %s RU.</text>
@@ -1055,7 +1061,7 @@
 		<text>- Threat Scaling: 1v1 in Wave 1, steadily increasing up to 1v6 enemies.</text>
 	</string>
 	<string id="st_arena_endless_rule_line2">
-		<text>- Tactical Extraction [F]: Leave the arena at any time taking 100% of accumulated cash.</text>
+		<text>- Tactical Extraction [F]: Leave the arena at any time taking 100% of accumulated rewards.</text>
 	</string>
 	<string id="st_arena_endless_rule_line3">
 		<text>- Medical Rescue: If downed in combat, the medic will evacuate you to the Bar for 2,500 RU.</text>
@@ -1258,7 +1264,18 @@
 	<string id="ui_mcm_xcvb_arena_night_elite_nvg_desc">
 		<text>Elite enemies (Masters, Legends, Monolith, and veterans) equip Night Vision goggles and DO NOT turn on flashlights.</text>
 	</string>
-	<string id="st_arena_loadout_mag_title">
+	<string id="ui_mcm_xcvb_arena_arena_light_mult">
+		<text>Lighting - Arena Hangar</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_arena_light_mult_desc">
+		<text>Ambient and sky bounce light multiplier for the main indoor arena hangar (default: 2.8). Increase for more brightness or decrease if using a bright reshade.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_forest_light_mult">
+		<text>Lighting - Forest Arena</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_forest_light_mult_desc">
+		<text>Ambient light multiplier for the outdoor forest arena map (default: 1.4). Adjusts visibility among the trees.</text>
+	</string>	<string id="st_arena_loadout_mag_title">
 		<text>MAGAZINE</text>
 	</string>
 	<string id="st_arena_loadout_mag_none">
@@ -1560,6 +1577,265 @@
 	</string>
 	<string id="st_arena_night_mode_tip_off">
 		<text>Normal mode restored — Arena lights on.</text>
+	</string>
+	<!-- Arena Tokens & Store System -->
+	<string id="st_arena_btn_shop">
+		<text>ARENA STORE</text>
+	</string>
+	<string id="st_arena_tokens_header_label">
+		<text>Tokens: %d Pts</text>
+	</string>
+	<string id="st_arena_reward_tokens">
+		<text>Arena victory! You received %d Arena Tokens.</text>
+	</string>
+	<string id="st_arena_reward_tokens_fmt">
+		<text>%d Arena Tokens</text>
+	</string>
+	<string id="st_arena_endless_exit_tip_tokens">
+		<text>Endless Run Ended (%d Waves). You earned %d Arena Tokens!</text>
+	</string>
+	<string id="st_arena_voucher_rental_used">
+		<text>Free Equipment Rental Voucher applied! (0 RU charged)</text>
+	</string>
+	<string id="st_arena_voucher_medic_used">
+		<text>Arena Medical Rescue Voucher applied! No rescue fee was charged.</text>
+	</string>
+	<string id="st_arena_medic_rescue_voucher">
+		<text>The arena medic patched you up using your Medical Rescue Voucher (0 RU fee).</text>
+	</string>
+	<string id="st_arena_companion_err_tokens">
+		<text>Not enough Arena Tokens to hire this companion (Requires %d Tokens).</text>
+	</string>
+	<string id="st_arena_companion_cost_tokens_fmt">
+		<text>%d Tokens</text>
+	</string>
+	<string id="st_arena_companion_arena_money">
+		<text>Arena Tokens: %d Pts</text>
+	</string>
+
+	<!-- Arena Shop Strings -->
+	<string id="st_arena_shop_title">
+		<text>ARENA STORE &amp; EXCHANGE</text>
+	</string>
+	<string id="st_arena_shop_tokens_fmt">
+		<text>Arena Tokens: %d Pts</text>
+	</string>
+	<string id="st_arena_shop_money_fmt">
+		<text>Cash: %d RU</text>
+	</string>
+	<string id="st_arena_shop_daily_cashout_fmt">
+		<text>Arnie's Daily Cashout Remaining: %d / %d RU</text>
+	</string>
+	<string id="st_arena_shop_tab_rubles">
+		<text>Rubles</text>
+	</string>
+	<string id="st_arena_shop_tab_medical">
+		<text>Medicine</text>
+	</string>
+	<string id="st_arena_shop_tab_ammo">
+		<text>Ammunition</text>
+	</string>
+	<string id="st_arena_shop_tab_services">
+		<text>Services</text>
+	</string>
+	<string id="st_arena_shop_btn_buy">
+		<text>Purchase</text>
+	</string>
+	<string id="st_arena_shop_btn_no_tokens">
+		<text>Need Tokens</text>
+	</string>
+	<string id="st_arena_shop_btn_limit_reached">
+		<text>Limit Reached</text>
+	</string>
+	<string id="st_arena_shop_btn_rank_locked">
+		<text>Rank: %s</text>
+	</string>
+	<string id="st_arena_shop_err_rank">
+		<text>Rank requirement not met: You must achieve the rank of %s to purchase this ammunition.</text>
+	</string>
+	<string id="st_arena_shop_btn_companions">
+		<text>HIRE GLADIATORS</text>
+	</string>
+	<string id="st_arena_shop_cost_fmt">
+		<text>%d Pts</text>
+	</string>
+	<string id="st_arena_shop_cashout_success">
+		<text>Exchange successful: Received %d RU in exchange for %d Arena Tokens.</text>
+	</string>
+	<string id="st_arena_shop_err_limit">
+		<text>Arnie has reached his liquidity limit for today. Come back tomorrow!</text>
+	</string>
+	<string id="st_arena_shop_item_bought">
+		<text>Purchased: %s (%d Tokens).</text>
+	</string>
+	<string id="st_arena_shop_voucher_rental_bought">
+		<text>Acquired: Free Equipment Rental Voucher (Applies to your next match).</text>
+	</string>
+	<string id="st_arena_shop_voucher_medic_bought">
+		<text>Acquired: Arena Medical Rescue Voucher (Covers 1 emergency medical extraction).</text>
+	</string>
+
+	<!-- Shop Item Descriptions -->
+	<string id="st_arena_shop_cash_50_name">
+		<text>Pocket Money (750 RU)</text>
+	</string>
+	<string id="st_arena_shop_cash_50_desc">
+		<text>Exchange 50 Arena Tokens for 750 Roubles in cash.</text>
+	</string>
+	<string id="st_arena_shop_cash_150_name">
+		<text>Small Payout (2,250 RU)</text>
+	</string>
+	<string id="st_arena_shop_cash_150_desc">
+		<text>Exchange 150 Arena Tokens for 2,250 Roubles in cash.</text>
+	</string>
+	<string id="st_arena_shop_cash_300_name">
+		<text>Gladiator Paycheck (4,500 RU)</text>
+	</string>
+	<string id="st_arena_shop_cash_300_desc">
+		<text>Exchange 300 Arena Tokens for 4,500 Roubles in cash.</text>
+	</string>
+	<string id="st_arena_shop_cash_600_name">
+		<text>Major Purse (9,000 RU)</text>
+	</string>
+	<string id="st_arena_shop_cash_600_desc">
+		<text>Exchange 600 Arena Tokens for 9,000 Roubles in cash.</text>
+	</string>
+	<string id="st_arena_shop_cash_1000_name">
+		<text>Champion's Bounty (15,000 RU)</text>
+	</string>
+	<string id="st_arena_shop_cash_1000_desc">
+		<text>Exchange 1,000 Arena Tokens for 15,000 Roubles in cash.</text>
+	</string>
+
+	<string id="st_arena_shop_med_bandage_name">
+		<text>Combat Bandage Pack (x3)</text>
+	</string>
+	<string id="st_arena_shop_med_bandage_desc">
+		<text>Three sterile military compression bandages for immediate clotting.</text>
+	</string>
+	<string id="st_arena_shop_med_army_name">
+		<text>Military First-Aid Kit</text>
+	</string>
+	<string id="st_arena_shop_med_army_desc">
+		<text>Specialized army field kit with coagulants and pain relief stimulants.</text>
+	</string>
+	<string id="st_arena_shop_med_sci_name">
+		<text>Scientific Medical Kit</text>
+	</string>
+	<string id="st_arena_shop_med_sci_desc">
+		<text>Ecologist field kit with advanced broad-spectrum antitoxins and radioprotectors.</text>
+	</string>
+	<string id="st_arena_shop_med_stim_name">
+		<text>Combat Stimpack</text>
+	</string>
+	<string id="st_arena_shop_med_stim_desc">
+		<text>Rapid adrenaline and analgesic injector designed for severe combat trauma.</text>
+	</string>
+	<string id="st_arena_shop_med_coag_name">
+		<text>Coagulant Injector</text>
+	</string>
+	<string id="st_arena_shop_med_coag_desc">
+		<text>Rapid-acting hemostatic drug that drastically seals open bleeding wounds.</text>
+	</string>
+
+	<string id="st_arena_shop_ammo_buck_name">
+		<text>12x70 Buckshot Box</text>
+	</string>
+	<string id="st_arena_shop_ammo_buck_desc">
+		<text>Box of standard heavy buckshot pellets for close-range mutant defense.</text>
+	</string>
+	<string id="st_arena_shop_ammo_zhekan_name">
+		<text>12x76 Zhekan Slug Box</text>
+	</string>
+	<string id="st_arena_shop_ammo_zhekan_desc">
+		<text>Solid heavy lead slugs capable of fracturing mutant carapace and light armor.</text>
+	</string>
+	<string id="st_arena_shop_ammo_545_name">
+		<text>5.45x39 mm 7N10 (AP)</text>
+	</string>
+	<string id="st_arena_shop_ammo_545_desc">
+		<text>Hardened steel core rounds engineered to defeat body armor and helmets.</text>
+	</string>
+	<string id="st_arena_shop_ammo_556_name">
+		<text>5.56x45 mm M855A1 (AP)</text>
+	</string>
+	<string id="st_arena_shop_ammo_556_desc">
+		<text>High-velocity NATO penetrator rounds with exceptional ballistics.</text>
+	</string>
+	<string id="st_arena_shop_ammo_939_name">
+		<text>9x39 mm SP-6 (AP)</text>
+	</string>
+	<string id="st_arena_shop_ammo_939_desc">
+		<text>Heavy subsonic tungsten-core rounds for VSS Vintorez and AS Val platforms.</text>
+	</string>
+
+	<string id="st_arena_shop_srv_clean_name">
+		<text>Firearms Cleaning Kit</text>
+	</string>
+	<string id="st_arena_shop_srv_clean_desc">
+		<text>Universal cleaning solvent and rods to service weapon mechanisms.</text>
+	</string>
+	<string id="st_arena_shop_srv_oil_name">
+		<text>Gun Lubricant Grease</text>
+	</string>
+	<string id="st_arena_shop_srv_oil_desc">
+		<text>Heavy synthetic grease to reduce bolt friction and prevent jams.</text>
+	</string>
+	<string id="st_arena_shop_srv_sew_name">
+		<text>Textile Sewing Kit</text>
+	</string>
+	<string id="st_arena_shop_srv_sew_desc">
+		<text>Heavy-duty thread and Kevlar patches to patch punctured stalker suits.</text>
+	</string>
+	<string id="st_arena_shop_srv_rental_name">
+		<text>Free Equipment Rental Voucher</text>
+	</string>
+	<string id="st_arena_shop_srv_rental_desc">
+		<text>A voucher that waives all loadout rental fees for your next arena match.</text>
+	</string>
+	<string id="st_arena_shop_srv_medic_name">
+		<text>Medical Rescue Voucher</text>
+	</string>
+	<string id="st_arena_shop_srv_medic_desc">
+		<text>Guarantees free emergency extraction by the arena medic if you fall in combat.</text>
+	</string>
+
+	<!-- MCM Settings Localization -->
+	<string id="ui_mcm_xcvb_arena_economy_mode">
+		<text>Economy System Mode</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_economy_mode_desc">
+		<text>Select between Arena Tokens &amp; Store (balanced, survival/GAMMA recommended) or Classic Rubles (original flat payouts).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_econ_tokens">
+		<text>Arena Tokens &amp; Store (Recommended)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_econ_classic">
+		<text>Classic Direct Rubles (Legacy)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_token_reward_mult">
+		<text>Token Reward Multiplier</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_token_reward_mult_desc">
+		<text>Scale the amount of Arena Tokens earned from tournament victories and waves.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_shop_price_mult">
+		<text>Shop Price Multiplier</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_shop_price_mult_desc">
+		<text>Adjusts token cost of items in the Arena Store (increase for stricter GAMMA balance or decrease for easier play).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_daily_cashout_limit">
+		<text>Daily Cashout Limit (RU)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_daily_cashout_limit_desc">
+		<text>Maximum rubles Arnie can cash out per in-game day (Prevents economic inflation).</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_rank_gating">
+		<text>Stalker Rank Gating (Tier Locks)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_rank_gating_desc">
+		<text>Require appropriate stalker rank (Rookie, Veteran, Legend) to unlock higher tournament tiers.</text>
 	</string>
 </string_table>
 

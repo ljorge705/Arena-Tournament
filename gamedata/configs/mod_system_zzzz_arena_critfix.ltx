@@ -1,0 +1,11 @@
+; Arena Tournament - Critical Wound Crash Fix
+; Disables legacy SoC/CS critical wound animations on stalkers that cause missing animation crashes 
+; and dangling IK limb blend pointers in multi-threaded bone evaluation.
+![stalker]
+critical_wound_threshold = -1
+
+![stalker_monolith]
+critical_wound_threshold = -1
+
+![stalker_zombied]
+critical_wound_threshold = -1

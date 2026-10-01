@@ -5,19 +5,20 @@ local endless_types = { "stalkers", "mutants", "chaos" }
 GUI = nil
 
 function open_gui()
-	if not GUI then
-		GUI = UIXcvbArena()
+	if GUI then
+		if GUI:IsShown() then
+			GUI:HideDialog()
+		end
+		Unregister_UI("UIXcvbArena")
+		GUI = nil
 	end
 
-	if GUI and not GUI:IsShown() then
-		GUI:ShowDialog(true)
-		Register_UI("UIXcvbArena", "xcvb_arena_gui")
-		GUI:reset_loadout_selection()
-		GUI:update_view_mode()
-	elseif GUI and GUI:IsShown() then
-		GUI:reset_loadout_selection()
-		GUI:update_view_mode()
-	end
+	GUI = UIXcvbArena()
+	GUI:ShowDialog(true)
+	GUI:Enable(true)
+	Register_UI("UIXcvbArena", "xcvb_arena_gui")
+	GUI:reset_loadout_selection()
+	GUI:update_view_mode()
 end
 
 if rawget(_G, "xr_effects") then
@@ -252,6 +253,10 @@ function UIXcvbArena:InitControls()
 	-- Continue Endless Mode Button (Bottom Right, below Endless Mode)
 	self.btn_endless_cont = xml:Init3tButton("tournament_cont:endless_cont_btn", self.tournament_cont)
 	self:Register(self.btn_endless_cont, "btn_endless_cont")
+	self.btn_shop = xml:Init3tButton("tournament_cont:btn_shop", self.tournament_cont)
+	if self.btn_shop then
+		self:Register(self.btn_shop, "btn_shop")
+	end
 
 	self.endless_custom_eq_btn_main = xml:Init3tButton("tournament_cont:endless_custom_eq_btn_main", self.tournament_cont)
 	self:Register(self.endless_custom_eq_btn_main, "btn_endless_custom_eq_main")
@@ -831,9 +836,22 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		or (self.wpn_menu and self.wpn_menu:IsShown())
 
 	local allow_bg = not any_modal_open
-	if self.tournament_cont then self.tournament_cont:Enable(allow_bg) end
-	if self.beta_cont then self.beta_cont:Enable(allow_bg) end
-	if self.spectator_cont then self.spectator_cont:Enable(allow_bg) end
+	local is_tourn = allow_bg and (self.current_mode == "tournament")
+	local is_spec = allow_bg and (self.current_mode == "spectator")
+	local is_beta = allow_bg and (self.current_mode == "beta")
+
+	if self.tournament_cont then
+		self.tournament_cont:Show(is_tourn)
+		self.tournament_cont:Enable(is_tourn)
+	end
+	if self.spectator_cont then
+		self.spectator_cont:Show(is_spec)
+		self.spectator_cont:Enable(is_spec)
+	end
+	if self.beta_cont then
+		self.beta_cont:Show(is_beta)
+		self.beta_cont:Enable(is_beta)
+	end
 	if self.btn_mode then self.btn_mode:Enable(allow_bg and not self:is_forest_map()) end
 	if self.btn_beta then self.btn_beta:Enable(allow_bg) end
 	if self.btn_practice then self.btn_practice:Enable(allow_bg) end
@@ -1002,6 +1020,13 @@ function UIXcvbArena:InitCallbacks()
 
 	-- Main enter button callback
 	self:AddCallback("btn_tourn_start", ui_events.BUTTON_CLICKED, self.on_click_tourn_start, self)
+	if self.btn_shop then
+		self:AddCallback("btn_shop", ui_events.BUTTON_CLICKED, function()
+			if xcvb_arena_shop and xcvb_arena_shop.open_shop then
+				xcvb_arena_shop.open_shop()
+			end
+		end, self)
+	end
 	self:AddCallback("btn_weapon_prev", ui_events.BUTTON_CLICKED, self.on_click_weapon_prev, self)
 	self:AddCallback("btn_weapon_next", ui_events.BUTTON_CLICKED, self.on_click_weapon_next, self)
 	self:AddCallback("btn_spec_page_prev", ui_events.BUTTON_CLICKED, function() self:on_click_spec_page(-1) end, self)
@@ -1237,6 +1262,10 @@ function UIXcvbArena:on_click_map()
 		xcvb_arena_main.cur_reward = 0
 		self.bc_bet_team = 0
 		self.bc_monster_bet_team = 0
+	else
+		if xcvb_arena_utils and xcvb_arena_utils.apply_combat_ambient_lighting then
+			pcall(xcvb_arena_utils.apply_combat_ambient_lighting, false)
+		end
 	end
 
 	self:update_view_mode()
@@ -1471,6 +1500,7 @@ function UIXcvbArena:update_view_mode()
 		if self.beta_subview == "br" then self.beta_subview = "endless" end
 	end
 	self:set_modal_active("endless_diff", false)
+	self:set_modal_active("endless_custom", false)
 	self:set_modal_active("dssg", false)
 	self:set_modal_active("mag", false)
 	self:set_modal_active("night_device", false)
@@ -1482,8 +1512,13 @@ function UIXcvbArena:update_view_mode()
 	end
 	if self.current_mode == "tournament" then
 		self.tournament_cont:Show(true)
+		self.tournament_cont:Enable(true)
 		self.spectator_cont:Show(false)
-		if self.beta_cont then self.beta_cont:Show(false) end
+		self.spectator_cont:Enable(false)
+		if self.beta_cont then
+			self.beta_cont:Show(false)
+			self.beta_cont:Enable(false)
+		end
 		self.title_main:SetText(gt("st_arena_title"))
 		self.btn_mode:TextControl():SetText(gt("st_arena_mode_spectator"))
 		self.btn_mode:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
@@ -1492,8 +1527,13 @@ function UIXcvbArena:update_view_mode()
 		self:update_modifier_buttons()
 	elseif self.current_mode == "spectator" then
 		self.tournament_cont:Show(false)
+		self.tournament_cont:Enable(false)
 		self.spectator_cont:Show(true)
-		if self.beta_cont then self.beta_cont:Show(false) end
+		self.spectator_cont:Enable(true)
+		if self.beta_cont then
+			self.beta_cont:Show(false)
+			self.beta_cont:Enable(false)
+		end
 		self.title_main:SetText(gt("st_arena_spectator_title"))
 		self.btn_mode:TextControl():SetText(gt("st_arena_mode_tournament"))
 		self.btn_mode:TextControl():SetTextColor(GetARGB(255, 255, 220, 140))
@@ -1502,8 +1542,13 @@ function UIXcvbArena:update_view_mode()
 		self:update_modifier_buttons()
 	elseif self.current_mode == "beta" then
 		self.tournament_cont:Show(false)
+		self.tournament_cont:Enable(false)
 		self.spectator_cont:Show(false)
-		if self.beta_cont then self.beta_cont:Show(true) end
+		self.spectator_cont:Enable(false)
+		if self.beta_cont then
+			self.beta_cont:Show(true)
+			self.beta_cont:Enable(true)
+		end
 		if self.beta_subview == "endless" then
 			self.title_main:SetText(gt("st_arena_endless_header_title"))
 			self.player_rank:SetText(gt("st_arena_endless_header_subtitle"))
@@ -1553,7 +1598,9 @@ function UIXcvbArena:update_tournament_display()
 
 	-- Header texts
 	self.player_rank:SetText(gt("st_arena_rank_label") .. " " .. tier_name .. cat_tag)
-	self.player_record:SetText(string.format(gt("st_arena_record_label"), xcvb_arena_main.tournament_wins, xcvb_arena_main.tournament_losses))
+	local tokens = (xcvb_arena_main and xcvb_arena_main.get_arena_tokens and xcvb_arena_main.get_arena_tokens()) or 0
+	local rec_str = string.format(gt("st_arena_record_label"), xcvb_arena_main.tournament_wins, xcvb_arena_main.tournament_losses)
+	self.player_record:SetText(rec_str .. " | " .. string.format(gt("st_arena_tokens_header_label"), tokens))
 
 	-- Highlight Category Buttons
 	if cat == "stalker" then
@@ -1604,7 +1651,13 @@ function UIXcvbArena:update_tournament_display()
 						row.name:SetText(gt(r_data.name))
 			row.diff:SetText(gt("st_arena_difficulty_label") .. " " .. gt(r_data.diff_str))
 			row.enemies:SetText(gt("st_arena_enemies_label") .. " " .. enemy_label)
-			row.reward:SetText(gt("st_arena_reward_label") .. " " .. gt(r_data.reward_str))
+			local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+			if econ_mode == "tokens" then
+				local r_tokens = (xcvb_arena_main and xcvb_arena_main.get_round_reward_tokens and xcvb_arena_main.get_round_reward_tokens(r_data)) or math.floor((r_data.reward_money or 3000) / 100)
+				row.reward:SetText(gt("st_arena_reward_label") .. " " .. string.format(gt("st_arena_reward_tokens_fmt"), r_tokens))
+			else
+				row.reward:SetText(gt("st_arena_reward_label") .. " " .. gt(r_data.reward_str))
+			end
 
 			if round_id == self.selected_round_id then
 				row.name:SetTextColor(GetARGB(255, 255, 230, 90))
@@ -1708,6 +1761,9 @@ function UIXcvbArena:update_tourn_start_button()
 	local sel_remain_sec = xcvb_arena_main.get_round_cooldown_remaining(cat, self.selected_round_id)
 
 	local fee = self:get_current_loadout_rental_fee()
+	if xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher() then
+		fee = 0
+	end
 	local actor_money = db.actor and db.actor:money() or 0
 
 	if is_practice then
@@ -2341,6 +2397,11 @@ function UIXcvbArena:on_click_tourn_start()
 	end
 
 	local fee = self:get_current_loadout_rental_fee()
+	if (not is_practice) and fee > 0 and xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher() then
+		xcvb_arena_main.use_free_rental_voucher()
+		if db.actor then news_manager.send_tip(db.actor, gt("st_arena_voucher_rental_used"), 0, nil, 6000) end
+		fee = 0
+	end
 	if (not is_practice) and fee > 0 then
 		local actor_money = db.actor and db.actor:money() or 0
 		if actor_money < fee then
@@ -3030,26 +3091,28 @@ function UIXcvbArena:update_beta_display()
 		end
 	end
 
-	-- Toggle visibility of Battle Royale vs Endless controls
-	if self.bc_btn_3teams then self.bc_btn_3teams:Show(not is_endless) end
-	if self.bc_btn_4teams then self.bc_btn_4teams:Show(not is_endless) end
-	if self.bc_btn_random then self.bc_btn_random:Show(not is_endless) end
+	-- Toggle visibility and interactivity of Battle Royale vs Endless controls
+	if self.bc_btn_3teams then self.bc_btn_3teams:Show(not is_endless); self.bc_btn_3teams:Enable(not is_endless) end
+	if self.bc_btn_4teams then self.bc_btn_4teams:Show(not is_endless); self.bc_btn_4teams:Enable(not is_endless) end
+	if self.bc_btn_random then self.bc_btn_random:Show(not is_endless); self.bc_btn_random:Enable(not is_endless) end
 	if self.bc_desc then self.bc_desc:Show(not is_endless) end
 	for c = 1, 4 do
 		if self.bc_cards[c] and self.bc_cards[c].frame then
-			self.bc_cards[c].frame:Show((not is_endless) and (c <= self.bc_num_teams))
+			local show_card = (not is_endless) and (c <= self.bc_num_teams)
+			self.bc_cards[c].frame:Show(show_card)
+			self.bc_cards[c].frame:Enable(show_card)
 		end
 	end
-	if self.bc_bet_panel then self.bc_bet_panel:Show(not is_endless) end
-	if self.bc_start_btn then self.bc_start_btn:Show(not is_endless) end
-	if self.bc_submode_btn then self.bc_submode_btn:Show(not is_endless) end
+	if self.bc_bet_panel then self.bc_bet_panel:Show(not is_endless); self.bc_bet_panel:Enable(not is_endless) end
+	if self.bc_start_btn then self.bc_start_btn:Show(not is_endless); self.bc_start_btn:Enable(not is_endless) end
+	if self.bc_submode_btn then self.bc_submode_btn:Show(not is_endless); self.bc_submode_btn:Enable(not is_endless) end
 
-	if self.endless_stats_frame then self.endless_stats_frame:Show(is_endless) end
-	if self.endless_type_frame then self.endless_type_frame:Show(is_endless) end
-	if self.endless_rules_frame then self.endless_rules_frame:Show(is_endless) end
-	if self.endless_start_btn then self.endless_start_btn:Show(is_endless) end
-	if self.endless_arti_btn then self.endless_arti_btn:Show(is_endless) end
-	if self.endless_custom_eq_btn then self.endless_custom_eq_btn:Show(is_endless) end
+	if self.endless_stats_frame then self.endless_stats_frame:Show(is_endless); self.endless_stats_frame:Enable(is_endless) end
+	if self.endless_type_frame then self.endless_type_frame:Show(is_endless); self.endless_type_frame:Enable(is_endless) end
+	if self.endless_rules_frame then self.endless_rules_frame:Show(is_endless); self.endless_rules_frame:Enable(is_endless) end
+	if self.endless_start_btn then self.endless_start_btn:Show(is_endless); self.endless_start_btn:Enable(is_endless) end
+	if self.endless_arti_btn then self.endless_arti_btn:Show(is_endless); self.endless_arti_btn:Enable(is_endless) end
+	if self.endless_custom_eq_btn then self.endless_custom_eq_btn:Show(is_endless); self.endless_custom_eq_btn:Enable(is_endless) end
 
 	if is_endless then
 		self:update_endless_display()
@@ -3066,7 +3129,12 @@ function UIXcvbArena:update_endless_display()
 		self.endless_record_label:SetText(string.format(gt("st_arena_endless_stats_record"), tostring(best)))
 	end
 	if self.endless_reward_info then
-		self.endless_reward_info:SetText(gt("st_arena_endless_stats_reward"))
+		local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+		if econ_mode == "tokens" then
+			self.endless_reward_info:SetText(gt("st_arena_endless_stats_reward_tokens"))
+		else
+			self.endless_reward_info:SetText(gt("st_arena_endless_stats_reward"))
+		end
 	end
 
 	local cur_type = self.endless_enemy_type or "stalkers"
@@ -4090,6 +4158,10 @@ function UIXcvbArena:OnKeyboard(dik, keyboard_action)
 				self:show_endless_difficulty_menu(false)
 				return true
 			end
+			if self.night_device_menu and self.night_device_menu:IsShown() then
+				self:set_modal_active("night_device", false)
+				return true
+			end
 			self:Close()
 		end
 	end
@@ -4108,6 +4180,12 @@ function UIXcvbArena:Close()
 	end
 	if self.dssg_menu and self.dssg_menu:IsShown() then
 		self:show_dssg_menu(false)
+	end
+	if self.night_device_menu and self.night_device_menu:IsShown() then
+		self:set_modal_active("night_device", false)
+	end
+	if self.wpn_menu and self.wpn_menu:IsShown() then
+		self:show_wpn_menu(false)
 	end
 	if self:IsShown() then
 		self:HideDialog()

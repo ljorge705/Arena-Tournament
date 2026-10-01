@@ -311,6 +311,12 @@
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</endless_cont_btn>
 
+		<!-- Arena Store Button (Bottom Right) -->
+		<btn_shop x="460" y="464" width="220" height="54" check_mode="0">
+			<text font="graffiti19">st_arena_btn_shop</text>
+			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_shop>
+
 		<!-- Custom Equipment Button (Main Screen) -->
 		<endless_custom_eq_btn_main x="0" y="0" width="0" height="0" check_mode="0">
 			<text font="letterica16"></text>
