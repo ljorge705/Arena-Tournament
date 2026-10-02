@@ -6646,22 +6646,32 @@ end
 local actor_true_community = nil
 
 function get_actor_true_community()
+    if gameplay_disguise and gameplay_disguise.get_default_comm then
+        local def = gameplay_disguise.get_default_comm()
+        if def and def ~= "" and not endless_forbidden_factions[def] then
+            return def
+        end
+    end
     if not actor_true_community and db.actor and character_community then
         local c = character_community(db.actor):sub(7)
         if c and c ~= "" and not endless_forbidden_factions[c] then
             actor_true_community = c
         end
     end
-    return actor_true_community or (gameplay_disguise and gameplay_disguise.get_default_comm and gameplay_disguise.get_default_comm()) or "stalker"
+    return actor_true_community or "stalker"
 end
 
 function is_any_arena_fight_active()
+    -- Fuera del nivel del Bar (donde radica la Arena), jamás hay combate de arena
+    if not (level and level.name and level.name() == "l05_bar") then
+        return false
+    end
+
     -- 1. Flags explícitos de combate activo
     if xcvb_arena_fight then
         if (xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active()) or
            (xcvb_arena_fight.is_endless_mode == true) or
-           (xcvb_arena_fight.tournament_enemy_squad_id ~= nil) or
-           (xcvb_arena_fight.current_tournament_category ~= nil) then
+           (xcvb_arena_fight.tournament_enemy_squad_id ~= nil) then
             return true
         end
     end
@@ -6692,7 +6702,7 @@ function is_any_arena_fight_active()
     end
 
     -- 3. Verificación de presencia física en la Arena o Bosque de Rostok (l05_bar)
-    if db.actor and level and level.name and level.name() == "l05_bar" then
+    if db.actor then
         local p = db.actor:position()
         if p then
             -- Bosque de la arena: X ~ [85, 135], Z ~ [65, 140], Y < -15.0

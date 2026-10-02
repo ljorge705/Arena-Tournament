@@ -2506,8 +2506,8 @@ function load_state(m_data)
     battle_royale_reward = m_data.xcvb_battle_royale_reward or 0
     battle_royale_submode = m_data.xcvb_battle_royale_submode or "factions"
     tournament_enemy_squad_id = m_data.xcvb_tournament_enemy_squad_id
-    current_tournament_category = m_data.xcvb_current_tournament_category or "stalker"
     current_tournament_round_id = m_data.xcvb_current_tournament_round_id
+    current_tournament_category = m_data.xcvb_current_tournament_category or (current_tournament_round_id and "stalker" or nil)
     xcvb_arena_utils.temporary_arena_item_ids = m_data.xcvb_temporary_arena_item_ids or {}
     xcvb_arena_utils.xcvb_arena_storage_box_id = m_data.xcvb_arena_storage_box_id or nil
     xcvb_arena_utils.saved_equipped_slots = m_data.xcvb_saved_equipped_slots or {}
