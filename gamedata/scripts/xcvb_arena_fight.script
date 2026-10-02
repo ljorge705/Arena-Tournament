@@ -2090,7 +2090,7 @@ function npc_on_before_hit(npc, s_hit)
     if not (npc and s_hit) then return end
 
     -- Ignore artificial wake-up hits on wounded NPCs to prevent animation interrupt
-    if s_hit.type == hit.wound and (s_hit.power or 0) < 0.01 and is_npc_wounded(npc) then
+    if (s_hit.type == hit.strike or s_hit.type == hit.wound) and (s_hit.power or 0) < 0.01 and is_npc_wounded(npc) then
         s_hit.power = 0
         return
     end

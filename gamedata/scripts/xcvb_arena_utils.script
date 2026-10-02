@@ -5191,8 +5191,8 @@ function scr_hit(npc, who, power)
     if not (npc and who) then return end
     if is_npc_wounded(who) or is_npc_wounded(npc) then return end
     local h = hit()
-    -- hit.wound despierta la IA
-    h.type = hit.wound
+    -- hit.strike despierta la IA sin activar detección de puñalada/stealth-kill
+    h.type = hit.strike
     h.power = power or 0.001
     h.impulse = 0
     local dir = vector():set(0, 0, 1)
