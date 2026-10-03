@@ -23,7 +23,7 @@ function nm_button_label()
   if on == true then
     return "MODO NOCHE: ON  ->  VOLVER A NORMAL"
   else
-    return "MODO NOCHE: OFF  ->  PONER NOCHE (02:30)"
+    return "MODO NOCHE: OFF  ->  ACTIVAR"
   end
 end
 
@@ -47,7 +47,7 @@ function nm_toggle_from_menu()
       if night_mode_manager ~= nil then on = night_mode_manager.is_active() end
       if on then
         local msg = game.translate_string("st_arena_night_mode_tip_on")
-        if not msg or msg == "" or msg == "st_arena_night_mode_tip_on" then msg = "MODO NOCHE activado (02:30)" end
+        if not msg or msg == "" or msg == "st_arena_night_mode_tip_on" then msg = "MODO NOCHE activado" end
         news_manager.send_tip(db.actor, msg, 0, nil, 5000)
       else
         local msg = game.translate_string("st_arena_night_mode_tip_off")
@@ -255,29 +255,9 @@ local function nm_on_mm_event(...)
   pcall(night_mode_ui_refresh)
 end
 
--- Tecla F8 in-game / en pausa para alternar sin boton
+-- Tecla F8 desactivada (ya no cambia la hora ni activa modo noche)
 local function nm_on_key_press(dik, bind)
-  pcall(function()
-    if dik == nil or DIK_keys == nil then
-      return
-    end
-    if dik == DIK_keys.DIK_F8 then
-      -- Solo cuando hay partida (evitar romper navegacion del menu con F8)
-      local in_game = false
-      pcall(function()
-        if level ~= nil and level.present ~= nil then
-          in_game = level.present()
-        end
-      end)
-      if in_game then
-        nm_toggle_from_menu()
-      else
-        -- En menu principal F8 tambien alterna (pre-arma cvars de noche)
-        nm_toggle_from_menu()
-      end
-    end
-  end)
-  return false -- no consumir la tecla para otros handlers
+  return false
 end
 
 local function nm_register_console_commands()
@@ -344,8 +324,7 @@ function on_game_start()
   for _, ev in ipairs(mm_events) do
     pcall(function() RegisterScriptCallback(ev, nm_on_mm_event) end)
   end
-  -- 4) Tecla F8 global
-  pcall(function() RegisterScriptCallback("on_key_press", nm_on_key_press) end)
+  -- 4) Tecla F8 global (DESACTIVADA)
   -- 5) Ciclo actor: ocultar fallback en partida + refrescar
   pcall(function() RegisterScriptCallback("actor_on_first_update", nm_actor_on_first_update) end)
   pcall(function() RegisterScriptCallback("actor_on_update", nm_actor_on_update) end)

@@ -159,7 +159,7 @@ function get_endless_random_weapon(tier, chosen_cls, prefer_scopes)
     end
 
     -- 3. Prefer weapons that support scopes if 3DSSG is enabled
-    if prefer_scopes and cls ~= "pistol" and #candidates > 0 then
+    if prefer_scopes and #candidates > 0 then
         local scoped_pool = {}
         for _, s in ipairs(candidates) do
             local sc = xcvb_arena_utils and xcvb_arena_utils.get_weapon_scopes and xcvb_arena_utils.get_weapon_scopes(s)
@@ -362,9 +362,14 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
         wpn_sec = custom_loadout.weapon_sec
         chosen_cls = custom_loadout.class or "rifle"
     else
-        local classes = { "shotgun", "rifle", "smg", "sniper" }
-        if tier == 1 then table.insert(classes, "pistol") end
-        chosen_cls = classes[math.random(#classes)]
+        local locked_cls = xcvb_arena_main and xcvb_arena_main.endless_weapon_class
+        if locked_cls and locked_cls ~= "all" and locked_cls ~= "none" then
+            chosen_cls = locked_cls
+        else
+            local classes = { "shotgun", "rifle", "smg", "sniper" }
+            if tier == 1 then table.insert(classes, "pistol") end
+            chosen_cls = classes[math.random(#classes)]
+        end
         local is_dssg = (use_3dssg == true) or (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true)
         wpn_sec = get_endless_random_weapon(tier, chosen_cls, is_dssg)
     end
@@ -667,6 +672,51 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
             pcall(function() db.actor:activate_slot(endless_target_slot) end)
             if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
                 pcall(xcvb_arena_utils.ensure_weapon_raised)
+            end
+        end
+
+        -- Check and ensure actor has valid ammunition for the equipped weapon
+        local cur_wpn = db.actor:item_in_slot(endless_target_slot) or db.actor:active_item()
+        if cur_wpn and is_gun(cur_wpn) then
+            local cur_sec = cur_wpn:section()
+            local valid_ammo_str = (ini_sys:r_string_ex(cur_sec, "ammo_class")) or ""
+            local valid_ammos = {}
+            for _, a in ipairs(str_explode(valid_ammo_str, ",")) do
+                valid_ammos[trim(a)] = true
+            end
+
+            local has_match = false
+            local purge_list = {}
+            db.actor:iterate_inventory(function(_, itm)
+                if not itm then return end
+                local sec = itm:section()
+                if valid_ammos[sec] then
+                    has_match = true
+                elseif (string.find(sec, "^ammo_") or (IsItem and IsItem("ammo", sec))) then
+                    if xcvb_arena_utils and xcvb_arena_utils.temporary_arena_item_ids and xcvb_arena_utils.temporary_arena_item_ids[itm:id()] then
+                        table.insert(purge_list, itm:id())
+                    end
+                end
+            end, db.actor)
+
+            if not has_match and #purge_list > 0 then
+                for _, id in ipairs(purge_list) do
+                    xcvb_arena_utils.release_actor_arena_item(id)
+                end
+                local new_ammo = xcvb_arena_utils.get_weapon_ammo(cur_sec, "auto")
+                if new_ammo and ini_sys:section_exist(new_ammo) then
+                    if xcvb_arena_utils.spawn_and_fill_mags then
+                        pcall(xcvb_arena_utils.spawn_and_fill_mags, cur_sec, new_ammo, 4, cur_wpn:id())
+                    end
+                    for _ = 1, 5 do
+                        local se_a = alife_create(new_ammo, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+                        if se_a and xcvb_arena_utils and xcvb_arena_utils.temporary_arena_item_ids then
+                            xcvb_arena_utils.temporary_arena_item_ids[se_a.id] = true
+                        end
+                    end
+                end
+                local m_size = (ini_sys:r_u32(cur_sec, "ammo_mag_size")) or 15
+                pcall(function() cur_wpn:set_ammo_elapsed(m_size) end)
             end
         end
         return true

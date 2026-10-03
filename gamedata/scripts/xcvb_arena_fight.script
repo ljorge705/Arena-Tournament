@@ -1035,6 +1035,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     tournament_fight_closed = false
     endless_fight_closed = false
     is_endless_mode = true
+    if xcvb_arena_utils then xcvb_arena_utils.endless_restricted_stalkers = {} end
     endless_wave = math.max(1, start_wave or 1)
     endless_reward = 0
     endless_initial_map = xcvb_arena_main.selected_map
@@ -1066,6 +1067,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     pcall(disable_info, "xcvb_battle_royale_started")
 
     if xcvb_arena_main then
+        xcvb_arena_main.endless_total_runs = (xcvb_arena_main.endless_total_runs or 0) + 1
         xcvb_arena_main.endless_difficulty = endless_difficulty
         xcvb_arena_main.endless_checkpoint_type = endless_enemy_type
         if endless_wave == 1 or difficulty ~= nil or endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
@@ -1172,6 +1174,7 @@ function advance_endless_wave(resume_pending)
 
     if not resume_pending then
         local mult = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("endless_reward_mult")) or 1.0
+        local class_mult = (xcvb_arena_utils and xcvb_arena_utils.get_endless_weapon_class_reward_mult and xcvb_arena_utils.get_endless_weapon_class_reward_mult()) or 1.0
         local wave_gain = 0
         if endless_difficulty == "easy" then
             wave_gain = math.floor(400 + (endless_wave * 400))
@@ -1180,11 +1183,14 @@ function advance_endless_wave(resume_pending)
         else
             wave_gain = math.floor(700 + (endless_wave * 700))
         end
-        wave_gain = math.floor(wave_gain * mult)
+        wave_gain = math.floor(wave_gain * mult * class_mult)
         endless_reward = endless_reward + wave_gain
 
         if endless_wave > (xcvb_arena_main.best_endless_wave or 0) then
             xcvb_arena_main.best_endless_wave = endless_wave
+        end
+        if xcvb_arena_main then
+            xcvb_arena_main.endless_total_waves_cleared = (xcvb_arena_main.endless_total_waves_cleared or 0) + 1
         end
 
         local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
@@ -1194,6 +1200,14 @@ function advance_endless_wave(resume_pending)
             clear_tip = string.format(gt("st_arena_endless_wave_cleared_tokens"), tonumber(endless_wave) or 1, tonumber(tokens_accum) or 0)
         else
             clear_tip = string.format(gt("st_arena_endless_wave_cleared"), tonumber(endless_wave) or 1, tonumber(endless_reward) or 0)
+        end
+        if class_mult < 1.0 then
+            local penalty_pct = math.floor((1.0 - class_mult) * 100)
+            local tag = gt("st_arena_endless_restr_penalty_tag")
+            if not tag or tag == "" or tag == "st_arena_endless_restr_penalty_tag" then
+                tag = "Restricted Weapon Penalty"
+            end
+            clear_tip = clear_tip .. " (-" .. tostring(penalty_pct) .. "% " .. tag .. ")"
         end
         news_manager.send_tip(db.actor, clear_tip, 0, nil, 7000)
 
@@ -2327,6 +2341,9 @@ end
 
 function squad_on_npc_death(squad, se_obj, killer)
     if (HI("xcvb_endless_started") or is_endless_mode) and is_endless_enemy_squad(squad.id) then
+        if xcvb_arena_main then
+            xcvb_arena_main.endless_total_kills = (xcvb_arena_main.endless_total_kills or 0) + 1
+        end
         local remaining = get_endless_total_enemies_alive(squad.id)
         if remaining > 1 then
             local tip = string.format(gt("st_arena_enemies_remaining"), remaining)

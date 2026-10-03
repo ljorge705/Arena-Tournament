@@ -167,14 +167,8 @@ local function force_weather_update()
 end
 
 local function jump_to_0230()
-  local mins = minutes_until_0230()
-  if mins ~= nil and mins > 0 then
-    -- Firma X-Ray: level.change_game_time(days, hours, mins, secs, ms)
-    pcall(function() level.change_game_time(0, 0, math.floor(mins), 0, 0) end)
-  end
-  -- Inmediatamente despues, forzar actualizacion del clima
-  force_weather_update()
-  return mins or 0
+  -- DESACTIVADO: ya no se cambia la hora del juego
+  return 0
 end
 
 -- ============================================================
@@ -404,26 +398,8 @@ function night_mode_manager.enable(opts)
   save_current_cvars()
   apply_night_cvars()
 
-  -- 2+3) Stats + salto de tiempo + clima
-  if skip_time == false then
-    local stats = capture_actor_stats()
-    local has_level = false
-    pcall(function()
-      if level ~= nil and level.present ~= nil then has_level = level.present() end
-    end)
-    if has_level then
-      jump_to_0230()
-      pending_time_jump = false
-    else
-      -- Activado desde menu principal (sin nivel): pre-armar cvars oscuros
-      -- y diferir salto de tiempo + clima a actor_on_first_update.
-      force_weather_update() -- no-op en menu, pero inofensivo
-      pending_time_jump = true
-    end
-    schedule_stats_restore(stats)
-  else
-    force_weather_update()
-  end
+  -- 2+3) Clima (sin saltos de tiempo en el reloj)
+  pending_time_jump = false
 
   -- 4) Lamparas
   if skip_lamps == false then
@@ -542,12 +518,7 @@ function on_game_start()
   pcall(function()
     RegisterScriptCallback("actor_on_first_update", function()
       if is_enabled == true then
-        if pending_time_jump == true then
-          pending_time_jump = false
-          local stats = capture_actor_stats()
-          jump_to_0230()
-          schedule_stats_restore(stats)
-        end
+        pending_time_jump = false
         CreateTimeEvent("night_mode_vision_e", "night_mode_vision_a", 1.0, function()
           nerf_npc_vision()
           turn_off_lamps()

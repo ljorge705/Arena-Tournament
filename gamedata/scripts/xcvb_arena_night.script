@@ -115,29 +115,7 @@ end
 -- SALTO EN EL TIEMPO (HACIA LAS 02:30 AM)
 --------------------------------------------------------------------------------
 local function jump_to_target_time(target_h, target_m)
-    local curr_time = game.get_game_time()
-local Y, M, D, cur_h, cur_m, s, ms = curr_time:get()
-    local current_total_m = (cur_h * 60) + cur_m
-    local target_total_m  = (target_h * 60) + target_m
-
-    local diff_m = target_total_m - current_total_m
-    if diff_m <= 0 then
-        diff_m = diff_m + (24 * 60)
-    end
-
-    local add_hours = math.floor(diff_m / 60)
-    local add_mins  = diff_m % 60
-
-    local saved_satiety = 1.0
-    if db.actor and db.actor.satiety then
-        saved_satiety = db.actor.satiety
-    end
-
-    pcall(function()
-        level.change_game_time(0, add_hours, add_mins)
-    end)
-
-    protect_vitals_continuous(saved_satiety)
+    -- DESACTIVADO: ya no se cambia la hora del juego
 end
 
 --------------------------------------------------------------------------------
@@ -273,19 +251,10 @@ function enable()
     if is_night_active then return end
     is_night_active = true
 
-    -- 1. Guardar hora original
-    local curr_time = game.get_game_time()
-local Y, M, D, h, m, s, ms = curr_time:get()
-    saved_time_hours = h
-    saved_time_mins  = m
-
-    -- 2. Guardar y aplicar cvars
+    -- 1. Guardar y aplicar cvars
     save_and_apply_cvars()
 
-    -- 3. Avanzar tiempo a las 02:30 AM con protección total de necesidades
-    jump_to_target_time(2, 30)
-
-    -- 4. Apagar luces de la arena
+    -- 2. Apagar luces de la arena
     turn_off_arena_lamps()
     CreateTimeEvent("xcvb_night_lamps_recheck_e", "xcvb_night_lamps_recheck_a", 0.5, function()
         if is_night_active then
@@ -298,7 +267,7 @@ local Y, M, D, h, m, s, ms = curr_time:get()
     if db.actor and news_manager and news_manager.send_tip then
         local tip_txt = game.translate_string("st_arena_night_mode_tip_on")
         if not tip_txt or tip_txt == "" or tip_txt == "st_arena_night_mode_tip_on" then
-            tip_txt = "MODO NOCHE activado (02:30) - Luces apagadas."
+            tip_txt = "MODO NOCHE activado - Luces apagadas."
         end
         news_manager.send_tip(db.actor, tip_txt, 0, nil, 6000)
     end
@@ -308,14 +277,7 @@ function disable()
     if not is_night_active then return end
     is_night_active = false
 
-    -- 1. Restaurar hora del día previa (avanzar hacia la hora original para mantener sincronía)
-    if saved_time_hours ~= nil and saved_time_mins ~= nil then
-        jump_to_target_time(saved_time_hours, saved_time_mins)
-        saved_time_hours = nil
-        saved_time_mins  = nil
-    end
-
-    -- 2. Restaurar luces de la arena
+    -- 1. Restaurar luces de la arena
     restore_arena_lamps()
 
     -- 3. Restaurar cvars

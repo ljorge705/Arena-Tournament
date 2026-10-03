@@ -968,10 +968,10 @@
 		<text>Endless Mode</text>
 	</string>
 	<string id="st_arena_endless_diff_title">
-		<text>Difficulty:</text>
+		<text>ENDLESS SURVIVAL</text>
 	</string>
 	<string id="st_arena_endless_diff_subtitle">
-		<text>Select Endless Mode difficulty</text>
+		<text>Select combat modifiers and start difficulty</text>
 	</string>
 	<string id="st_arena_endless_diff_easy">
 		<text>Easy</text>
@@ -984,6 +984,60 @@
 	</string>
 	<string id="st_arena_endless_diff_cancel">
 		<text>Cancel</text>
+	</string>
+	<string id="st_arena_endless_header_modifiers">
+		<text>--- COMBAT MODIFIERS ---</text>
+	</string>
+	<string id="st_arena_endless_header_difficulty">
+		<text>--- SELECT DIFFICULTY TO START ---</text>
+	</string>
+	<string id="st_arena_endless_wpn_class_btn">
+		<text>WEAPONS ONLY</text>
+	</string>
+	<string id="st_arena_endless_wpn_all">
+		<text>ALL WEAPONS</text>
+	</string>
+	<string id="st_arena_endless_wpn_pistols">
+		<text>PISTOLS ONLY</text>
+	</string>
+	<string id="st_arena_endless_wpn_shotguns">
+		<text>SHOTGUNS ONLY</text>
+	</string>
+	<string id="st_arena_endless_wpn_rifles">
+		<text>RIFLES ONLY</text>
+	</string>
+	<string id="st_arena_endless_wpn_smgs">
+		<text>SMGS ONLY</text>
+	</string>
+	<string id="st_arena_endless_wpn_snipers">
+		<text>SNIPERS ONLY</text>
+	</string>
+	<string id="st_arena_endless_3dssg_btn">
+		<text>3DSSG</text>
+	</string>
+	<string id="st_arena_endless_escalation_btn">
+		<text>ESCALATION</text>
+	</string>
+	<string id="st_arena_endless_escalation_on">
+		<text>+1/WAVE</text>
+	</string>
+	<string id="st_arena_endless_escalation_off">
+		<text>OFF</text>
+	</string>
+	<string id="st_arena_endless_spawn_type_btn">
+		<text>SPAWN</text>
+	</string>
+	<string id="st_arena_endless_spawn_random">
+		<text>SCATTERED</text>
+	</string>
+	<string id="st_arena_endless_spawn_together">
+		<text>GROUPED</text>
+	</string>
+	<string id="st_arena_endless_status_on">
+		<text>ON</text>
+	</string>
+	<string id="st_arena_endless_status_off">
+		<text>OFF</text>
 	</string>
 	<string id="st_arena_endless_cont_btn">
 		<text>Continue Endless Mode</text>
@@ -1212,6 +1266,12 @@
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_reward_mult_desc">
 		<text>Adjust reward earnings multiplier for Endless Mode waves.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_restricted_reward_mult">
+		<text>Restricted Weapon Reward Multiplier</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_restricted_reward_mult_desc">
+		<text>Multiplier applied to Endless rewards when playing with restricted weapon classes or custom loadouts (Default: 0.8 = 80% rewards). Set to 1.0 for no penalty.</text>
 	</string>
 	<string id="st_arena_loadout_cost_label">
 		<text>Rental Fee</text>
@@ -1854,6 +1914,107 @@
 	</string>
 	<string id="st_arena_forced_forest_desc">
 		<text>Mandatory Location: Forest Arena.</text>
+	</string>
+
+
+	<string id="st_arena_endless_menu_title">
+		<text>ENDLESS MODE</text>
+	</string>
+	<string id="st_arena_endless_menu_desc">
+		<text>Configure combat rules, weapon restrictions, and initial wave difficulty</text>
+	</string>
+	<string id="st_arena_endless_wpn_section_title">
+		<text>PRIMARY WEAPON RESTRICTION:</text>
+	</string>
+	<string id="st_arena_endless_mods_section_title">
+		<text>TACTICAL MODIFIERS AND GEAR:</text>
+	</string>
+	<string id="st_arena_endless_summary_title">
+		<text>SURVIVAL PROTOCOL SUMMARY</text>
+	</string>
+	<string id="st_arena_endless_start_title">
+		<text>STARTING DIFFICULTY:</text>
+	</string>
+	<string id="st_arena_endless_sum_diff">
+		<text>Difficulty: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_wpn">
+		<text>Weapons: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_wpn_all">
+		<text>All Weapons (100% Rewards)</text>
+	</string>
+	<string id="st_arena_endless_sum_wpn_restr">
+		<text>%s Only (-%d%% Points)</text>
+	</string>
+	<string id="st_arena_endless_sum_3dssg">
+		<text>3DSSG Optics: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_3dssg_on">
+		<text>Enabled (Equipped on valid guns)</text>
+	</string>
+	<string id="st_arena_endless_sum_3dssg_off">
+		<text>Disabled</text>
+	</string>
+	<string id="st_arena_endless_sum_escalation">
+		<text>Horde Escalation: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_esc_on">
+		<text>+1 Enemy Each Wave (Starts at 1)</text>
+	</string>
+	<string id="st_arena_endless_sum_esc_off">
+		<text>Standard Squad Scaling</text>
+	</string>
+	<string id="st_arena_endless_sum_spawn">
+		<text>Formation: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_spawn_tog">
+		<text>Grouped (Close squad cluster)</text>
+	</string>
+	<string id="st_arena_endless_sum_spawn_rnd">
+		<text>Scattered (Random arena gates)</text>
+	</string>
+	<string id="st_arena_endless_sum_loadout">
+		<text>Equipment: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_load_std">
+		<text>Arena Standard Loadout</text>
+	</string>
+	<string id="st_arena_endless_sum_load_cust">
+		<text>Custom Loadout [ACTIVE]</text>
+	</string>
+	<string id="st_arena_endless_note_all">
+		<text>Combat Note: Standard arena rules. Opponents and player fight with random arsenals (100% Rewards).</text>
+	</string>
+	<string id="st_arena_endless_note_restricted">
+		<text>Combat Note: RESTRICTED CLASS! %s only (Player and Enemies). Yields only %d%% points (-%d%% penalty).</text>
+	</string>
+	<string id="st_arena_endless_restr_penalty_tag">
+		<text>Restricted Weapon Penalty</text>
+	</string>
+	<string id="st_arena_endless_note_escalation">
+		<text>Horde Escalation will add +1 enemy each wave.</text>
+	</string>
+	<string id="st_arena_endless_stats_title">
+		<text>--- SURVIVAL STATISTICS ---</text>
+	</string>
+	<string id="st_arena_endless_stat_max_wave">
+		<text>Highest Wave: Wave %s</text>
+	</string>
+	<string id="st_arena_endless_stat_kills">
+		<text>Enemies Neutralized: %s</text>
+	</string>
+	<string id="st_arena_endless_stat_runs">
+		<text>Total Combat Runs: %s</text>
+	</string>
+	<string id="st_arena_endless_stat_waves_cleared">
+		<text>Total Waves Cleared: %s</text>
+	</string>
+	<string id="st_arena_endless_reset_stats_btn">
+		<text>RESET SURVIVAL STATS</text>
+	</string>
+	<string id="st_arena_endless_stats_reset_tip">
+		<text>Endless survival statistics have been reset.</text>
 	</string>
 </string_table>
 

@@ -461,29 +461,62 @@ function UIXcvbArena:InitControls()
 	self.endless_diff_menu = xml:InitStatic("endless_diff_menu", self.bg)
 	self.endless_diff_menu:Show(false)
 
-	self.btn_diff_easy = xml:Init3tButton("endless_diff_menu:btn_diff_easy", self.endless_diff_menu)
-	self:Register(self.btn_diff_easy, "btn_diff_easy")
-	if self.btn_diff_easy:TextControl() then
-		self.btn_diff_easy:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+	self.diff_menu_title = xml:InitTextWnd("endless_diff_menu:title", self.endless_diff_menu)
+	self.diff_menu_desc = xml:InitTextWnd("endless_diff_menu:desc", self.endless_diff_menu)
+	self.diff_wpn_title = xml:InitTextWnd("endless_diff_menu:title_wpn_class", self.endless_diff_menu)
+
+	self.diff_wpn_btns = {}
+	for _, cls in ipairs({ "all", "pistol", "shotgun", "rifle", "smg", "sniper" }) do
+		local btn = xml:Init3tButton("endless_diff_menu:btn_diff_wpn_" .. cls, self.endless_diff_menu)
+		self.diff_wpn_btns[cls] = btn
+		self:Register(btn, "btn_diff_wpn_" .. cls)
 	end
 
-	self.btn_diff_medium = xml:Init3tButton("endless_diff_menu:btn_diff_medium", self.endless_diff_menu)
-	self:Register(self.btn_diff_medium, "btn_diff_medium")
-	if self.btn_diff_medium:TextControl() then
-		self.btn_diff_medium:TextControl():SetTextColor(GetARGB(255, 255, 220, 130))
-	end
-
-	self.btn_diff_hard = xml:Init3tButton("endless_diff_menu:btn_diff_hard", self.endless_diff_menu)
-	self:Register(self.btn_diff_hard, "btn_diff_hard")
-	if self.btn_diff_hard:TextControl() then
-		self.btn_diff_hard:TextControl():SetTextColor(GetARGB(255, 255, 110, 110))
-	end
-
+	self.diff_mods_title = xml:InitTextWnd("endless_diff_menu:title_mods", self.endless_diff_menu)
 	self.btn_diff_3dssg = xml:Init3tButton("endless_diff_menu:btn_diff_3dssg", self.endless_diff_menu)
 	self:Register(self.btn_diff_3dssg, "btn_diff_3dssg")
 
+	self.btn_diff_escalation = xml:Init3tButton("endless_diff_menu:btn_diff_escalation", self.endless_diff_menu)
+	self:Register(self.btn_diff_escalation, "btn_diff_escalation")
+
+	self.btn_diff_spawn_type = xml:Init3tButton("endless_diff_menu:btn_diff_spawn_type", self.endless_diff_menu)
+	self:Register(self.btn_diff_spawn_type, "btn_diff_spawn_type")
+
 	self.btn_diff_custom = xml:Init3tButton("endless_diff_menu:btn_diff_custom", self.endless_diff_menu)
 	self:Register(self.btn_diff_custom, "btn_diff_custom")
+
+	self.diff_summary_frame = xml:InitStatic("endless_diff_menu:diff_summary_frame", self.endless_diff_menu)
+	if self.diff_summary_frame then
+		self.diff_sum_title = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:title", self.diff_summary_frame)
+		self.diff_sum_diff = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_diff", self.diff_summary_frame)
+		self.diff_sum_wpn = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_wpn", self.diff_summary_frame)
+		self.diff_sum_3dssg = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_3dssg", self.diff_summary_frame)
+		self.diff_sum_escalation = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_escalation", self.diff_summary_frame)
+		self.diff_sum_spawn = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_spawn", self.diff_summary_frame)
+		self.diff_sum_loadout = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_loadout", self.diff_summary_frame)
+		self.diff_stats_title = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:title_stats", self.diff_summary_frame)
+		self.stat_max_wave = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:stat_max_wave", self.diff_summary_frame)
+		self.stat_kills = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:stat_kills", self.diff_summary_frame)
+		self.stat_runs = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:stat_runs", self.diff_summary_frame)
+		self.stat_waves_cleared = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:stat_waves_cleared", self.diff_summary_frame)
+		self.diff_sum_note = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_note", self.diff_summary_frame)
+		self.btn_diff_reset_stats = xml:Init3tButton("endless_diff_menu:diff_summary_frame:btn_diff_reset_stats", self.diff_summary_frame)
+		self:Register(self.btn_diff_reset_stats, "btn_diff_reset_stats")
+	end
+
+	self.diff_start_title = xml:InitTextWnd("endless_diff_menu:title_start", self.endless_diff_menu)
+
+	self.btn_diff_easy = xml:Init3tButton("endless_diff_menu:btn_diff_easy", self.endless_diff_menu)
+	self:Register(self.btn_diff_easy, "btn_diff_easy")
+
+	self.btn_diff_medium = xml:Init3tButton("endless_diff_menu:btn_diff_medium", self.endless_diff_menu)
+	self:Register(self.btn_diff_medium, "btn_diff_medium")
+
+	self.btn_diff_hard = xml:Init3tButton("endless_diff_menu:btn_diff_hard", self.endless_diff_menu)
+	self:Register(self.btn_diff_hard, "btn_diff_hard")
+
+	self.btn_diff_enter = xml:Init3tButton("endless_diff_menu:btn_diff_enter", self.endless_diff_menu)
+	self:Register(self.btn_diff_enter, "btn_diff_enter")
 
 	self.btn_diff_cancel = xml:Init3tButton("endless_diff_menu:btn_diff_cancel", self.endless_diff_menu)
 	self:Register(self.btn_diff_cancel, "btn_diff_cancel")
@@ -696,7 +729,7 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 			dssg = vector2():set(140, 94),
 			mag = vector2():set(140, 94),
 			night_device = vector2():set(180, 140),
-			endless_diff = vector2():set(250, 170),
+			endless_diff = vector2():set(50, 74),
 			endless_custom = vector2():set(120, 60),
 		}
 	end
@@ -747,17 +780,26 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		end
 	elseif modal_name == "endless_diff" then
 		if self.endless_diff_menu then
-			local pos = is_shown and (self.modal_orig_pos.endless_diff or vector2():set(250, 202)) or off_pos
+			local pos = is_shown and (self.modal_orig_pos.endless_diff or vector2():set(50, 74)) or off_pos
 			self.endless_diff_menu:SetWndPos(pos)
 			self.endless_diff_menu:Show(is_shown)
 			self.endless_diff_menu:Enable(is_shown)
 		end
+		if self.diff_wpn_btns then
+			for _, btn in pairs(self.diff_wpn_btns) do
+				if btn then btn:Show(is_shown); btn:Enable(is_shown) end
+			end
+		end
+		if self.btn_diff_3dssg then self.btn_diff_3dssg:Show(is_shown); self.btn_diff_3dssg:Enable(is_shown) end
+		if self.btn_diff_escalation then self.btn_diff_escalation:Show(is_shown); self.btn_diff_escalation:Enable(is_shown) end
+		if self.btn_diff_spawn_type then self.btn_diff_spawn_type:Show(is_shown); self.btn_diff_spawn_type:Enable(is_shown) end
+		if self.btn_diff_custom then self.btn_diff_custom:Show(is_shown); self.btn_diff_custom:Enable(is_shown) end
 		if self.btn_diff_easy then self.btn_diff_easy:Show(is_shown); self.btn_diff_easy:Enable(is_shown) end
 		if self.btn_diff_medium then self.btn_diff_medium:Show(is_shown); self.btn_diff_medium:Enable(is_shown) end
 		if self.btn_diff_hard then self.btn_diff_hard:Show(is_shown); self.btn_diff_hard:Enable(is_shown) end
-		if self.btn_diff_3dssg then self.btn_diff_3dssg:Show(is_shown); self.btn_diff_3dssg:Enable(is_shown) end
-		if self.btn_diff_custom then self.btn_diff_custom:Show(is_shown); self.btn_diff_custom:Enable(is_shown) end
+		if self.btn_diff_enter then self.btn_diff_enter:Show(is_shown); self.btn_diff_enter:Enable(is_shown) end
 		if self.btn_diff_cancel then self.btn_diff_cancel:Show(is_shown); self.btn_diff_cancel:Enable(is_shown) end
+		if self.btn_diff_reset_stats then self.btn_diff_reset_stats:Show(is_shown); self.btn_diff_reset_stats:Enable(is_shown) end
 	elseif modal_name == "wpn" then
 		if self.wpn_menu then
 			local pos = is_shown and (self.modal_orig_pos.wpn or vector2():set(140, 85)) or off_pos
@@ -875,12 +917,22 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_map", ui_events.BUTTON_CLICKED, self.on_click_map, self)
 
 	-- Endless Mode Difficulty callbacks
-	self:AddCallback("btn_diff_easy", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("easy") end, self)
-	self:AddCallback("btn_diff_medium", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("medium") end, self)
-	self:AddCallback("btn_diff_hard", ui_events.BUTTON_CLICKED, function() self:on_select_endless_difficulty("hard") end, self)
+	self:AddCallback("btn_diff_wpn_all", ui_events.BUTTON_CLICKED, function() self:on_select_endless_wpn_class("all") end, self)
+	self:AddCallback("btn_diff_wpn_pistol", ui_events.BUTTON_CLICKED, function() self:on_select_endless_wpn_class("pistol") end, self)
+	self:AddCallback("btn_diff_wpn_shotgun", ui_events.BUTTON_CLICKED, function() self:on_select_endless_wpn_class("shotgun") end, self)
+	self:AddCallback("btn_diff_wpn_rifle", ui_events.BUTTON_CLICKED, function() self:on_select_endless_wpn_class("rifle") end, self)
+	self:AddCallback("btn_diff_wpn_smg", ui_events.BUTTON_CLICKED, function() self:on_select_endless_wpn_class("smg") end, self)
+	self:AddCallback("btn_diff_wpn_sniper", ui_events.BUTTON_CLICKED, function() self:on_select_endless_wpn_class("sniper") end, self)
+	self:AddCallback("btn_diff_easy", ui_events.BUTTON_CLICKED, function() self:on_click_diff_btn("easy") end, self)
+	self:AddCallback("btn_diff_medium", ui_events.BUTTON_CLICKED, function() self:on_click_diff_btn("medium") end, self)
+	self:AddCallback("btn_diff_hard", ui_events.BUTTON_CLICKED, function() self:on_click_diff_btn("hard") end, self)
+	self:AddCallback("btn_diff_enter", ui_events.BUTTON_CLICKED, self.on_confirm_endless_start, self)
+	self:AddCallback("btn_diff_escalation", ui_events.BUTTON_CLICKED, self.on_click_endless_escalation, self)
+	self:AddCallback("btn_diff_spawn_type", ui_events.BUTTON_CLICKED, self.on_click_endless_spawn_type, self)
 	self:AddCallback("btn_diff_3dssg", ui_events.BUTTON_CLICKED, self.on_click_endless_3dssg, self)
 	self:AddCallback("btn_diff_custom", ui_events.BUTTON_CLICKED, self.on_click_diff_custom, self)
 	self:AddCallback("btn_diff_cancel", ui_events.BUTTON_CLICKED, function() self:show_endless_difficulty_menu(false) end, self)
+	self:AddCallback("btn_diff_reset_stats", ui_events.BUTTON_CLICKED, self.on_click_endless_reset_stats, self)
 	self:AddCallback("btn_endless_custom_eq_main", ui_events.BUTTON_CLICKED, self.on_click_endless_custom_eq, self)
 
 	-- Beta Testing tabs
@@ -3599,37 +3651,296 @@ end
 function UIXcvbArena:show_endless_difficulty_menu(show)
 	self:set_modal_active("endless_diff", show == true)
 	if show == true then
-		self:update_endless_3dssg_button()
+		self.selected_endless_diff = (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "easy"
+		self:update_endless_menu_all()
+	end
+end
+
+function UIXcvbArena:update_endless_menu_all()
+	self:update_endless_wpn_class_buttons()
+	self:update_endless_diff_buttons()
+	self:update_endless_3dssg_button()
+	self:update_endless_escalation_button()
+	self:update_endless_spawn_type_button()
+	self:update_endless_custom_btn()
+	self:update_endless_summary()
+end
+
+function UIXcvbArena:on_select_endless_wpn_class(cls)
+	if xcvb_arena_main then
+		xcvb_arena_main.endless_weapon_class = cls
+	end
+	if cls ~= "all" and xcvb_arena_endless and xcvb_arena_endless.is_custom_loadout_enabled() then
+		xcvb_arena_endless.set_custom_loadout_enabled(false)
 		self:update_endless_custom_btn()
 	end
+	self:update_endless_wpn_class_buttons()
+	self:update_endless_summary()
+end
+
+function UIXcvbArena:update_endless_wpn_class_buttons()
+	if not self.diff_wpn_btns then return end
+	local cur = (xcvb_arena_main and xcvb_arena_main.endless_weapon_class) or "all"
+	local names = {
+		all = gt("st_arena_endless_wpn_all") or "ALL",
+		pistol = gt("st_arena_class_pistol") or "Pistol",
+		shotgun = gt("st_arena_class_shotgun") or "Shotgun",
+		rifle = gt("st_arena_class_rifle") or "Rifle",
+		smg = gt("st_arena_class_smg") or "SMG",
+		sniper = gt("st_arena_class_sniper") or "Sniper",
+	}
+	for cls, btn in pairs(self.diff_wpn_btns) do
+		if btn and btn:TextControl() then
+			local is_sel = (cls == cur)
+			local tag = is_sel and " [ON]" or " [OFF]"
+			local lbl = (names[cls] or cls:upper()) .. tag
+			btn:TextControl():SetText(lbl)
+			if is_sel then
+				btn:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+			else
+				btn:TextControl():SetTextColor(GetARGB(255, 175, 175, 175))
+			end
+		end
+	end
+end
+
+function UIXcvbArena:on_click_diff_btn(diff)
+	if self.selected_endless_diff == diff then
+		self:on_confirm_endless_start()
+	else
+		self.selected_endless_diff = diff
+		if xcvb_arena_main then
+			xcvb_arena_main.endless_difficulty = diff
+		end
+		self:update_endless_diff_buttons()
+		self:update_endless_summary()
+	end
+end
+
+function UIXcvbArena:update_endless_diff_buttons()
+	local sel = self.selected_endless_diff or "easy"
+	local diff_map = {
+		easy = { btn = self.btn_diff_easy, title = gt("st_arena_endless_diff_easy") or "Easy" },
+		medium = { btn = self.btn_diff_medium, title = gt("st_arena_endless_diff_medium") or "Intermediate" },
+		hard = { btn = self.btn_diff_hard, title = gt("st_arena_endless_diff_hard") or "Hard" },
+	}
+	for k, data in pairs(diff_map) do
+		if data.btn and data.btn:TextControl() then
+			local is_cur = (k == sel)
+			local tag = is_cur and " [SELECTED]" or ""
+			data.btn:TextControl():SetText(data.title .. tag)
+			if is_cur then
+				data.btn:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+			else
+				data.btn:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+			end
+		end
+	end
+end
+
+function UIXcvbArena:on_confirm_endless_start()
+	local diff = self.selected_endless_diff or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "easy"
+	self:on_select_endless_difficulty(diff)
 end
 
 function UIXcvbArena:on_select_endless_difficulty(diff)
 	self:show_endless_difficulty_menu(false)
 	local e_type = self.endless_target_enemy_type or "stalkers"
+	local start_wave = 1
+	if diff == "medium" then start_wave = 6
+	elseif diff == "hard" then start_wave = 11
+	end
 	if xcvb_arena_main then
 		xcvb_arena_main.endless_difficulty = diff
-		xcvb_arena_main.endless_checkpoint_wave = 1
+		xcvb_arena_main.endless_checkpoint_wave = start_wave
 		xcvb_arena_main.endless_checkpoint_type = e_type
 	end
 	self:Close()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
-		xcvb_arena_fight.start_endless_fight(e_type, 1, diff, xcvb_arena_main.endless_3dssg == true)
+		xcvb_arena_fight.start_endless_fight(e_type, start_wave, diff, xcvb_arena_main.endless_3dssg == true)
 		return true
 	end)
+end
+
+function UIXcvbArena:on_click_endless_escalation()
+	if xcvb_arena_main then
+		xcvb_arena_main.endless_escalation_mode = not (xcvb_arena_main.endless_escalation_mode == true)
+	end
+	self:update_endless_escalation_button()
+	self:update_endless_summary()
+end
+
+function UIXcvbArena:update_endless_escalation_button()
+	if not self.btn_diff_escalation then return end
+	local is_on = xcvb_arena_main and xcvb_arena_main.endless_escalation_mode == true
+	local state_lbl = is_on and "+1/WAVE" or "OFF"
+	self.btn_diff_escalation:TextControl():SetText("ESCALATION: [" .. state_lbl .. "]")
+	if is_on then
+		self.btn_diff_escalation:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+	else
+		self.btn_diff_escalation:TextControl():SetTextColor(GetARGB(255, 190, 190, 190))
+	end
+end
+
+function UIXcvbArena:on_click_endless_spawn_type()
+	if xcvb_arena_main then
+		if xcvb_arena_main.endless_spawn_grouping == "together" then
+			xcvb_arena_main.endless_spawn_grouping = "random"
+		else
+			xcvb_arena_main.endless_spawn_grouping = "together"
+		end
+	end
+	self:update_endless_spawn_type_button()
+	self:update_endless_summary()
+end
+
+function UIXcvbArena:update_endless_spawn_type_button()
+	if not self.btn_diff_spawn_type then return end
+	local cur = (xcvb_arena_main and xcvb_arena_main.endless_spawn_grouping) or "random"
+	local state_lbl = (cur == "together") and "GROUPED" or "SCATTERED"
+	self.btn_diff_spawn_type:TextControl():SetText("SPAWN: [" .. state_lbl .. "]")
+	if cur == "together" then
+		self.btn_diff_spawn_type:TextControl():SetTextColor(GetARGB(255, 255, 200, 80))
+	else
+		self.btn_diff_spawn_type:TextControl():SetTextColor(GetARGB(255, 120, 220, 255))
+	end
 end
 
 function UIXcvbArena:on_click_endless_3dssg()
 	xcvb_arena_main.endless_3dssg = not (xcvb_arena_main.endless_3dssg == true)
 	self:update_endless_3dssg_button()
+	self:update_endless_summary()
 end
 
 function UIXcvbArena:update_endless_3dssg_button()
 	if not self.btn_diff_3dssg then return end
 	local is_on = xcvb_arena_main and xcvb_arena_main.endless_3dssg == true
-	self.btn_diff_3dssg:TextControl():SetText(is_on and "3DSSG [ON] [RANDOM]" or "3DSSG [OFF]")
-	self.btn_diff_3dssg:TextControl():SetTextColor(is_on and GetARGB(255, 100, 255, 100) or GetARGB(255, 180, 180, 180))
+	local status_str = is_on and "ON" or "OFF"
+	self.btn_diff_3dssg:TextControl():SetText("3DSSG: [" .. status_str .. "]")
+	self.btn_diff_3dssg:TextControl():SetTextColor(is_on and GetARGB(255, 100, 255, 100) or GetARGB(255, 190, 190, 190))
+end
+
+function UIXcvbArena:on_click_endless_reset_stats()
+	if xcvb_arena_main and xcvb_arena_main.reset_endless_stats then
+		xcvb_arena_main.reset_endless_stats()
+	end
+	if db.actor then
+		local msg = gt("st_arena_endless_stats_reset_tip") or "Endless survival statistics have been reset."
+		news_manager.send_tip(db.actor, msg, 0, nil, 5000)
+	end
+	self:update_endless_summary()
+end
+
+function UIXcvbArena:update_endless_summary()
+	if not self.diff_summary_frame then return end
+	local diff = self.selected_endless_diff or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "easy"
+	local w_cls = (xcvb_arena_main and xcvb_arena_main.endless_weapon_class) or "all"
+	local is_3dssg = (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true)
+	local is_escala = (xcvb_arena_main and xcvb_arena_main.endless_escalation_mode == true)
+	local spawn_grp = (xcvb_arena_main and xcvb_arena_main.endless_spawn_grouping) or "random"
+	local is_custom = (xcvb_arena_endless and xcvb_arena_endless.is_custom_loadout_enabled())
+
+	-- 1. Difficulty string (NO WAVE)
+	local diff_names = {
+		easy = gt("st_arena_endless_diff_easy") or "Easy",
+		medium = gt("st_arena_endless_diff_medium") or "Intermediate",
+		hard = gt("st_arena_endless_diff_hard") or "Hard",
+	}
+	local diff_str = diff_names[diff] or diff:upper()
+	if self.diff_sum_diff then
+		self.diff_sum_diff:SetText(string.format(gt("st_arena_endless_sum_diff") or "Difficulty: %s", diff_str))
+	end
+
+	-- 2. Weapon class string
+	local wpn_keys = {
+		all = "st_arena_endless_wpn_all",
+		pistol = "st_arena_class_pistol",
+		shotgun = "st_arena_class_shotgun",
+		rifle = "st_arena_class_rifle",
+		smg = "st_arena_class_smg",
+		sniper = "st_arena_class_sniper",
+	}
+	local wpn_name = gt(wpn_keys[w_cls] or "st_arena_endless_wpn_all") or w_cls:upper()
+	local w_mult = (xcvb_arena_utils and xcvb_arena_utils.get_endless_weapon_class_reward_mult and xcvb_arena_utils.get_endless_weapon_class_reward_mult(w_cls)) or 1.0
+	local penalty_pct = math.floor((1.0 - w_mult) * 100)
+	local wpn_detail
+	if w_cls == "all" then
+		wpn_detail = gt("st_arena_endless_sum_wpn_all") or "All Weapons (100% Rewards)"
+	else
+		local restr_fmt = gt("st_arena_endless_sum_wpn_restr") or "%s Only (-%d%% Points Penalty)"
+		wpn_detail = string.format(restr_fmt, wpn_name, penalty_pct)
+	end
+	if self.diff_sum_wpn then
+		self.diff_sum_wpn:SetText(string.format(gt("st_arena_endless_sum_wpn") or "Weapons: %s", wpn_detail))
+		self.diff_sum_wpn:SetTextColor((w_cls == "all") and GetARGB(255, 200, 200, 200) or GetARGB(255, 255, 180, 80))
+	end
+
+	-- 3. 3DSSG Optics string
+	local dssg_str = is_3dssg and (gt("st_arena_endless_sum_3dssg_on") or "Enabled (Scopes on valid guns)")
+		or (gt("st_arena_endless_sum_3dssg_off") or "Disabled")
+	if self.diff_sum_3dssg then
+		self.diff_sum_3dssg:SetText(string.format(gt("st_arena_endless_sum_3dssg") or "3DSSG Optics: %s", dssg_str))
+		self.diff_sum_3dssg:SetTextColor(is_3dssg and GetARGB(255, 120, 240, 255) or GetARGB(255, 160, 160, 160))
+	end
+
+	-- 4. Escalation string
+	local esc_str = is_escala and (gt("st_arena_endless_sum_esc_on") or "+1 Enemy Each Wave (Starts at 1)")
+		or (gt("st_arena_endless_sum_esc_off") or "Standard Squad Scaling")
+	if self.diff_sum_escalation then
+		self.diff_sum_escalation:SetText(string.format(gt("st_arena_endless_sum_escalation") or "Escalation: %s", esc_str))
+		self.diff_sum_escalation:SetTextColor(is_escala and GetARGB(255, 255, 180, 100) or GetARGB(255, 160, 160, 160))
+	end
+
+	-- 5. Spawn formation string (ENGLISH FIX: NO SPANISH WORD)
+	local spawn_str = (spawn_grp == "together") and (gt("st_arena_endless_sum_spawn_tog") or "Grouped (Close squad cluster)")
+		or (gt("st_arena_endless_sum_spawn_rnd") or "Scattered (Random arena gates)")
+	if self.diff_sum_spawn then
+		self.diff_sum_spawn:SetText(string.format(gt("st_arena_endless_sum_spawn") or "Formation: %s", spawn_str))
+		self.diff_sum_spawn:SetTextColor((spawn_grp == "together") and GetARGB(255, 255, 200, 80) or GetARGB(255, 130, 220, 255))
+	end
+
+	-- 6. Loadout gear string
+	local loadout_str = is_custom and (gt("st_arena_endless_sum_load_cust") or "Custom Loadout [ACTIVE]")
+		or (gt("st_arena_endless_sum_load_std") or "Arena Standard Loadout")
+	if self.diff_sum_loadout then
+		self.diff_sum_loadout:SetText(string.format(gt("st_arena_endless_sum_loadout") or "Equipment: %s", loadout_str))
+		self.diff_sum_loadout:SetTextColor(is_custom and GetARGB(255, 120, 240, 120) or GetARGB(255, 180, 180, 180))
+	end
+
+	-- 7. Career Statistics
+	local best_w = (xcvb_arena_main and xcvb_arena_main.best_endless_wave) or 0
+	local total_k = (xcvb_arena_main and xcvb_arena_main.endless_total_kills) or 0
+	local total_r = (xcvb_arena_main and xcvb_arena_main.endless_total_runs) or 0
+	local total_wc = (xcvb_arena_main and xcvb_arena_main.endless_total_waves_cleared) or 0
+
+	if self.stat_max_wave then
+		self.stat_max_wave:SetText(string.format(gt("st_arena_endless_stat_max_wave") or "Highest Wave: Wave %s", tostring(best_w)))
+	end
+	if self.stat_kills then
+		self.stat_kills:SetText(string.format(gt("st_arena_endless_stat_kills") or "Enemies Neutralized: %s", tostring(total_k)))
+	end
+	if self.stat_runs then
+		self.stat_runs:SetText(string.format(gt("st_arena_endless_stat_runs") or "Total Combat Runs: %s", tostring(total_r)))
+	end
+	if self.stat_waves_cleared then
+		self.stat_waves_cleared:SetText(string.format(gt("st_arena_endless_stat_waves_cleared") or "Total Waves Cleared: %s", tostring(total_wc)))
+	end
+
+	-- 8. Rules Note
+	local note_str
+	if w_cls == "all" then
+		note_str = gt("st_arena_endless_note_all") or "Combat Note: Standard arena rules. Random arsenals (100% Rewards)."
+	else
+		local note_fmt = gt("st_arena_endless_note_restricted") or "Combat Note: RESTRICTED CLASS! %s only. Yields only %d%% points (-%d%% penalty)."
+		note_str = string.format(note_fmt, wpn_name, math.floor(w_mult * 100), penalty_pct)
+	end
+	if is_escala then
+		note_str = note_str .. " " .. (gt("st_arena_endless_note_escalation") or "Horde escalation adds +1 enemy per wave.")
+	end
+	if self.diff_sum_note then
+		self.diff_sum_note:SetText(note_str)
+	end
 end
 
 function UIXcvbArena:on_click_endless_start()
@@ -3888,21 +4199,20 @@ end
 
 function UIXcvbArena:update_endless_custom_btn()
 	local is_custom = xcvb_arena_endless and xcvb_arena_endless.is_custom_loadout_enabled()
-	local base_lbl = gt("st_arena_endless_custom_btn") or "EQUIPAMIENTO"
-	local status_lbl = is_custom and (gt("st_arena_endless_custom_on") or "ACTIVO") or (gt("st_arena_endless_custom_off") or "DESACTIVADO")
+	local status_lbl = is_custom and "ACTIVE" or "DISABLED"
 	local col = is_custom and GetARGB(255, 100, 255, 100) or GetARGB(255, 180, 180, 180)
 
 	if self.endless_custom_eq_btn and self.endless_custom_eq_btn:TextControl() then
-		self.endless_custom_eq_btn:TextControl():SetText(base_lbl .. ": [" .. status_lbl .. "]")
+		self.endless_custom_eq_btn:TextControl():SetText("EQUIPMENT: [" .. status_lbl .. "]")
 		self.endless_custom_eq_btn:TextControl():SetTextColor(col)
 	end
 	if self.endless_custom_eq_btn_main and self.endless_custom_eq_btn_main:TextControl() then
-		self.endless_custom_eq_btn_main:TextControl():SetText(base_lbl .. ": [" .. status_lbl .. "]")
+		self.endless_custom_eq_btn_main:TextControl():SetText("EQUIPMENT: [" .. status_lbl .. "]")
 		self.endless_custom_eq_btn_main:TextControl():SetTextColor(col)
 		self.endless_custom_eq_btn_main:Show(false)
 	end
 	if self.btn_diff_custom and self.btn_diff_custom:TextControl() then
-		self.btn_diff_custom:TextControl():SetText(base_lbl .. ": [" .. status_lbl .. "]")
+		self.btn_diff_custom:TextControl():SetText("EQUIPMENT: [" .. status_lbl .. "]")
 		self.btn_diff_custom:TextControl():SetTextColor(col)
 	end
 end
@@ -4128,12 +4438,17 @@ function UIXcvbArena:on_click_ec_confirm()
 	if xcvb_arena_endless then
 		xcvb_arena_endless.set_custom_loadout_enabled(true)
 	end
+	if xcvb_arena_main then
+		xcvb_arena_main.endless_weapon_class = "all"
+	end
 	self:show_endless_custom_menu(false)
 	if self.custom_menu_opened_from == "endless_diff" then
 		self.custom_menu_opened_from = nil
 		self:show_endless_difficulty_menu(true)
 	end
 	self:update_endless_custom_btn()
+	self:update_endless_wpn_class_buttons()
+	self:update_endless_summary()
 end
 
 function UIXcvbArena:on_click_ec_cancel()

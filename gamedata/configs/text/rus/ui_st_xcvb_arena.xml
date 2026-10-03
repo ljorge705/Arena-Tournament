@@ -968,10 +968,10 @@
 		<text>[Тест] Бесконечный режим</text>
 	</string>
 	<string id="st_arena_endless_diff_title">
-		<text>Сложность:</text>
+		<text>БЕСКОНЕЧНОЕ ВЫЖИВАНИЕ</text>
 	</string>
 	<string id="st_arena_endless_diff_subtitle">
-		<text>Выберите сложность бесконечного режима</text>
+		<text>Настройте модификаторы и выберите сложность</text>
 	</string>
 	<string id="st_arena_endless_diff_easy">
 		<text>Легко</text>
@@ -984,6 +984,60 @@
 	</string>
 	<string id="st_arena_endless_diff_cancel">
 		<text>Отмена</text>
+	</string>
+	<string id="st_arena_endless_header_modifiers">
+		<text>--- МОДИФИКАТОРЫ БОЯ ---</text>
+	</string>
+	<string id="st_arena_endless_header_difficulty">
+		<text>--- ВЫБЕРИТЕ СЛОЖНОСТЬ ДЛЯ СТАРТА ---</text>
+	</string>
+	<string id="st_arena_endless_wpn_class_btn">
+		<text>ТОЛЬКО ОРУЖИЕ</text>
+	</string>
+	<string id="st_arena_endless_wpn_all">
+		<text>ВСЕ</text>
+	</string>
+	<string id="st_arena_endless_wpn_pistols">
+		<text>ТОЛЬКО ПИСТОЛЕТЫ</text>
+	</string>
+	<string id="st_arena_endless_wpn_shotguns">
+		<text>ТОЛЬКО ДРОБОВИКИ</text>
+	</string>
+	<string id="st_arena_endless_wpn_rifles">
+		<text>ТОЛЬКО ВИНТОВКИ</text>
+	</string>
+	<string id="st_arena_endless_wpn_smgs">
+		<text>ТОЛЬКО ПП</text>
+	</string>
+	<string id="st_arena_endless_wpn_snipers">
+		<text>ТОЛЬКО СНАЙПЕРСКИЕ</text>
+	</string>
+	<string id="st_arena_endless_3dssg_btn">
+		<text>3DSSG</text>
+	</string>
+	<string id="st_arena_endless_escalation_btn">
+		<text>ЭСКАЛАЦИЯ</text>
+	</string>
+	<string id="st_arena_endless_escalation_on">
+		<text>+1/ВОЛНА</text>
+	</string>
+	<string id="st_arena_endless_escalation_off">
+		<text>ВЫКЛ</text>
+	</string>
+	<string id="st_arena_endless_spawn_type_btn">
+		<text>СПАВН</text>
+	</string>
+	<string id="st_arena_endless_spawn_random">
+		<text>РАЗДЕЛЬНО</text>
+	</string>
+	<string id="st_arena_endless_spawn_together">
+		<text>ВМЕСТЕ</text>
+	</string>
+	<string id="st_arena_endless_status_on">
+		<text>ВКЛ</text>
+	</string>
+	<string id="st_arena_endless_status_off">
+		<text>ВЫКЛ</text>
 	</string>
 	<string id="st_arena_endless_cont_btn">
 		<text>Продолжить Бесконечный режим</text>
@@ -1212,6 +1266,12 @@
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_reward_mult_desc">
 		<text>Настройка множителя денежного вознаграждения за волны в Бесконечном режиме.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_restricted_reward_mult">
+		<text>Множитель наград: Ограничение оружия</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_restricted_reward_mult_desc">
+		<text>Множитель наград в Бесконечном режиме при игре с ограниченным классом оружия или своим снаряжением (По умолчанию: 0.8 = 80% наград). Установите 1.0 для отключения штрафа.</text>
 	</string>
 	<string id="st_arena_loadout_cost_label">
 		<text>Стоимость аренды</text>
@@ -1858,5 +1918,106 @@
 	</string>
 	<string id="st_arena_forced_forest_desc">
 		<text>Обязательная локация: Лесная Арена.</text>
+	</string>
+
+
+	<string id="st_arena_endless_menu_title">
+		<text>БЕСКОНЕЧНЫЙ РЕЖИМ</text>
+	</string>
+	<string id="st_arena_endless_menu_desc">
+		<text>Настройка правил боя, ограничения оружия и начальной сложности</text>
+	</string>
+	<string id="st_arena_endless_wpn_section_title">
+		<text>ОГРАНИЧЕНИЕ КЛАССА ОРУЖИЯ:</text>
+	</string>
+	<string id="st_arena_endless_mods_section_title">
+		<text>ТАКТИЧЕСКИЕ МОДИФИКАТОРЫ И СНАРЯЖЕНИЕ:</text>
+	</string>
+	<string id="st_arena_endless_summary_title">
+		<text>СВОДКА ПРОТОКОЛА ВЫЖИВАНИЯ</text>
+	</string>
+	<string id="st_arena_endless_start_title">
+		<text>НАЧАЛЬНАЯ СЛОЖНОСТЬ:</text>
+	</string>
+	<string id="st_arena_endless_sum_diff">
+		<text>Сложность: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_wpn">
+		<text>Оружие: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_wpn_all">
+		<text>Все оружие (100% наград)</text>
+	</string>
+	<string id="st_arena_endless_sum_wpn_restr">
+		<text>Только %s (-%d%% очков)</text>
+	</string>
+	<string id="st_arena_endless_sum_3dssg">
+		<text>Прицелы 3DSSG: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_3dssg_on">
+		<text>Включено (Прицелы на оружии)</text>
+	</string>
+	<string id="st_arena_endless_sum_3dssg_off">
+		<text>Выключено</text>
+	</string>
+	<string id="st_arena_endless_sum_escalation">
+		<text>Эскалация волн: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_esc_on">
+		<text>+1 враг за волну (Начало с 1)</text>
+	</string>
+	<string id="st_arena_endless_sum_esc_off">
+		<text>Стандартный отряд</text>
+	</string>
+	<string id="st_arena_endless_sum_spawn">
+		<text>Формирование: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_spawn_tog">
+		<text>Вместе (Группа в одной точке)</text>
+	</string>
+	<string id="st_arena_endless_sum_spawn_rnd">
+		<text>Рассеянный (Случайные ворота)</text>
+	</string>
+	<string id="st_arena_endless_sum_loadout">
+		<text>Снаряжение: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_load_std">
+		<text>Стандартное арены</text>
+	</string>
+	<string id="st_arena_endless_sum_load_cust">
+		<text>Пользовательское [АКТИВНО]</text>
+	</string>
+	<string id="st_arena_endless_note_all">
+		<text>Боевая заметка: Стандартные правила арены. Случайное оружие (100% наград).</text>
+	</string>
+	<string id="st_arena_endless_note_restricted">
+		<text>Боевая заметка: ОГРАНИЧЕННЫЙ КЛАСС! Только %s (Игрок и Враги). Дает лишь %d%% очков (-%d%% штраф).</text>
+	</string>
+	<string id="st_arena_endless_restr_penalty_tag">
+		<text>Штраф за ограничение оружия</text>
+	</string>
+	<string id="st_arena_endless_note_escalation">
+		<text>Эскалация волн добавляет +1 врага за каждую волну.</text>
+	</string>
+	<string id="st_arena_endless_stats_title">
+		<text>--- СТАТИСТИКА ВЫЖИВАНИЯ ---</text>
+	</string>
+	<string id="st_arena_endless_stat_max_wave">
+		<text>Максимальная волна: Волна %s</text>
+	</string>
+	<string id="st_arena_endless_stat_kills">
+		<text>Уничтожено врагов: %s</text>
+	</string>
+	<string id="st_arena_endless_stat_runs">
+		<text>Всего попыток: %s</text>
+	</string>
+	<string id="st_arena_endless_stat_waves_cleared">
+		<text>Пройдено волн: %s</text>
+	</string>
+	<string id="st_arena_endless_reset_stats_btn">
+		<text>СБРОСИТЬ СТАТИСТИКУ</text>
+	</string>
+	<string id="st_arena_endless_stats_reset_tip">
+		<text>Статистика выживания на арене сброшена.</text>
 	</string>
 </string_table>

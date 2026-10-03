@@ -12,11 +12,26 @@ tournament_mutant_completed_time = {}
 tournament_wins = 0
 tournament_losses = 0
 best_endless_wave = 0
+endless_total_kills = 0
+endless_total_runs = 0
+endless_total_waves_cleared = 0
+
+function reset_endless_stats()
+	best_endless_wave = 0
+	endless_total_kills = 0
+	endless_total_runs = 0
+	endless_total_waves_cleared = 0
+	endless_checkpoint_wave = 1
+end
+
 endless_checkpoint_wave = 1
 endless_checkpoint_type = "stalkers"
 endless_difficulty = "medium"
 endless_artigrok_ammo = false
 endless_3dssg = false
+endless_weapon_class = "all"
+endless_escalation_mode = false
+endless_spawn_grouping = "random"
 practice_mode_active = false
 night_mode_active = false
 night_mode_saved_time = nil
@@ -917,11 +932,17 @@ function save_state(m_data)
 	m_data.xcvb_tournament_wins = tournament_wins
 	m_data.xcvb_tournament_losses = tournament_losses
 	m_data.xcvb_best_endless_wave = best_endless_wave
+	m_data.xcvb_endless_total_kills = endless_total_kills or 0
+	m_data.xcvb_endless_total_runs = endless_total_runs or 0
+	m_data.xcvb_endless_total_waves_cleared = endless_total_waves_cleared or 0
 	m_data.xcvb_endless_checkpoint_wave = endless_checkpoint_wave
 	m_data.xcvb_endless_checkpoint_type = endless_checkpoint_type
 	m_data.xcvb_endless_difficulty = endless_difficulty
 	m_data.xcvb_endless_artigrok_ammo = endless_artigrok_ammo
 	m_data.xcvb_endless_3dssg = endless_3dssg
+	m_data.xcvb_endless_weapon_class = endless_weapon_class
+	m_data.xcvb_endless_escalation_mode = (endless_escalation_mode == true)
+	m_data.xcvb_endless_spawn_grouping = endless_spawn_grouping
 	m_data.xcvb_practice_mode_active = (practice_mode_active == true)
 	m_data.xcvb_night_mode_active = (night_mode_active == true)
 	m_data.xcvb_night_mode_saved_time = night_mode_saved_time
@@ -939,6 +960,9 @@ end
 function load_state(m_data)
 	xcvb_arena_utils.reset_arena_object_cache()
 	endless_3dssg = m_data.xcvb_endless_3dssg == true
+	endless_weapon_class = m_data.xcvb_endless_weapon_class or "all"
+	endless_escalation_mode = (m_data.xcvb_endless_escalation_mode == true)
+	endless_spawn_grouping = m_data.xcvb_endless_spawn_grouping or "random"
 	night_mode_active = (m_data.xcvb_night_mode_active == true)
 	night_mode_saved_time = m_data.xcvb_night_mode_saved_time
 	night_mode_saved_needs = m_data.xcvb_night_mode_saved_needs
@@ -996,6 +1020,9 @@ function load_state(m_data)
 	tournament_wins = m_data.xcvb_tournament_wins or 0
 	tournament_losses = m_data.xcvb_tournament_losses or 0
 	best_endless_wave = m_data.xcvb_best_endless_wave or 0
+	endless_total_kills = m_data.xcvb_endless_total_kills or 0
+	endless_total_runs = m_data.xcvb_endless_total_runs or 0
+	endless_total_waves_cleared = m_data.xcvb_endless_total_waves_cleared or 0
 	endless_checkpoint_wave = m_data.xcvb_endless_checkpoint_wave or (best_endless_wave > 0 and best_endless_wave or 1)
 	endless_checkpoint_type = m_data.xcvb_endless_checkpoint_type or "stalkers"
 	if endless_checkpoint_type == "random" then endless_checkpoint_type = "stalkers" end

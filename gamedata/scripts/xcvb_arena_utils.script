@@ -1386,53 +1386,17 @@ end
 -- ─────────────────────────────────────────────────────────────────────────────
 -- COMBAT AMBIENT LIGHTING SYSTEM (Anomaly underground visibility boost)
 -- ─────────────────────────────────────────────────────────────────────────────
-VIDEO_RENDER_COMMANDS = {
-    -- Sun & Sky Lighting
-    "r2_sun",
+-- Only snapshot settings that arena lighting actually changes. Scope/mark and
+-- shader parameters belong to their addons and must keep their live values.
+local VIDEO_RENDER_COMMANDS = {
     "r2_sun_lumscale",
     "r2_sun_lumscale_amb",
     "r2_sun_lumscale_hemi",
-    "r2_sun_depth_near_scale",
-    "r2_sun_depth_far_scale",
-    "r2_sun_depth_near_bias",
-    "r2_sun_depth_far_bias",
-    "r2_sun_far",
-    "r2_sun_near",
-    "r2_sun_near_border",
-    "r2_sun_tsm_bias",
-    "r2_sun_tsm_proj",
-    "r2_sunshafts_min",
-    "r2_sunshafts_value",
-    -- Tonemapping & Color
-    "r2_tonemap",
-    "r2_tonemap_amount",
-    "r2_tonemap_adaptation",
     "r2_tonemap_lowlum",
     "r2_tonemap_middlegray",
-    "rs_c_brightness",
-    "rs_c_contrast",
-    "rs_c_gamma",
-    "r__gamma",
-    "r__exposure",
-    "r__saturation",
-    "r__color_grading",
-    -- Screen Space Shaders & Fog
     "ssfx_is_underground",
     "ssfx_fog_scattering",
     "ssfx_fog",
-    "ssfx_hud_hemi",
-    "ssfx_shadow_bias",
-    "ssfx_water",
-    "ssfx_bloom_use_presets",
-    "ssfx_ao",
-    "ssfx_ao_quality",
-    -- Details & Volumetrics
-    "r2_gloss_factor",
-    "r2_gloss_min",
-    "r2_steep_parallax",
-    "r2_detail_bump",
-    "r2_volumetric_lights",
-    "scope_factor",
 }
 
 local DEFAULT_DAYLIGHT_SETTINGS = {
@@ -1507,16 +1471,26 @@ local function is_gamma_modpack()
     return gamma_modpack_cache
 end
 
+local function restore_arena_lighting_settings(saved)
+    -- Whitelist also protects against a snapshot made by an older mod version.
+    for _, cmd in ipairs(VIDEO_RENDER_COMMANDS) do
+        local val = saved[cmd]
+        if val ~= nil and val ~= "" then
+            pcall(function() exec_console_cmd(cmd .. " " .. tostring(val)) end)
+        end
+    end
+end
+
 function apply_combat_ambient_lighting(enable)
     if enable then
         if xcvb_arena_main and xcvb_arena_main.night_mode_active then return end
 
         if not xcvb_arena_main.combat_ambient_saved then
-            -- Guardar una copia exacta y fiel de todos los comandos de renderizado del motor antes de cambiarlos
+            -- Snapshot only arena lighting; preserve valid zero values too.
             local orig = {}
             for _, cmd in ipairs(VIDEO_RENDER_COMMANDS) do
                 local v = get_console_val(cmd)
-                if DEFAULT_DAYLIGHT_SETTINGS[cmd] and (v == nil or v == "" or v == "0" or v == "0.0" or v == "(0,0,0,0)") then
+                if DEFAULT_DAYLIGHT_SETTINGS[cmd] and (v == nil or v == "") then
                     orig[cmd] = DEFAULT_DAYLIGHT_SETTINGS[cmd]
                 elseif v ~= nil and v ~= "" then
                     orig[cmd] = tostring(v)
@@ -1538,7 +1512,6 @@ function apply_combat_ambient_lighting(enable)
             pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.01") end)
             pcall(function() exec_console_cmd("r2_tonemap_middlegray 1.05") end)
             pcall(function() exec_console_cmd("ssfx_is_underground 0") end)
-            pcall(function() exec_console_cmd("ssfx_hud_hemi 0.45") end)
 
             if not is_gamma_modpack() and weather and weather.set_value_vector then
                 pcall(weather.set_value_vector, "sky_color", 0.35, 0.40, 0.48)
@@ -1557,7 +1530,6 @@ function apply_combat_ambient_lighting(enable)
             pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.0005") end)
             pcall(function() exec_console_cmd("r2_tonemap_middlegray 1.35") end)
             pcall(function() exec_console_cmd("ssfx_is_underground 0") end)
-            pcall(function() exec_console_cmd("ssfx_hud_hemi 0.90") end)
 
             -- Encender todas las lÃ¡mparas de techo y proyectores de la arena
             pcall(toggle_arena_lights, true)
@@ -1574,19 +1546,9 @@ function apply_combat_ambient_lighting(enable)
         if xcvb_arena_main and xcvb_arena_main.combat_ambient_saved then
             local saved = xcvb_arena_main.combat_ambient_saved
 
-            -- Restaurar EXACTAMENTE los valores originales de vÃ­deo que tenÃ­a el jugador
-            if getFS():exist("$app_data_root$", "arena_ambient_backup.ltx") then
-                pcall(function() exec_console_cmd("cfg_load arena_ambient_backup") end)
-            else
-                pcall(function() exec_console_cmd("cfg_load user") end)
-            end
-
-            -- Restaurar explÃ­citamente cualquier cvar guardado
-            for cmd, val in pairs(saved) do
-                if cmd ~= "__weather" and val and val ~= "" then
-                    pcall(function() exec_console_cmd(cmd .. " " .. val) end)
-                end
-            end
+            -- cfg_load executes every command in the file, including live 3DSS
+            -- state. Restore our lighting snapshot without reloading user.ltx.
+            restore_arena_lighting_settings(saved)
 
             -- Restaurar clima original si se pausó o alteró
             if weather then
@@ -1612,11 +1574,6 @@ function apply_combat_ambient_lighting(enable)
 
             xcvb_arena_main.combat_ambient_weather_paused = nil
             xcvb_arena_main.combat_ambient_saved = nil
-        else
-            -- Si no habÃ­a tabla guardada en memoria, asegurar recarga de settings originales
-            if getFS():exist("$app_data_root$", "arena_ambient_backup.ltx") then
-                pcall(function() exec_console_cmd("cfg_load arena_ambient_backup") end)
-            end
         end
     end
 end
@@ -1761,8 +1718,8 @@ function apply_night_mode_lighting(enable)
             local orig = {}
             for _, cmd in ipairs(VIDEO_RENDER_COMMANDS) do
                 local v = get_console_val(cmd)
-                -- Avoid saving darkness values as original daylight values
-                if DEFAULT_DAYLIGHT_SETTINGS[cmd] and (v == nil or v == "" or v == "0" or v == "0.0" or v == "(0,0,0,0)") then
+                -- Defaults are only for unreadable settings, not valid zeros.
+                if DEFAULT_DAYLIGHT_SETTINGS[cmd] and (v == nil or v == "") then
                     orig[cmd] = DEFAULT_DAYLIGHT_SETTINGS[cmd]
                 elseif v ~= nil and v ~= "" then
                     orig[cmd] = tostring(v)
@@ -1800,28 +1757,8 @@ function apply_night_mode_lighting(enable)
         end
     else
         if not xcvb_arena_main.night_mode_saved_render then return end
-        -- Restore exact original video settings saved before night mode was activated
-        if getFS():exist("$app_data_root$", "arena_night_backup.ltx") then
-            pcall(function() exec_console_cmd("cfg_load arena_night_backup") end)
-        end
-
         local saved = xcvb_arena_main.night_mode_saved_render or {}
-
-        -- Guaranteed restore of all core lighting and tonemap cvars with fallback defaults
-        for cmd, default_val in pairs(DEFAULT_DAYLIGHT_SETTINGS) do
-            local val = saved[cmd]
-            if not val or val == "" or val == "0" or val == "0.0" or val == "(0,0,0,0)" then
-                val = default_val
-            end
-            pcall(function() exec_console_cmd(cmd .. " " .. val) end)
-        end
-
-        -- Also restore any other extra commands that were saved in orig
-        for cmd, val in pairs(saved) do
-            if cmd ~= "__weather" and cmd ~= "shader_param_8" and not DEFAULT_DAYLIGHT_SETTINGS[cmd] and val and val ~= "" then
-                pcall(function() exec_console_cmd(cmd .. " " .. val) end)
-            end
-        end
+        restore_arena_lighting_settings(saved)
 
         if saved.__weather and weather and weather.set_weather then
             pcall(weather.pause, false)
@@ -1852,8 +1789,6 @@ function apply_night_mode_lighting(enable)
             npc_night_gear = {}
         end
 
-        -- Save clean daylight settings into user.ltx so closing/restarting the game never stays pitch dark
-        pcall(function() exec_console_cmd("cfg_save") end)
     end
 end
 
@@ -2727,80 +2662,15 @@ function restore_actor_survival_needs(saved_needs)
 end
 
 local function apply_time_jump_safely(add_h, add_m, saved_needs)
-    saved_needs = saved_needs or save_actor_survival_needs()
-    
-    -- Temporarily activate god mode to block engine starvation damage and thirst/sleep update
-    pcall(function() exec_console_cmd("g_god on") end)
-    
-    -- Change game time
-    level.change_game_time(0, add_h, add_m)
-    
-    -- Immediately apply first restore
-    restore_actor_survival_needs(saved_needs)
-    
-    -- Multi-frame watchdog (runs across the first few engine ticks until delta_time stabilizes)
-    local ticks = 0
-    local function on_tick_restore()
-        ticks = ticks + 1
-        if db.actor and db.actor:alive() then
-            restore_actor_survival_needs(saved_needs)
-        end
-        if ticks >= 6 then
-            UnregisterScriptCallback("actor_on_update", on_tick_restore)
-            pcall(function()
-                if not saved_needs.was_god then
-                    exec_console_cmd("g_god off")
-                end
-            end)
-        end
-    end
-    RegisterScriptCallback("actor_on_update", on_tick_restore)
-    
-    -- Also fallback timer event at 0.3s
-    CreateTimeEvent("arena_night_mode_protect", "restore_actor_full", 0.3, function()
-        if db.actor and db.actor:alive() then
-            restore_actor_survival_needs(saved_needs)
-        end
-        pcall(function()
-            if not saved_needs.was_god then
-                exec_console_cmd("g_god off")
-            end
-        end)
-        return true
-    end)
+    -- DESACTIVADO: ya no se cambia la hora del juego
 end
 
 function advance_time_to_night(saved_needs)
-    local cur_h = level.get_time_hours()
-    local cur_m = level.get_time_minutes()
-    
-    local cur_total_m = cur_h * 60 + cur_m
-    local target_total_m = 2 * 60 + 30 -- 02:30 AM
-    local diff_m = target_total_m - cur_total_m
-    if diff_m <= 0 then
-        diff_m = diff_m + 24 * 60
-    end
-    
-    local add_h = math.floor(diff_m / 60)
-    local add_m = diff_m % 60
-    apply_time_jump_safely(add_h, add_m, saved_needs)
+    -- DESACTIVADO: ya no se cambia la hora del juego
 end
 
 function restore_time_from_night(saved_time, saved_needs)
-    if not saved_time then return end
-    local cur_h = level.get_time_hours()
-    local cur_m = level.get_time_minutes()
-    
-    local cur_total_m = cur_h * 60 + cur_m
-    local target_total_m = (saved_time.h or cur_h) * 60 + (saved_time.m or cur_m)
-    local diff_m = target_total_m - cur_total_m
-    if diff_m <= 0 then
-        diff_m = diff_m + 24 * 60
-    end
-    
-    local add_h = math.floor(diff_m / 60)
-    local add_m = diff_m % 60
-    apply_time_jump_safely(add_h, add_m, saved_needs)
+    -- DESACTIVADO: ya no se cambia la hora del juego
 end
 
 function enter_arena_night_mode()
@@ -2921,6 +2791,204 @@ function equip_tournament_combatant_loadout(npc, round_data, member_idx)
     ensure_npc_combat_loadout(npc)
 end
 
+endless_restricted_stalkers = {}
+
+function apply_endless_stalker_weapon_restriction(npc, target_cls)
+    if not (npc and npc:alive()) then return end
+    if not (IsStalker and IsStalker(npc)) then return end
+    if not target_cls or target_cls == "all" or target_cls == "none" then return end
+    local npc_id = npc:id()
+    if endless_restricted_stalkers[npc_id] then return end
+    endless_restricted_stalkers[npc_id] = true
+
+    local use_3dssg = (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true)
+    local target_wpn = nil
+    local to_release = {}
+
+    local function is_firearm_or_ammo(item)
+        if not item then return false, false end
+        local is_w = false
+        local is_a = false
+        pcall(function()
+            if IsWeapon and (IsWeapon(item) or (item.clsid and IsWeapon(item, item:clsid()))) then
+                if not (is_knife and is_knife(item)) then
+                    is_w = true
+                end
+            end
+        end)
+        if not is_w then
+            pcall(function()
+                local sec = item:section()
+                if sec and ini_sys:section_exist(sec) then
+                    local cls = ini_sys:r_string_ex(sec, "class") or ""
+                    if string.find(cls, "^WP_") and not string.find(cls, "KNIFE") and not string.find(cls, "BINOC") then
+                        is_w = true
+                    end
+                end
+            end)
+        end
+        pcall(function()
+            if IsAmmo and (IsAmmo(item) or (item.clsid and IsAmmo(item, item:clsid()))) then
+                is_a = true
+            end
+        end)
+        if not is_a then
+            pcall(function()
+                local sec = item:section()
+                if sec and (string.find(sec, "^ammo_") or (ini_sys:section_exist(sec) and ini_sys:r_string_ex(sec, "class") == "AMMO")) then
+                    is_a = true
+                end
+            end)
+        end
+        return is_w, is_a
+    end
+
+    npc:iterate_inventory(function(owner, item)
+        if not item then return end
+        local is_w, is_a = is_firearm_or_ammo(item)
+        if is_w then
+            local sec = item:section()
+            local w_cls = get_weapon_class(sec)
+            if w_cls == target_cls and not target_wpn then
+                target_wpn = item
+            else
+                pcall(function() owner:drop_item(item) end)
+                pcall(function() owner:move_to_ruck(item) end)
+                table.insert(to_release, item:id())
+            end
+        elseif is_a then
+            if not target_wpn then
+                pcall(function() owner:drop_item(item) end)
+                pcall(function() owner:move_to_ruck(item) end)
+                table.insert(to_release, item:id())
+            end
+        end
+    end, npc)
+
+    local act_item = npc:active_item()
+    if act_item and not (target_wpn and act_item:id() == target_wpn:id()) then
+        local is_w, _ = is_firearm_or_ammo(act_item)
+        if is_w then
+            pcall(function() npc:drop_item(act_item) end)
+        end
+    end
+
+    for _, id in ipairs(to_release) do
+        alife_release_id(id)
+    end
+
+    local se_npc = alife_object(npc_id)
+    if se_npc then
+        pcall(function()
+            for child_id in alife():get_children(se_npc) do
+                local se_child = alife_object(child_id)
+                if se_child and not (target_wpn and child_id == target_wpn:id()) then
+                    local sec = se_child:section_name()
+                    if sec and ini_sys:section_exist(sec) then
+                        local cls = ini_sys:r_string_ex(sec, "class") or ""
+                        local is_other_w = (string.find(cls, "^WP_") and not string.find(cls, "KNIFE") and not string.find(cls, "BINOC"))
+                        if is_other_w and get_weapon_class(sec) ~= target_cls then
+                            alife_release_id(child_id)
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
+    local cur_w = (xcvb_arena_fight and xcvb_arena_fight.endless_wave) or 1
+    local tier = 1
+    if cur_w >= 8 then tier = 5
+    elseif cur_w >= 6 then tier = 4
+    elseif cur_w >= 4 then tier = 3
+    elseif cur_w >= 2 then tier = 2 end
+
+    local target_sec = nil
+    if not target_wpn then
+        if xcvb_arena_endless and xcvb_arena_endless.get_endless_random_weapon then
+            target_sec = xcvb_arena_endless.get_endless_random_weapon(tier, target_cls, use_3dssg)
+        end
+        if not target_sec or not ini_sys:section_exist(target_sec) then
+            local entries = get_all_available_weapons_by_class(target_cls, tier)
+            if entries and #entries > 0 then
+                target_sec = entries[math.random(#entries)].sec
+            end
+        end
+        if not target_sec or not ini_sys:section_exist(target_sec) then
+            if target_cls == "pistol" then target_sec = "wpn_pm"
+            elseif target_cls == "shotgun" then target_sec = "wpn_bm16"
+            elseif target_cls == "smg" then target_sec = "wpn_mp5"
+            elseif target_cls == "sniper" then target_sec = "wpn_svd"
+            elseif target_cls == "rifle" then target_sec = "wpn_ak74"
+            else target_sec = "wpn_ak74" end
+        end
+
+        if use_3dssg and target_sec then
+            local scopes = get_weapon_scopes(target_sec)
+            if scopes and #scopes > 0 then
+                local sc = scopes[math.random(#scopes)]
+                local scoped_sec = target_sec .. "_" .. sc
+                if ini_sys:section_exist(scoped_sec) then
+                    target_sec = scoped_sec
+                end
+            end
+        end
+
+        if target_sec and ini_sys:section_exist(target_sec) then
+            alife_create_item(target_sec, npc)
+            local ammo_sec = get_weapon_ammo(target_sec, "auto")
+            if ammo_sec and ini_sys:section_exist(ammo_sec) then
+                for _ = 1, 8 do
+                    alife_create_item(ammo_sec, npc)
+                end
+            end
+        end
+    else
+        target_sec = target_wpn:section()
+        local ammo_sec = get_weapon_ammo(target_sec, "auto")
+        if ammo_sec and ini_sys:section_exist(ammo_sec) then
+            for _ = 1, 8 do
+                alife_create_item(ammo_sec, npc)
+            end
+        end
+    end
+
+    CreateTimeEvent("arena_npc_equip_e_" .. npc_id, "arena_npc_equip_a_" .. npc_id, 0.3, function()
+        local live_npc = level.object_by_id(npc_id)
+        if not (live_npc and live_npc:alive()) then return true end
+
+        local active_w = nil
+        live_npc:iterate_inventory(function(_, itm)
+            if itm and not active_w then
+                local sec = itm:section()
+                if sec and ini_sys:section_exist(sec) then
+                    local is_w = false
+                    pcall(function()
+                        if IsWeapon and IsWeapon(itm) and not (is_knife and is_knife(itm)) then
+                            is_w = true
+                        end
+                    end)
+                    if is_w and get_weapon_class(sec) == target_cls then
+                        active_w = itm
+                    end
+                end
+            end
+        end, live_npc)
+
+        if active_w then
+            local mag_size = (ini_sys:r_u32(active_w:section(), "ammo_mag_size")) or 30
+            pcall(function()
+                active_w:set_ammo_elapsed(mag_size)
+            end)
+            pcall(function()
+                live_npc:make_item_active(active_w)
+                live_npc:set_item(object.fire1, active_w, 1, 1)
+            end)
+        end
+        return true
+    end)
+end
+
 function apply_endless_ai_difficulty(npc, is_monster, diff)
     if not (npc and npc:alive()) then return end
     diff = diff or (xcvb_arena_fight and xcvb_arena_fight.endless_difficulty) or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
@@ -2940,8 +3008,16 @@ function apply_endless_ai_difficulty(npc, is_monster, diff)
 
     if not (IsStalker and IsStalker(npc)) then return end
 
+    local is_restricted = false
+    if xcvb_arena_main and xcvb_arena_main.endless_weapon_class and xcvb_arena_main.endless_weapon_class ~= "all" then
+        apply_endless_stalker_weapon_restriction(npc, xcvb_arena_main.endless_weapon_class)
+        is_restricted = true
+    end
+
     pcall(function() npc:set_mental_state(anim.danger) end)
-    ensure_npc_combat_loadout(npc)
+    if not is_restricted then
+        ensure_npc_combat_loadout(npc)
+    end
 
     if diff == "hard" then
         -- Dificil: Veteranos tacticos, moral de hierro, uso de granadas y estimulantes
@@ -3238,6 +3314,7 @@ function give_tournament_rewards(round_data)
 end
 
 function clean_arena_corpses()
+    endless_restricted_stalkers = {}
     local function safe_release_by_id(id)
         pcall(function()
             if safe_release_manager and safe_release_manager.release then
@@ -3602,6 +3679,26 @@ function get_weapon_class(weapon_sec)
     return "rifle"
 end
 
+function get_endless_weapon_class_reward_mult(w_cls)
+    local is_custom = (xcvb_arena_endless and xcvb_arena_endless.is_custom_loadout_enabled())
+    local cls = w_cls or (xcvb_arena_main and xcvb_arena_main.endless_weapon_class) or "all"
+
+    -- All weapons mode without custom loadout: 100% full rewards
+    if not is_custom and (cls == "all" or cls == "none") then
+        return 1.0
+    end
+
+    -- Restricted weapon classes (or custom loadout): default 0.8 (80%), configurable via MCM
+    local mult = 0.8
+    if xcvb_arena_mcm and xcvb_arena_mcm.get_config then
+        local configured = xcvb_arena_mcm.get_config("endless_restricted_reward_mult")
+        if configured ~= nil and type(configured) == "number" and configured > 0 then
+            mult = configured
+        end
+    end
+    return mult
+end
+
 function get_all_available_weapons_by_class(loadout_class, specific_tier)
     local result = {}
     local seen = {}
@@ -3879,6 +3976,17 @@ function attach_arena_scope(weapon, requested_scope)
                         CreateTimeEvent("arena_3dssg_draw_confirm", "scope_draw_" .. tostring(attached_weapon:id()), 0.35, function()
                             if not db.actor then return true end
                             safe_equip_gun(attached_weapon, actual_s or restore_slot or 2)
+                            -- Attachment replaces the weapon object. Reinitialize
+                            -- reticle state after the replacement has been drawn.
+                            local active = db.actor:active_item()
+                            if active and active:id() == attached_weapon:id() then
+                                if z_3d_scopes and z_3d_scopes.update_shader then
+                                    pcall(z_3d_scopes.update_shader, attached_weapon)
+                                end
+                                if z_mark_switch and z_mark_switch.refresh_weapon then
+                                    pcall(z_mark_switch.refresh_weapon, attached_weapon)
+                                end
+                            end
                             return true
                         end)
 
@@ -3892,6 +4000,78 @@ function attach_arena_scope(weapon, requested_scope)
                             pcall(z_3dss_thermal_battery.refresh_weapon_textures, attached_weapon, true)
                         end
                         ensure_actor_3dssg_batteries(scope_sec, child_section)
+
+                        -- Check and update ammunition if weapon caliber changed upon scope or tactical kit upgrade
+                        local new_sec = attached_weapon:section()
+                        local new_ammo_str = (ini_sys:r_string_ex(new_sec, "ammo_class")) or ""
+                        local new_valid_ammos = {}
+                        for _, a in ipairs(str_explode(new_ammo_str, ",")) do
+                            new_valid_ammos[trim(a)] = true
+                        end
+
+                        local old_ammo_str = (parent and ini_sys:r_string_ex(parent, "ammo_class")) or ""
+                        local old_ammos = {}
+                        for _, a in ipairs(str_explode(old_ammo_str, ",")) do
+                            old_ammos[trim(a)] = true
+                        end
+
+                        local caliber_changed = (new_ammo_str ~= old_ammo_str)
+                        local has_valid_ammo = false
+                        db.actor:iterate_inventory(function(_, itm)
+                            if itm and new_valid_ammos[itm:section()] then
+                                has_valid_ammo = true
+                            end
+                        end, db.actor)
+
+                        if caliber_changed or not has_valid_ammo then
+                            local to_purge = {}
+                            db.actor:iterate_inventory(function(_, itm)
+                                if not itm then return end
+                                local sec = itm:section()
+                                if temporary_arena_item_ids[itm:id()] or (saved_actor_item_ids and not saved_actor_item_ids[itm:id()]) then
+                                    local is_ammo = (string.find(sec, "^ammo_") or (IsItem and IsItem("ammo", sec)))
+                                    local is_mag = magazine_binder and magazine_binder.is_magazine and magazine_binder.is_magazine(sec)
+                                    if is_ammo and not new_valid_ammos[sec] then
+                                        table.insert(to_purge, itm:id())
+                                    elseif is_mag then
+                                        local is_valid_mag = false
+                                        if magazine_binder.get_mags_for_weapon then
+                                            local valid_m = magazine_binder.get_mags_for_weapon(new_sec)
+                                            if valid_m then
+                                                for _, m in ipairs(valid_m) do
+                                                    if m == sec then is_valid_mag = true; break end
+                                                end
+                                            end
+                                        end
+                                        if not is_valid_mag then
+                                            table.insert(to_purge, itm:id())
+                                        end
+                                    end
+                                end
+                            end, db.actor)
+
+                            for _, id in ipairs(to_purge) do
+                                release_actor_arena_item(id)
+                            end
+
+                            local target_ammo_sec = get_weapon_ammo(new_sec, "auto")
+                            if target_ammo_sec and ini_sys:section_exist(target_ammo_sec) then
+                                if spawn_and_fill_mags then
+                                    pcall(spawn_and_fill_mags, new_sec, target_ammo_sec, 4, attached_weapon:id())
+                                end
+                                for _ = 1, 5 do
+                                    local se_ammo = alife_create(target_ammo_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+                                    if se_ammo then
+                                        temporary_arena_item_ids[se_ammo.id] = true
+                                    end
+                                end
+                            end
+
+                            local mag_size = (ini_sys:r_u32(new_sec, "ammo_mag_size")) or 15
+                            pcall(function()
+                                attached_weapon:set_ammo_elapsed(mag_size)
+                            end)
+                        end
                         return true
                     end
                     return restore_attempts >= 10
@@ -5887,6 +6067,23 @@ local function get_safe_endless_spawn_positions(num_enemies)
         end
     end
 
+    local is_together = (xcvb_arena_main and xcvb_arena_main.endless_spawn_grouping == "together")
+    if is_together and #safe_zones > 0 then
+        local base_zone = safe_zones[1]
+        local positions = {}
+        for i = 1, n_req do
+            local angle = (i - 1) * (2 * math.pi / math.min(n_req, 8))
+            local radius = (i == 1) and 0 or (1.2 + math.floor((i - 1) / 8) * 1.2)
+            local ox = is_forest and (math.cos(angle) * radius * 0.7) or (math.cos(angle) * radius)
+            local oz = is_forest and (math.sin(angle) * radius * 0.7) or (math.sin(angle) * radius)
+            local p = vector():set(base_zone.pos.x + ox, base_zone.pos.y, base_zone.pos.z + oz)
+            local lvid = is_forest and (base_zone.lvid or base_zone.fallback_lvid or 102902) or get_safe_arena_lvid(p, base_zone.fallback_lvid)
+            local gvid = is_forest and (base_zone.gvid or get_safe_arena_gvid(1684)) or base_zone.gvid
+            table.insert(positions, { pos = p, lvid = lvid, gvid = gvid })
+        end
+        return positions
+    end
+
     -- Barajar las zonas seguras para distribuir enemigos entre distintos portones y flancos
     for i = #safe_zones, 2, -1 do
         local j = math.random(i)
@@ -5931,7 +6128,29 @@ function spawn_endless_squad(wave, enemy_type, difficulty)
     local tier = 1
     local num_enemies = cur_wave
 
-    if diff == "easy" then
+    local is_escalation = (xcvb_arena_main and xcvb_arena_main.endless_escalation_mode == true)
+    if is_escalation then
+        -- Modo Escalada (+1 Enemigo cada ronda: Ronda 1 = 1, Ronda 2 = 2, Ronda 3 = 3...)
+        num_enemies = math.max(1, math.min(25, cur_wave))
+        if diff == "easy" then
+            if cur_wave >= 13 then tier = 5
+            elseif cur_wave >= 10 then tier = 4
+            elseif cur_wave >= 7 then tier = 3
+            elseif cur_wave >= 4 then tier = 2
+            else tier = 1 end
+        elseif diff == "hard" then
+            if cur_wave >= 6 then tier = 5
+            elseif cur_wave >= 4 then tier = 4
+            elseif cur_wave >= 2 then tier = 3
+            else tier = 2 end
+        else
+            if cur_wave >= 9 then tier = 5
+            elseif cur_wave >= 7 then tier = 4
+            elseif cur_wave >= 5 then tier = 3
+            elseif cur_wave >= 3 then tier = 2
+            else tier = 1 end
+        end
+    elseif diff == "easy" then
         -- Facil: Progression is gentler, fewer enemies
         if cur_wave >= 13 then
             tier = 5
@@ -5994,7 +6213,10 @@ function spawn_endless_squad(wave, enemy_type, difficulty)
         wave_fac = (#fac_candidates > 0) and fac_candidates[math.random(#fac_candidates)] or "bandit"
     end
 
+    endless_restricted_stalkers = {}
     local spawned_squads = {}
+    local target_cls = xcvb_arena_main and xcvb_arena_main.endless_weapon_class
+    local use_3dssg = (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true)
 
     for i = 1, num_enemies do
         local sec = nil
@@ -6049,6 +6271,74 @@ function spawn_endless_squad(wave, enemy_type, difficulty)
                 sq:add_squad_member(sec, m_pos, m_lvid, m_gvid)
                 sq:set_squad_relation()
                 sq:refresh()
+
+                if target_cls and target_cls ~= "all" and target_cls ~= "none" and not choose_mutant then
+                    for m in sq:squad_members() do
+                        local se_npc = alife_object(m.id)
+                        if se_npc then
+                            local to_del = {}
+                            pcall(function()
+                                for child_id in alife():get_children(se_npc) do
+                                    local se_child = alife_object(child_id)
+                                    if se_child then
+                                        local c_sec = se_child:section_name()
+                                        if c_sec and ini_sys:section_exist(c_sec) then
+                                            local cls = ini_sys:r_string_ex(c_sec, "class") or ""
+                                            if (string.find(cls, "^WP_") and not string.find(cls, "KNIFE") and not string.find(cls, "BINOC"))
+                                            or string.find(cls, "^AMMO") or string.find(c_sec, "^ammo_") then
+                                                table.insert(to_del, child_id)
+                                            end
+                                        end
+                                    end
+                                end
+                            end)
+                            for _, cid in ipairs(to_del) do
+                                alife_release_id(cid)
+                            end
+
+                            local wpn_sec = nil
+                            if xcvb_arena_endless and xcvb_arena_endless.get_endless_random_weapon then
+                                wpn_sec = xcvb_arena_endless.get_endless_random_weapon(tier, target_cls, use_3dssg)
+                            end
+                            if not wpn_sec or not ini_sys:section_exist(wpn_sec) then
+                                local entries = get_all_available_weapons_by_class(target_cls, tier)
+                                if entries and #entries > 0 then
+                                    wpn_sec = entries[math.random(#entries)].sec
+                                end
+                            end
+                            if not wpn_sec or not ini_sys:section_exist(wpn_sec) then
+                                if target_cls == "pistol" then wpn_sec = "wpn_pm"
+                                elseif target_cls == "shotgun" then wpn_sec = "wpn_bm16"
+                                elseif target_cls == "smg" then wpn_sec = "wpn_mp5"
+                                elseif target_cls == "sniper" then wpn_sec = "wpn_svd"
+                                elseif target_cls == "rifle" then wpn_sec = "wpn_ak74"
+                                else wpn_sec = "wpn_ak74" end
+                            end
+
+                            if use_3dssg and wpn_sec then
+                                local scopes = get_weapon_scopes(wpn_sec)
+                                if scopes and #scopes > 0 then
+                                    local sc = scopes[math.random(#scopes)]
+                                    local scoped_sec = wpn_sec .. "_" .. sc
+                                    if ini_sys:section_exist(scoped_sec) then
+                                        wpn_sec = scoped_sec
+                                    end
+                                end
+                            end
+
+                            if wpn_sec and ini_sys:section_exist(wpn_sec) then
+                                alife_create_item(wpn_sec, se_npc)
+                                local ammo_sec = get_weapon_ammo(wpn_sec, "auto")
+                                if ammo_sec and ini_sys:section_exist(ammo_sec) then
+                                    for _ = 1, 8 do
+                                        alife_create_item(ammo_sec, se_npc)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
                 for m in sq:squad_members() do
                     arena_spawned_combatant_ids[m.id] = true
                     if forest_arena_selected() and xcvb_arena_forest_ai then
