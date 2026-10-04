@@ -6838,6 +6838,42 @@ function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_a
     return total_fee
 end
 
+function get_endless_loadout_rental_fee(diff_or_wave)
+    if not (xcvb_arena_endless and xcvb_arena_endless.is_custom_loadout_enabled()) then
+        return 0
+    end
+    local cl = xcvb_arena_endless.get_custom_loadout()
+    if not (cl and cl.weapon_sec) then
+        return 0
+    end
+    local wave = tonumber(diff_or_wave) or 1
+    if type(diff_or_wave) == "string" then
+        if diff_or_wave == "hard" then wave = 11
+        elseif diff_or_wave == "medium" then wave = 6
+        else wave = 1 end
+    end
+    local base_round_tier = 1
+    if wave >= 11 then base_round_tier = 5
+    elseif wave >= 8 then base_round_tier = 4
+    elseif wave >= 6 then base_round_tier = 3
+    elseif wave >= 3 then base_round_tier = 2
+    end
+    local pseudo_round_id = (base_round_tier - 1) * 3 + 1
+    local scope_param = cl.scope_sec
+    if scope_param == "off" then scope_param = nil end
+    return get_loadout_rental_fee(
+        pseudo_round_id,
+        cl.class or "rifle",
+        cl.tier or 3,
+        cl.ammo_type or "auto",
+        cl.weapon_sec,
+        scope_param,
+        cl.mag_sec,
+        cl.mag_count or 4,
+        cl.ammo_count or 4
+    )
+end
+
 function install_item_parts_safeguard()
     if item_parts and item_parts.get_parts_con and not item_parts.__arena_safeguard_installed then
         local orig_get_parts_con = item_parts.get_parts_con

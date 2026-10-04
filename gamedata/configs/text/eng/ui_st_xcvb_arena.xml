@@ -149,7 +149,7 @@
 		<text>3x Renegades with shotguns and carbines</text>
 	</string>
 	<string id="st_arena_s_round_5_enemies_bandit">
-		<text>3x Renegades with shotguns and carbines</text>
+		<text>3x Bandits with shotguns and carbines</text>
 	</string>
 	<string id="st_arena_s_round_5_desc">
 		<text>Renegade hunters armed with 12-gauge shotguns and carbines. Sworn enemies with no quarter in the Zone.</text>
@@ -1378,7 +1378,7 @@
 		<text>Boxes: %s</text>
 	</string>
 	<string id="st_arena_companion_use">
-		<text>Companion Hire Board ($ACTION_USE$)</text>
+		<text>Companion Hire Board ($$ACTION_USE$$)</text>
 	</string>
 	<string id="st_arena_companion_title">
 		<text>HIRE COMPANIONS</text>
@@ -1467,17 +1467,14 @@
 	<string id="st_arena_companion_err_generic">
 		<text>Cannot hire companion right now.</text>
 	</string>
-	<string id="st_arena_companion_arena_money">
-		<text>Arena Money: %d CLP</text>
-	</string>
 	<string id="st_arena_companion_normal_money">
 		<text>Money: %d RU</text>
 	</string>
 	<string id="st_arena_companion_err_arena_money">
-		<text>Not enough CLP. Need %d CLP (you have %d).</text>
+		<text>Not enough Arena Tokens. Need %d Tokens (you have %d).</text>
 	</string>
 	<string id="st_arena_kill_reward">
-		<text>+%d CLP [%s] (Total: %d CLP)</text>
+		<text>+%d Tokens [%s] (Total: %d Tokens)</text>
 	</string>
 	<string id="st_arena_wpn_menu_title">
 		<text>WEAPON SELECTION</text>
@@ -2015,6 +2012,12 @@
 	</string>
 	<string id="st_arena_endless_stats_reset_tip">
 		<text>Endless survival statistics have been reset.</text>
+	</string>
+	<string id="st_arena_voucher_tag">
+		<text>VOUCHER</text>
+	</string>
+	<string id="st_arena_endless_sum_cost">
+		<text>Rental Fee: %s</text>
 	</string>
 </string_table>
 

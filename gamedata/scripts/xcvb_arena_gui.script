@@ -494,6 +494,7 @@ function UIXcvbArena:InitControls()
 		self.diff_sum_escalation = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_escalation", self.diff_summary_frame)
 		self.diff_sum_spawn = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_spawn", self.diff_summary_frame)
 		self.diff_sum_loadout = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_loadout", self.diff_summary_frame)
+		self.diff_sum_cost = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_cost", self.diff_summary_frame)
 		self.diff_stats_title = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:title_stats", self.diff_summary_frame)
 		self.stat_max_wave = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:stat_max_wave", self.diff_summary_frame)
 		self.stat_kills = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:stat_kills", self.diff_summary_frame)
@@ -574,6 +575,7 @@ function UIXcvbArena:InitControls()
 			self.ec_sum_tier = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_tier", self.ec_summary_frame)
 			self.ec_sum_ammo = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_ammo", self.ec_summary_frame)
 			self.ec_sum_mags = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_mags", self.ec_summary_frame)
+			self.ec_sum_cost = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_cost", self.ec_summary_frame)
 			self.ec_sum_note = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_note", self.ec_summary_frame)
 		end
 
@@ -1809,6 +1811,14 @@ function UIXcvbArena:get_current_loadout_rental_fee()
 		self.selected_mag_count,
 		self.selected_ammo_count
 	)
+end
+
+function UIXcvbArena:get_current_endless_rental_fee(diff)
+	local d = diff or self.selected_endless_diff or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "easy"
+	if xcvb_arena_utils and xcvb_arena_utils.get_endless_loadout_rental_fee then
+		return xcvb_arena_utils.get_endless_loadout_rental_fee(d)
+	end
+	return 0
 end
 
 function UIXcvbArena:update_tourn_start_button()
@@ -3744,6 +3754,30 @@ function UIXcvbArena:on_confirm_endless_start()
 end
 
 function UIXcvbArena:on_select_endless_difficulty(diff)
+	local is_custom = (xcvb_arena_endless and xcvb_arena_endless.is_custom_loadout_enabled())
+	local fee = is_custom and self:get_current_endless_rental_fee(diff) or 0
+	local is_practice = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
+
+	if (not is_practice) and fee > 0 and xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher() then
+		xcvb_arena_main.use_free_rental_voucher()
+		if db.actor then news_manager.send_tip(db.actor, gt("st_arena_voucher_rental_used"), 0, nil, 6000) end
+		fee = 0
+	end
+
+	if (not is_practice) and fee > 0 then
+		local actor_money = db.actor and db.actor:money() or 0
+		if actor_money < fee then
+			local msg = string.format(gt("st_arena_err_insufficient_funds"), fee)
+			if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
+			return
+		end
+		if db.actor then
+			db.actor:give_money(-fee)
+			local fee_msg = string.format(gt("st_arena_fee_deducted_tip"), fee)
+			news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000)
+		end
+	end
+
 	self:show_endless_difficulty_menu(false)
 	local e_type = self.endless_target_enemy_type or "stalkers"
 	local start_wave = 1
@@ -3908,6 +3942,51 @@ function UIXcvbArena:update_endless_summary()
 		self.diff_sum_loadout:SetTextColor(is_custom and GetARGB(255, 120, 240, 120) or GetARGB(255, 180, 180, 180))
 	end
 
+	-- 6b. Cost / Rental Fee string
+	if self.diff_sum_cost then
+		local cost_label = gt("st_arena_loadout_cost_label") or "Rental Fee"
+		if not is_custom then
+			self.diff_sum_cost:SetText(string.format("%s: %s", cost_label, gt("st_arena_cost_free") or "FREE"))
+			self.diff_sum_cost:SetTextColor(GetARGB(255, 120, 240, 120))
+		else
+			local fee = self:get_current_endless_rental_fee(diff)
+			if fee == 0 then
+				self.diff_sum_cost:SetText(string.format("%s: %s", cost_label, gt("st_arena_cost_free") or "FREE"))
+				self.diff_sum_cost:SetTextColor(GetARGB(255, 120, 240, 120))
+			else
+				local actor_money = db.actor and db.actor:money() or 0
+				local has_voucher = xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher()
+				local fee_txt = tostring(fee) .. " RU"
+				if has_voucher then
+					fee_txt = fee_txt .. " [" .. (gt("st_arena_voucher_tag") or "VOUCHER") .. "]"
+				end
+				self.diff_sum_cost:SetText(string.format("%s: %s", cost_label, fee_txt))
+				if has_voucher or actor_money >= fee then
+					self.diff_sum_cost:SetTextColor(GetARGB(255, 255, 220, 100))
+				else
+					self.diff_sum_cost:SetTextColor(GetARGB(255, 255, 100, 100))
+				end
+			end
+		end
+	end
+
+	-- Update enter button text and state
+	if self.btn_diff_enter and self.btn_diff_enter:TextControl() then
+		local fee = is_custom and self:get_current_endless_rental_fee(diff) or 0
+		local actor_money = db.actor and db.actor:money() or 0
+		local has_voucher = xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher()
+		if is_custom and fee > 0 and (not has_voucher) and actor_money < fee then
+			self.btn_diff_enter:TextControl():SetText(gt("st_arena_btn_insufficient_funds") or "FONDOS INSUFICIENTES")
+			self.btn_diff_enter:TextControl():SetTextColor(GetARGB(255, 255, 100, 100))
+			self.btn_diff_enter:Enable(false)
+		else
+			local extra = (is_custom and fee > 0 and not has_voucher) and (string.format(" (%d RU)", fee)) or ""
+			self.btn_diff_enter:TextControl():SetText((gt("st_arena_btn_enter") or "ENTRAR A LA ARENA") .. extra)
+			self.btn_diff_enter:TextControl():SetTextColor(GetARGB(255, 240, 220, 130))
+			self.btn_diff_enter:Enable(true)
+		end
+	end
+
 	-- 7. Career Statistics
 	local best_w = (xcvb_arena_main and xcvb_arena_main.best_endless_wave) or 0
 	local total_k = (xcvb_arena_main and xcvb_arena_main.endless_total_kills) or 0
@@ -3958,6 +4037,31 @@ function UIXcvbArena:on_click_continue_endless()
 	local e_type = xcvb_arena_main.endless_checkpoint_type or "stalkers"
 	if e_type == "random" then e_type = "stalkers" end
 	local diff = xcvb_arena_main.endless_difficulty or "medium"
+
+	local is_custom = (xcvb_arena_endless and xcvb_arena_endless.is_custom_loadout_enabled())
+	local fee = is_custom and self:get_current_endless_rental_fee(diff) or 0
+	local is_practice = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
+
+	if (not is_practice) and fee > 0 and xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher() then
+		xcvb_arena_main.use_free_rental_voucher()
+		if db.actor then news_manager.send_tip(db.actor, gt("st_arena_voucher_rental_used"), 0, nil, 6000) end
+		fee = 0
+	end
+
+	if (not is_practice) and fee > 0 then
+		local actor_money = db.actor and db.actor:money() or 0
+		if actor_money < fee then
+			local msg = string.format(gt("st_arena_err_insufficient_funds"), fee)
+			if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
+			return
+		end
+		if db.actor then
+			db.actor:give_money(-fee)
+			local fee_msg = string.format(gt("st_arena_fee_deducted_tip"), fee)
+			news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000)
+		end
+	end
+
 	self:Close()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
@@ -4096,12 +4200,23 @@ function UIXcvbArena:update_wpn_menu()
 					local s_clean = string.gsub(sec, "^wpn_", "")
 					w_name = w_name .. " [" .. s_clean .. "]"
 				end
-				if string.len(w_name) > 36 then
-					w_name = string.sub(w_name, 1, 34) .. ".."
+				if string.len(w_name) > 28 then
+					w_name = string.sub(w_name, 1, 26) .. ".."
+				end
+				local w_fee = 0
+				if sec and ini_sys and ini_sys:section_exist(sec) then
+					local cost = ini_sys:r_u32(sec, "cost") or 0
+					if cost > 0 then
+						w_fee = math.max(300, math.floor(cost * 0.08))
+					end
+				end
+				if w_fee == 0 then
+					local class_base = { pistol = 400, shotgun = 700, smg = 800, rifle = 1200, sniper = 1600 }
+					w_fee = (class_base[cls] or 600) * t
 				end
 				local cur_active_sel = (self.wpn_menu_target_mode == "endless" and xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout().weapon_sec) or self.selected_weapon_sec
 				local is_sel = (cur_active_sel == sec)
-				local row_text = string.format("[T%d] %s%s", t, w_name, is_sel and " [SELECCIONADA]" or "")
+				local row_text = string.format("[T%d] %s (%d RU)%s", t, w_name, w_fee, is_sel and " [SELECCIONADA]" or "")
 				if btn:TextControl() then
 					btn:TextControl():SetText(row_text)
 					if is_sel then
@@ -4360,6 +4475,47 @@ function UIXcvbArena:update_endless_custom_menu()
 		local m_lbl = gt("st_arena_ec_sum_mags_lbl") or "Magazines:"
 		local b_lbl = gt("st_arena_ec_sum_boxes_lbl") or "Ammo Boxes:"
 		self.ec_sum_mags:SetText(string.format("%s %d  |  %s %d", m_lbl, mag_c, b_lbl, box_c))
+	end
+
+	if self.ec_sum_cost then
+		local cost_label = gt("st_arena_loadout_cost_label") or "Rental Fee"
+		if not is_on then
+			self.ec_sum_cost:SetText(cost_label .. ": " .. (gt("st_arena_cost_free") or "FREE"))
+			self.ec_sum_cost:SetTextColor(GetARGB(255, 120, 240, 120))
+		else
+			local fee = self:get_current_endless_rental_fee()
+			if fee == 0 then
+				self.ec_sum_cost:SetText(cost_label .. ": " .. (gt("st_arena_cost_free") or "FREE"))
+				self.ec_sum_cost:SetTextColor(GetARGB(255, 120, 240, 120))
+			else
+				local actor_money = db.actor and db.actor:money() or 0
+				local has_voucher = xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher()
+				local fee_txt = tostring(fee) .. " RU"
+				if has_voucher then
+					fee_txt = fee_txt .. " [" .. (gt("st_arena_voucher_tag") or "VOUCHER") .. "]"
+				end
+				self.ec_sum_cost:SetText(cost_label .. ": " .. fee_txt)
+				if has_voucher or actor_money >= fee then
+					self.ec_sum_cost:SetTextColor(GetARGB(255, 255, 220, 100))
+				else
+					self.ec_sum_cost:SetTextColor(GetARGB(255, 255, 100, 100))
+				end
+			end
+		end
+	end
+
+	if self.btn_ec_confirm and self.btn_ec_confirm:TextControl() then
+		local fee = is_on and self:get_current_endless_rental_fee() or 0
+		local actor_money = db.actor and db.actor:money() or 0
+		local has_voucher = xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher()
+		local extra = (is_on and fee > 0 and not has_voucher) and (string.format(" (%d RU)", fee)) or ""
+		if is_on and fee > 0 and (not has_voucher) and actor_money < fee then
+			self.btn_ec_confirm:TextControl():SetText(gt("st_arena_btn_insufficient_funds") or "FONDOS INSUFICIENTES")
+			self.btn_ec_confirm:TextControl():SetTextColor(GetARGB(255, 255, 100, 100))
+		else
+			self.btn_ec_confirm:TextControl():SetText((gt("st_arena_endless_custom_confirm") or "CONFIRMAR Y GUARDAR EQUIPAMIENTO") .. extra)
+			self.btn_ec_confirm:TextControl():SetTextColor(GetARGB(255, 240, 240, 240))
+		end
 	end
 end
 

@@ -950,29 +950,32 @@
 			<sum_spawn x="14" y="98" width="298" height="18">
 				<text r="180" g="210" b="240" font="letterica16" align="l" vert_align="c"></text>
 			</sum_spawn>
-			<sum_loadout x="14" y="116" width="298" height="18">
+			<sum_loadout x="14" y="114" width="298" height="16">
 				<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
 			</sum_loadout>
+			<sum_cost x="14" y="130" width="298" height="16">
+				<text r="255" g="220" b="100" font="letterica16" align="l" vert_align="c"></text>
+			</sum_cost>
 
 			<!-- Career Statistics -->
-			<title_stats x="14" y="138" width="298" height="18">
+			<title_stats x="14" y="148" width="298" height="16">
 				<text r="255" g="220" b="130" font="letterica18" align="l" vert_align="c">st_arena_endless_stats_title</text>
 			</title_stats>
-			<stat_max_wave x="14" y="158" width="298" height="18">
+			<stat_max_wave x="14" y="165" width="298" height="16">
 				<text r="255" g="220" b="90" font="letterica16" align="l" vert_align="c"></text>
 			</stat_max_wave>
-			<stat_kills x="14" y="176" width="298" height="18">
+			<stat_kills x="14" y="181" width="298" height="16">
 				<text r="130" g="240" b="130" font="letterica16" align="l" vert_align="c"></text>
 			</stat_kills>
-			<stat_runs x="14" y="194" width="298" height="18">
+			<stat_runs x="14" y="197" width="298" height="16">
 				<text r="150" g="210" b="230" font="letterica16" align="l" vert_align="c"></text>
 			</stat_runs>
-			<stat_waves_cleared x="14" y="212" width="298" height="18">
+			<stat_waves_cleared x="14" y="213" width="298" height="16">
 				<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
 			</stat_waves_cleared>
 
 			<!-- Brief Combat Note -->
-			<sum_note x="14" y="234" width="298" height="66" complex_mode="1">
+			<sum_note x="14" y="231" width="298" height="70" complex_mode="1">
 				<text r="165" g="165" b="165" font="letterica16" align="l" vert_align="t"></text>
 			</sum_note>
 
@@ -1119,21 +1122,24 @@
 			<title x="15" y="8" width="490" height="18">
 				<text r="255" g="220" b="130" font="letterica18" align="l" vert_align="c">st_arena_loadout_summary_title</text>
 			</title>
-			<ec_sum_status x="20" y="32" width="480" height="20">
+			<ec_sum_status x="20" y="30" width="480" height="18">
 				<text r="130" g="240" b="130" font="letterica16" align="l" vert_align="c"></text>
 			</ec_sum_status>
-			<ec_sum_wpn x="20" y="56" width="480" height="20">
+			<ec_sum_wpn x="20" y="50" width="480" height="18">
 				<text r="220" g="220" b="220" font="letterica16" align="l" vert_align="c"></text>
 			</ec_sum_wpn>
-			<ec_sum_tier x="20" y="80" width="480" height="20">
+			<ec_sum_tier x="20" y="70" width="480" height="18">
 				<text r="200" g="200" b="160" font="letterica16" align="l" vert_align="c"></text>
 			</ec_sum_tier>
-			<ec_sum_ammo x="20" y="104" width="480" height="20">
+			<ec_sum_ammo x="20" y="90" width="480" height="18">
 				<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
 			</ec_sum_ammo>
-			<ec_sum_mags x="20" y="128" width="480" height="20">
+			<ec_sum_mags x="20" y="110" width="480" height="18">
 				<text r="180" g="210" b="240" font="letterica16" align="l" vert_align="c"></text>
 			</ec_sum_mags>
+			<ec_sum_cost x="20" y="130" width="480" height="18">
+				<text r="255" g="220" b="100" font="letterica16" align="l" vert_align="c"></text>
+			</ec_sum_cost>
 			<ec_sum_note x="20" y="152" width="480" height="48" complex_mode="1">
 				<text r="160" g="160" b="160" font="letterica16" align="l" vert_align="t">st_arena_endless_custom_note</text>
 			</ec_sum_note>
