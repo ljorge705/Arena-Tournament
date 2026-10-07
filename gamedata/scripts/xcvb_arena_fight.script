@@ -321,8 +321,6 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
             pcall(xcvb_arena_utils.ensure_actor_torch_active)
             return true
         end)
-    else
-        pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
     current_tournament_category = category or "stalker"
     current_tournament_round_id = round_id
@@ -554,8 +552,6 @@ function start_arena_fight(bout_idx)
     
     if xcvb_arena_main.night_mode_active then
         pcall(xcvb_arena_utils.enter_arena_night_mode)
-    else
-        pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
@@ -830,8 +826,6 @@ function start_battle_royale_fight(br_data)
 
     if xcvb_arena_main.night_mode_active then
         pcall(xcvb_arena_utils.enter_arena_night_mode)
-    else
-        pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
@@ -1087,8 +1081,6 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
             pcall(xcvb_arena_utils.ensure_actor_torch_active)
             return true
         end)
-    else
-        pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
     end
 
     local ac_pos, ac_lvid, ac_gvid, ac_dir = xcvb_arena_utils.get_actor_tournament_pos(endless_wave)
@@ -1250,8 +1242,6 @@ function advance_endless_wave(resume_pending)
 
             if xcvb_arena_main.night_mode_active then
                 pcall(xcvb_arena_utils.enter_arena_night_mode)
-            else
-                pcall(xcvb_arena_utils.refresh_combat_ambient_lighting)
             end
 
             if xcvb_arena_forest_ai then

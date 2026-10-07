@@ -1482,120 +1482,17 @@ local function restore_arena_lighting_settings(saved)
 end
 
 function apply_combat_ambient_lighting(enable)
-    if enable then
-        if xcvb_arena_main and xcvb_arena_main.night_mode_active then return end
-
-        if not xcvb_arena_main.combat_ambient_saved then
-            -- Snapshot only arena lighting; preserve valid zero values too.
-            local orig = {}
-            for _, cmd in ipairs(VIDEO_RENDER_COMMANDS) do
-                local v = get_console_val(cmd)
-                if DEFAULT_DAYLIGHT_SETTINGS[cmd] and (v == nil or v == "") then
-                    orig[cmd] = DEFAULT_DAYLIGHT_SETTINGS[cmd]
-                elseif v ~= nil and v ~= "" then
-                    orig[cmd] = tostring(v)
-                end
-            end
-            pcall(function() orig.__weather = level.get_weather and level.get_weather() end)
-            xcvb_arena_main.combat_ambient_saved = orig
-        end
-
-        local is_forest = forest_arena_selected()
-
-        if is_forest then
-            -- =====================================================================
-            -- MAPA BOSQUE (FOREST): Menos iluminado, atmÃ³sfera natural de bosque
-            -- =====================================================================
-            local f_mult = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("forest_light_mult")) or 1.4
-            pcall(function() exec_console_cmd(string.format("r2_sun_lumscale_amb %.2f", f_mult)) end)
-            pcall(function() exec_console_cmd(string.format("r2_sun_lumscale_hemi %.2f", f_mult)) end)
-            pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.01") end)
-            pcall(function() exec_console_cmd("r2_tonemap_middlegray 1.05") end)
-            pcall(function() exec_console_cmd("ssfx_is_underground 0") end)
-
-            if not is_gamma_modpack() and weather and weather.set_value_vector then
-                pcall(weather.set_value_vector, "sky_color", 0.35, 0.40, 0.48)
-                pcall(weather.set_value_vector, "ambient_color", 0.22, 0.25, 0.30)
-                pcall(weather.set_value_vector, "hemisphere_color", 0.45, 0.50, 0.58, 1.0)
-                pcall(weather.pause, true)
-                xcvb_arena_main.combat_ambient_weather_paused = true
-            end
-        else
-            -- =====================================================================
-            -- ARENA NORMAL: Bien iluminado, hangar despejado y claro, alta visibilidad
-            -- =====================================================================
-            local a_mult = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("arena_light_mult")) or 2.8
-            pcall(function() exec_console_cmd(string.format("r2_sun_lumscale_amb %.2f", a_mult)) end)
-            pcall(function() exec_console_cmd(string.format("r2_sun_lumscale_hemi %.2f", a_mult)) end)
-            pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.0005") end)
-            pcall(function() exec_console_cmd("r2_tonemap_middlegray 1.35") end)
-            pcall(function() exec_console_cmd("ssfx_is_underground 0") end)
-
-            -- Encender todas las lÃ¡mparas de techo y proyectores de la arena
-            pcall(toggle_arena_lights, true)
-
-            if not is_gamma_modpack() and weather and weather.set_value_vector then
-                pcall(weather.set_value_vector, "sky_color", 0.55, 0.60, 0.70)
-                pcall(weather.set_value_vector, "ambient_color", 0.38, 0.42, 0.48)
-                pcall(weather.set_value_vector, "hemisphere_color", 0.75, 0.80, 0.88, 1.0)
-                pcall(weather.pause, true)
-                xcvb_arena_main.combat_ambient_weather_paused = true
-            end
-        end
-    else
-        if xcvb_arena_main and xcvb_arena_main.combat_ambient_saved then
-            local saved = xcvb_arena_main.combat_ambient_saved
-
-            -- cfg_load executes every command in the file, including live 3DSS
-            -- state. Restore our lighting snapshot without reloading user.ltx.
-            restore_arena_lighting_settings(saved)
-
-            -- Restaurar clima original si se pausó o alteró
-            if weather then
-                pcall(weather.pause, false)
-                if saved and saved.__weather and weather.set_weather then
-                    pcall(weather.set_weather, saved.__weather, true)
-                end
-            end
-
-            if ssfx_fog and ssfx_fog.apply_fog_settings then
-                pcall(ssfx_fog.apply_fog_settings)
-            end
-
-            pcall(function()
-                if level_weathers and level_weathers.get_weather_manager then
-                    local wm = level_weathers.get_weather_manager()
-                    if wm then
-                        wm:forced_weather_change()
-                        wm:select_weather(true)
-                    end
-                end
-            end)
-
-            xcvb_arena_main.combat_ambient_weather_paused = nil
-            xcvb_arena_main.combat_ambient_saved = nil
-        end
+    -- DESACTIVADO: Ya no modifica la configuración del usuario (cvars de consola ni clima)
+    -- al entrar a la arena o forest de día. La configuración solo se modifica si el usuario
+    -- activa el modo noche (night mode).
+    if not enable and xcvb_arena_main then
+        xcvb_arena_main.combat_ambient_saved = nil
+        xcvb_arena_main.combat_ambient_weather_paused = nil
     end
 end
 
 function refresh_combat_ambient_lighting()
-    if xcvb_arena_main and xcvb_arena_main.night_mode_active then return end
-
-    -- Applying once before set_actor_position is not enough in Anomaly/GAMMA:
-    -- the weather manager can rewrite these values during the next frames.
-    pcall(apply_combat_ambient_lighting, true)
-    CreateTimeEvent("arena_daylight_refresh_e", "arena_daylight_refresh_075", 0.75, function()
-        if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then
-            pcall(apply_combat_ambient_lighting, true)
-        end
-        return true
-    end)
-    CreateTimeEvent("arena_daylight_refresh_e", "arena_daylight_refresh_200", 2.0, function()
-        if not (xcvb_arena_main and xcvb_arena_main.night_mode_active) then
-            pcall(apply_combat_ambient_lighting, true)
-        end
-        return true
-    end)
+    -- DESACTIVADO: Ya no modifica la configuración del usuario de día.
 end
 
 local cached_arena_lamp_ids = {}
@@ -2681,9 +2578,6 @@ function enter_arena_night_mode()
     -- light throttle when a new wave enters the arena.
     npc_light_check_at = {}
 
-    -- Ensure daytime ambient boost is cleared before plunging into night
-    pcall(apply_combat_ambient_lighting, false)
-
     -- Initialize stalker flashlight hook so combatants keep their lights ON
     pcall(init_sr_light_hook)
 
@@ -2699,9 +2593,6 @@ function enter_arena_night_mode()
 end
 
 function exit_arena_night_mode()
-    -- Always clear any combat ambient boost
-    pcall(apply_combat_ambient_lighting, false)
-
     if not night_mode_combat_running then
         -- Daytime fights and first update have no night settings to restore.
         if not xcvb_arena_main.night_mode_saved_render then return end

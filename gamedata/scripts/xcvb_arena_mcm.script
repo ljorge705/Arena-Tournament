@@ -92,11 +92,6 @@ function on_mcm_load()
 			{ id = "night_vision_mult", type = "track", val = 2, min = 0.5, max = 2.0, step = 0.05, def = 1.0 },
 			{ id = "night_elite_nvg", type = "check", val = 1, def = true },
 
-			{ id = "line", type = "line" },
-
-			-- Lighting & Visual Settings
-			{ id = "arena_light_mult", type = "track", val = 2, min = 1.0, max = 4.5, step = 0.1, def = 2.8 },
-			{ id = "forest_light_mult", type = "track", val = 2, min = 0.8, max = 3.0, step = 0.1, def = 1.4 },
 		}
 	}
 	return op

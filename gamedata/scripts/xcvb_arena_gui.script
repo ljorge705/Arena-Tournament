@@ -1320,10 +1320,6 @@ function UIXcvbArena:on_click_map()
 		xcvb_arena_main.cur_reward = 0
 		self.bc_bet_team = 0
 		self.bc_monster_bet_team = 0
-	else
-		if xcvb_arena_utils and xcvb_arena_utils.apply_combat_ambient_lighting then
-			pcall(xcvb_arena_utils.apply_combat_ambient_lighting, false)
-		end
 	end
 
 	-- When changing maps in tournament mode, switch selection to a round matching the new map in current tier
