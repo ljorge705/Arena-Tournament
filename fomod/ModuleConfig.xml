@@ -22,7 +22,6 @@
               </files>
               <typeDescriptor><type name="Optional"/></typeDescriptor>
             </plugin>
-
           </plugins>
         </group>
       </optionalFileGroups>

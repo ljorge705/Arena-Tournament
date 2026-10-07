@@ -149,7 +149,7 @@
 		<text>3x Ренегата с дробовиками и карабинами</text>
 	</string>
 	<string id="st_arena_s_round_5_enemies_bandit">
-		<text>3x Бандита с дробовиками и карабинами</text>
+		<text>3x Ренегата с дробовиками и карабинами</text>
 	</string>
 	<string id="st_arena_s_round_5_desc">
 		<text>Охотники ренегатов, вооруженные дробовиками 12 калибра и карабинами. Заклятые враги, не знающие пощады.</text>
@@ -1543,14 +1543,17 @@
 	<string id="st_arena_companion_err_generic">
 		<text>Сейчас нельзя нанять напарника.</text>
 	</string>
+	<string id="st_arena_companion_arena_money">
+		<text>Очки Арены: %d CLP</text>
+	</string>
 	<string id="st_arena_companion_normal_money">
 		<text>Деньги: %d RU</text>
 	</string>
 	<string id="st_arena_companion_err_arena_money">
-		<text>Недостаточно жетонов Арены. Требуется %d жетонов (у вас %d).</text>
+		<text>Недостаточно CLP. Требуется %d CLP (у вас %d).</text>
 	</string>
 	<string id="st_arena_kill_reward">
-		<text>+%d жетонов [%s] (Всего: %d жетонов)</text>
+		<text>+%d CLP [%s] (Всего: %d CLP)</text>
 	</string>
 	<string id="st_arena_wpn_menu_title">
 		<text>ВЫБОР ОРУЖИЯ</text>
@@ -1668,7 +1671,7 @@
 		<text>%d жетонов</text>
 	</string>
 	<string id="st_arena_companion_arena_money">
-		<text>Очки Арены: %d Очк.</text>
+		<text>Жетоны Арены: %d оч.</text>
 	</string>
 
 	<!-- Arena Shop Strings -->
@@ -1916,6 +1919,27 @@
 	<string id="st_arena_forced_forest_desc">
 		<text>Обязательная локация: Лесная Арена.</text>
 	</string>
+	<string id="st_arena_status_locked_map">
+		<text>[БЛОК: КАРТА]</text>
+	</string>
+	<string id="st_arena_btn_locked_map">
+		<text>СМЕНИТЕ КАРТУ ДЛЯ БОЯ</text>
+	</string>
+	<string id="st_arena_map_mismatch_tip">
+		<text>Несоответствие арены: этот бой проходит на локации %s. Используйте верхнюю кнопку ЗОНА для смены карты.</text>
+	</string>
+	<string id="st_arena_map_forest_name">
+		<text>Лес</text>
+	</string>
+	<string id="st_arena_map_arena_name">
+		<text>Арена Бара</text>
+	</string>
+	<string id="st_arena_map_btn_forest">
+		<text>ЗОНА: ЛЕС</text>
+	</string>
+	<string id="st_arena_map_btn_arena">
+		<text>ЗОНА: АРЕНА</text>
+	</string>
 
 
 	<string id="st_arena_endless_menu_title">
@@ -1973,13 +1997,13 @@
 		<text>Вместе (Группа в одной точке)</text>
 	</string>
 	<string id="st_arena_endless_sum_spawn_rnd">
-		<text>Раздельно (Случайные ворота)</text>
+		<text>Рассеянный (Случайные ворота)</text>
 	</string>
 	<string id="st_arena_endless_sum_loadout">
 		<text>Снаряжение: %s</text>
 	</string>
 	<string id="st_arena_endless_sum_load_std">
-		<text>Стандартное снаряжение</text>
+		<text>Стандартное арены</text>
 	</string>
 	<string id="st_arena_endless_sum_load_cust">
 		<text>Пользовательское [АКТИВНО]</text>

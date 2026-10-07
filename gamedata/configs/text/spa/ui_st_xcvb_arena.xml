@@ -149,7 +149,7 @@
 		<text>3x Renegados con escopetas de bombeo y carabinas</text>
 	</string>
 	<string id="st_arena_s_round_5_enemies_bandit">
-		<text>3x Bandidos con escopetas de bombeo y carabinas</text>
+		<text>3x Renegados con escopetas de bombeo y carabinas</text>
 	</string>
 	<string id="st_arena_s_round_5_desc">
 		<text>Cazadores renegados armados con escopetas de calibre 12 y carabinas. Enemigos jurados y sin tregua en la Zona.</text>
@@ -701,7 +701,7 @@
 		<text>Equipo</text>
 	</string>
 	<string id="st_arena_night_menu_title">
-		<text>EQUIPAMIENTO PARA MODO NOCHE</text>
+		<text>EQUIPAMIENTO PARA NIGHT MODE</text>
 	</string>
 	<string id="st_arena_night_menu_desc">
 		<text>Selecciona la linterna o visor nocturno para el combate</text>
@@ -968,7 +968,7 @@
 		<text>Modo Infinito</text>
 	</string>
 	<string id="st_arena_endless_diff_title">
-		<text>SUPERVIVENCIA INFINITA</text>
+		<text>SUPERVIVENCIA ENDLESS</text>
 	</string>
 	<string id="st_arena_endless_diff_subtitle">
 		<text>Configura los modificadores y elige dificultad</text>
@@ -1043,7 +1043,7 @@
 		<text>Continuar Modo Infinito</text>
 	</string>
 	<string id="st_arena_endless_artigrok_ammo">
-		<text>MUNICION ARTIGROK</text>
+		<text>ARTIGROK AMMO</text>
 	</string>
 	<string id="st_arena_endless_title">
 		<text>MODO INFINITO (SUPERVIVENCIA)</text>
@@ -1381,29 +1381,29 @@
     <string id="st_arena_boss_hunter_name"><text>El Cazador</text></string>
     <string id="st_arena_boss_hunter_desc"><text>Duelo contra un veterano con escopeta SPAS-12. Usa las coberturas para controlar la distancia.</text></string>
     <string id="st_arena_boss_hunter_enemies"><text>1x Veterano / SPAS-12</text></string>
-    <string id="st_arena_boss_hunter_reward"><text>35,000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_hunter_reward"><text>35000 RU + Botiquin cientifico</text></string>
     <string id="st_arena_boss_ghost_name"><text>El Fantasma</text></string>
     <string id="st_arena_boss_ghost_desc"><text>Duelo contra un tirador con SVD. Evita cruzar la arena por el centro descubierto.</text></string>
     <string id="st_arena_boss_ghost_enemies"><text>1x Tirador / SVD</text></string>
-    <string id="st_arena_boss_ghost_reward"><text>45,000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_ghost_reward"><text>45000 RU + Botiquin cientifico</text></string>
     <string id="st_arena_boss_executioner_name"><text>El Verdugo: duelo final</text></string>
     <string id="st_arena_boss_executioner_desc"><text>El campeon regresa en un duelo con PKM. Aprovecha sus recargas para cambiar de cobertura.</text></string>
     <string id="st_arena_boss_executioner_enemies"><text>1x Campeon / PKM</text></string>
-    <string id="st_arena_boss_executioner_reward"><text>65,000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_executioner_reward"><text>65000 RU + Botiquin cientifico</text></string>
     <string id="st_arena_boss_matriarch_name"><text>La Matriarca</text></string>
     <string id="st_arena_boss_matriarch_desc"><text>Una quimera fuerte y dos pseudoperros. Separa la manada antes de enfrentar a la Matriarca.</text></string>
     <string id="st_arena_boss_matriarch_enemies"><text>1x Quimera + 2x Pseudoperros</text></string>
-    <string id="st_arena_boss_matriarch_reward"><text>35,000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_matriarch_reward"><text>35000 RU + Botiquin cientifico</text></string>
     <string id="st_arena_boss_whisper_name"><text>El Susurro</text></string>
     <string id="st_arena_boss_whisper_desc"><text>Un controlador protegido por dos zombis. Los escoltas complican tu acercamiento al jefe.</text></string>
     <string id="st_arena_boss_whisper_enemies"><text>1x Controlador + 2x Zombis</text></string>
-    <string id="st_arena_boss_whisper_reward"><text>45,000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_whisper_reward"><text>45000 RU + Botiquin cientifico</text></string>
     <string id="st_arena_boss_colossus_name"><text>El Coloso</text></string>
     <string id="st_arena_boss_colossus_desc"><text>Un pseudogigante fuerte con dos snorks. Mantente en movimiento y elimina primero a los mas rapidos.</text></string>
     <string id="st_arena_boss_colossus_enemies"><text>1x Pseudogigante + 2x Snorks</text></string>
-    <string id="st_arena_boss_colossus_reward"><text>65,000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_colossus_reward"><text>65000 RU + Botiquin cientifico</text></string>
 	<string id="st_arena_companion_use">
-		<text>Tablero de Contratacion ($$ACTION_USE$$)</text>
+		<text>Tablero de Contratacion ($ACTION_USE$)</text>
 	</string>
 	<string id="st_arena_companion_title">
 		<text>CONTRATAR ALIADOS</text>
@@ -1492,14 +1492,17 @@
 	<string id="st_arena_companion_err_generic">
 		<text>No puedes contratar aliados ahora mismo.</text>
 	</string>
+	<string id="st_arena_companion_arena_money">
+		<text>Dinero Arena: %d CLP</text>
+	</string>
 	<string id="st_arena_companion_normal_money">
 		<text>Dinero: %d RU</text>
 	</string>
 	<string id="st_arena_companion_err_arena_money">
-		<text>No tienes suficientes Fichas. Necesitas %d Fichas (tienes %d).</text>
+		<text>No tienes suficientes CLP. Necesitas %d CLP (tienes %d).</text>
 	</string>
 	<string id="st_arena_kill_reward">
-		<text>+%d Fichas [%s] (Total: %d Fichas)</text>
+		<text>+%d CLP [%s] (Total: %d CLP)</text>
 	</string>
 	<string id="st_arena_wpn_menu_title">
 		<text>SELECCION DE ARMA</text>
@@ -1514,7 +1517,7 @@
 		<text>EQUIPAMIENTO</text>
 	</string>
 	<string id="st_arena_endless_custom_title">
-		<text>EQUIPAMIENTO PERSONALIZADO (MODO INFINITO)</text>
+		<text>EQUIPAMIENTO PERSONALIZADO (MODO ENDLESS)</text>
 	</string>
 	<string id="st_arena_endless_custom_desc">
 		<text>Elige tu clase, arma del catalogo, municion y cargadores para el combate</text>
@@ -1862,10 +1865,31 @@
 	<string id="st_arena_forced_forest_desc">
 		<text>Ubicacion Obligatoria: Bosque de la Arena.</text>
 	</string>
+	<string id="st_arena_status_locked_map">
+		<text>[BLOQUEADO: MAPA]</text>
+	</string>
+	<string id="st_arena_btn_locked_map">
+		<text>CAMBIAR MAPA PARA COMBATIR</text>
+	</string>
+	<string id="st_arena_map_mismatch_tip">
+		<text>Ubicacion de combate no coincide: este combate se disputa en %s. Usa el boton de AREA superior para cambiar de mapa.</text>
+	</string>
+	<string id="st_arena_map_forest_name">
+		<text>Bosque</text>
+	</string>
+	<string id="st_arena_map_arena_name">
+		<text>Arena del Bar</text>
+	</string>
+	<string id="st_arena_map_btn_forest">
+		<text>AREA: BOSQUE</text>
+	</string>
+	<string id="st_arena_map_btn_arena">
+		<text>AREA: ARENA</text>
+	</string>
 
 
 	<string id="st_arena_endless_menu_title">
-		<text>MODO INFINITO</text>
+		<text>MODO ENDLESS</text>
 	</string>
 	<string id="st_arena_endless_menu_desc">
 		<text>Configura reglas de combate, restriccion de armas y dificultad inicial</text>
@@ -1940,7 +1964,7 @@
 		<text>Penalizacion clase restringida</text>
 	</string>
 	<string id="st_arena_endless_note_escalation">
-		<text>Escalada de horda sumara +1 enemigo por oleada.</text>
+		<text>Escalada de horda anadira +1 enemigo por oleada.</text>
 	</string>
 	<string id="st_arena_endless_stats_title">
 		<text>--- ESTADISTICAS DE SUPERVIVENCIA ---</text>
@@ -1961,7 +1985,7 @@
 		<text>REINICIAR ESTADISTICAS</text>
 	</string>
 	<string id="st_arena_endless_stats_reset_tip">
-		<text>Las estadisticas de Supervivencia del Modo Infinito han sido reiniciadas.</text>
+		<text>Las estadisticas de Supervivencia Endless han sido reiniciadas.</text>
 	</string>
 	<string id="st_arena_voucher_tag">
 		<text>VALE</text>
