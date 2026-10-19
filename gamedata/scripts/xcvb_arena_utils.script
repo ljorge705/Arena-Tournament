@@ -1240,12 +1240,19 @@ function spawn_tournament_squad(round_data)
     local squad = alife_create(squad_sec, pos, lvid, gvid)
     if not squad then return nil end
     
-	squad.scripted_target = "actor"
-    squad.assigned_target_id = 0
-    if forest_arena_selected() and xcvb_arena_forest_ai then
-        xcvb_arena_forest_ai.setup_squad(squad, not (xcvb_arena_main.night_mode_active == true))
+    local is_intro = (xcvb_arena_fight and xcvb_arena_fight.is_intro_camera_active and xcvb_arena_fight.is_intro_camera_active())
+    if not is_intro then
+        squad.scripted_target = "actor"
+        squad.assigned_target_id = 0
+        if forest_arena_selected() and xcvb_arena_forest_ai then
+            xcvb_arena_forest_ai.setup_squad(squad, not (xcvb_arena_main.night_mode_active == true))
+        else
+            squad.rush_to_target = not (xcvb_arena_main.night_mode_active == true)
+        end
     else
-        squad.rush_to_target = not (xcvb_arena_main.night_mode_active == true)
+        squad.scripted_target = nil
+        squad.assigned_target_id = nil
+        squad.rush_to_target = false
     end
 
     local ok, err = pcall(function()
@@ -1292,6 +1299,26 @@ function spawn_tournament_squad(round_data)
         arena_spawned_combatant_ids[m.id] = true
     end
     return squad
+end
+
+function hold_tournament_squad_peaceful(squad_id)
+    local squad = squad_id and alife_object(squad_id)
+    if not squad then return end
+    squad.scripted_target = nil
+    squad.assigned_target_id = nil
+    squad.rush_to_target = false
+    for m in squad:squad_members() do
+        local npc = level.object_by_id(m.id)
+        if npc and npc:alive() then
+            pcall(function()
+                npc:set_relation(game_object.neutral, db.actor)
+                npc:force_set_goodwill(0, db.actor)
+                if npc.set_sight then
+                    npc:set_sight(look.path_dir, nil, 0)
+                end
+            end)
+        end
+    end
 end
 
 function apply_combat_modifier_inventory(npc, team_idx)
@@ -1498,94 +1525,232 @@ end
 local cached_arena_lamp_ids = {}
 
 local function set_cached_arena_lamps(turn_on)
+    if not (level and level.name and level.name() == "l05_bar") then return 0 end
     local applied = 0
     for _, id in ipairs(cached_arena_lamp_ids) do
         local obj = level.object_by_id(id)
         if obj then
-            pcall(function()
-                local lamp = obj:get_hanging_lamp()
-                if lamp then
-                    if turn_on then lamp:turn_on() else lamp:turn_off() end
-                    applied = applied + 1
+            local ok, c = pcall(function() return obj:clsid() end)
+            if ok and c then
+                if clsid and (c == clsid.hlamp_s or c == clsid.hanging_lamp) then
+                    pcall(function()
+                        local lamp = obj:get_hanging_lamp()
+                        if lamp then
+                            if turn_on then lamp:turn_on() else lamp:turn_off() end
+                            applied = applied + 1
+                        end
+                    end)
+                elseif clsid and clsid.projector and c == clsid.projector then
+                    pcall(function()
+                        local proj = obj:get_projector()
+                        if proj then
+                            proj:Action(CProjector.eSwitch, turn_on and 1 or 0, "")
+                            applied = applied + 1
+                        end
+                    end)
                 end
-            end)
+            end
         end
     end
     return applied
 end
 
 function toggle_arena_lights(turn_on)
-    -- Enter scans once and caches the handful of arena lamps. Exit and later
-    -- toggles no longer traverse all 65k object IDs, avoiding a visible hitch.
-    if #cached_arena_lamp_ids > 0 and set_cached_arena_lamps(turn_on) > 0 then
-        return
-    end
+    if not (level and level.name and level.name() == "l05_bar") then return end
 
-    cached_arena_lamp_ids = {}
-    -- Arena 3D volume bounding box (covers both forest sector X:75-125 and main arena X:120-185, floor y=-26 to y=25)
-    local x_min, x_max = 75, 185
-    local z_min, z_max = 60, 150
-    local y_min, y_max = -26, 25
+    -- Arena 3D volume bounding box (covers both forest sector X:70-125 and main arena X:120-190, floor y=-35 to y=45)
+    local x_min, x_max = 70, 190
+    local z_min, z_max = 55, 155
+    local y_min, y_max = -35, 45
 
     local count = 0
-    local function check_obj_lamp(obj)
-        if not obj then return end
-        local is_lamp = false
-        pcall(function()
-            local c = obj:clsid()
-            local sec = obj:section()
-            if (clsid and (c == clsid.hlamp_s or c == clsid.hanging_lamp)) or (sec == "lights_hanging_lamp" or sec == "lights_signal_light") then
-                is_lamp = true
-            end
-        end)
+    local seen_ids = {}
 
-        if is_lamp then
-            pcall(function()
-                local lamp = obj:get_hanging_lamp()
-                if lamp then
-                    local pos = obj:position()
-                    local in_arena_box = (pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max and pos.y >= y_min and pos.y <= y_max)
-                    local name = obj:name() or ""
-                    local is_arena_named = string.find(name, "light_big_glass_")
-                        or string.find(name, "light_alarm_glass_")
-                        or string.find(name, "light_galogen_")
-                        or string.find(name, "forest_light_")
-                        or string.find(name, "arena_light_")
-                        or (string.find(name, "bar_lights_hanging_lamp_") and pos.z >= z_min)
-
-                    if in_arena_box or (is_arena_named and pos.z >= 60) then
-                        if turn_on then
-                            lamp:turn_on()
-                        else
-                            lamp:turn_off()
-                        end
-                        cached_arena_lamp_ids[#cached_arena_lamp_ids + 1] = obj:id()
-                        count = count + 1
+    -- 1. Switch cached lamps first
+    if cached_arena_lamp_ids and #cached_arena_lamp_ids > 0 then
+        for _, id in ipairs(cached_arena_lamp_ids) do
+            seen_ids[id] = true
+            local obj = level.object_by_id(id)
+            if obj then
+                local ok_c, c = pcall(function() return obj:clsid() end)
+                if ok_c and c then
+                    if clsid and (c == clsid.hlamp_s or c == clsid.hanging_lamp) then
+                        pcall(function()
+                            local lamp = obj:get_hanging_lamp()
+                            if lamp then
+                                if turn_on then lamp:turn_on() else lamp:turn_off() end
+                                count = count + 1
+                            end
+                        end)
+                        pcall(function()
+                            if turn_on then
+                                if obj.turn_on then obj:turn_on() end
+                            else
+                                if obj.turn_off then obj:turn_off() end
+                            end
+                        end)
+                    elseif clsid and clsid.projector and c == clsid.projector then
+                        pcall(function()
+                            local proj = obj:get_projector()
+                            if proj then
+                                local action = (CProjector and CProjector.eSwitch) or 0
+                                proj:Action(action, turn_on and 1 or 0, "")
+                                count = count + 1
+                            end
+                        end)
+                        pcall(function()
+                            if turn_on then
+                                if obj.turn_on then obj:turn_on() end
+                            else
+                                if obj.turn_off then obj:turn_off() end
+                            end
+                        end)
                     end
                 end
-            end)
+            end
+        end
+    else
+        cached_arena_lamp_ids = {}
+    end
+
+    -- 2. Helper to check, toggle, and cache a lamp/projector
+    local function check_obj_lamp(obj)
+        if not obj then return end
+        local o_id = nil
+        local ok_id, ret_id = pcall(function() return obj:id() end)
+        if ok_id and ret_id then o_id = ret_id else return end
+        if seen_ids[o_id] then return end
+
+        local ok_c, c = pcall(function() return obj:clsid() end)
+        if not (ok_c and c) then return end
+
+        local sec = nil
+        pcall(function() sec = obj:section() end)
+
+        local is_lamp = false
+        if clsid and (c == clsid.hlamp_s or c == clsid.hanging_lamp) then
+            is_lamp = true
+        elseif sec == "lights_hanging_lamp" or sec == "lights_signal_light" or (sec and string.find(sec, "^lights_hanging_lamp")) then
+            is_lamp = true
+        end
+
+        if is_lamp then
+            local pos = obj:position()
+            local in_arena_box = (pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max and pos.y >= y_min and pos.y <= y_max)
+            local name = obj:name() or ""
+            local is_arena_named = string.find(name, "light_big_glass_")
+                or string.find(name, "light_alarm_glass_")
+                or string.find(name, "light_galogen_")
+                or string.find(name, "forest_light_")
+                or string.find(name, "arena_light_")
+                or (string.find(name, "bar_lights_hanging_lamp_") and pos.z >= z_min)
+
+            if in_arena_box or (is_arena_named and pos.z >= z_min) then
+                pcall(function()
+                    local lamp = obj:get_hanging_lamp()
+                    if lamp then
+                        if turn_on then lamp:turn_on() else lamp:turn_off() end
+                        count = count + 1
+                    end
+                end)
+                pcall(function()
+                    if turn_on then
+                        if obj.turn_on then obj:turn_on() end
+                    else
+                        if obj.turn_off then obj:turn_off() end
+                    end
+                end)
+                seen_ids[o_id] = true
+                cached_arena_lamp_ids[#cached_arena_lamp_ids + 1] = o_id
+            end
+            return
         end
 
         local is_proj = false
-        pcall(function()
-            if clsid and clsid.projector and obj:clsid() == clsid.projector then
-                is_proj = true
-            end
-        end)
+        if clsid and clsid.projector and c == clsid.projector then
+            is_proj = true
+        elseif sec == "projector" or (sec and string.find(sec, "^projector")) then
+            is_proj = true
+        end
 
         if is_proj then
-            pcall(function()
-                local proj = obj:get_projector()
-                if proj then
-                    local pos = obj:position()
-                    if pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max then
-                        proj:Action(CProjector.eSwitch, turn_on and 1 or 0, "")
+            local pos = obj:position()
+            if (pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max and pos.y >= y_min and pos.y <= y_max) then
+                pcall(function()
+                    local proj = obj:get_projector()
+                    if proj then
+                        local action = (CProjector and CProjector.eSwitch) or 0
+                        proj:Action(action, turn_on and 1 or 0, "")
+                        count = count + 1
                     end
-                end
-            end)
+                end)
+                pcall(function()
+                    if turn_on then
+                        if obj.turn_on then obj:turn_on() end
+                    else
+                        if obj.turn_off then obj:turn_off() end
+                    end
+                end)
+                seen_ids[o_id] = true
+                cached_arena_lamp_ids[#cached_arena_lamp_ids + 1] = o_id
+            end
+            return
         end
     end
 
+    -- 3. Discover lamps if cache is empty
+    if #cached_arena_lamp_ids == 0 then
+        -- 3a. Spatial search if available
+        if level and level.iterate_nearest then
+            pcall(function()
+                level.iterate_nearest(vector():set(152.0, -15.0, 105.0), 90.0, function(obj)
+                    check_obj_lamp(obj)
+                end)
+                level.iterate_nearest(vector():set(95.0, -15.0, 105.0), 60.0, function(obj)
+                    check_obj_lamp(obj)
+                end)
+            end)
+        end
+
+        -- 3b. ALife server objects in arena footprint
+        iterate_alife(function(se)
+            local ok, cls = pcall(function() return se:clsid() end)
+            if ok and cls and clsid and (cls == clsid.hanging_lamp or cls == clsid.hlamp_s or cls == clsid.projector) then
+                local pos = se.position
+                local in_box = pos and (pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max and pos.y >= y_min and pos.y <= y_max)
+                local name = se:name() or ""
+                local is_arena_named = string.find(name, "light_big_glass_")
+                    or string.find(name, "light_alarm_glass_")
+                    or string.find(name, "light_galogen_")
+                    or string.find(name, "forest_light_")
+                    or string.find(name, "arena_light_")
+                    or (string.find(name, "bar_lights_hanging_lamp_") and pos and pos.z >= z_min)
+
+                if in_box or is_arena_named then
+                    local o_id = se.id
+                    local obj = level.object_by_id(o_id)
+                    if obj then
+                        check_obj_lamp(obj)
+                    elseif not seen_ids[o_id] then
+                        seen_ids[o_id] = true
+                        cached_arena_lamp_ids[#cached_arena_lamp_ids + 1] = o_id
+                    end
+                end
+            end
+        end)
+
+        -- 3c. Fallback scan of online level objects (1..65534)
+        if #cached_arena_lamp_ids == 0 then
+            for id = 1, 65534 do
+                local obj = level.object_by_id(id)
+                if obj then
+                    check_obj_lamp(obj)
+                end
+            end
+        end
+    end
+
+    -- 4. Also scan db.storage in case any scripted lights are present
     if db and db.storage then
         for id, _ in pairs(db.storage) do
             local obj = level.object_by_id(id)
@@ -1593,14 +1758,8 @@ function toggle_arena_lights(turn_on)
                 check_obj_lamp(obj)
             end
         end
-    else
-        iterate_alife(function(se)
-            local obj = level.object_by_id(se.id)
-            if obj then
-                check_obj_lamp(obj)
-            end
-        end)
     end
+
     printf(string.format("[ARENA_LIGHTS] Toggled %d arena lamps to %s", count, turn_on and "ON" or "OFF"))
     pcall(function()
         local snd = sound_if_exists([[device\light_switch]]) or sound_if_exists([[interface\inv_torch]])
@@ -1627,28 +1786,28 @@ function apply_night_mode_lighting(enable)
         end
 
         -- 2. Apply darkness settings
-        -- Cut ambient & hemi sky lighting so sunlight/moonlight doesn't flood the indoor arena
+        -- Keep direct sun off, but preserve baseline ambient & hemi fill so NVG tubes and first-person weapon meshes are visible
         pcall(function() exec_console_cmd("r2_sun_lumscale 0.0") end)
-        pcall(function() exec_console_cmd("r2_sun_lumscale_amb 0.0") end)
-        pcall(function() exec_console_cmd("r2_sun_lumscale_hemi 0.0") end)
-        -- Prevent tonemapper from artificially boosting pitch dark rooms into glowing washed-out blue/grey
-        pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.8") end)
-        pcall(function() exec_console_cmd("r2_tonemap_middlegray 0.4") end)
+        pcall(function() exec_console_cmd("r2_sun_lumscale_amb 0.3") end)
+        pcall(function() exec_console_cmd("r2_sun_lumscale_hemi 0.2") end)
+        -- Normal dynamic range in shadows: do not crush low luminance to black (allows NVG to amplify scene & weapon/hands models)
+        pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.0001") end)
+        pcall(function() exec_console_cmd("r2_tonemap_middlegray 0.9") end)
         -- Tell Screen Space Shaders to treat the area as underground (disables outdoor sky bounce & SSR reflections)
         pcall(function() exec_console_cmd("ssfx_is_underground 1") end)
         -- Eliminate glowing volumetric fog in dark arena
         pcall(function() exec_console_cmd("ssfx_fog_scattering 0") end)
         pcall(function() exec_console_cmd("ssfx_fog (0,0,0,0)") end)
 
-        -- Directly clamp engine fog & ambient colors to absolute pitch black
+        -- Clamp engine fog & ambient colors to nocturnal levels so NVG intensifier shaders have light to amplify
         if weather and weather.set_value_vector then
-            pcall(weather.set_value_vector, "fog_color", 0, 0, 0)
+            pcall(weather.set_value_vector, "fog_color", 0.01, 0.01, 0.01)
             pcall(weather.set_value_numric, "fog_density", 0.0)
             pcall(weather.set_value_numric, "fog_distance", 1000.0)
             pcall(weather.set_value_numric, "far_plane", 1000.0)
-            pcall(weather.set_value_vector, "sky_color", 0, 0, 0)
-            pcall(weather.set_value_vector, "ambient_color", 0, 0, 0)
-            pcall(weather.set_value_vector, "hemisphere_color", 0, 0, 0, 0)
+            pcall(weather.set_value_vector, "sky_color", 0.01, 0.01, 0.02)
+            pcall(weather.set_value_vector, "ambient_color", 0.04, 0.042, 0.05)
+            pcall(weather.set_value_vector, "hemisphere_color", 0.035, 0.038, 0.045, 0)
             pcall(weather.set_value_vector, "clouds_color", 0, 0, 0, 0)
             pcall(weather.pause, true)
         end
@@ -2583,6 +2742,18 @@ function enter_arena_night_mode()
 
     -- 1. Turn off all lights in arena (ground, walls, ceiling floodlights and overhead rafters)
     toggle_arena_lights(false)
+    CreateTimeEvent("arena_night_lights_recheck_e", "arena_night_lights_recheck_a", 0.3, function()
+        if night_mode_combat_running then
+            toggle_arena_lights(false)
+        end
+        return true
+    end)
+    CreateTimeEvent("arena_night_lights_recheck2_e", "arena_night_lights_recheck2_a", 0.8, function()
+        if night_mode_combat_running then
+            toggle_arena_lights(false)
+        end
+        return true
+    end)
 
     -- 2. Apply pitch black lighting and weather (extinguishes sun, sky, ambient, tonemap, ssfx underground)
     apply_night_mode_lighting(true)
@@ -2593,11 +2764,19 @@ function enter_arena_night_mode()
 end
 
 function exit_arena_night_mode()
+    if not (level and level.name and level.name() == "l05_bar") then
+        night_mode_combat_running = false
+        if xcvb_arena_main and xcvb_arena_main.night_mode_saved_render then
+            apply_night_mode_lighting(false)
+        end
+        return
+    end
+
     if not night_mode_combat_running then
-        -- Daytime fights and first update have no night settings to restore.
-        if not xcvb_arena_main.night_mode_saved_render then return end
-        toggle_arena_lights(true)
-        apply_night_mode_lighting(false)
+        if xcvb_arena_main and xcvb_arena_main.night_mode_saved_render then
+            apply_night_mode_lighting(false)
+            toggle_arena_lights(true)
+        end
         pcall(collectgarbage, "collect")
         return
     end
@@ -3208,6 +3387,8 @@ function clean_arena_corpses()
     endless_restricted_stalkers = {}
     local function safe_release_by_id(id)
         pcall(function()
+            RemoveTimeEvent("custom_update" .. id, "custom_resupply" .. id)
+            RemoveTimeEvent("arena_aggro_" .. id, "aggro_" .. id)
             if safe_release_manager and safe_release_manager.release then
                 safe_release_manager.release({id = id})
             else
@@ -3228,10 +3409,11 @@ function clean_arena_corpses()
         end
     end
 
-    -- Durante el modo Endless activo entre oleadas, solo se eliminan los combatientes de la ronda previa.
-    -- NO programar arena_sweep que borraria a los nuevos enemigos recien spawneados.
-    local is_endless_active = xcvb_arena_fight and xcvb_arena_fight.is_endless_active()
-    if is_endless_active then
+    -- Durante combates activos o entre oleadas, NO programar arena_sweep que borraria objetos o enemigos recien spawneados.
+    local fight_running = (xcvb_arena_fight and xcvb_arena_fight.is_fight_in_progress and xcvb_arena_fight.is_fight_in_progress())
+        or (is_any_arena_fight_active and is_any_arena_fight_active())
+        or (xcvb_arena_fight and xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active())
+    if fight_running then
         RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
         return
     end
@@ -3242,10 +3424,14 @@ function clean_arena_corpses()
     local found_anything = false
     local function arena_sweep()
         if not (level and level.name and level.name() == "l05_bar") then return true end
-        if has_alife_info("xcvb_tournament_started")
+        if (xcvb_arena_fight and xcvb_arena_fight.is_fight_in_progress and xcvb_arena_fight.is_fight_in_progress())
+           or (is_any_arena_fight_active and is_any_arena_fight_active())
+           or has_alife_info("xcvb_tournament_started")
            or has_alife_info("xcvb_arena_started")
            or has_alife_info("xcvb_battle_royale_started")
-           or (xcvb_arena_fight and xcvb_arena_fight.is_endless_active()) then
+           or has_alife_info("xcvb_endless_started")
+           or (xcvb_arena_fight and xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active())
+           or inventory_stored or inventory_restore_pending then
             return true
         end
 
@@ -3264,22 +3450,45 @@ function clean_arena_corpses()
                 local online = in_arena_bounds and level.object_by_id(id)
                 if online then
                     local parent = se.parent_id
-                    if id == 0 or parent == 0 then
-                    else
+                    local act_id = db.actor and db.actor:id() or 0
+                    local is_actor_or_child = (id == 0) or (id == act_id) or (parent == 0) or (parent == act_id)
+                    local is_tracked_item = (temporary_arena_item_ids and temporary_arena_item_ids[id])
+                        or (saved_actor_item_ids and saved_actor_item_ids[id])
+                    local is_combatant = (arena_spawned_combatant_ids and arena_spawned_combatant_ids[id])
+
+                    if not (is_actor_or_child or is_tracked_item or is_combatant) then
                         local sec = se:section_name()
-                        local is_safe = (sec == "inventory_box" or string.find(sec, "restrictor") or string.find(sec, "physic_object") or string.find(sec, "arena_board") or string.find(sec, "arena_balcony") or string.find(sec, "xcvb_"))
-                        if not is_safe then
-                            local cls = se:clsid()
-                            local is_npc = IsStalker(nil, cls) or IsMonster(nil, cls)
-                            if is_npc then
-                                -- Jamas borrar a un NPC o mutante que este vivo
-                                local ok, is_alive = pcall(function() return online:alive() end)
-                                if ok and is_alive == false then
-                                    safe_release_by_id(id)
-                                    found_anything = true
-                                end
-                            elseif (parent == nil or parent == 65535 or parent == 0xFFFF) then
-                                -- Limpiar cualquier residuo de combate en el suelo (armas danadas, cargadores vacios, loot de mutantes huÃ©rfano)
+                        local cls = se:clsid()
+                        local is_lamp_or_light = (clsid and (cls == clsid.hanging_lamp or cls == clsid.hlamp_s or cls == clsid.projector))
+                            or string.find(sec, "lamp")
+                            or string.find(sec, "light")
+                            or string.find(sec, "projector")
+                        local is_safe = is_lamp_or_light
+                            or (sec == "inventory_box")
+                            or string.find(sec, "restrictor")
+                            or string.find(sec, "physic_object")
+                            or string.find(sec, "arena_board")
+                            or string.find(sec, "arena_balcony")
+                            or string.find(sec, "xcvb_")
+                            or (clsid and (cls == clsid.obj_physic or cls == clsid.inventory_box_s))
+
+                        local is_npc = (IsStalker and IsStalker(nil, cls)) or (IsMonster and IsMonster(nil, cls))
+                        if is_npc then
+                            is_safe = true -- Jamas borrar NPCs o mutantes en arena_sweep; clean_arena_corpses y clean_*_squad se encargan de ellos
+                        end
+
+                        if not is_safe and (parent == nil or parent == 65535 or parent == 0xFFFF) then
+                            -- Limpiar unicamente residuos de combate reales (armas, municiones, trajes, partes)
+                            local is_debris = false
+                            if IsWeapon and IsWeapon(nil, cls) then is_debris = true
+                            elseif IsAmmo and IsAmmo(nil, cls) then is_debris = true
+                            elseif IsOutfit and IsOutfit(nil, cls) then is_debris = true
+                            elseif IsArtefact and IsArtefact(nil, cls) then is_debris = true
+                            elseif string.find(sec, "^wpn_") or string.find(sec, "^ammo_") or string.find(sec, "^mutant_part_") or string.find(sec, "^grenade_") then is_debris = true
+                            elseif online and online.is_inventory_item and online:is_inventory_item() then is_debris = true
+                            end
+
+                            if is_debris then
                                 safe_release_by_id(id)
                                 found_anything = true
                             end
@@ -3324,6 +3533,8 @@ function clean_tournament_squad(squad_id)
                 npc_forest_designated_pos[id] = nil
                 forest_tournament_aggro_hit_ids[id] = nil
                 forest_endless_aggro_hit_ids[id] = nil
+                RemoveTimeEvent("custom_update" .. id, "custom_resupply" .. id)
+                RemoveTimeEvent("arena_aggro_" .. id, "aggro_" .. id)
                 if xcvb_arena_forest_ai and xcvb_arena_forest_ai.forget_spawn then
                     xcvb_arena_forest_ai.forget_spawn(id)
                 end
@@ -3393,12 +3604,12 @@ tournament_loadouts_t = {
             "wpn_spas12", "wpn_mp153", "wpn_mp153_m1", "wpn_mp155", "wpn_protecta", "wpn_saiga12s",
             "wpn_ak74m", "wpn_ak101", "wpn_ak102", "wpn_ak103", "wpn_ak104", "wpn_ak105", "wpn_abakan", "wpn_aek971", "wpn_m4a1", "wpn_g36", "wpn_g36c", "wpn_g36k", "wpn_sig550", "wpn_sig552", "wpn_aug", "wpn_aug_a1",
             "wpn_ump45", "wpn_vityaz", "wpn_mp5sd", "wpn_m1a1",
-            "wpn_svd", "wpn_svu", "wpn_sv98", "wpn_l96a1", "wpn_m24", "wpn_remington700",
+            "wpn_svd", "wpn_svu", "wpn_sv98", "wpn_l96a1", "wpn_remington700",
         },
         shotguns = { "wpn_spas12", "wpn_mp153", "wpn_mp153_m1", "wpn_mp155", "wpn_protecta", "wpn_saiga12s" },
         rifles = { "wpn_ak74m", "wpn_ak101", "wpn_ak102", "wpn_ak103", "wpn_ak104", "wpn_ak105", "wpn_abakan", "wpn_aek971", "wpn_m4a1", "wpn_g36", "wpn_g36c", "wpn_g36k", "wpn_sig550", "wpn_sig552", "wpn_aug", "wpn_aug_a1" },
         smgs = { "wpn_ump45", "wpn_vityaz", "wpn_mp5sd", "wpn_m1a1" },
-        snipers = { "wpn_svd", "wpn_svu", "wpn_sv98", "wpn_l96a1", "wpn_m24", "wpn_remington700" },
+        snipers = { "wpn_svd", "wpn_svu", "wpn_sv98", "wpn_l96a1", "wpn_remington700" },
         pistols = { "wpn_usp", "wpn_usp_tac", "wpn_fnx45", "wpn_fn57", "wpn_pl15", "wpn_glock19", "wpn_beretta_upg" },
         ammo_count = 7,
         meds = { "bandage", "bandage", "medkit_army", "medkit_army", "stimpack", "drug_antidot" },
@@ -3455,6 +3666,8 @@ last_spawned_weapon_sec = nil
 local arena_weapon_blacklist = {
     wpn_pb = true,
     wpn_pb_custom = true,
+    wpn_m24 = true,
+    wpn_m24_custom = true,
 }
 
 function is_arena_weapon_allowed(sec)
@@ -4576,6 +4789,10 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
     local tourn_target_slot = (loadout_class == "pistol") and 1 or 2
     CreateTimeEvent("arena_equip_draw_e1", "arena_equip_draw_a1", 0.6, function()
         if not db.actor then return true end
+        if xcvb_arena_fight and xcvb_arena_fight.is_intro_camera_active and xcvb_arena_fight.is_intro_camera_active() then
+            ResetTimeEvent("arena_equip_draw_e1", "arena_equip_draw_a1", 0.5)
+            return false
+        end
         local in_slot = db.actor:item_in_slot(tourn_target_slot)
         if not in_slot then
             local other_slot = (tourn_target_slot == 2) and 1 or 2
@@ -4589,6 +4806,10 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
     end)
     CreateTimeEvent("arena_equip_draw_e2", "arena_equip_draw_a2", 1.0, function()
         if not db.actor then return true end
+        if xcvb_arena_fight and xcvb_arena_fight.is_intro_camera_active and xcvb_arena_fight.is_intro_camera_active() then
+            ResetTimeEvent("arena_equip_draw_e2", "arena_equip_draw_a2", 0.5)
+            return false
+        end
         if db.actor:active_slot() ~= tourn_target_slot then
             local in_slot = db.actor:item_in_slot(tourn_target_slot)
             if not in_slot then
@@ -4660,6 +4881,7 @@ function cancel_inventory_events()
 end
 
 function cancel_all_arena_events()
+    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
     cancel_inventory_events()
     inventory_restore_pending = false
 end
@@ -5260,6 +5482,7 @@ end
 
 function scr_hit(npc, who, power)
     if not (npc and who) then return end
+    if xcvb_arena_fight and xcvb_arena_fight.is_intro_camera_active and xcvb_arena_fight.is_intro_camera_active() then return end
     if is_npc_wounded(who) or is_npc_wounded(npc) then return end
     local h = hit()
     -- hit.strike despierta la IA sin activar detección de puñalada/stealth-kill
@@ -6779,6 +7002,63 @@ function install_item_parts_safeguard()
     end
 end
 
+local trader_autoinject_safeguard_installed = false
+function install_trader_autoinject_safeguard()
+    if trader_autoinject_safeguard_installed then return end
+
+    if trader_autoinject then
+        if trader_autoinject.timed_update and not trader_autoinject.__arena_safeguard_installed then
+            local orig_timed_update = trader_autoinject.timed_update
+            trader_autoinject.timed_update = function(npc)
+                if not npc then return true end
+                local ok, id = pcall(function() return npc:id() end)
+                if not ok or not id then return true end
+                local se = alife_object(id)
+                if not se then return true end
+                return orig_timed_update(npc)
+            end
+            trader_autoinject.__arena_safeguard_installed = true
+        end
+        if trader_autoinject.update and not trader_autoinject.__arena_update_safeguard_installed then
+            local orig_update = trader_autoinject.update
+            trader_autoinject.update = function(npc)
+                if not npc then return end
+                local ok, id = pcall(function() return npc:id() end)
+                if not ok or not id then return end
+                local se = alife_object(id)
+                if not se then return end
+                return orig_update(npc)
+            end
+            trader_autoinject.__arena_update_safeguard_installed = true
+        end
+        if trader_autoinject.get_trader_type and not trader_autoinject.__arena_type_safeguard_installed then
+            local orig_get_trader_type = trader_autoinject.get_trader_type
+            trader_autoinject.get_trader_type = function(npc)
+                if not npc then return -1 end
+                local ok, id = pcall(function() return npc:id() end)
+                if not ok or not id then return -1 end
+                local se = alife_object(id)
+                if not se then return -1 end
+                return orig_get_trader_type(npc)
+            end
+            trader_autoinject.__arena_type_safeguard_installed = true
+        end
+    end
+
+    if m1a1_autoinject and m1a1_autoinject.m1a1_trade_spawn and not m1a1_autoinject.__arena_safeguard_installed then
+        local orig_m1a1 = m1a1_autoinject.m1a1_trade_spawn
+        m1a1_autoinject.m1a1_trade_spawn = function(npc)
+            if not npc then return end
+            local ok, sec = pcall(function() return npc:section() end)
+            if not ok or not sec then return end
+            return orig_m1a1(npc)
+        end
+        m1a1_autoinject.__arena_safeguard_installed = true
+    end
+
+    trader_autoinject_safeguard_installed = true
+end
+
 local function safe_bolt_manager_functor()
     pcall(ResetTimeEvent, "cycle", "bolt_manager", 60)
     if not db.actor then return false end
@@ -6886,7 +7166,8 @@ function is_any_arena_fight_active()
 
     -- 1. Flags explícitos de combate activo
     if xcvb_arena_fight then
-        if (xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active()) or
+        if (xcvb_arena_fight.is_fight_in_progress and xcvb_arena_fight.is_fight_in_progress()) or
+           (xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active()) or
            (xcvb_arena_fight.is_endless_mode == true) or
            (xcvb_arena_fight.tournament_enemy_squad_id ~= nil) then
             return true
@@ -7034,8 +7315,10 @@ function on_game_start()
     pcall(install_item_parts_safeguard)
     pcall(install_itms_manager_safeguard)
     pcall(install_disguise_safeguard)
+    pcall(install_trader_autoinject_safeguard)
     RegisterScriptCallback("actor_on_first_update", function()
         pcall(install_disguise_safeguard)
+        pcall(install_trader_autoinject_safeguard)
     end)
 end
 
@@ -7043,4 +7326,5 @@ pcall(init_sr_light_hook)
 pcall(install_item_parts_safeguard)
 pcall(install_itms_manager_safeguard)
 pcall(install_disguise_safeguard)
+pcall(install_trader_autoinject_safeguard)
 

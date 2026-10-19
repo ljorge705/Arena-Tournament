@@ -1,0 +1,45 @@
+<w>
+	<!-- Main Combat Status Widget (Top-Right, Invisible Box) -->
+	<dialog x="815" y="20" width="200" height="120">
+
+		<!-- Wave / Round Name -->
+		<txt_wave x="0" y="0" width="195" height="18">
+			<text font="letterica18" r="220" g="220" b="220" align="l" vert_align="c"></text>
+		</txt_wave>
+
+		<!-- Accumulated Reward -->
+		<txt_reward x="0" y="18" width="195" height="18">
+			<text font="letterica16" r="140" g="220" b="140" align="l" vert_align="c"></text>
+		</txt_reward>
+
+		<!-- Continuous Speedrun Timer -->
+		<txt_timer x="0" y="38" width="95" height="18">
+			<text font="letterica16" r="235" g="235" b="235" align="l" vert_align="c">TIME: 00:00</text>
+		</txt_timer>
+
+		<!-- Personal Best Target (PB) for this wave -->
+		<txt_pb x="96" y="38" width="100" height="18">
+			<text font="letterica16" r="245" g="200" b="90" align="l" vert_align="c">PB: --:--</text>
+		</txt_pb>
+
+		<!-- Previous Run Record -->
+		<txt_prev x="0" y="56" width="195" height="16">
+			<text font="letterica16" r="160" g="190" b="210" align="l" vert_align="c"></text>
+		</txt_prev>
+
+		<!-- Panic key hint -->
+		<txt_panic x="0" y="74" width="195" height="16">
+			<text font="letterica16" r="150" g="150" b="150" align="l" vert_align="c"></text>
+		</txt_panic>
+	</dialog>
+
+	<!-- Center Announcement Banner (Appears on wave start/clear) -->
+	<banner x="262" y="140" width="500" height="65">
+		<txt_banner_title x="0" y="4" width="500" height="28">
+			<text font="graffiti22" r="255" g="215" b="80" align="c" vert_align="c"></text>
+		</txt_banner_title>
+		<txt_banner_sub x="0" y="34" width="500" height="22">
+			<text font="letterica18" r="220" g="220" b="220" align="c" vert_align="c"></text>
+		</txt_banner_sub>
+	</banner>
+</w>

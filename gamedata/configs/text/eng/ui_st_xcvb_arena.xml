@@ -149,7 +149,7 @@
 		<text>3x Renegades with shotguns and carbines</text>
 	</string>
 	<string id="st_arena_s_round_5_enemies_bandit">
-		<text>3x Renegades with shotguns and carbines</text>
+		<text>3x Bandits with shotguns and carbines</text>
 	</string>
 	<string id="st_arena_s_round_5_desc">
 		<text>Renegade hunters armed with 12-gauge shotguns and carbines. Sworn enemies with no quarter in the Zone.</text>
@@ -1378,7 +1378,7 @@
 		<text>Boxes: %s</text>
 	</string>
 	<string id="st_arena_companion_use">
-		<text>Companion Hire Board ($ACTION_USE$)</text>
+		<text>Companion Hire Board ($$ACTION_USE$$)</text>
 	</string>
 	<string id="st_arena_companion_title">
 		<text>HIRE COMPANIONS</text>
@@ -1467,17 +1467,14 @@
 	<string id="st_arena_companion_err_generic">
 		<text>Cannot hire companion right now.</text>
 	</string>
-	<string id="st_arena_companion_arena_money">
-		<text>Arena Money: %d CLP</text>
-	</string>
 	<string id="st_arena_companion_normal_money">
 		<text>Money: %d RU</text>
 	</string>
 	<string id="st_arena_companion_err_arena_money">
-		<text>Not enough CLP. Need %d CLP (you have %d).</text>
+		<text>Not enough Arena Tokens. Need %d Tokens (you have %d).</text>
 	</string>
 	<string id="st_arena_kill_reward">
-		<text>+%d CLP [%s] (Total: %d CLP)</text>
+		<text>+%d Tokens [%s] (Total: %d Tokens)</text>
 	</string>
 	<string id="st_arena_wpn_menu_title">
 		<text>WEAPON SELECTION</text>
@@ -1915,27 +1912,6 @@
 	<string id="st_arena_forced_forest_desc">
 		<text>Mandatory Location: Forest Arena.</text>
 	</string>
-	<string id="st_arena_status_locked_map">
-		<text>[LOCKED: MAP]</text>
-	</string>
-	<string id="st_arena_btn_locked_map">
-		<text>CHANGE MAP TO FIGHT</text>
-	</string>
-	<string id="st_arena_map_mismatch_tip">
-		<text>Location mismatch: this bout takes place in %s. Use the AREA button at the top to change map.</text>
-	</string>
-	<string id="st_arena_map_forest_name">
-		<text>Forest</text>
-	</string>
-	<string id="st_arena_map_arena_name">
-		<text>Bar Arena</text>
-	</string>
-	<string id="st_arena_map_btn_forest">
-		<text>AREA: FOREST</text>
-	</string>
-	<string id="st_arena_map_btn_arena">
-		<text>AREA: ARENA</text>
-	</string>
 
 
 	<string id="st_arena_endless_menu_title">
@@ -2016,6 +1992,45 @@
 	<string id="st_arena_endless_note_escalation">
 		<text>Horde Escalation will add +1 enemy each wave.</text>
 	</string>
+	<string id="st_arena_endless_sum_heal">
+		<text>Full Heal: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_heal_on">
+		<text>Enabled (Standard)</text>
+	</string>
+	<string id="st_arena_endless_sum_heal_off">
+		<text>Disabled (+15% Points Bonus)</text>
+	</string>
+	<string id="st_arena_endless_no_heal_bonus_tag">
+		<text>No Full Heal Bonus</text>
+	</string>
+	<string id="st_arena_endless_note_no_heal">
+		<text>Full heal after round is OFF: No auto-heal between waves (+15% point bonus).</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils">
+		<text>Spoils of War: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils_off">
+		<text>Disabled</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils_round">
+		<text>Round Swap (Next wave uses last kill's gun)</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils_instant">
+		<text>Instant Swap (Direct gun swap on kill)</text>
+	</string>
+	<string id="st_arena_endless_note_spoils_round">
+		<text>Spoils of War active: You inherit the gun of your last kill each round.</text>
+	</string>
+	<string id="st_arena_endless_note_spoils_instant">
+		<text>Spoils of War INSTANT active: Gun swaps immediately upon each kill.</text>
+	</string>
+	<string id="st_arena_endless_spoils_claimed_tip">
+		<text>SPOILS OF WAR: Claimed %s from fallen enemy!</text>
+	</string>
+	<string id="st_arena_endless_spoils_round_tip">
+		<text>SPOILS OF WAR: Armed with %s from previous round!</text>
+	</string>
 	<string id="st_arena_endless_stats_title">
 		<text>--- SURVIVAL STATISTICS ---</text>
 	</string>
@@ -2042,6 +2057,159 @@
 	</string>
 	<string id="st_arena_endless_sum_cost">
 		<text>Rental Fee: %s</text>
+	</string>
+	<string id="st_arena_hud_title">
+		<text>ARENA</text>
+	</string>
+	<string id="st_arena_hud_title_endless">
+		<text>SURVIVAL</text>
+	</string>
+	<string id="st_arena_hud_title_tournament">
+		<text>TOURNAMENT</text>
+	</string>
+	<string id="st_arena_hud_wave">
+		<text>WAVE %s</text>
+	</string>
+	<string id="st_arena_hud_round">
+		<text>ROUND %s</text>
+	</string>
+	<string id="st_arena_hud_enemies">
+		<text>ENEMIES: %s</text>
+	</string>
+	<string id="st_arena_hud_cleared">
+		<text>CLEARED</text>
+	</string>
+	<string id="st_arena_hud_last_enemy">
+		<text>LAST ENEMY!</text>
+	</string>
+	<string id="st_arena_hud_retreat">
+		<text>Retreat</text>
+	</string>
+	<string id="st_arena_hud_banner_wave">
+		<text>WAVE %d</text>
+	</string>
+	<string id="st_arena_hud_banner_cd_3">
+		<text>Enemies in 3...</text>
+	</string>
+	<string id="st_arena_hud_banner_cd_2">
+		<text>Enemies in 2...</text>
+	</string>
+	<string id="st_arena_hud_banner_cd_1">
+		<text>Enemies in 1...</text>
+	</string>
+	<string id="st_arena_hud_banner_start">
+		<text>WAVE %d: COMMENCE</text>
+	</string>
+	<string id="st_arena_hud_banner_start_sub">
+		<text>Fight to survive!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_3">
+		<text>ALERT: ELITE SQUAD IN 3 SEC!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_2">
+		<text>ALERT: ELITE SQUAD IN 2 SEC!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_1">
+		<text>ALERT: PREPARE YOURSELF!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_start">
+		<text>WAVE %d: [ELITE]</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_sub">
+		<text>Defeat the Arena Champions!</text>
+	</string>
+	<string id="st_arena_hud_banner_last_enemy_title">
+		<text>LAST ENEMY!</text>
+	</string>
+	<string id="st_arena_hud_banner_last_enemy_sub">
+		<text>Finish him to clear the wave!</text>
+	</string>
+	<string id="st_arena_hud_banner_cleared">
+		<text>WAVE %d CLEARED!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_cleared">
+		<text>ELITE WAVE %d CLEARED!</text>
+	</string>
+	<string id="st_arena_hud_banner_reward_sub">
+		<text>Accumulated reward: %s</text>
+	</string>
+	<string id="st_arena_hud_banner_pb_title">
+		<text>NEW PB RECORD: %s!</text>
+	</string>
+	<string id="st_arena_hud_banner_pb_sub">
+		<text>Wave %d cleared in record time</text>
+	</string>
+	<string id="st_arena_hud_banner_tourn_win_title">
+		<text>ARENA VICTORY!</text>
+	</string>
+	<string id="st_arena_hud_banner_tourn_win_sub">
+		<text>You have defeated all opponents</text>
+	</string>
+	<string id="st_arena_medic_rescue_tokens">
+		<text>Emergency Medical Rescue! You were evacuated unconscious. Treatment cost %s Arena Tokens.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud">
+		<text>Clean Combat HUD</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_desc">
+		<text>Displays a sleek tactical overlay showing wave, reward and speedrun timer in real time.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_title">
+		<text>Show Mode Title</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_wave">
+		<text>Show Wave / Round</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_enemies">
+		<text>Show Enemies Counter</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_reward">
+		<text>Show Accumulated Reward</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_timer">
+		<text>Show Speedrun Timer</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_pb">
+		<text>Show Personal Best &amp; Previous Run</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_panic">
+		<text>Show Retreat Key Hint</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_arena_intro_camera">
+		<text>Intro Camera Flyover (Standard Arena)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_crowd_cheers">
+		<text>Crowd Reactions</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_crowd_cheers_desc">
+		<text>Plays distant crowd cheering and applause when clearing arena waves.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_immersion">
+		<text>Survival Audio Immersion</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_immersion_desc">
+		<text>Enables countdown and tactical audio alerts.</text>
+	</string>
+	<string id="st_arena_btn_locked_map">
+		<text>ARENA MAP LOCKED</text>
+	</string>
+	<string id="st_arena_map_arena_name">
+		<text>Standard Arena</text>
+	</string>
+	<string id="st_arena_map_btn_arena">
+		<text>Standard Arena</text>
+	</string>
+	<string id="st_arena_map_btn_forest">
+		<text>Wild Forest Sector</text>
+	</string>
+	<string id="st_arena_map_forest_name">
+		<text>Wild Forest Sector</text>
+	</string>
+	<string id="st_arena_map_mismatch_tip">
+		<text>Map selection mismatch. Synchronizing arena location.</text>
+	</string>
+	<string id="st_arena_status_locked_map">
+		<text>Map Locked</text>
 	</string>
 </string_table>
 

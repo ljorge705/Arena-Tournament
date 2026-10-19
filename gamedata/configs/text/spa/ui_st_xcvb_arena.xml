@@ -1118,7 +1118,7 @@
 		<text>- Retirada Tactica [F]: Sal de la arena en cualquier momento cobrando el 100% de la recompensa acumulada.</text>
 	</string>
 	<string id="st_arena_endless_rule_line3">
-		<text>- Rescate Medico: Si caes abatido en combate, el medico te salvara en el Bar cobrando 2,500 RU.</text>
+		<text>- Rescate Medico: Si caes abatido en combate, el medico te salvara en el Bar cobrando Tokens de la Arena (5 Tokens en modo Facil).</text>
 	</string>
 	<string id="st_arena_endless_desc_stalkers">
 		<text>Enemigos humanos armados (Bandidos, Mercenarios, Militares, etc.). Usan armas de fuego, tacticas de flanqueo y cobertura. Al vencerlos, tu armamento cambiara al azar.</text>
@@ -1992,6 +1992,179 @@
 	</string>
 	<string id="st_arena_endless_sum_cost">
 		<text>Coste de Alquiler: %s</text>
+	</string>
+
+	<!-- Clean Combat HUD & Immersion -->
+	<string id="st_arena_hud_title">
+		<text>ARENA</text>
+	</string>
+	<string id="st_arena_hud_title_endless">
+		<text>SUPERVIVENCIA</text>
+	</string>
+	<string id="st_arena_hud_title_tournament">
+		<text>TORNEO</text>
+	</string>
+	<string id="st_arena_hud_wave">
+		<text>OLEADA %s</text>
+	</string>
+	<string id="st_arena_hud_round">
+		<text>RONDA %s</text>
+	</string>
+	<string id="st_arena_hud_enemies">
+		<text>ENEMIGOS: %s</text>
+	</string>
+	<string id="st_arena_hud_cleared">
+		<text>SUPERADO</text>
+	</string>
+	<string id="st_arena_hud_last_enemy">
+		<text>ULTIMO ENEMIGO!</text>
+	</string>
+	<string id="st_arena_hud_retreat">
+		<text>Retirarse</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud">
+		<text>HUD de Combate Limpio</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_desc">
+		<text>Muestra un overlay tactico con oleada, recompensa y cronometro en tiempo real.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_immersion">
+		<text>Inmersion Sonora de Supervivencia</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_immersion_desc">
+		<text>Habilita cuenta regresiva y anuncios tacticos.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_crowd_cheers">
+		<text>Reacciones del publico</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_crowd_cheers_desc">
+		<text>Reproduce vitoreos distantes del publico al superar oleadas.</text>
+	</string>
+	<string id="st_arena_hud_banner_wave">
+		<text>OLEADA %d</text>
+	</string>
+	<string id="st_arena_hud_banner_cd_3">
+		<text>Enemigos en 3...</text>
+	</string>
+	<string id="st_arena_hud_banner_cd_2">
+		<text>Enemigos en 2...</text>
+	</string>
+	<string id="st_arena_hud_banner_cd_1">
+		<text>Enemigos en 1...</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_3">
+		<text>ALERTA: COMBATE DE ELITE EN 3 SEG!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_2">
+		<text>ALERTA: COMBATE DE ELITE EN 2 SEG!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_1">
+		<text>ALERTA: PREPARATE!</text>
+	</string>
+	<string id="st_arena_hud_banner_start">
+		<text>OLEADA %d: COMIENZA</text>
+	</string>
+	<string id="st_arena_hud_banner_start_sub">
+		<text>A luchar por tu vida!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_start">
+		<text>OLEADA %d: [ELITE]</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_sub">
+		<text>Elimina a los campeones de la arena!</text>
+	</string>
+	<string id="st_arena_hud_banner_last_enemy_title">
+		<text>ULTIMO ENEMIGO!</text>
+	</string>
+	<string id="st_arena_hud_banner_last_enemy_sub">
+		<text>Terminalo para ganar la oleada!</text>
+	</string>
+	<string id="st_arena_hud_banner_cleared">
+		<text>OLEADA %d SUPERADA!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_cleared">
+		<text>OLEADA %d DE ELITE SUPERADA!</text>
+	</string>
+	<string id="st_arena_hud_banner_reward_sub">
+		<text>Recompensa acumulada: %s</text>
+	</string>
+	<string id="st_arena_hud_banner_pb_title">
+		<text>NUEVO RECORD PB: %s!</text>
+	</string>
+	<string id="st_arena_hud_banner_pb_sub">
+		<text>Oleada %d superada en tiempo record</text>
+	</string>
+	<string id="st_arena_medic_rescue_tokens">
+		<text>Rescate Medico de Emergencia! Fuiste evacuado inconsciente. El tratamiento costo %s Tokens.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_title">
+		<text>Mostrar titulo del modo</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_wave">
+		<text>Mostrar oleada / ronda</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_enemies">
+		<text>Mostrar contador de enemigos</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_reward">
+		<text>Mostrar recompensa acumulada</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_timer">
+		<text>Mostrar cronometro de speedrun</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_pb">
+		<text>Mostrar mejor marca (PB) y partida anterior</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_panic">
+		<text>Mostrar tecla de retirada</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_arena_intro_camera">
+		<text>Camara inicial panoramica (Arena estandar)</text>
+	</string>
+	<string id="st_arena_hud_banner_tourn_win_title">
+		<text>VICTORIA EN LA ARENA!</text>
+	</string>
+	<string id="st_arena_hud_banner_tourn_win_sub">
+		<text>Has derrotado a todos los oponentes</text>
+	</string>
+	<string id="st_arena_endless_no_heal_bonus_tag">
+		<text>Bonus Sin Curacion</text>
+	</string>
+	<string id="st_arena_endless_note_no_heal">
+		<text>Curacion tras ronda DESACTIVADA: Sin regeneracion entre oleadas (+15% de bonus).</text>
+	</string>
+	<string id="st_arena_endless_note_spoils_instant">
+		<text>Botin de Guerra INSTANTANEO: Cambias de arma inmediatamente al matar.</text>
+	</string>
+	<string id="st_arena_endless_note_spoils_round">
+		<text>Botin de Guerra activo: Heredas el arma de tu ultima baja en cada ronda.</text>
+	</string>
+	<string id="st_arena_endless_spoils_claimed_tip">
+		<text>BOTIN DE GUERRA: Tomaste %s del enemigo caido!</text>
+	</string>
+	<string id="st_arena_endless_spoils_round_tip">
+		<text>BOTIN DE GUERRA: Equipado con %s de la ronda anterior!</text>
+	</string>
+	<string id="st_arena_endless_sum_heal">
+		<text>Curacion Total: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_heal_off">
+		<text>Desactivada (+15% Bonus de Puntos)</text>
+	</string>
+	<string id="st_arena_endless_sum_heal_on">
+		<text>Activada (Estandar)</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils">
+		<text>Botin de Guerra: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils_instant">
+		<text>Cambio Instantaneo (Al matar enemigo)</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils_off">
+		<text>Desactivado</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils_round">
+		<text>Cambio por Ronda (Siguiente oleada usa arma de ultima baja)</text>
 	</string>
 </string_table>
 

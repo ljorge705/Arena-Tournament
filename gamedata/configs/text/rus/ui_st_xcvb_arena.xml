@@ -2047,4 +2047,175 @@
 	<string id="st_arena_endless_sum_cost">
 		<text>Стоимость аренды: %s</text>
 	</string>
+	<string id="st_arena_hud_title">
+		<text>АРЕНА</text>
+	</string>
+	<string id="st_arena_hud_title_endless">
+		<text>ВЫЖИВАНИЕ</text>
+	</string>
+	<string id="st_arena_hud_title_tournament">
+		<text>ТУРНИР</text>
+	</string>
+	<string id="st_arena_hud_wave">
+		<text>ВОЛНА %s</text>
+	</string>
+	<string id="st_arena_hud_round">
+		<text>РАУНД %s</text>
+	</string>
+	<string id="st_arena_hud_enemies">
+		<text>ВРАГИ: %s</text>
+	</string>
+	<string id="st_arena_hud_cleared">
+		<text>ЗАЧИЩЕНО</text>
+	</string>
+	<string id="st_arena_hud_last_enemy">
+		<text>ПОСЛЕДНИЙ ВРАГ!</text>
+	</string>
+	<string id="st_arena_hud_retreat">
+		<text>Отступить</text>
+	</string>
+	<string id="st_arena_hud_banner_wave">
+		<text>ВОЛНА %d</text>
+	</string>
+	<string id="st_arena_hud_banner_cd_3">
+		<text>Враги через 3...</text>
+	</string>
+	<string id="st_arena_hud_banner_cd_2">
+		<text>Враги через 2...</text>
+	</string>
+	<string id="st_arena_hud_banner_cd_1">
+		<text>Враги через 1...</text>
+	</string>
+	<string id="st_arena_hud_banner_start">
+		<text>ВОЛНА %d: НАЧАЛО</text>
+	</string>
+	<string id="st_arena_hud_banner_start_sub">
+		<text>Сражайтесь за жизнь!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_3">
+		<text>ВНИМАНИЕ: ЭЛИТНЫЙ ОТРЯД ЧЕРЕЗ 3 СЕК!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_2">
+		<text>ВНИМАНИЕ: ЭЛИТНЫЙ ОТРЯД ЧЕРЕЗ 2 СЕК!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_1">
+		<text>ВНИМАНИЕ: ПРИГОТОВЬТЕСЬ К БОЮ!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_start">
+		<text>ВОЛНА %d: [ЭЛИТА]</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_sub">
+		<text>Одолейте чемпионов Арены!</text>
+	</string>
+	<string id="st_arena_hud_banner_last_enemy_title">
+		<text>ПОСЛЕДНИЙ ВРАГ!</text>
+	</string>
+	<string id="st_arena_hud_banner_last_enemy_sub">
+		<text>Добейте его для победы!</text>
+	</string>
+	<string id="st_arena_hud_banner_cleared">
+		<text>ВОЛНА %d ПРОЙДЕНА!</text>
+	</string>
+	<string id="st_arena_hud_banner_elite_cleared">
+		<text>ЭЛИТНАЯ ВОЛНА %d ПРОЙДЕНА!</text>
+	</string>
+	<string id="st_arena_hud_banner_reward_sub">
+		<text>Награда: %s</text>
+	</string>
+	<string id="st_arena_hud_banner_pb_title">
+		<text>НОВЫЙ РЕКОРД PB: %s!</text>
+	</string>
+	<string id="st_arena_hud_banner_pb_sub">
+		<text>Волна %d пройдена в рекордное время</text>
+	</string>
+	<string id="st_arena_hud_banner_tourn_win_title">
+		<text>ПОБЕДА НА АРЕНЕ!</text>
+	</string>
+	<string id="st_arena_hud_banner_tourn_win_sub">
+		<text>Все противники повержены</text>
+	</string>
+	<string id="st_arena_medic_rescue_tokens">
+		<text>Экстренная медицинская помощь! Вас эвакуировали без сознания. Лечение стоило %s жетонов Арены.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud">
+		<text>Боевой интерфейс Арены</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_desc">
+		<text>Отображает компактный тактический оверлей с волной, наградой и таймером в реальном времени.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_title">
+		<text>Показывать заголовок режима</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_wave">
+		<text>Показывать волну / раунд</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_enemies">
+		<text>Показывать счетчик врагов</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_reward">
+		<text>Показывать награду</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_timer">
+		<text>Показывать спидран-таймер</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_pb">
+		<text>Показывать лучший рекорд (PB) и прошлый забег</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_combat_hud_panic">
+		<text>Показывать подсказку отступления</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_arena_intro_camera">
+		<text>Вводная панорама камеры (стандартная Арена)</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_crowd_cheers">
+		<text>Реакция зрителей</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_crowd_cheers_desc">
+		<text>Аплодисменты и крики трибун при зачистке волны.</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_immersion">
+		<text>Звуковая атмосфера выживания</text>
+	</string>
+	<string id="ui_mcm_xcvb_arena_endless_immersion_desc">
+		<text>Тактические звуковые оповещения и сигналы о начале волны.</text>
+	</string>
+	<string id="st_arena_endless_no_heal_bonus_tag">
+		<text>Бонус без лечения</text>
+	</string>
+	<string id="st_arena_endless_note_no_heal">
+		<text>Лечение после раунда ВЫКЛЮЧЕНО: Нет восстановления между волнами (+15% очков).</text>
+	</string>
+	<string id="st_arena_endless_note_spoils_instant">
+		<text>Трофеи войны МГНОВЕННО: Смена оружия сразу при убийстве.</text>
+	</string>
+	<string id="st_arena_endless_note_spoils_round">
+		<text>Трофеи войны: Вы получаете оружие последней жертвы в каждом раунде.</text>
+	</string>
+	<string id="st_arena_endless_spoils_claimed_tip">
+		<text>ТРОФЕИ ВОЙНЫ: Получено %s с поверженного врага!</text>
+	</string>
+	<string id="st_arena_endless_spoils_round_tip">
+		<text>ТРОФЕИ ВОЙНЫ: Вооружен %s из прошлого раунда!</text>
+	</string>
+	<string id="st_arena_endless_sum_heal">
+		<text>Полное лечение: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_heal_off">
+		<text>Выключено (+15% бонус очков)</text>
+	</string>
+	<string id="st_arena_endless_sum_heal_on">
+		<text>Включено (Стандарт)</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils">
+		<text>Трофеи войны: %s</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils_instant">
+		<text>Мгновенная смена (Сразу при убийстве)</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils_off">
+		<text>Выключено</text>
+	</string>
+	<string id="st_arena_endless_sum_spoils_round">
+		<text>Смена по раундам (Следующая волна с оружием последней жертвы)</text>
+	</string>
 </string_table>

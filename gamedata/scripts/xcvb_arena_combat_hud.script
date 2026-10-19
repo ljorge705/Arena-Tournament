@@ -1,0 +1,324 @@
+-- =============================================================================
+-- Arena Tournament Mod - Clean Combat HUD (HUD de Combate Limpio)
+-- Script: xcvb_arena_combat_hud.script
+-- Description: Non-intrusive floating tactical HUD with Speedrun PB splits:
+--   1. Real-time Wave / Round tracking
+--   2. Accumulated reward display (RU or Tokens)
+--   3. Continuous Speedrun Timer (does not reset across waves)
+--   4. Personal Best (PB) per wave & Previous Run display
+--   5. Panic key hint ([F] Retreat)
+--   6. Center Announcement Banner for wave starts / clears
+-- =============================================================================
+
+local gt = game.translate_string
+HUD_INSTANCE = nil
+local is_active = false
+local start_time = 0
+local last_elapsed_seconds = 0
+local banner_hide_time = 0
+
+local current_data = {
+    mode = "endless",
+    wave = 1,
+    remaining_enemies = 0,
+    total_enemies = 0,
+    reward = 0,
+    is_tokens = false,
+    panic_key = "F",
+    is_elite = false,
+}
+
+local function format_mmss(total_sec)
+    if not total_sec or total_sec < 0 then return "--:--" end
+    local m = math.floor(total_sec / 60)
+    local s = total_sec % 60
+    return string.format("%02d:%02d", m, s)
+end
+
+class "UICombatHUD" (CUIScriptWnd)
+
+function UICombatHUD:__init() super()
+    self:InitControls()
+end
+
+function UICombatHUD:InitControls()
+    self:SetAutoDelete(true)
+    local xml = CScriptXmlInit()
+    xml:ParseFile("ui_xcvb_arena_combat_hud.xml")
+
+    -- 1. Main Widget Panel (Top-Right, Transparent Container)
+    self.dialog = xml:InitStatic("dialog", self)
+    self.txt_wave = xml:InitTextWnd("dialog:txt_wave", self.dialog)
+    self.txt_reward = xml:InitTextWnd("dialog:txt_reward", self.dialog)
+    self.txt_timer = xml:InitTextWnd("dialog:txt_timer", self.dialog)
+    self.txt_pb = xml:InitTextWnd("dialog:txt_pb", self.dialog)
+    self.txt_prev = xml:InitTextWnd("dialog:txt_prev", self.dialog)
+    self.txt_panic = xml:InitTextWnd("dialog:txt_panic", self.dialog)
+
+    -- 2. Center Announcement Banner
+    self.banner = xml:InitStatic("banner", self)
+    self.txt_banner_title = xml:InitTextWnd("banner:txt_banner_title", self.banner)
+    self.txt_banner_sub = xml:InitTextWnd("banner:txt_banner_sub", self.banner)
+
+    if self.banner then self.banner:Show(false) end
+end
+
+function UICombatHUD:Update()
+    CUIScriptWnd.Update(self)
+
+    -- Verify actor is alive and on bar level
+    if not (db.actor and db.actor:alive() and level and level.name and level.name() == "l05_bar") then
+        hide()
+        return
+    end
+
+    -- Update Continuous Speedrun Timer ONLY in Endless mode
+    if current_data.mode == "endless" and start_time > 0 then
+        local elapsed_sec = math.floor((time_global() - start_time) / 1000)
+        if self.txt_timer then
+            self.txt_timer:SetText("TIME: " .. format_mmss(elapsed_sec))
+        end
+
+        -- Dynamically tint PB text green (ahead of PB pace) or red (behind PB pace)
+        if self.txt_pb then
+            local pb_sec = xcvb_arena_main and xcvb_arena_main.get_endless_pb_for_wave and xcvb_arena_main.get_endless_pb_for_wave(current_data.wave)
+            if pb_sec and pb_sec > 0 then
+                if elapsed_sec <= pb_sec then
+                    self.txt_pb:SetTextColor(GetARGB(255, 120, 240, 120)) -- Ahead (Green)
+                else
+                    self.txt_pb:SetTextColor(GetARGB(255, 245, 100, 90))  -- Behind (Red)
+                end
+            else
+                self.txt_pb:SetTextColor(GetARGB(255, 245, 200, 90))      -- No PB yet (Gold)
+            end
+        end
+    end
+
+    -- Handle Banner Auto-Hide
+    if banner_hide_time > 0 and time_global() >= banner_hide_time then
+        banner_hide_time = 0
+        if self.banner then
+            self.banner:Show(false)
+        end
+    end
+end
+
+function UICombatHUD:refresh_fields()
+    if not self.dialog then return end
+
+    local is_endless = (current_data.mode == "endless")
+
+    -- 1. Wave or Round text
+    if self.txt_wave then
+        if is_endless then
+            local wave_lbl = gt("st_arena_hud_wave")
+            if not wave_lbl or wave_lbl == "" or wave_lbl == "st_arena_hud_wave" then
+                wave_lbl = "WAVE %s"
+            end
+            local w_str = string.format(wave_lbl, tostring(current_data.wave or 1))
+            if current_data.is_elite then
+                w_str = w_str .. " [ELITE]"
+                self.txt_wave:SetTextColor(GetARGB(255, 255, 120, 60))
+            else
+                self.txt_wave:SetTextColor(GetARGB(255, 220, 220, 220))
+            end
+            self.txt_wave:SetText(w_str)
+        else
+            local r_lbl = gt("st_arena_hud_round")
+            if not r_lbl or r_lbl == "" or r_lbl == "st_arena_hud_round" then
+                r_lbl = "ROUND %s"
+            end
+            self.txt_wave:SetText(string.format(r_lbl, tostring(current_data.wave or 1)))
+            self.txt_wave:SetTextColor(GetARGB(255, 220, 220, 220))
+        end
+        self.txt_wave:Show(true)
+    end
+
+    -- 2. Reward text
+    if self.txt_reward then
+        local rew = tonumber(current_data.reward) or 0
+        local rew_str
+        if current_data.is_tokens then
+            rew_str = string.format("%d TOKENS", rew)
+        else
+            rew_str = string.format("%d RU", rew)
+        end
+        self.txt_reward:SetText(rew_str)
+        self.txt_reward:Show(true)
+    end
+
+    -- 3. Speedrun Timer & PB & PREV (ONLY in Endless mode)
+    if is_endless then
+        -- Timer
+        if self.txt_timer then
+            local el = get_elapsed_seconds()
+            self.txt_timer:SetText("TIME: " .. format_mmss(el))
+            self.txt_timer:Show(true)
+        end
+
+        -- PB Target
+        if self.txt_pb then
+            local pb_sec = xcvb_arena_main and xcvb_arena_main.get_endless_pb_for_wave and xcvb_arena_main.get_endless_pb_for_wave(current_data.wave)
+            if pb_sec and pb_sec > 0 then
+                self.txt_pb:SetText("PB: " .. format_mmss(pb_sec))
+            else
+                self.txt_pb:SetText("PB: --:--")
+            end
+            self.txt_pb:Show(true)
+        end
+
+        -- Previous Run Split
+        if self.txt_prev then
+            local prev_w_sec = xcvb_arena_main and xcvb_arena_main.get_endless_last_run_for_wave and xcvb_arena_main.get_endless_last_run_for_wave(current_data.wave)
+            local final_prev_t = xcvb_arena_main and xcvb_arena_main.endless_last_run_final_time or 0
+            local final_prev_w = xcvb_arena_main and xcvb_arena_main.endless_last_run_final_wave or 0
+
+            if prev_w_sec and prev_w_sec > 0 then
+                self.txt_prev:SetText("PREV: " .. format_mmss(prev_w_sec))
+                self.txt_prev:Show(true)
+            elseif final_prev_t > 0 then
+                self.txt_prev:SetText(string.format("PREV: %s (W%d)", format_mmss(final_prev_t), final_prev_w))
+                self.txt_prev:Show(true)
+            else
+                self.txt_prev:SetText("PREV: --:--")
+                self.txt_prev:Show(true)
+            end
+        end
+    else
+        -- Strictly hidden in Tournament mode
+        if self.txt_timer then self.txt_timer:Show(false) end
+        if self.txt_pb then self.txt_pb:Show(false) end
+        if self.txt_prev then self.txt_prev:Show(false) end
+    end
+
+    -- 4. Panic Key Hint
+    if self.txt_panic then
+        local show_panic = true
+        if xcvb_arena_mcm and xcvb_arena_mcm.get_config then
+            show_panic = xcvb_arena_mcm.get_config("combat_hud_panic") ~= false
+        end
+
+        if show_panic then
+            local key_lbl = current_data.panic_key or "F"
+            self.txt_panic:SetText(string.format("[%s] %s", key_lbl, gt("st_arena_hud_retreat") or "Retreat"))
+            if is_endless then
+                self.txt_panic:SetWndPos(vector2():set(0, 74))
+            else
+                self.txt_panic:SetWndPos(vector2():set(0, 38))
+            end
+            self.txt_panic:Show(true)
+        else
+            self.txt_panic:Show(false)
+        end
+    end
+end
+
+function UICombatHUD:display_banner(title, subtitle, duration_ms)
+    if not self.banner then return end
+    if self.txt_banner_title then
+        self.txt_banner_title:SetText(title or "")
+    end
+    if self.txt_banner_sub then
+        self.txt_banner_sub:SetText(subtitle or "")
+    end
+    self.banner:Show(true)
+    banner_hide_time = time_global() + (duration_ms or 3200)
+end
+
+-- =============================================================================
+-- PUBLIC INTERFACE
+-- =============================================================================
+
+function is_shown()
+    return is_active and HUD_INSTANCE ~= nil
+end
+
+function get_elapsed_seconds()
+    if start_time > 0 then
+        return math.max(0, math.floor((time_global() - start_time) / 1000))
+    end
+    return last_elapsed_seconds or 0
+end
+
+function show(mode)
+    -- Check MCM option
+    if xcvb_arena_mcm and xcvb_arena_mcm.get_config then
+        local enabled = xcvb_arena_mcm.get_config("combat_hud")
+        if enabled == false then return end
+    end
+
+    current_data.mode = mode or "tournament"
+
+    if not HUD_INSTANCE then
+        pcall(function()
+            HUD_INSTANCE = UICombatHUD()
+            get_hud():AddDialogToRender(HUD_INSTANCE)
+        end)
+    end
+
+    is_active = true
+    if current_data.mode == "endless" then
+        if start_time == 0 then
+            start_time = time_global()
+        end
+    else
+        start_time = 0
+        last_elapsed_seconds = 0
+    end
+
+    if HUD_INSTANCE then
+        pcall(function()
+            HUD_INSTANCE:Show(true)
+            HUD_INSTANCE:refresh_fields()
+        end)
+    end
+end
+
+function hide()
+    if start_time > 0 then
+        last_elapsed_seconds = math.max(0, math.floor((time_global() - start_time) / 1000))
+    end
+    if HUD_INSTANCE then
+        pcall(function()
+            get_hud():RemoveDialogToRender(HUD_INSTANCE)
+        end)
+        HUD_INSTANCE = nil
+    end
+    is_active = false
+    start_time = 0
+    banner_hide_time = 0
+end
+
+function update_info(tbl)
+    if not tbl then return end
+    for k, v in pairs(tbl) do
+        current_data[k] = v
+    end
+    if is_active and HUD_INSTANCE then
+        pcall(function()
+            HUD_INSTANCE:refresh_fields()
+        end)
+    end
+end
+
+function show_banner(title, subtitle, duration_ms)
+    if is_active and HUD_INSTANCE then
+        pcall(function()
+            HUD_INSTANCE:display_banner(title, subtitle, duration_ms)
+        end)
+    end
+end
+
+function reset_timer()
+    start_time = time_global()
+    last_elapsed_seconds = 0
+end
+
+-- Cleanup on game events
+function actor_on_net_destroy()
+    hide()
+end
+
+function on_game_start()
+    RegisterScriptCallback("actor_on_net_destroy", actor_on_net_destroy)
+end

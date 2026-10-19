@@ -56,13 +56,39 @@ function is_endless_active()
     return is_endless_mode and not endless_fight_closed
 end
 
+function is_fight_in_progress()
+    local has_info = has_alife_info
+    if has_info then
+        if has_info("xcvb_tournament_started")
+           or has_info("xcvb_arena_started")
+           or has_info("xcvb_battle_royale_started")
+           or has_info("xcvb_endless_started") then
+            return true
+        end
+    end
+    if (not tournament_fight_closed) and current_tournament_round_id then
+        return true
+    end
+    if is_endless_mode and (not endless_fight_closed) then
+        return true
+    end
+    if (not spectator_fight_closed) and (squad_team_1_id or squad_team_2_id) then
+        return true
+    end
+    if (not battle_royale_closed) and (battle_royale_squad_ids and #battle_royale_squad_ids > 0) then
+        return true
+    end
+    return false
+end
+
+
 local DIK_NAMES = {
     [1] = "ESC", [2] = "1", [3] = "2", [4] = "3", [5] = "4", [6] = "5", [7] = "6", [8] = "7", [9] = "8", [10] = "9", [11] = "0",
     [12] = "-", [13] = "=", [14] = "BACKSPACE", [15] = "TAB",
     [16] = "Q", [17] = "W", [18] = "E", [19] = "R", [20] = "T", [21] = "Y", [22] = "U", [23] = "I", [24] = "O", [25] = "P",
     [26] = "[", [27] = "]", [28] = "ENTER", [29] = "LEFT CTRL",
     [30] = "A", [31] = "S", [32] = "D", [33] = "F", [34] = "G", [35] = "H", [36] = "J", [37] = "K", [38] = "L",
-    [39] = ";", [40] = "'", [41] = "~", [42] = "LEFT SHIFT", [43] = "\\",
+    [39] = "Ñ", [40] = "'", [41] = "~", [42] = "LEFT SHIFT", [43] = "\\",
     [44] = "Z", [45] = "X", [46] = "C", [47] = "V", [48] = "B", [49] = "N", [50] = "M",
     [51] = ",", [52] = ".", [53] = "/", [54] = "RIGHT SHIFT", [55] = "NUMPAD *",
     [56] = "LEFT ALT", [57] = "SPACE", [58] = "CAPS LOCK",
@@ -88,9 +114,12 @@ local function get_panic_key_label()
 
     local num = tonumber(configured)
     if num then
+        if num == 39 then
+            return "Ñ"
+        end
         if ui_mcm and ui_mcm.display_key then
             local ok, mcm_label = pcall(ui_mcm.display_key, num)
-            if ok and mcm_label and mcm_label ~= "<!!!>" and mcm_label ~= "" then
+            if ok and mcm_label and mcm_label ~= "<!!!>" and mcm_label ~= "" and not string.find(mcm_label, "^Key") then
                 return mcm_label
             end
         end
@@ -100,6 +129,9 @@ local function get_panic_key_label()
     end
 
     if type(configured) == "string" and #configured > 0 then
+        if configured == "DIK_SEMICOLON" or configured == "39" then
+            return "Ñ"
+        end
         return configured:gsub("^DIK_", "")
     end
 
@@ -113,9 +145,18 @@ end
 
 local function cancel_player_combat_events()
     local events = {
+        {"arena_corpse_clean_e", "arena_corpse_clean_a"},
         {"arena_spawn_loadout_e", "arena_spawn_loadout_a"},
         {"allow_tournament_aggro_e", "allow_tournament_aggro_a"},
         {"arena_torch_verify_e", "arena_torch_verify_a"},
+        {"arena_lights_verify_e", "arena_lights_verify_a"},
+        {"arena_night_lights_verify_e", "arena_night_lights_verify_a"},
+        {"arena_spec_lights_verify_e", "arena_spec_lights_verify_a"},
+        {"arena_spec_night_lights_verify_e", "arena_spec_night_lights_verify_a"},
+        {"arena_br_lights_verify_e", "arena_br_lights_verify_a"},
+        {"arena_br_night_lights_verify_e", "arena_br_night_lights_verify_a"},
+        {"allow_relation_update_e", "allow_relation_update_a"},
+        {"allow_br_relation_update_e", "allow_br_relation_update_a"},
         {"arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a"},
         {"arena_spawn_endless_squad_e", "arena_spawn_endless_squad_a"},
         {"allow_endless_aggro_e", "allow_endless_aggro_a"},
@@ -124,11 +165,31 @@ local function cancel_player_combat_events()
         {"arena_endless_next_wave_e", "arena_endless_next_wave_a"},
         {"allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a"},
         {"arena_endless_torch_verify_e", "arena_endless_torch_verify_a"},
+        {"arena_endless_lights_verify_e", "arena_endless_lights_verify_a"},
+        {"arena_endless_night_lights_verify_e", "arena_endless_night_lights_verify_a"},
         {"arena_endless_map_swap_e", "arena_endless_map_swap_a"},
+        {"arena_cam_safety_e", "arena_cam_safety_a"},
+        {"arena_intro_hold_e", "arena_intro_hold_a"},
     }
     for _, event in ipairs(events) do RemoveTimeEvent(event[1], event[2]) end
+    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
+    if db.actor then
+        pcall(level.remove_cam_effector, 987126)
+        pcall(level.enable_input)
+        pcall(level.show_indicators)
+        if intro_cam_active then
+            intro_cam_active = false
+            pcall(function() db.actor:restore_weapon() end)
+        end
+    end
     if xcvb_arena_utils and xcvb_arena_utils.cancel_all_arena_events then
         pcall(xcvb_arena_utils.cancel_all_arena_events)
+    end
+    if xcvb_arena_immersion and xcvb_arena_immersion.stop_all_sounds then
+        pcall(xcvb_arena_immersion.stop_all_sounds)
+    end
+    if xcvb_arena_combat_hud and xcvb_arena_combat_hud.hide then
+        pcall(xcvb_arena_combat_hud.hide)
     end
 end
 
@@ -146,6 +207,9 @@ local function return_actor_to_bar()
     if endless_initial_map then
         xcvb_arena_main.selected_map = endless_initial_map
         endless_initial_map = nil
+    end
+    if xcvb_arena_main then
+        xcvb_arena_main.night_mode_active = false
     end
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
@@ -280,6 +344,96 @@ function heal_actor_completely()
     end
 end
 
+local intro_cam_round_id = 1
+local intro_cam_active = false
+
+function is_intro_camera_active()
+    return intro_cam_active == true
+end
+
+function on_arena_intro_camera_end()
+    RemoveTimeEvent("arena_cam_safety_e", "arena_cam_safety_a")
+    RemoveTimeEvent("arena_intro_hold_e", "arena_intro_hold_a")
+    if not intro_cam_active then return "" end
+    intro_cam_active = false
+
+    if db.actor then
+        -- NOTE: Do NOT call level.remove_cam_effector(987126) here.
+        -- When called from the engine callback, the engine is already releasing
+        -- the effector. Calling remove_cam_effector causes a double-erase crash.
+        pcall(function() db.actor:restore_weapon() end)
+        pcall(level.show_indicators)
+        pcall(level.enable_input)
+        local r_id = intro_cam_round_id or current_tournament_round_id or 1
+        local _, _, _, ac_dir = xcvb_arena_utils.get_actor_tournament_pos(r_id)
+        if ac_dir then
+            pcall(function() db.actor:set_actor_direction(ac_dir) end)
+        end
+
+        local tourn_target_slot = 2
+        if not db.actor:item_in_slot(2) and db.actor:item_in_slot(1) then
+            tourn_target_slot = 1
+        end
+        pcall(function() db.actor:activate_slot(tourn_target_slot) end)
+        if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
+            pcall(xcvb_arena_utils.ensure_weapon_raised)
+        end
+    end
+
+    if not tournament_fight_closed and tournament_enemy_squad_id then
+        give_info("xcvb_tournament_started")
+        pcall(xcvb_arena_utils.setup_tournament_squad_aggro, tournament_enemy_squad_id)
+    end
+
+    if not tournament_fight_closed and xcvb_arena_combat_hud then
+        local enemy_cnt = 1
+        if tournament_enemy_squad_id then
+            local sq = alife_object(tournament_enemy_squad_id)
+            if sq then enemy_cnt = sq:npc_count() end
+        end
+        local round_data = xcvb_arena_main.get_round_data(current_tournament_category or "stalker", intro_cam_round_id or 1)
+        xcvb_arena_combat_hud.show("tournament")
+        xcvb_arena_combat_hud.update_info({
+            mode = "tournament",
+            wave = intro_cam_round_id or 1,
+            remaining_enemies = enemy_cnt,
+            total_enemies = enemy_cnt,
+            reward = round_data and round_data.reward or 0,
+            is_tokens = false,
+            panic_key = get_panic_key_label(),
+        })
+    end
+
+    return ""
+end
+
+function play_arena_intro_camera(round_id)
+    if not db.actor then return 0 end
+    intro_cam_round_id = round_id or 1
+    intro_cam_active = true
+    local cam_length = 5.0
+    pcall(function()
+        level.disable_input()
+        level.hide_indicators()
+        db.actor:activate_slot(0)
+        db.actor:hide_weapon()
+        local fov = (device and device().fov) or 75.0
+        -- Pass 6 arguments: fn, id, cyclic, cb_func, cam_fov, b_hud
+        local len = level.add_cam_effector("camera_effects\\arena.anm", 987126, false, "xcvb_arena_fight.on_arena_intro_camera_end", fov, false)
+        if len and type(len) == "number" and len > 0 then
+            cam_length = len
+        end
+    end)
+    CreateTimeEvent("arena_cam_safety_e", "arena_cam_safety_a", cam_length + 0.5, function()
+        if intro_cam_active then
+            pcall(level.remove_cam_effector, 987126)
+            on_arena_intro_camera_end()
+        end
+        return true
+    end)
+    return cam_length
+end
+
 --------------------------------------------------------------------------------
 -- TOURNAMENT COMBAT MODE (Player in the Arena)
 --------------------------------------------------------------------------------
@@ -292,6 +446,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     callback_epoch = callback_epoch + 1
     tournament_pending_result = nil
     cancel_player_combat_events()
+    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
     tourn_ending = false
     endless_ending = false
     tournament_fight_closed = false
@@ -299,15 +454,16 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     is_endless_mode = false
     endless_transitioning = false
     spec_fight_ending = false
-    spectator_fight_closed = false
+    spectator_fight_closed = true
     battle_royale_ending = false
-    battle_royale_closed = false
+    battle_royale_closed = true
     xcvb_arena_main.selected_modifier = "none"
     xcvb_arena_main.selected_modifier_team1 = "none"
     xcvb_arena_main.selected_modifier_team2 = "none"
     pcall(disable_info, "xcvb_endless_started")
     pcall(disable_info, "xcvb_arena_started")
     pcall(disable_info, "xcvb_battle_royale_started")
+    give_info("xcvb_tournament_started")
     
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
@@ -315,18 +471,11 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
         pcall(xcvb_arena_utils.ensure_weapon_raised)
     end
-    if xcvb_arena_main.night_mode_active then
-        pcall(xcvb_arena_utils.enter_arena_night_mode)
-        CreateTimeEvent("arena_torch_verify_e", "arena_torch_verify_a", 1.2, function()
-            pcall(xcvb_arena_utils.ensure_actor_torch_active)
-            return true
-        end)
-    end
     current_tournament_category = category or "stalker"
     current_tournament_round_id = round_id
 
-    local is_forest_round = (round_data.forced_map == "forest" or round_data.map == "forest")
-    local target_m = is_forest_round and "forest" or "arena"
+    local forced_m = round_data.forced_map or round_data.map
+    local target_m = forced_m or xcvb_arena_main.selected_map or "arena"
     tourn_saved_selected_map = xcvb_arena_main.selected_map
     xcvb_arena_main.selected_map = target_m
 
@@ -343,6 +492,26 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     db.actor:set_actor_direction(ac_dir or 0)
 
+    if xcvb_arena_main.night_mode_active then
+        pcall(xcvb_arena_utils.enter_arena_night_mode)
+        CreateTimeEvent("arena_night_lights_verify_e", "arena_night_lights_verify_a", 0.6, function()
+            pcall(xcvb_arena_utils.toggle_arena_lights, false)
+            return true
+        end)
+        CreateTimeEvent("arena_torch_verify_e", "arena_torch_verify_a", 1.2, function()
+            pcall(xcvb_arena_utils.ensure_actor_torch_active)
+            pcall(xcvb_arena_utils.toggle_arena_lights, false)
+            return true
+        end)
+    else
+        pcall(xcvb_arena_utils.toggle_arena_lights, true)
+        pcall(xcvb_arena_utils.apply_night_mode_lighting, false)
+        CreateTimeEvent("arena_lights_verify_e", "arena_lights_verify_a", 0.6, function()
+            pcall(xcvb_arena_utils.toggle_arena_lights, true)
+            return true
+        end)
+    end
+
     if random_eq ~= false then
         local tier = round_data.tier or math.ceil(round_id / 3)
         CreateTimeEvent("arena_spawn_loadout_e", "arena_spawn_loadout_a", 0.3, function()
@@ -350,6 +519,15 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
             xcvb_arena_utils.equip_tournament_random_loadout(tier, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec, forced_mag_count, forced_ammo_count)
             return true
         end)
+    end
+
+    local is_intro_cam_enabled = (xcvb_arena_main and (not xcvb_arena_main.selected_map or xcvb_arena_main.selected_map == "arena"))
+        and (level.name() == "l05_bar")
+        and (not xcvb_arena_mcm or xcvb_arena_mcm.get_config("arena_intro_camera") ~= false)
+
+    local cam_duration = 0
+    if is_intro_cam_enabled then
+        cam_duration = play_arena_intro_camera(round_id) or 5.0
     end
 
     if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() then
@@ -360,6 +538,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
         printe("! xcvb arena: Failed to spawn tournament squad for %s round %s", current_tournament_category, round_id)
         cancel_player_combat_events()
         tournament_fight_closed = true
+        pcall(disable_info, "xcvb_tournament_started")
         pcall(xcvb_arena_utils.exit_arena_night_mode)
         return_actor_to_bar()
         if random_eq ~= false then
@@ -372,15 +551,42 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
         return false
     end
     tournament_enemy_squad_id = enemy_squad.id
+    local enemy_cnt = enemy_squad:npc_count()
+
+    if is_intro_cam_enabled then
+        xcvb_arena_utils.hold_tournament_squad_peaceful(tournament_enemy_squad_id)
+        CreateTimeEvent("arena_intro_hold_e", "arena_intro_hold_a", 0.1, function()
+            if not is_intro_camera_active() then return true end
+            xcvb_arena_utils.hold_tournament_squad_peaceful(tournament_enemy_squad_id)
+            ResetTimeEvent("arena_intro_hold_e", "arena_intro_hold_a", 0.3)
+            return false
+        end)
+    else
+        if xcvb_arena_combat_hud then
+            xcvb_arena_combat_hud.show("tournament")
+            xcvb_arena_combat_hud.update_info({
+                mode = "tournament",
+                wave = round_id,
+                remaining_enemies = enemy_cnt,
+                total_enemies = enemy_cnt,
+                reward = round_data and round_data.reward or 0,
+                is_tokens = false,
+                panic_key = get_panic_key_label(),
+            })
+        end
+    end
 
     local attempts = 0
-    CreateTimeEvent("allow_tournament_aggro_e", "allow_tournament_aggro_a", 0.6, function()
+    local aggro_initial_delay = is_intro_cam_enabled and (cam_duration + 0.2) or 0.6
+    CreateTimeEvent("allow_tournament_aggro_e", "allow_tournament_aggro_a", aggro_initial_delay, function()
         if tournament_fight_closed then return true end
         attempts = attempts + 1
         give_info("xcvb_tournament_started")
         local done = xcvb_arena_utils.setup_tournament_squad_aggro(tournament_enemy_squad_id)
         if done or attempts >= 6 then
-            news_manager.send_tip(db.actor, gt("st_arena_fight_started"), 0, nil, 7000)
+            if not (xcvb_arena_combat_hud and xcvb_arena_combat_hud.is_shown()) then
+                news_manager.send_tip(db.actor, gt("st_arena_fight_started"), 0, nil, 7000)
+            end
             return true
         end
         ResetTimeEvent("allow_tournament_aggro_e", "allow_tournament_aggro_a", 0.4)
@@ -394,7 +600,17 @@ function on_tournament_victory(round_id)
     tourn_ending = true
     tournament_pending_result = true
     heal_actor_completely()
-    news_manager.send_tip(db.actor, gt("st_arena_fight_won"), 0, nil, 8000)
+    if xcvb_arena_combat_hud then
+        local win_title = gt("st_arena_hud_banner_tourn_win_title")
+        if not win_title or win_title == "" or win_title == "st_arena_hud_banner_tourn_win_title" then win_title = "VICTORY!" end
+        local win_sub = gt("st_arena_hud_banner_tourn_win_sub")
+        if not win_sub or win_sub == "" or win_sub == "st_arena_hud_banner_tourn_win_sub" then win_sub = "All opponents defeated" end
+        xcvb_arena_combat_hud.show_banner(win_title, win_sub, 3500)
+        xcvb_arena_combat_hud.update_info({ remaining_enemies = 0 })
+    end
+    if not (xcvb_arena_combat_hud and xcvb_arena_combat_hud.is_shown()) then
+        news_manager.send_tip(db.actor, gt("st_arena_fight_won"), 0, nil, 8000)
+    end
     xcvb_arena_utils.arena_fade_in_out(2)
     
     local uid = tostring(math.random(100000))
@@ -413,6 +629,9 @@ function end_tournament_fight(is_victory)
     tourn_ending = false
     endless_ending = false
     pcall(xcvb_arena_utils.exit_arena_night_mode)
+    if xcvb_arena_main then
+        xcvb_arena_main.night_mode_active = false
+    end
 
     if db.actor then
         pcall(function() db.actor:activate_slot(0) end)
@@ -544,20 +763,45 @@ function start_arena_fight(bout_idx)
 	if xcvb_arena_main and xcvb_arena_main.selected_map == "forest" then
 		return false
 	end
+    cancel_player_combat_events()
+    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
     spec_fight_ending = false
     spectator_fight_closed = false
+    tournament_fight_closed = true
+    battle_royale_closed = true
+    endless_fight_closed = true
+    is_endless_mode = false
+    pcall(disable_info, "xcvb_tournament_started")
+    pcall(disable_info, "xcvb_endless_started")
+    pcall(disable_info, "xcvb_battle_royale_started")
+    give_info("xcvb_arena_started")
     local b_idx = bout_idx or xcvb_arena_main.selected_spec_bout or 1
     local main_t = xcvb_arena_main.arena_main_t[b_idx]
-    if not main_t or not main_t.team1 or #main_t.team1 == 0 or not main_t.team2 or #main_t.team2 == 0 then return end
-    
-    if xcvb_arena_main.night_mode_active then
-        pcall(xcvb_arena_utils.enter_arena_night_mode)
+    if not main_t or not main_t.team1 or #main_t.team1 == 0 or not main_t.team2 or #main_t.team2 == 0 then
+        disable_info("xcvb_arena_started")
+        return
     end
+    
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     local arena_center = vector():set(152.0, -20.0, 105.0)
     local look_dir = vector():sub(arena_center, ac_pos)
     db.actor:set_actor_direction(-look_dir:getH())
+
+    if xcvb_arena_main.night_mode_active then
+        pcall(xcvb_arena_utils.enter_arena_night_mode)
+        CreateTimeEvent("arena_spec_night_lights_verify_e", "arena_spec_night_lights_verify_a", 0.6, function()
+            pcall(xcvb_arena_utils.toggle_arena_lights, false)
+            return true
+        end)
+    else
+        pcall(xcvb_arena_utils.toggle_arena_lights, true)
+        pcall(xcvb_arena_utils.apply_night_mode_lighting, false)
+        CreateTimeEvent("arena_spec_lights_verify_e", "arena_spec_lights_verify_a", 0.6, function()
+            pcall(xcvb_arena_utils.toggle_arena_lights, true)
+            return true
+        end)
+    end
     CreateTimeEvent("arena_spec_cam_e", "arena_spec_cam_a", 0.1, function()
         if db.actor then
             local center = vector():set(152.0, -20.0, 105.0)
@@ -575,6 +819,7 @@ function start_arena_fight(bout_idx)
     local squad1 = alife_create(sec1, pos1, lvid1, gvid1)
     if not squad1 then
         printe("! xcvb arena: Failed to spawn spectator team 1")
+        disable_info("xcvb_arena_started")
         pcall(xcvb_arena_utils.exit_arena_night_mode)
         return
     end
@@ -586,6 +831,7 @@ function start_arena_fight(bout_idx)
     local squad2 = alife_create(sec2, pos2, lvid2, gvid2)
     if not squad2 then
         printe("! xcvb arena: Failed to spawn spectator team 2")
+        disable_info("xcvb_arena_started")
         pcall(alife_release_id, squad_team_1_id)
         squad_team_1_id = nil
         pcall(xcvb_arena_utils.exit_arena_night_mode)
@@ -722,6 +968,9 @@ function end_arena_fight(winner_team)
     spectator_fight_closed = true
     spec_fight_ending = false
     pcall(xcvb_arena_utils.exit_arena_night_mode)
+    if xcvb_arena_main then
+        xcvb_arena_main.night_mode_active = false
+    end
 
     local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
     db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
@@ -740,6 +989,8 @@ function end_arena_fight(winner_team)
     
     local function arena_safe_release_id(id)
         pcall(function()
+            RemoveTimeEvent("custom_update" .. id, "custom_resupply" .. id)
+            RemoveTimeEvent("arena_aggro_" .. id, "aggro_" .. id)
             if safe_release_manager and safe_release_manager.release then
                 safe_release_manager.release({id = id})
             else
@@ -809,9 +1060,19 @@ function start_battle_royale_fight(br_data)
             return
         end
     end
+    cancel_player_combat_events()
+    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
     battle_royale_ending = false
     reset_battle_royale_cache()
     battle_royale_closed = false
+    tournament_fight_closed = true
+    spectator_fight_closed = true
+    endless_fight_closed = true
+    is_endless_mode = false
+    pcall(disable_info, "xcvb_tournament_started")
+    pcall(disable_info, "xcvb_endless_started")
+    pcall(disable_info, "xcvb_arena_started")
+    give_info("xcvb_battle_royale_started")
     battle_royale_squad_ids = {}
     battle_royale_team_faction = {}
     battle_royale_submode = br_data.submode or "factions"
@@ -824,14 +1085,26 @@ function start_battle_royale_fight(br_data)
     battle_royale_bet_team = br_data.bet_team or 0
     battle_royale_reward = br_data.reward or 0
 
-    if xcvb_arena_main.night_mode_active then
-        pcall(xcvb_arena_utils.enter_arena_night_mode)
-    end
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     local arena_center = vector():set(152.0, -20.0, 105.0)
     local look_dir = vector():sub(arena_center, ac_pos)
     db.actor:set_actor_direction(-look_dir:getH())
+
+    if xcvb_arena_main.night_mode_active then
+        pcall(xcvb_arena_utils.enter_arena_night_mode)
+        CreateTimeEvent("arena_br_night_lights_verify_e", "arena_br_night_lights_verify_a", 0.6, function()
+            pcall(xcvb_arena_utils.toggle_arena_lights, false)
+            return true
+        end)
+    else
+        pcall(xcvb_arena_utils.toggle_arena_lights, true)
+        pcall(xcvb_arena_utils.apply_night_mode_lighting, false)
+        CreateTimeEvent("arena_br_lights_verify_e", "arena_br_lights_verify_a", 0.6, function()
+            pcall(xcvb_arena_utils.toggle_arena_lights, true)
+            return true
+        end)
+    end
     CreateTimeEvent("arena_br_cam_e", "arena_br_cam_a", 0.1, function()
         if db.actor then
             local center = vector():set(152.0, -20.0, 105.0)
@@ -957,6 +1230,9 @@ function end_battle_royale(winner_team_idx)
     battle_royale_closed = true
     battle_royale_ending = false
     pcall(xcvb_arena_utils.exit_arena_night_mode)
+    if xcvb_arena_main then
+        xcvb_arena_main.night_mode_active = false
+    end
 
     local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
     db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
@@ -974,6 +1250,8 @@ function end_battle_royale(winner_team_idx)
 
     local function arena_safe_release_id(id)
         pcall(function()
+            RemoveTimeEvent("custom_update" .. id, "custom_resupply" .. id)
+            RemoveTimeEvent("arena_aggro_" .. id, "aggro_" .. id)
             if safe_release_manager and safe_release_manager.release then
                 safe_release_manager.release({id = id})
             else
@@ -1023,10 +1301,11 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     if not db.actor or not xcvb_arena_utils.store_actor_inventory() then return false end
     callback_epoch = callback_epoch + 1
     cancel_player_combat_events()
+    RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
     tourn_ending = false
     endless_ending = false
 
-    tournament_fight_closed = false
+    tournament_fight_closed = true
     endless_fight_closed = false
     is_endless_mode = true
     if xcvb_arena_utils then xcvb_arena_utils.endless_restricted_stalkers = {} end
@@ -1052,13 +1331,14 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     end
     endless_transitioning = false
     spec_fight_ending = false
-    spectator_fight_closed = false
+    spectator_fight_closed = true
     battle_royale_ending = false
-    battle_royale_closed = false
+    battle_royale_closed = true
 
     pcall(disable_info, "xcvb_tournament_started")
     pcall(disable_info, "xcvb_arena_started")
     pcall(disable_info, "xcvb_battle_royale_started")
+    give_info("xcvb_endless_started")
 
     if xcvb_arena_main then
         xcvb_arena_main.endless_total_runs = (xcvb_arena_main.endless_total_runs or 0) + 1
@@ -1075,17 +1355,29 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     if xcvb_arena_utils and xcvb_arena_utils.ensure_weapon_raised then
         pcall(xcvb_arena_utils.ensure_weapon_raised)
     end
-    if xcvb_arena_main.night_mode_active then
-        pcall(xcvb_arena_utils.enter_arena_night_mode)
-        CreateTimeEvent("arena_torch_verify_e", "arena_torch_verify_a", 1.2, function()
-            pcall(xcvb_arena_utils.ensure_actor_torch_active)
-            return true
-        end)
-    end
-
     local ac_pos, ac_lvid, ac_gvid, ac_dir = xcvb_arena_utils.get_actor_tournament_pos(endless_wave)
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     db.actor:set_actor_direction(ac_dir or 0)
+
+    if xcvb_arena_main.night_mode_active then
+        pcall(xcvb_arena_utils.enter_arena_night_mode)
+        CreateTimeEvent("arena_endless_night_lights_verify_e", "arena_endless_night_lights_verify_a", 0.6, function()
+            pcall(xcvb_arena_utils.toggle_arena_lights, false)
+            return true
+        end)
+        CreateTimeEvent("arena_torch_verify_e", "arena_torch_verify_a", 1.2, function()
+            pcall(xcvb_arena_utils.ensure_actor_torch_active)
+            pcall(xcvb_arena_utils.toggle_arena_lights, false)
+            return true
+        end)
+    else
+        pcall(xcvb_arena_utils.toggle_arena_lights, true)
+        pcall(xcvb_arena_utils.apply_night_mode_lighting, false)
+        CreateTimeEvent("arena_endless_lights_verify_e", "arena_endless_lights_verify_a", 0.6, function()
+            pcall(xcvb_arena_utils.toggle_arena_lights, true)
+            return true
+        end)
+    end
 
     CreateTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a", 0.3, function()
         if endless_ending or endless_fight_closed then return true end
@@ -1104,11 +1396,33 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
 
     endless_enemy_squad_ids = {}
 
-    local msg_spawn = gt("st_arena_endless_enemies_spawning_3s")
-    if not msg_spawn or msg_spawn == "" or msg_spawn == "st_arena_endless_enemies_spawning_3s" then
-        msg_spawn = "Enemies will spawn in 3 sec"
+    local is_elite = xcvb_arena_immersion and xcvb_arena_immersion.is_wave_elite(endless_wave)
+    local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+
+    if xcvb_arena_combat_hud then
+        xcvb_arena_combat_hud.reset_timer()
+        xcvb_arena_combat_hud.show("endless")
+        xcvb_arena_combat_hud.update_info({
+            mode = "endless",
+            wave = endless_wave,
+            remaining_enemies = 0,
+            total_enemies = 0,
+            reward = 0,
+            is_tokens = (econ_mode == "tokens"),
+            panic_key = get_panic_key_label(),
+            is_elite = is_elite,
+        })
     end
-    news_manager.send_tip(db.actor, msg_spawn, 0, nil, 3000)
+
+    if xcvb_arena_immersion then
+        xcvb_arena_immersion.announce_wave_countdown(endless_wave)
+    else
+        local msg_spawn = gt("st_arena_endless_enemies_spawning_3s")
+        if not msg_spawn or msg_spawn == "" or msg_spawn == "st_arena_endless_enemies_spawning_3s" then
+            msg_spawn = "Enemies will spawn in 3 sec"
+        end
+        news_manager.send_tip(db.actor, msg_spawn, 0, nil, 3000)
+    end
 
     CreateTimeEvent("arena_spawn_endless_squad_e", "arena_spawn_endless_squad_a", 3.0, function()
         if endless_ending or endless_fight_closed then return true end
@@ -1133,10 +1447,22 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
             return true
         end
 
-        local enemy_count = #endless_enemy_squad_ids
-        local diff_str = gt("st_arena_endless_diff_" .. (endless_difficulty or "medium"))
-        local tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count, get_panic_key_label()) .. " (" .. diff_str .. ")"
-        news_manager.send_tip(db.actor, tip, 0, nil, 8000)
+        local total_living = get_endless_total_enemies_alive()
+        if xcvb_arena_combat_hud then
+            xcvb_arena_combat_hud.update_info({
+                wave = endless_wave,
+                remaining_enemies = total_living,
+                total_enemies = total_living,
+                is_elite = is_elite,
+            })
+        end
+
+        if not (xcvb_arena_combat_hud and xcvb_arena_combat_hud.is_shown()) then
+            local enemy_count = #endless_enemy_squad_ids
+            local diff_str = gt("st_arena_endless_diff_" .. (endless_difficulty or "medium"))
+            local tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count, get_panic_key_label()) .. " (" .. diff_str .. ")"
+            news_manager.send_tip(db.actor, tip, 0, nil, 8000)
+        end
 
         local attempts = 0
         CreateTimeEvent("allow_endless_aggro_e", "allow_endless_aggro_a", 0.8, function()
@@ -1186,12 +1512,13 @@ function advance_endless_wave(resume_pending)
         end
 
         local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+        local is_tokens = (econ_mode == "tokens")
+        local disp_rew = is_tokens and math.max(1, math.floor(endless_reward / 100)) or endless_reward
         local clear_tip
-        if econ_mode == "tokens" then
-            local tokens_accum = math.max(1, math.floor(endless_reward / 100))
-            clear_tip = string.format(gt("st_arena_endless_wave_cleared_tokens"), tonumber(endless_wave) or 1, tonumber(tokens_accum) or 0)
+        if is_tokens then
+            clear_tip = string.format(gt("st_arena_endless_wave_cleared_tokens"), tonumber(endless_wave) or 1, tonumber(disp_rew) or 0)
         else
-            clear_tip = string.format(gt("st_arena_endless_wave_cleared"), tonumber(endless_wave) or 1, tonumber(endless_reward) or 0)
+            clear_tip = string.format(gt("st_arena_endless_wave_cleared"), tonumber(endless_wave) or 1, tonumber(disp_rew) or 0)
         end
         if class_mult < 1.0 then
             local penalty_pct = math.floor((1.0 - class_mult) * 100)
@@ -1201,7 +1528,39 @@ function advance_endless_wave(resume_pending)
             end
             clear_tip = clear_tip .. " (-" .. tostring(penalty_pct) .. "% " .. tag .. ")"
         end
-        news_manager.send_tip(db.actor, clear_tip, 0, nil, 7000)
+
+        local elapsed_sec = 0
+        if xcvb_arena_combat_hud and xcvb_arena_combat_hud.get_elapsed_seconds then
+            elapsed_sec = xcvb_arena_combat_hud.get_elapsed_seconds()
+        end
+
+        local is_new_pb, prev_best = false, nil
+        if xcvb_arena_main and xcvb_arena_main.record_endless_wave_time then
+            is_new_pb, prev_best = xcvb_arena_main.record_endless_wave_time(endless_wave, elapsed_sec)
+        end
+
+        if xcvb_arena_immersion then
+            xcvb_arena_immersion.announce_wave_cleared(endless_wave, disp_rew, is_tokens)
+        else
+            news_manager.send_tip(db.actor, clear_tip, 0, nil, 7000)
+        end
+
+        if is_new_pb and xcvb_arena_combat_hud then
+            local m = math.floor(elapsed_sec / 60)
+            local s = elapsed_sec % 60
+            local time_str = string.format("%02d:%02d", m, s)
+            local pb_title = string.format(gt("st_arena_hud_banner_pb_title") or "NEW PB RECORD: %s!", time_str)
+            local pb_sub = string.format(gt("st_arena_hud_banner_pb_sub") or "Wave %d cleared in record time", endless_wave)
+            xcvb_arena_combat_hud.show_banner(pb_title, pb_sub, 3000)
+        end
+
+        if xcvb_arena_combat_hud then
+            xcvb_arena_combat_hud.update_info({
+                reward = disp_rew,
+                is_tokens = is_tokens,
+                remaining_enemies = 0,
+            })
+        end
 
         heal_actor_completely()
 
@@ -1242,6 +1601,9 @@ function advance_endless_wave(resume_pending)
 
             if xcvb_arena_main.night_mode_active then
                 pcall(xcvb_arena_utils.enter_arena_night_mode)
+            else
+                pcall(xcvb_arena_utils.toggle_arena_lights, true)
+                pcall(xcvb_arena_utils.apply_night_mode_lighting, false)
             end
 
             if xcvb_arena_forest_ai then
@@ -1281,6 +1643,8 @@ function advance_endless_wave(resume_pending)
                     pcall(xcvb_arena_utils.ensure_actor_torch_active)
                     return true
                 end)
+            else
+                pcall(xcvb_arena_utils.toggle_arena_lights, true)
             end
             heal_actor_completely()
 
@@ -1330,10 +1694,23 @@ function advance_endless_wave(resume_pending)
                 return false
             end)
 
-            local enemy_count = #endless_enemy_squad_ids
-            local diff_str = gt("st_arena_endless_diff_" .. (endless_difficulty or "medium"))
-            local start_tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count, get_panic_key_label()) .. " (" .. diff_str .. ")"
-            news_manager.send_tip(db.actor, start_tip, 0, nil, 7000)
+            local living_cnt = get_endless_total_enemies_alive()
+            local is_elite = xcvb_arena_immersion and xcvb_arena_immersion.is_wave_elite(endless_wave)
+            if xcvb_arena_combat_hud then
+                xcvb_arena_combat_hud.update_info({
+                    wave = endless_wave,
+                    remaining_enemies = living_cnt,
+                    total_enemies = living_cnt,
+                    is_elite = is_elite,
+                })
+            end
+
+            if not (xcvb_arena_combat_hud and xcvb_arena_combat_hud.is_shown()) then
+                local enemy_count = #endless_enemy_squad_ids
+                local diff_str = gt("st_arena_endless_diff_" .. (endless_difficulty or "medium"))
+                local start_tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count, get_panic_key_label()) .. " (" .. diff_str .. ")"
+                news_manager.send_tip(db.actor, start_tip, 0, nil, 7000)
+            end
 
             -- Reassign companion aggro to the new wave
             if xcvb_arena_companions and xcvb_arena_companions.cleanup_dead_companions then
@@ -1351,15 +1728,19 @@ function advance_endless_wave(resume_pending)
             return true
         end)
     else
-        CreateTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a", 1.0, function()
-            if endless_ending or endless_fight_closed then return true end
-            local msg_spawn = gt("st_arena_endless_enemies_spawning_3s")
-            if not msg_spawn or msg_spawn == "" or msg_spawn == "st_arena_endless_enemies_spawning_3s" then
-                msg_spawn = "Enemies will spawn in 3 sec"
-            end
-            news_manager.send_tip(db.actor, msg_spawn, 0, nil, 3000)
-            return true
-        end)
+        if xcvb_arena_immersion then
+            xcvb_arena_immersion.announce_wave_countdown(endless_wave)
+        else
+            CreateTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a", 1.0, function()
+                if endless_ending or endless_fight_closed then return true end
+                local msg_spawn = gt("st_arena_endless_enemies_spawning_3s")
+                if not msg_spawn or msg_spawn == "" or msg_spawn == "st_arena_endless_enemies_spawning_3s" then
+                    msg_spawn = "Enemies will spawn in 3 sec"
+                end
+                news_manager.send_tip(db.actor, msg_spawn, 0, nil, 3000)
+                return true
+            end)
+        end
 
         CreateTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a", 3.5, function()
             if endless_ending or endless_fight_closed then return true end
@@ -1385,6 +1766,8 @@ function advance_endless_wave(resume_pending)
                     pcall(xcvb_arena_utils.ensure_actor_torch_active)
                     return true
                 end)
+            else
+                pcall(xcvb_arena_utils.toggle_arena_lights, true)
             end
             heal_actor_completely()
 
@@ -1434,10 +1817,23 @@ function advance_endless_wave(resume_pending)
                 return false
             end)
 
-            local enemy_count = #endless_enemy_squad_ids
-            local diff_str = gt("st_arena_endless_diff_" .. (endless_difficulty or "medium"))
-            local start_tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count, get_panic_key_label()) .. " (" .. diff_str .. ")"
-            news_manager.send_tip(db.actor, start_tip, 0, nil, 7000)
+            local living_cnt = get_endless_total_enemies_alive()
+            local is_elite = xcvb_arena_immersion and xcvb_arena_immersion.is_wave_elite(endless_wave)
+            if xcvb_arena_combat_hud then
+                xcvb_arena_combat_hud.update_info({
+                    wave = endless_wave,
+                    remaining_enemies = living_cnt,
+                    total_enemies = living_cnt,
+                    is_elite = is_elite,
+                })
+            end
+
+            if not (xcvb_arena_combat_hud and xcvb_arena_combat_hud.is_shown()) then
+                local enemy_count = #endless_enemy_squad_ids
+                local diff_str = gt("st_arena_endless_diff_" .. (endless_difficulty or "medium"))
+                local start_tip = string.format(gt("st_arena_endless_wave_started"), endless_wave, enemy_count, get_panic_key_label()) .. " (" .. diff_str .. ")"
+                news_manager.send_tip(db.actor, start_tip, 0, nil, 7000)
+            end
 
             -- Reassign companion aggro to the new wave
             if xcvb_arena_companions and xcvb_arena_companions.cleanup_dead_companions then
@@ -1461,11 +1857,20 @@ function end_endless_fight(is_victory, voluntary_leave)
     if endless_fight_closed then return end
     endless_fight_closed = true
     callback_epoch = callback_epoch + 1
+
+    if xcvb_arena_main and xcvb_arena_main.record_endless_run_ended then
+        local elapsed = xcvb_arena_combat_hud and xcvb_arena_combat_hud.get_elapsed_seconds and xcvb_arena_combat_hud.get_elapsed_seconds() or 0
+        xcvb_arena_main.record_endless_run_ended(endless_wave, elapsed)
+    end
+
     cancel_player_combat_events()
     endless_ending = false
     tourn_ending = false
     endless_transitioning = false
     pcall(xcvb_arena_utils.exit_arena_night_mode)
+    if xcvb_arena_main then
+        xcvb_arena_main.night_mode_active = false
+    end
 
     if db.actor then
         local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
@@ -1688,6 +2093,8 @@ function actor_on_update()
     if tg_cur < next_arena_logic_update then return end
     next_arena_logic_update = tg_cur + 200
 
+    if is_intro_camera_active() then return end
+
     if tournament_active then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false and db.actor and db.actor:alive() then
@@ -1893,6 +2300,7 @@ function on_before_key_press(key, bind, dis, flags)
 		if is_panic then
 			if not tourn_ending and not tournament_fight_closed then
 				tourn_ending = true
+				cancel_player_combat_events()
 				xcvb_arena_utils.arena_fade_in_out(0.1)
 				local uid = tostring(math.random(100000))
 				CreateTimeEvent("xcvb_arena_exit_tourn_f_e", "tourn_f_a_" .. uid, 0.8, function()
@@ -1910,6 +2318,11 @@ function on_before_key_press(key, bind, dis, flags)
 		if is_panic then
 			if not endless_ending and not endless_fight_closed then
 				endless_ending = true
+				if xcvb_arena_main and xcvb_arena_main.record_endless_run_ended then
+					local elapsed = (xcvb_arena_combat_hud and xcvb_arena_combat_hud.get_elapsed_seconds and xcvb_arena_combat_hud.get_elapsed_seconds()) or 0
+					xcvb_arena_main.record_endless_run_ended(endless_wave, elapsed)
+				end
+				cancel_player_combat_events()
 				xcvb_arena_utils.arena_fade_in_out(0.1)
 				local uid = tostring(math.random(100000))
 				CreateTimeEvent("xcvb_arena_exit_endless_f_e", "endless_a_" .. uid, 0.8, function()
@@ -2152,6 +2565,10 @@ function trigger_medic_rescue()
     if in_endless and endless_fight_closed then return false end
     if not in_endless and tournament_fight_closed then return false end
     is_medic_rescuing = true
+    if in_endless and xcvb_arena_main and xcvb_arena_main.record_endless_run_ended then
+        local elapsed = (xcvb_arena_combat_hud and xcvb_arena_combat_hud.get_elapsed_seconds and xcvb_arena_combat_hud.get_elapsed_seconds()) or 0
+        xcvb_arena_main.record_endless_run_ended(endless_wave, elapsed)
+    end
     cancel_player_combat_events()
     if in_endless then
         endless_ending = true
@@ -2262,18 +2679,46 @@ function trigger_medic_rescue()
             used_voucher = true
         end
 
-        local fee = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("medic_rescue_fee")) or 2500
-        if not used_voucher and db.actor and fee > 0 then
-            local to_take = math.min(db.actor:money(), fee)
-            if to_take > 0 then
-                db.actor:give_money(-to_take)
+        local is_endless = (is_endless_active and is_endless_active()) or has_alife_info("xcvb_endless_started")
+        local diff = "medium"
+        if is_endless then
+            diff = (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or endless_difficulty or "medium"
+        else
+            local tier = 2
+            if current_tournament_round_id then
+                tier = math.ceil(current_tournament_round_id / 3)
+            end
+            if tier <= 1 then diff = "easy"
+            elseif tier == 2 then diff = "medium"
+            elseif tier == 3 then diff = "hard"
+            else diff = "very_hard" end
+        end
+
+        local token_cost = 10
+        if diff == "easy" then
+            token_cost = 5
+        elseif diff == "medium" then
+            token_cost = 10
+        elseif diff == "hard" then
+            token_cost = 15
+        elseif diff == "very_hard" then
+            token_cost = 20
+        end
+
+        if not used_voucher and xcvb_arena_main then
+            if xcvb_arena_main.spend_arena_tokens then
+                local spent = xcvb_arena_main.spend_arena_tokens(token_cost)
+                if not spent and xcvb_arena_main.arena_tokens then
+                    xcvb_arena_main.arena_tokens = 0
+                end
             end
         end
+
         local msg
         if used_voucher then
             msg = gt("st_arena_medic_rescue_voucher")
         else
-            msg = string.format(gt("st_arena_medic_rescue"), fee)
+            msg = string.format(gt("st_arena_medic_rescue_tokens") or "Emergency Medical Rescue! Treatment cost %d Tokens.", token_cost)
         end
         if db.actor then
             news_manager.send_tip(db.actor, msg, 0, nil, 12000)
@@ -2325,6 +2770,11 @@ function actor_on_before_death(whoID, flags)
         if rescue_enabled ~= false and trigger_medic_rescue() then
             if flags then flags.ret_value = false end
             if db.actor then db.actor.health = 1.0 end
+        else
+            if (is_endless_mode or HI("xcvb_endless_started")) and xcvb_arena_main and xcvb_arena_main.record_endless_run_ended then
+                local elapsed = (xcvb_arena_combat_hud and xcvb_arena_combat_hud.get_elapsed_seconds and xcvb_arena_combat_hud.get_elapsed_seconds()) or 0
+                xcvb_arena_main.record_endless_run_ended(endless_wave, elapsed)
+            end
         end
     end
 end
@@ -2335,11 +2785,21 @@ function squad_on_npc_death(squad, se_obj, killer)
             xcvb_arena_main.endless_total_kills = (xcvb_arena_main.endless_total_kills or 0) + 1
         end
         local remaining = get_endless_total_enemies_alive(squad.id)
+        if xcvb_arena_immersion then
+            xcvb_arena_immersion.announce_enemy_kill(remaining)
+        elseif xcvb_arena_combat_hud then
+            xcvb_arena_combat_hud.update_info({ remaining_enemies = remaining })
+        end
+
         if remaining > 1 then
-            local tip = string.format(gt("st_arena_enemies_remaining"), remaining)
-            news_manager.send_tip(db.actor, tip, 0, nil, 4000)
+            if not (xcvb_arena_combat_hud and xcvb_arena_combat_hud.is_shown()) then
+                local tip = string.format(gt("st_arena_enemies_remaining"), remaining)
+                news_manager.send_tip(db.actor, tip, 0, nil, 4000)
+            end
         elseif remaining == 1 then
-            news_manager.send_tip(db.actor, gt("st_arena_enemy_one_remaining"), 0, nil, 4000)
+            if not (xcvb_arena_combat_hud and xcvb_arena_combat_hud.is_shown()) then
+                news_manager.send_tip(db.actor, gt("st_arena_enemy_one_remaining"), 0, nil, 4000)
+            end
         elseif remaining <= 0 then
             advance_endless_wave()
         end
@@ -2348,12 +2808,34 @@ function squad_on_npc_death(squad, se_obj, killer)
 
     if HI("xcvb_tournament_started") and tournament_enemy_squad_id and squad.id == tournament_enemy_squad_id then
         local remaining = squad:npc_count() - 1
+        if xcvb_arena_combat_hud then
+            xcvb_arena_combat_hud.update_info({ remaining_enemies = remaining })
+        end
+
         if remaining > 1 then
-            local tip = string.format(gt("st_arena_enemies_remaining"), remaining)
-            news_manager.send_tip(db.actor, tip, 0, nil, 4000)
+            if not (xcvb_arena_combat_hud and xcvb_arena_combat_hud.is_shown()) then
+                local tip = string.format(gt("st_arena_enemies_remaining"), remaining)
+                news_manager.send_tip(db.actor, tip, 0, nil, 4000)
+            end
         elseif remaining == 1 then
-            news_manager.send_tip(db.actor, gt("st_arena_enemy_one_remaining"), 0, nil, 5000)
+            if xcvb_arena_immersion then
+                xcvb_arena_immersion.play_immersion_sound("last_enemy", 0.8)
+                if xcvb_arena_combat_hud then
+                    local last_title = gt("st_arena_hud_banner_last_enemy_title")
+                    if not last_title or last_title == "" or last_title == "st_arena_hud_banner_last_enemy_title" then last_title = "LAST ENEMY!" end
+                    local last_sub = gt("st_arena_hud_banner_last_enemy_sub")
+                    if not last_sub or last_sub == "" or last_sub == "st_arena_hud_banner_last_enemy_sub" then last_sub = "Finish him to claim victory!" end
+                    xcvb_arena_combat_hud.show_banner(last_title, last_sub, 2000)
+                end
+            end
+            if not (xcvb_arena_combat_hud and xcvb_arena_combat_hud.is_shown()) then
+                news_manager.send_tip(db.actor, gt("st_arena_enemy_one_remaining"), 0, nil, 5000)
+            end
         elseif remaining <= 0 then
+            if xcvb_arena_immersion then
+                xcvb_arena_immersion.play_immersion_sound("wave_clear", 1.0)
+                xcvb_arena_immersion.play_immersion_sound("crowd_cheer", 0.85)
+            end
             on_tournament_victory(current_tournament_round_id)
         end
         return
@@ -2614,6 +3096,7 @@ function on_game_start()
     if xcvb_arena_utils then
         if xcvb_arena_utils.install_item_parts_safeguard then pcall(xcvb_arena_utils.install_item_parts_safeguard) end
         if xcvb_arena_utils.install_itms_manager_safeguard then pcall(xcvb_arena_utils.install_itms_manager_safeguard) end
+        if xcvb_arena_utils.install_trader_autoinject_safeguard then pcall(xcvb_arena_utils.install_trader_autoinject_safeguard) end
     end
     RegisterScriptCallback("actor_on_update", actor_on_update)
     RegisterScriptCallback("actor_on_before_death", actor_on_before_death)

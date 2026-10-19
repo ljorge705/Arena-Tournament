@@ -1322,28 +1322,33 @@ function UIXcvbArena:on_click_map()
 		self.bc_monster_bet_team = 0
 	end
 
-	-- When changing maps in tournament mode, switch selection to a round matching the new map in current tier
+	-- When changing maps in tournament mode, if currently selected round has a forced map mismatch, find a matching round
 	if self.current_mode == "tournament" then
-		local start_round = (self.current_tier - 1) * 3 + 1
-		local best_round = nil
-		for r = 0, 2 do
-			local cand = start_round + r
-			local is_f = xcvb_arena_main.is_round_forest(self.current_category, cand)
-			if is_f == select_forest then
-				local unl = xcvb_arena_main.is_round_unlocked(self.current_category, cand)
-				local comp = xcvb_arena_main.is_round_completed(self.current_category, cand)
-				if unl and not comp then
-					best_round = cand
-					break
-				end
-				if not best_round then
-					best_round = cand
+		local cur_rd = xcvb_arena_main.get_round_data(self.current_category, self.selected_round_id)
+		local cur_forced = cur_rd and (cur_rd.forced_map or cur_rd.map)
+		if cur_forced and ((cur_forced == "forest") ~= select_forest) then
+			local start_round = (self.current_tier - 1) * 3 + 1
+			local best_round = nil
+			for r = 0, 2 do
+				local cand = start_round + r
+				local r_data = xcvb_arena_main.get_round_data(self.current_category, cand)
+				local cand_forced = r_data and (r_data.forced_map or r_data.map)
+				if not cand_forced or ((cand_forced == "forest") == select_forest) then
+					local unl = xcvb_arena_main.is_round_unlocked(self.current_category, cand)
+					local comp = xcvb_arena_main.is_round_completed(self.current_category, cand)
+					if unl and not comp then
+						best_round = cand
+						break
+					end
+					if not best_round then
+						best_round = cand
+					end
 				end
 			end
-		end
-		if best_round then
-			self.selected_round_id = best_round
-			self:reset_loadout_selection()
+			if best_round then
+				self.selected_round_id = best_round
+				self:reset_loadout_selection()
+			end
 		end
 	end
 
@@ -1516,7 +1521,9 @@ function UIXcvbArena:auto_select_current_round()
 	-- 1. Uncompleted + unlocked matching current map
 	for r = 0, 2 do
 		local cand = start_round + r
-		if xcvb_arena_main.is_round_forest(cat, cand) == is_forest then
+		local r_data = xcvb_arena_main.get_round_data(cat, cand)
+		local cand_forced = r_data and (r_data.forced_map or r_data.map)
+		if not cand_forced or ((cand_forced == "forest") == is_forest) then
 			if xcvb_arena_main.is_round_unlocked(cat, cand) and not xcvb_arena_main.is_round_completed(cat, cand) then
 				target_round = cand
 				break
@@ -1527,7 +1534,9 @@ function UIXcvbArena:auto_select_current_round()
 	if not target_round then
 		for r = 0, 2 do
 			local cand = start_round + r
-			if xcvb_arena_main.is_round_forest(cat, cand) == is_forest then
+			local r_data = xcvb_arena_main.get_round_data(cat, cand)
+			local cand_forced = r_data and (r_data.forced_map or r_data.map)
+			if not cand_forced or ((cand_forced == "forest") == is_forest) then
 				if xcvb_arena_main.is_round_unlocked(cat, cand) then
 					target_round = cand
 					break
@@ -1535,15 +1544,9 @@ function UIXcvbArena:auto_select_current_round()
 			end
 		end
 	end
-	-- 3. Any round in tier matching current map
+	-- 3. Any round in tier
 	if not target_round then
-		for r = 0, 2 do
-			local cand = start_round + r
-			if xcvb_arena_main.is_round_forest(cat, cand) == is_forest then
-				target_round = cand
-				break
-			end
-		end
+		target_round = start_round
 	end
 	self.selected_round_id = target_round or start_round
 end
@@ -1571,7 +1574,9 @@ function UIXcvbArena:on_click_tier(tier)
 	-- 1. Uncompleted + unlocked matching current map
 	for r = 0, 2 do
 		local cand = start_round + r
-		if xcvb_arena_main.is_round_forest(self.current_category, cand) == is_forest then
+		local r_data = xcvb_arena_main.get_round_data(self.current_category, cand)
+		local cand_forced = r_data and (r_data.forced_map or r_data.map)
+		if not cand_forced or ((cand_forced == "forest") == is_forest) then
 			if xcvb_arena_main.is_round_unlocked(self.current_category, cand) and not xcvb_arena_main.is_round_completed(self.current_category, cand) then
 				target_round = cand
 				break
@@ -1582,7 +1587,9 @@ function UIXcvbArena:on_click_tier(tier)
 	if not target_round then
 		for r = 0, 2 do
 			local cand = start_round + r
-			if xcvb_arena_main.is_round_forest(self.current_category, cand) == is_forest then
+			local r_data = xcvb_arena_main.get_round_data(self.current_category, cand)
+			local cand_forced = r_data and (r_data.forced_map or r_data.map)
+			if not cand_forced or ((cand_forced == "forest") == is_forest) then
 				if xcvb_arena_main.is_round_unlocked(self.current_category, cand) then
 					target_round = cand
 					break
@@ -1590,15 +1597,9 @@ function UIXcvbArena:on_click_tier(tier)
 			end
 		end
 	end
-	-- 3. Any round matching current map
+	-- 3. Any round in tier
 	if not target_round then
-		for r = 0, 2 do
-			local cand = start_round + r
-			if xcvb_arena_main.is_round_forest(self.current_category, cand) == is_forest then
-				target_round = cand
-				break
-			end
-		end
+		target_round = start_round
 	end
 	self.selected_round_id = target_round or start_round
 	self:reset_loadout_selection()
@@ -1611,9 +1612,11 @@ function UIXcvbArena:on_click_action(row_idx)
 	self.selected_round_id = round_id
 
 	local r_data = xcvb_arena_main.get_round_data(self.current_category, round_id)
-	local is_forest_round = r_data and (r_data.forced_map == "forest" or r_data.map == "forest")
-	local current_is_forest = self:is_forest_map()
-	local map_matches = (is_forest_round == current_is_forest)
+	local forced_m = r_data and (r_data.forced_map or r_data.map)
+	local map_matches = true
+	if forced_m then
+		map_matches = (forced_m == "forest" and self:is_forest_map()) or (forced_m == "arena" and not self:is_forest_map())
+	end
 
 	if not map_matches then
 		-- Combat is deactivated for current map. Only update details, do not start fight.
@@ -1796,10 +1799,12 @@ function UIXcvbArena:update_tournament_display()
 				end
 			end
 
-			local is_forest_round = (r_data.forced_map == "forest" or r_data.map == "forest")
-			local current_is_forest = self:is_forest_map()
-			local map_matches = (is_forest_round == current_is_forest)
-			local map_tag = is_forest_round and (" [" .. gt("st_arena_map_forest_short") .. "]") or ""
+			local forced_m = r_data and (r_data.forced_map or r_data.map)
+			local map_matches = true
+			if forced_m then
+				map_matches = (forced_m == "forest" and self:is_forest_map()) or (forced_m == "arena" and not self:is_forest_map())
+			end
+			local map_tag = (forced_m == "forest") and (" [" .. gt("st_arena_map_forest_short") .. "]") or ""
 			row.name:SetText(gt(r_data.name) .. map_tag)
 			row.diff:SetText(gt("st_arena_difficulty_label") .. " " .. gt(r_data.diff_str))
 			row.enemies:SetText(gt("st_arena_enemies_label") .. " " .. enemy_label)
@@ -1876,12 +1881,14 @@ function UIXcvbArena:update_tournament_display()
 		local sel_comp = xcvb_arena_main.is_round_completed(cat, self.selected_round_id)
 		local sel_remain_sec, sel_remain_str = xcvb_arena_main.get_round_cooldown_remaining(cat, self.selected_round_id)
 
-		local sel_is_forest = (sel_data.forced_map == "forest" or sel_data.map == "forest")
-		local current_is_forest = self:is_forest_map()
-		local sel_map_matches = (sel_is_forest == current_is_forest)
+		local sel_forced_m = sel_data and (sel_data.forced_map or sel_data.map)
+		local sel_map_matches = true
+		if sel_forced_m then
+			sel_map_matches = (sel_forced_m == "forest" and self:is_forest_map()) or (sel_forced_m == "arena" and not self:is_forest_map())
+		end
 
 		if not sel_map_matches then
-			local needed_name = sel_is_forest and (gt("st_arena_map_forest_name") or "Forest") or (gt("st_arena_map_arena_name") or "Arena")
+			local needed_name = (sel_forced_m == "forest") and (gt("st_arena_map_forest_name") or "Forest") or (gt("st_arena_map_arena_name") or "Arena")
 			if needed_name == "st_arena_map_forest_name" then needed_name = "Forest" end
 			if needed_name == "st_arena_map_arena_name" then needed_name = "Arena" end
 			local tip_fmt = gt("st_arena_map_mismatch_tip")
@@ -1900,10 +1907,10 @@ function UIXcvbArena:update_tournament_display()
 			end
 		end
 
-		if sel_map_matches and sel_is_forest then
+		if sel_map_matches and sel_forced_m == "forest" then
 			sel_desc = sel_desc .. "\\n\\n" .. gt("st_arena_forced_forest_desc")
 		end
-		local sel_map_tag = sel_is_forest and (" [" .. gt("st_arena_map_forest_short") .. "]") or ""
+		local sel_map_tag = (sel_forced_m == "forest") and (" [" .. gt("st_arena_map_forest_short") .. "]") or ""
 		self.detail_title:SetText(gt(sel_data.name) .. sel_map_tag .. " - " .. gt(sel_data.diff_str))
 		self.detail_desc:SetText(sel_desc)
 
@@ -1953,9 +1960,11 @@ function UIXcvbArena:update_tourn_start_button()
 	local actor_money = db.actor and db.actor:money() or 0
 
 	local sel_data = xcvb_arena_main.get_round_data(cat, self.selected_round_id)
-	local sel_is_forest = sel_data and (sel_data.forced_map == "forest" or sel_data.map == "forest")
-	local current_is_forest = self:is_forest_map()
-	local sel_map_matches = (sel_is_forest == current_is_forest)
+	local sel_forced_m = sel_data and (sel_data.forced_map or sel_data.map)
+	local sel_map_matches = true
+	if sel_forced_m then
+		sel_map_matches = (sel_forced_m == "forest" and self:is_forest_map()) or (sel_forced_m == "arena" and not self:is_forest_map())
+	end
 
 	if not sel_map_matches then
 		local b_map_txt = gt("st_arena_btn_locked_map")
@@ -2581,10 +2590,13 @@ end
 function UIXcvbArena:on_click_tourn_start()
 	local cat = self.current_category
 	local sel_rd = xcvb_arena_main.get_round_data(cat, self.selected_round_id)
-	local is_forest_round = sel_rd and (sel_rd.forced_map == "forest" or sel_rd.map == "forest")
-	local current_is_forest = self:is_forest_map()
-	if is_forest_round ~= current_is_forest then
-		return
+	local forced_m = sel_rd and (sel_rd.forced_map or sel_rd.map)
+	if forced_m then
+		local is_forest_round = (forced_m == "forest")
+		local current_is_forest = self:is_forest_map()
+		if is_forest_round ~= current_is_forest then
+			return
+		end
 	end
 
 	local is_practice = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
@@ -2642,8 +2654,12 @@ function UIXcvbArena:on_click_tourn_start()
 
 	self:Close()
 	local sel_rd = xcvb_arena_main.get_round_data(cat, self.selected_round_id)
-	local is_forest_round = sel_rd and (sel_rd.forced_map == "forest" or sel_rd.map == "forest")
-	xcvb_arena_main.selected_map = is_forest_round and "forest" or "arena"
+	local forced_m = sel_rd and (sel_rd.forced_map or sel_rd.map)
+	if forced_m then
+		xcvb_arena_main.selected_map = forced_m
+	else
+		xcvb_arena_main.selected_map = self:is_forest_map() and "forest" or "arena"
+	end
 	local started = xcvb_arena_fight.start_tournament_fight(cat, self.selected_round_id, chosen_cls, chosen_tier, chosen_ammo, chosen_weapon, chosen_forced_ammo, chosen_3dssg_mode, chosen_3dssg_scope, chosen_mag, chosen_mag_count, chosen_ammo_count)
 	if started == false and not is_practice and fee > 0 and db.actor then
 		db.actor:give_money(fee)

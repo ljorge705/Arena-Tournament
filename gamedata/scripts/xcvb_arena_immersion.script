@@ -1,0 +1,111 @@
+-- =============================================================================
+-- Arena Tournament Mod - Combat Immersion System (Sistema de Inmersión)
+-- Script: xcvb_arena_immersion.script
+-- Description: Visual atmosphere, tactical countdowns, and center announcement banners
+-- =============================================================================
+
+local gt = game.translate_string
+
+-- Legacy compatibility stub
+function play_immersion_sound(key, vol, override_path)
+    -- Sounds removed by user request
+end
+
+function is_wave_elite(wave)
+    return wave and wave > 1 and (wave % 5 == 0)
+end
+
+function announce_wave_countdown(wave, callback_on_spawn)
+    local is_elite = is_wave_elite(wave)
+
+    -- 3 Seconds Warning
+    CreateTimeEvent("arena_immersion_cd3_e", "arena_immersion_cd3_a", 0.1, function()
+        if xcvb_arena_combat_hud then
+            local title = string.format(gt("st_arena_hud_banner_wave") or "WAVE %d", wave)
+            local sub = is_elite and (gt("st_arena_hud_banner_elite_3") or "ALERT: ELITE SQUAD IN 3 SEC!") or (gt("st_arena_hud_banner_cd_3") or "Enemies in 3...")
+            xcvb_arena_combat_hud.show_banner(title, sub, 1100)
+        end
+        return true
+    end)
+
+    -- 2 Seconds Warning
+    CreateTimeEvent("arena_immersion_cd2_e", "arena_immersion_cd2_a", 1.1, function()
+        if xcvb_arena_combat_hud then
+            local title = string.format(gt("st_arena_hud_banner_wave") or "WAVE %d", wave)
+            local sub = is_elite and (gt("st_arena_hud_banner_elite_2") or "ALERT: ELITE SQUAD IN 2 SEC!") or (gt("st_arena_hud_banner_cd_2") or "Enemies in 2...")
+            xcvb_arena_combat_hud.show_banner(title, sub, 1100)
+        end
+        return true
+    end)
+
+    -- 1 Second Warning
+    CreateTimeEvent("arena_immersion_cd1_e", "arena_immersion_cd1_a", 2.1, function()
+        if xcvb_arena_combat_hud then
+            local title = string.format(gt("st_arena_hud_banner_wave") or "WAVE %d", wave)
+            local sub = is_elite and (gt("st_arena_hud_banner_elite_1") or "ALERT: PREPARE YOURSELF!") or (gt("st_arena_hud_banner_cd_1") or "Enemies in 1...")
+            xcvb_arena_combat_hud.show_banner(title, sub, 1100)
+        end
+        return true
+    end)
+
+    -- 0 Seconds: Wave Start!
+    CreateTimeEvent("arena_immersion_start_e", "arena_immersion_start_a", 3.1, function()
+        if xcvb_arena_combat_hud then
+            local title = is_elite and string.format(gt("st_arena_hud_banner_elite_start") or "WAVE %d: [ELITE]", wave) or string.format(gt("st_arena_hud_banner_start") or "WAVE %d: COMMENCE", wave)
+            local sub = is_elite and (gt("st_arena_hud_banner_elite_sub") or "Defeat the Arena Champions!") or (gt("st_arena_hud_banner_start_sub") or "Fight to survive!")
+            xcvb_arena_combat_hud.show_banner(title, sub, 2500)
+        end
+
+        if callback_on_spawn then
+            callback_on_spawn()
+        end
+        return true
+    end)
+end
+
+function announce_enemy_kill(remaining, total)
+    if xcvb_arena_combat_hud then
+        xcvb_arena_combat_hud.update_info({
+            remaining_enemies = remaining,
+            total_enemies = total,
+        })
+    end
+
+    if remaining == 1 then
+        if xcvb_arena_combat_hud then
+            xcvb_arena_combat_hud.show_banner(gt("st_arena_hud_banner_last_enemy_title") or "LAST ENEMY!", gt("st_arena_hud_banner_last_enemy_sub") or "Finish him to clear the wave!", 2000)
+        end
+    end
+end
+
+function announce_wave_cleared(wave, reward, is_tokens)
+    local is_elite = is_wave_elite(wave)
+
+    if xcvb_arena_combat_hud then
+        local rew_str = is_tokens and string.format("+%d TOKENS", reward or 0) or string.format("+%d RU", reward or 0)
+        local title = is_elite and string.format(gt("st_arena_hud_banner_elite_cleared") or "ELITE WAVE %d CLEARED!", wave) or string.format(gt("st_arena_hud_banner_cleared") or "WAVE %d CLEARED!", wave)
+        local sub = string.format(gt("st_arena_hud_banner_reward_sub") or "Accumulated reward: %s", rew_str)
+        xcvb_arena_combat_hud.show_banner(title, sub, 3200)
+        xcvb_arena_combat_hud.update_info({
+            remaining_enemies = 0,
+            reward = reward,
+            is_tokens = is_tokens,
+        })
+    end
+end
+
+function stop_all_sounds()
+    RemoveTimeEvent("arena_immersion_cd3_e", "arena_immersion_cd3_a")
+    RemoveTimeEvent("arena_immersion_cd2_e", "arena_immersion_cd2_a")
+    RemoveTimeEvent("arena_immersion_cd1_e", "arena_immersion_cd1_a")
+    RemoveTimeEvent("arena_immersion_start_e", "arena_immersion_start_a")
+    RemoveTimeEvent("arena_crowd_cheer_e", "arena_crowd_cheer_a")
+end
+
+function actor_on_net_destroy()
+    stop_all_sounds()
+end
+
+function on_game_start()
+    RegisterScriptCallback("actor_on_net_destroy", actor_on_net_destroy)
+end

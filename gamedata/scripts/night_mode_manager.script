@@ -21,13 +21,15 @@ local NIGHT_FOV   = 65.0
 
 -- Cvars gestionados + valor nocturno deseado (string tal cual se envia a consola)
 local NIGHT_CVARS = {
-  { name = "r2_sun_lumscale",     night = "0.0"     },
-  { name = "r2_sun_lumscale_amb", night = "0.0"     },
-  { name = "r2_tonemap_lowlum",   night = "0.8"     },
-  { name = "ssfx_is_underground", night = "1"       },
-  { name = "ssfx_fog_scattering", night = "0"       },
-  { name = "ssfx_volumetric",     night = "0,0,0,0" },
-  { name = "r2_volumetric_lights",night = "off"     },
+  { name = "r2_sun_lumscale",      night = "0.0"     },
+  { name = "r2_sun_lumscale_amb",  night = "0.3"     },
+  { name = "r2_sun_lumscale_hemi", night = "0.2"     },
+  { name = "r2_tonemap_lowlum",    night = "0.0001"  },
+  { name = "r2_tonemap_middlegray",night = "0.9"     },
+  { name = "ssfx_is_underground",  night = "1"       },
+  { name = "ssfx_fog_scattering",  night = "0"       },
+  { name = "ssfx_volumetric",      night = "0,0,0,0" },
+  { name = "r2_volumetric_lights", night = "off"     },
 }
 
 -- Estado interno (no persistente entre saves salvo flag)

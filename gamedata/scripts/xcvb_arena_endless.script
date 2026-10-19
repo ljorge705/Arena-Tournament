@@ -150,7 +150,7 @@ function get_endless_random_weapon(tier, chosen_cls, prefer_scopes)
                 or t_data.weapons
             if fallback_list then
                 for _, s in ipairs(fallback_list) do
-                    if ini_sys:section_exist(s) then
+                    if ini_sys:section_exist(s) and (not xcvb_arena_utils or xcvb_arena_utils.is_arena_weapon_allowed(s)) then
                         table.insert(candidates, s)
                     end
                 end

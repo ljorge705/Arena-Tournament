@@ -12,9 +12,11 @@ local cached_arena_lamp_ids = {}
 local cached_lamp_level = nil
 
 local CVAR_LIST = {
-    { name = "r2_sun_lumscale",     night = "0.0" },
-    { name = "r2_sun_lumscale_amb", night = "0.0" },
-    { name = "r2_tonemap_lowlum",   night = "0.8" },
+    { name = "r2_sun_lumscale",      night = "0.0" },
+    { name = "r2_sun_lumscale_amb",  night = "0.3" },
+    { name = "r2_sun_lumscale_hemi", night = "0.2" },
+    { name = "r2_tonemap_lowlum",    night = "0.0001" },
+    { name = "r2_tonemap_middlegray",night = "0.9" },
 }
 
 local ARENA_CENTER_X = 152.0
