@@ -1,0 +1,28 @@
+-- ArtiGrok disables its CUSTOM22 handler when magazine mods are installed.
+-- Mags Reloaded, in turn, leaves Arti's jammed weapons for Arti to handle.
+-- Bridge that gap using the current Reload binding, without replacing either
+-- mod's reload logic or clearing a jam/repairing a spring by force.
+
+function on_key_release(key)
+    if not key_bindings or not key_bindings.kWPN_RELOAD
+        or dik_to_bind(key) ~= key_bindings.kWPN_RELOAD then return end
+    if not (db and db.actor and db.actor:alive()) then return end
+    if not (magazines and magazine_binder and arti_jamming
+        and arti_jamming.get_jammed and arti_jamming.unjam) then return end
+
+    -- Do not operate a weapon while interacting with inventory, PDA or dialogs.
+    if db.actor:is_talking() then return end
+    if actor_menu and actor_menu.get_last_mode and actor_menu.get_last_mode() ~= 0 then return end
+    if Check_UI and Check_UI() then return end
+    if game.only_movekeys_allowed and game.only_movekeys_allowed() then return end
+
+    local weapon = db.actor:active_item()
+    if not weapon or not arti_jamming.get_jammed(weapon:id()) then return end
+    -- Key release follows Mags' normal reload press. Healthy weapons are left
+    -- entirely to the original handlers; only Arti-owned jams reach this call.
+    arti_jamming.unjam(weapon)
+end
+
+function on_game_start()
+    RegisterScriptCallback("on_key_release", on_key_release)
+end

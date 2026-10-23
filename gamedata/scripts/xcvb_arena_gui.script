@@ -485,6 +485,9 @@ function UIXcvbArena:InitControls()
 
 	self.btn_diff_custom = xml:Init3tButton("endless_diff_menu:btn_diff_custom", self.endless_diff_menu)
 	self:Register(self.btn_diff_custom, "btn_diff_custom")
+	self.endless_variant = xcvb_arena_main.endless_selected_variant == "plus" and "plus" or "classic"
+	self.btn_diff_variant = xml:Init3tButton("endless_diff_menu:btn_diff_variant", self.endless_diff_menu)
+	self:Register(self.btn_diff_variant, "btn_diff_variant")
 
 	self.diff_summary_frame = xml:InitStatic("endless_diff_menu:diff_summary_frame", self.endless_diff_menu)
 	if self.diff_summary_frame then
@@ -797,6 +800,7 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		if self.btn_diff_escalation then self.btn_diff_escalation:Show(is_shown); self.btn_diff_escalation:Enable(is_shown) end
 		if self.btn_diff_spawn_type then self.btn_diff_spawn_type:Show(is_shown); self.btn_diff_spawn_type:Enable(is_shown) end
 		if self.btn_diff_custom then self.btn_diff_custom:Show(is_shown); self.btn_diff_custom:Enable(is_shown) end
+		if self.btn_diff_variant then self.btn_diff_variant:Show(is_shown); self.btn_diff_variant:Enable(is_shown) end
 		if self.btn_diff_easy then self.btn_diff_easy:Show(is_shown); self.btn_diff_easy:Enable(is_shown) end
 		if self.btn_diff_medium then self.btn_diff_medium:Show(is_shown); self.btn_diff_medium:Enable(is_shown) end
 		if self.btn_diff_hard then self.btn_diff_hard:Show(is_shown); self.btn_diff_hard:Enable(is_shown) end
@@ -934,6 +938,11 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_diff_spawn_type", ui_events.BUTTON_CLICKED, self.on_click_endless_spawn_type, self)
 	self:AddCallback("btn_diff_3dssg", ui_events.BUTTON_CLICKED, self.on_click_endless_3dssg, self)
 	self:AddCallback("btn_diff_custom", ui_events.BUTTON_CLICKED, self.on_click_diff_custom, self)
+	self:AddCallback("btn_diff_variant", ui_events.BUTTON_CLICKED, function()
+		self.endless_variant = self.endless_variant == "plus" and "classic" or "plus"
+		xcvb_arena_main.endless_selected_variant = self.endless_variant
+		self:update_endless_menu_all()
+	end, self)
 	self:AddCallback("btn_diff_cancel", ui_events.BUTTON_CLICKED, function() self:show_endless_difficulty_menu(false) end, self)
 	self:AddCallback("btn_diff_reset_stats", ui_events.BUTTON_CLICKED, self.on_click_endless_reset_stats, self)
 	self:AddCallback("btn_endless_custom_eq_main", ui_events.BUTTON_CLICKED, self.on_click_endless_custom_eq, self)
@@ -3819,6 +3828,11 @@ function UIXcvbArena:show_endless_difficulty_menu(show)
 end
 
 function UIXcvbArena:update_endless_menu_all()
+	local plus = self.endless_variant == "plus"
+	self.btn_diff_variant:TextControl():SetText(plus and "MODE: Endless - [Endless+]" or "MODE: [Endless] - Endless+")
+	self.btn_diff_variant:TextControl():SetTextColor(plus and GetARGB(255, 245, 210, 120) or GetARGB(255, 120, 240, 120))
+	self.diff_menu_title:SetText(plus and "Endless+" or gt("st_arena_endless_menu_title"))
+	self.diff_menu_desc:SetText(plus and xcvb_arena_plus.text("menu_desc") or gt("st_arena_endless_menu_desc"))
 	self:update_endless_wpn_class_buttons()
 	self:update_endless_diff_buttons()
 	self:update_endless_3dssg_button()
@@ -3933,10 +3947,12 @@ function UIXcvbArena:on_select_endless_difficulty(diff)
 	self:show_endless_difficulty_menu(false)
 	local e_type = self.endless_target_enemy_type or "stalkers"
 	local start_wave = 1
-	if diff == "medium" then start_wave = 6
+	local variant = self.endless_variant or "classic"
+	if variant == "plus" then start_wave = 1
+	elseif diff == "medium" then start_wave = 6
 	elseif diff == "hard" then start_wave = 11
 	end
-	if xcvb_arena_main then
+	if xcvb_arena_main and variant ~= "plus" then
 		xcvb_arena_main.endless_difficulty = diff
 		xcvb_arena_main.endless_checkpoint_wave = start_wave
 		xcvb_arena_main.endless_checkpoint_type = e_type
@@ -3944,7 +3960,7 @@ function UIXcvbArena:on_select_endless_difficulty(diff)
 	self:Close()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
-		xcvb_arena_fight.start_endless_fight(e_type, start_wave, diff, xcvb_arena_main.endless_3dssg == true)
+		xcvb_arena_fight.start_endless_fight(e_type, start_wave, diff, xcvb_arena_main.endless_3dssg == true, variant)
 		return true
 	end)
 end
@@ -4008,7 +4024,9 @@ function UIXcvbArena:update_endless_3dssg_button()
 end
 
 function UIXcvbArena:on_click_endless_reset_stats()
-	if xcvb_arena_main and xcvb_arena_main.reset_endless_stats then
+	if self.endless_variant == "plus" then
+		xcvb_arena_plus.stats = {best = 0, runs = 0, kills = 0, cleared = 0, pb = {}}
+	elseif xcvb_arena_main and xcvb_arena_main.reset_endless_stats then
 		xcvb_arena_main.reset_endless_stats()
 	end
 	if db.actor then
@@ -4142,8 +4160,12 @@ function UIXcvbArena:update_endless_summary()
 	-- 7. Career Statistics
 	local best_w = (xcvb_arena_main and xcvb_arena_main.best_endless_wave) or 0
 	local total_k = (xcvb_arena_main and xcvb_arena_main.endless_total_kills) or 0
+	if self.endless_variant == "plus" then
+		best_w, total_k = xcvb_arena_plus.stats.best, xcvb_arena_plus.stats.kills
+	end
 	local total_r = (xcvb_arena_main and xcvb_arena_main.endless_total_runs) or 0
 	local total_wc = (xcvb_arena_main and xcvb_arena_main.endless_total_waves_cleared) or 0
+	if self.endless_variant == "plus" then total_r, total_wc = xcvb_arena_plus.stats.runs, xcvb_arena_plus.stats.cleared end
 
 	if self.stat_max_wave then
 		self.stat_max_wave:SetText(string.format(gt("st_arena_endless_stat_max_wave") or "Highest Wave: Wave %s", tostring(best_w)))
@@ -4170,7 +4192,7 @@ function UIXcvbArena:update_endless_summary()
 		note_str = note_str .. " " .. (gt("st_arena_endless_note_escalation") or "Horde escalation adds +1 enemy per wave.")
 	end
 	if self.diff_sum_note then
-		self.diff_sum_note:SetText(note_str)
+		self.diff_sum_note:SetText(self.endless_variant == "plus" and xcvb_arena_plus.text("menu_desc") or note_str)
 	end
 end
 

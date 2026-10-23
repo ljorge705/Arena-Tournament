@@ -143,6 +143,19 @@ function reset_battle_royale_cache()
     xcvb_arena_utils.reset_battle_royale_relations()
 end
 
+local intro_cam_round_id = 1
+local intro_cam_active = false
+local intro_saved_actor_body = nil
+local intro_legs_hooked = false
+
+local function restore_intro_actor_body()
+    if intro_saved_actor_body ~= nil then
+        local value = intro_saved_actor_body
+        intro_saved_actor_body = nil
+        pcall(function() get_console():execute("show_actor_body " .. (value and "1" or "0")) end)
+    end
+end
+
 local function cancel_player_combat_events()
     local events = {
         {"arena_corpse_clean_e", "arena_corpse_clean_a"},
@@ -173,6 +186,7 @@ local function cancel_player_combat_events()
     }
     for _, event in ipairs(events) do RemoveTimeEvent(event[1], event[2]) end
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
+    restore_intro_actor_body()
     if db.actor then
         pcall(level.remove_cam_effector, 987126)
         pcall(level.enable_input)
@@ -297,7 +311,17 @@ local function get_endless_total_enemies_alive(dying_squad_id)
             if s_id ~= dying_squad_id then
                 for member in squad:squad_members() do
                     local npc = level.object_by_id(member.id)
-                    if not npc or npc:alive() then total = total + 1 end
+                    if npc then
+                        if npc:alive() then total = total + 1 end
+                    else
+                        -- Bodies can go offline or be removed before the squad
+                        -- drops their IDs. Only a live server member still counts.
+                        local server_npc = alife_object(member.id)
+                        if server_npc then
+                            local ok, alive = pcall(function() return server_npc:alive() end)
+                            if not ok or alive then total = total + 1 end
+                        end
+                    end
                 end
             end
         end
@@ -344,9 +368,6 @@ function heal_actor_completely()
     end
 end
 
-local intro_cam_round_id = 1
-local intro_cam_active = false
-
 function is_intro_camera_active()
     return intro_cam_active == true
 end
@@ -356,6 +377,7 @@ function on_arena_intro_camera_end()
     RemoveTimeEvent("arena_intro_hold_e", "arena_intro_hold_a")
     if not intro_cam_active then return "" end
     intro_cam_active = false
+    restore_intro_actor_body()
 
     if db.actor then
         -- NOTE: Do NOT call level.remove_cam_effector(987126) here.
@@ -409,8 +431,25 @@ end
 
 function play_arena_intro_camera(round_id)
     if not db.actor then return 0 end
+    xcvb_arena_wearable.finish_inspection()
     intro_cam_round_id = round_id or 1
     intro_cam_active = true
+    -- Both SWM's separate body object and the engine body must stay hidden
+    -- while an effector moves the camera away from first-person position.
+    if not intro_legs_hooked and swm_legs and swm_legs.CanShowLegs then
+        local original_can_show = swm_legs.CanShowLegs
+        swm_legs.CanShowLegs = function(...)
+            if intro_cam_active then return false end
+            return original_can_show(...)
+        end
+        intro_legs_hooked = true
+    end
+    pcall(function()
+        if intro_saved_actor_body == nil then
+            intro_saved_actor_body = get_console():get_bool("show_actor_body")
+        end
+        get_console():execute("show_actor_body 0")
+    end)
     local cam_length = 5.0
     pcall(function()
         level.disable_input()
@@ -523,7 +562,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
 
     local is_intro_cam_enabled = (xcvb_arena_main and (not xcvb_arena_main.selected_map or xcvb_arena_main.selected_map == "arena"))
         and (level.name() == "l05_bar")
-        and (not xcvb_arena_mcm or xcvb_arena_mcm.get_config("arena_intro_camera") ~= false)
+        and (xcvb_arena_mcm and xcvb_arena_mcm.get_config("arena_intro_camera") == true)
 
     local cam_duration = 0
     if is_intro_cam_enabled then
@@ -637,7 +676,7 @@ function end_tournament_fight(is_victory)
         pcall(function() db.actor:activate_slot(0) end)
         for s = 1, 15 do
             local itm = db.actor:item_in_slot(s)
-            if itm and db.actor.move_to_ruck then
+            if itm and not xcvb_arena_wearable.is_preserved(itm) and db.actor.move_to_ruck then
                 pcall(function() db.actor:move_to_ruck(itm) end)
             end
         end
@@ -1297,11 +1336,13 @@ function get_endless_enemy_squad_ids()
     return endless_enemy_squad_ids
 end
 
-function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
+function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, variant)
     if not db.actor or not xcvb_arena_utils.store_actor_inventory() then return false end
     callback_epoch = callback_epoch + 1
     cancel_player_combat_events()
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
+    if variant == "plus" then xcvb_arena_plus.start(difficulty); start_wave = 1
+    elseif xcvb_arena_plus then xcvb_arena_plus.stop() end
     tourn_ending = false
     endless_ending = false
 
@@ -1340,7 +1381,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
     pcall(disable_info, "xcvb_battle_royale_started")
     give_info("xcvb_endless_started")
 
-    if xcvb_arena_main then
+    if xcvb_arena_main and variant ~= "plus" then
         xcvb_arena_main.endless_total_runs = (xcvb_arena_main.endless_total_runs or 0) + 1
         xcvb_arena_main.endless_difficulty = endless_difficulty
         xcvb_arena_main.endless_checkpoint_type = endless_enemy_type
@@ -1386,6 +1427,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
         else
             xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, use_3dssg == true)
         end
+        if xcvb_arena_plus and xcvb_arena_plus.active() then xcvb_arena_plus.state.initial_equipped = true end
         return true
     end)
 
@@ -1414,7 +1456,9 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
         })
     end
 
-    if xcvb_arena_immersion then
+    if xcvb_arena_plus and xcvb_arena_plus.active() then
+        news_manager.send_tip(db.actor, xcvb_arena_plus.text("initial_setup"), 0, nil, 3000)
+    elseif xcvb_arena_immersion then
         xcvb_arena_immersion.announce_wave_countdown(endless_wave)
     else
         local msg_spawn = gt("st_arena_endless_enemies_spawning_3s")
@@ -1426,6 +1470,11 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
 
     CreateTimeEvent("arena_spawn_endless_squad_e", "arena_spawn_endless_squad_a", 3.0, function()
         if endless_ending or endless_fight_closed then return true end
+
+        if xcvb_arena_plus and xcvb_arena_plus.active() then
+            xcvb_arena_plus.begin_initial_choice()
+            return true
+        end
 
         local squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
         endless_enemy_squad_ids = {}
@@ -1448,6 +1497,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg)
         end
 
         local total_living = get_endless_total_enemies_alive()
+        if xcvb_arena_plus and xcvb_arena_plus.active() then xcvb_arena_plus.combat_started() end
         if xcvb_arena_combat_hud then
             xcvb_arena_combat_hud.update_info({
                 wave = endless_wave,
@@ -1484,6 +1534,19 @@ end
 
 function advance_endless_wave(resume_pending)
     if endless_transitioning or endless_fight_closed or endless_ending or is_medic_rescuing then return end
+    if xcvb_arena_plus and xcvb_arena_plus.active() then
+        if resume_pending then xcvb_arena_plus.resume(); return end
+        local reward = xcvb_arena_plus.complete_wave(endless_wave, endless_difficulty, endless_reward)
+        if not reward then return end
+        endless_transitioning = true
+        endless_reward, endless_wave = reward, endless_wave + 1
+        for _, id in ipairs(endless_enemy_squad_ids) do pcall(xcvb_arena_utils.clean_tournament_squad, id) end
+        endless_enemy_squad_ids = {}
+        pcall(xcvb_arena_utils.clean_arena_corpses)
+        if xcvb_arena_combat_hud then xcvb_arena_combat_hud.update_info({remaining_enemies = 0}) end
+        xcvb_arena_plus.open_ui()
+        return
+    end
     pcall(sync_night_mode_device_from_actor)
     endless_transitioning = true
     if db.actor then
@@ -1671,6 +1734,9 @@ function advance_endless_wave(resume_pending)
                 return true
             end
 
+            -- Spawning succeeded. Optional HUD/companion work below must not
+            -- leave the next victory blocked by the transition flag.
+            endless_transitioning = false
             local attempts_w = 0
             CreateTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a", 0.8, function()
                 if endless_ending or endless_fight_closed then return true end
@@ -1714,12 +1780,12 @@ function advance_endless_wave(resume_pending)
 
             -- Reassign companion aggro to the new wave
             if xcvb_arena_companions and xcvb_arena_companions.cleanup_dead_companions then
-                xcvb_arena_companions.cleanup_dead_companions()
+                pcall(xcvb_arena_companions.cleanup_dead_companions)
             end
             if xcvb_arena_companions and xcvb_arena_companions.reassign_companion_aggro then
                 CreateTimeEvent("xcvb_comp_wave_aggro_e", "xcvb_comp_wave_aggro_a", 2.0, function()
                     if not endless_ending and not endless_fight_closed then
-                        xcvb_arena_companions.reassign_companion_aggro(endless_enemy_squad_ids)
+                        pcall(xcvb_arena_companions.reassign_companion_aggro, endless_enemy_squad_ids)
                     end
                     return true
                 end)
@@ -1794,6 +1860,7 @@ function advance_endless_wave(resume_pending)
                 return true
             end
 
+            endless_transitioning = false
             local attempts_w = 0
             CreateTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a", 0.8, function()
                 if endless_ending or endless_fight_closed then return true end
@@ -1837,12 +1904,12 @@ function advance_endless_wave(resume_pending)
 
             -- Reassign companion aggro to the new wave
             if xcvb_arena_companions and xcvb_arena_companions.cleanup_dead_companions then
-                xcvb_arena_companions.cleanup_dead_companions()
+                pcall(xcvb_arena_companions.cleanup_dead_companions)
             end
             if xcvb_arena_companions and xcvb_arena_companions.reassign_companion_aggro then
                 CreateTimeEvent("xcvb_comp_wave_aggro_e", "xcvb_comp_wave_aggro_a", 2.0, function()
                     if not endless_ending and not endless_fight_closed then
-                        xcvb_arena_companions.reassign_companion_aggro(endless_enemy_squad_ids)
+                        pcall(xcvb_arena_companions.reassign_companion_aggro, endless_enemy_squad_ids)
                     end
                     return true
                 end)
@@ -1853,15 +1920,60 @@ function advance_endless_wave(resume_pending)
     end
 end
 
+function spawn_plus_wave(extra_enemies)
+    if endless_fight_closed or not xcvb_arena_plus.active() then return end
+    local interval = xcvb_arena_mcm.get_config("endless_map_swap_interval") or 0
+    if interval > 0 and endless_wave > 1 and (endless_wave - 1) % interval == 0 then
+        xcvb_arena_main.selected_map = xcvb_arena_main.selected_map == "forest" and "arena" or "forest"
+        local pos, lv, gv, dir = xcvb_arena_utils.get_actor_tournament_pos(endless_wave)
+        db.actor:set_actor_position(pos, lv, gv); db.actor:set_actor_direction(dir or 0)
+        if xcvb_arena_companions and xcvb_arena_companions.relocate_companions_to_actor then
+            pcall(xcvb_arena_companions.relocate_companions_to_actor)
+        end
+        if xcvb_arena_main.night_mode_active then pcall(xcvb_arena_utils.enter_arena_night_mode)
+        else pcall(xcvb_arena_utils.toggle_arena_lights, true); pcall(xcvb_arena_utils.apply_night_mode_lighting, false) end
+    end
+    if xcvb_arena_main.night_mode_active then pcall(xcvb_arena_utils.ensure_actor_torch_active) end
+    if xcvb_arena_companions and xcvb_arena_companions.cleanup_dead_companions then
+        pcall(xcvb_arena_companions.cleanup_dead_companions)
+    end
+    local squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty, extra_enemies,
+        xcvb_arena_plus.state.enemy_mult or 1)
+    endless_enemy_squad_ids = {}
+    for _, squad in ipairs(squads or {}) do if squad.id then endless_enemy_squad_ids[#endless_enemy_squad_ids + 1] = squad.id end end
+    if #endless_enemy_squad_ids == 0 then error("Endless+: no enemies spawned") end
+    endless_transitioning = false
+    xcvb_arena_plus.combat_started()
+    if xcvb_arena_forest_ai then
+        pcall(xcvb_arena_forest_ai.reset_combat_data)
+        if xcvb_arena_forest_ai.is_active() then pcall(xcvb_arena_forest_ai.on_fight_start) end
+    end
+    CreateTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a", 0.8, function()
+        if endless_fight_closed then return true end
+        xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
+        if xcvb_arena_companions and xcvb_arena_companions.reassign_companion_aggro then
+            pcall(xcvb_arena_companions.reassign_companion_aggro, endless_enemy_squad_ids)
+        end
+        return true
+    end)
+    if xcvb_arena_combat_hud then
+        local count = get_endless_total_enemies_alive()
+        xcvb_arena_combat_hud.update_info({wave = endless_wave, remaining_enemies = count, total_enemies = count,
+            reward = xcvb_arena_mcm.get_config("economy_mode") == "tokens" and math.floor(endless_reward / 100) or endless_reward})
+    end
+end
+
 function end_endless_fight(is_victory, voluntary_leave)
     if endless_fight_closed then return end
     endless_fight_closed = true
     callback_epoch = callback_epoch + 1
+    local was_plus = xcvb_arena_plus and xcvb_arena_plus.active()
 
     if xcvb_arena_main and xcvb_arena_main.record_endless_run_ended then
         local elapsed = xcvb_arena_combat_hud and xcvb_arena_combat_hud.get_elapsed_seconds and xcvb_arena_combat_hud.get_elapsed_seconds() or 0
         xcvb_arena_main.record_endless_run_ended(endless_wave, elapsed)
     end
+    if was_plus then xcvb_arena_plus.stop() end
 
     cancel_player_combat_events()
     endless_ending = false
@@ -1931,7 +2043,7 @@ function end_endless_fight(is_victory, voluntary_leave)
         end
     end
 
-    if xcvb_arena_main then
+    if xcvb_arena_main and not was_plus then
         if endless_wave and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
             xcvb_arena_main.endless_checkpoint_wave = endless_wave
         end
@@ -2040,6 +2152,11 @@ local function update_npc_night_state(npc, tg, vision_ctx)
 end
 
 function actor_on_update()
+    if xcvb_arena_plus and xcvb_arena_plus.active() then
+        local ok, err = pcall(xcvb_arena_plus.tick)
+        if not ok then xcvb_arena_plus.fail(err); return end
+        if not xcvb_arena_plus.in_combat() then return end
+    end
     local tg_cur = time_global()
     local tournament_active = HI("xcvb_tournament_started")
     local endless_active = HI("xcvb_endless_started") or is_endless_mode
@@ -2140,6 +2257,16 @@ function actor_on_update()
     end
 
     if endless_active then
+        -- Reconcile after death callbacks have finished updating their squads.
+        -- Some deaths/removals never reach squad_on_npc_death; an empty wave
+        -- must still progress. A nonempty registry avoids advancing before the
+        -- initial spawn or during the cleanup gap between waves.
+        if not endless_transitioning and not endless_ending and not endless_fight_closed
+            and not is_medic_rescuing and db.actor and db.actor:alive()
+            and #endless_enemy_squad_ids > 0 and get_endless_total_enemies_alive() == 0 then
+            advance_endless_wave()
+            return
+        end
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false and db.actor and db.actor:alive() then
             if db.actor.health <= 0.01 then
@@ -2287,6 +2414,7 @@ function actor_on_update()
 end
 
 function on_before_key_press(key, bind, dis, flags)
+	if xcvb_arena_plus and xcvb_arena_plus.active() and not xcvb_arena_plus.in_combat() then return end
 	local cur_bind = bind or dik_to_bind(key)
 	local panic_key = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("panic_key"))
 	if not panic_key and DIK_keys and DIK_keys.DIK_F then
@@ -2573,7 +2701,8 @@ function trigger_medic_rescue()
     if in_endless then
         endless_ending = true
         tourn_ending = false
-        if xcvb_arena_main and endless_wave and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
+        if not (xcvb_arena_plus and xcvb_arena_plus.active()) and xcvb_arena_main
+            and endless_wave and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
             xcvb_arena_main.endless_checkpoint_wave = endless_wave
         end
     else
@@ -2781,7 +2910,9 @@ end
 
 function squad_on_npc_death(squad, se_obj, killer)
     if (HI("xcvb_endless_started") or is_endless_mode) and is_endless_enemy_squad(squad.id) then
-        if xcvb_arena_main then
+        if xcvb_arena_plus and xcvb_arena_plus.active() then
+            xcvb_arena_plus.stats.kills = xcvb_arena_plus.stats.kills + 1
+        elseif xcvb_arena_main then
             xcvb_arena_main.endless_total_kills = (xcvb_arena_main.endless_total_kills or 0) + 1
         end
         local remaining = get_endless_total_enemies_alive(squad.id)
@@ -2800,8 +2931,8 @@ function squad_on_npc_death(squad, se_obj, killer)
             if not (xcvb_arena_combat_hud and xcvb_arena_combat_hud.is_shown()) then
                 news_manager.send_tip(db.actor, gt("st_arena_enemy_one_remaining"), 0, nil, 4000)
             end
-        elseif remaining <= 0 then
-            advance_endless_wave()
+        -- The update loop confirms an empty wave after the engine completes
+        -- this death. Do not begin a new wave inside a squad death callback.
         end
         return
     end
@@ -2928,6 +3059,7 @@ function squad_on_npc_death(squad, se_obj, killer)
 end
 
 function save_state(m_data)
+    if xcvb_arena_plus then xcvb_arena_plus.save_state(m_data) end
     m_data.xcvb_arena_state_version = 2
     m_data.xcvb_tournament_is_practice = current_tournament_is_practice
     m_data.xcvb_tournament_inventory_stored = tournament_inventory_stored
@@ -2955,6 +3087,8 @@ function save_state(m_data)
     m_data.xcvb_arena_storage_box_id = xcvb_arena_utils.xcvb_arena_storage_box_id
     m_data.xcvb_saved_equipped_slots = xcvb_arena_utils.saved_equipped_slots
     m_data.xcvb_saved_belt_items = xcvb_arena_utils.saved_belt_items
+    m_data.xcvb_saved_magazine_data = xcvb_arena_utils.saved_magazine_data
+    m_data.xcvb_saved_carried_mags = xcvb_arena_utils.saved_carried_mags
     m_data.xcvb_saved_actor_item_ids = xcvb_arena_utils.saved_actor_item_ids
     m_data.xcvb_saved_active_slot = xcvb_arena_utils.saved_active_slot
     m_data.xcvb_is_endless_mode = is_endless_mode
@@ -2968,6 +3102,7 @@ function save_state(m_data)
 end
 
 function load_state(m_data)
+    if xcvb_arena_plus then xcvb_arena_plus.load_state(m_data) end
     callback_epoch = callback_epoch + 1
     xcvb_arena_utils.cancel_inventory_events()
     loaded_legacy_practice = m_data.xcvb_tournament_is_practice == nil
@@ -3001,6 +3136,8 @@ function load_state(m_data)
     xcvb_arena_utils.xcvb_arena_storage_box_id = m_data.xcvb_arena_storage_box_id or nil
     xcvb_arena_utils.saved_equipped_slots = m_data.xcvb_saved_equipped_slots or {}
     xcvb_arena_utils.saved_belt_items = m_data.xcvb_saved_belt_items or {}
+    xcvb_arena_utils.saved_magazine_data = m_data.xcvb_saved_magazine_data or {}
+    xcvb_arena_utils.saved_carried_mags = m_data.xcvb_saved_carried_mags or {}
     xcvb_arena_utils.saved_actor_item_ids = m_data.xcvb_saved_actor_item_ids or {}
     xcvb_arena_utils.saved_active_slot = m_data.xcvb_saved_active_slot or nil
     xcvb_arena_utils.arena_spawned_combatant_ids = m_data.xcvb_arena_spawned_combatant_ids or {}
@@ -3063,7 +3200,9 @@ function actor_on_first_update()
         end
     end
     if is_endless_mode or HI("xcvb_endless_started") then
-        if resume_endless_transition or #endless_enemy_squad_ids == 0 then
+        if xcvb_arena_plus and xcvb_arena_plus.active() then
+            xcvb_arena_plus.resume()
+        elseif resume_endless_transition or #endless_enemy_squad_ids == 0 then
             resume_endless_transition = false
             advance_endless_wave(true)
         elseif get_endless_total_enemies_alive() <= 0 then

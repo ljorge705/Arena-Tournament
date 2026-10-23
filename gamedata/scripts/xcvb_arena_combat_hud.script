@@ -234,6 +234,7 @@ function is_shown()
 end
 
 function get_elapsed_seconds()
+    if xcvb_arena_plus and xcvb_arena_plus.active() then return xcvb_arena_plus.elapsed() end
     if start_time > 0 then
         return math.max(0, math.floor((time_global() - start_time) / 1000))
     end

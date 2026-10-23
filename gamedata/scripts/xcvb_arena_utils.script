@@ -22,6 +22,8 @@ arena_spawned_combatant_ids = {}
 xcvb_arena_storage_box_id = nil
 saved_equipped_slots = {}
 saved_belt_items = {}
+saved_magazine_data = {}
+saved_carried_mags = {}
 saved_actor_item_ids = {}
 saved_active_slot = nil
 inventory_stored = false
@@ -4238,6 +4240,8 @@ end
 
 function release_actor_arena_item(id)
     if not id then return end
+    local se_item = alife_object(id)
+    if se_item and xcvb_arena_wearable.is_preserved_section(se_item:section_name(), id) then return end
     if magazine_binder then
         if magazine_binder.is_carried_mag and magazine_binder.is_carried_mag(id) then
             pcall(magazine_binder.toggle_carried_mag, id)
@@ -4250,7 +4254,6 @@ function release_actor_arena_item(id)
     if obj and db.actor then
         pcall(function() db.actor:drop_item(obj) end)
     end
-    local se_item = alife_object(id)
     if se_item then
         if safe_release_manager and safe_release_manager.release then
             pcall(safe_release_manager.release, se_item)
@@ -4267,10 +4270,13 @@ function purge_all_arena_mags()
         pcall(magazine_binder.get_carried_mags, carried)
         for cid, _ in pairs(carried) do
             if magazine_binder.toggle_carried_mag then pcall(magazine_binder.toggle_carried_mag, cid) end
-            if magazine_binder.set_data then pcall(magazine_binder.set_data, cid, nil) end
+            -- Personal magazines remain alive in storage; only discard arena data.
+            if not saved_actor_item_ids[cid] and magazine_binder.set_data then
+                pcall(magazine_binder.set_data, cid, nil)
+            end
         end
     end
-    if magazine_binder.clean_data then pcall(magazine_binder.clean_data) end
+    -- Do not run a global cleanup against unrelated inventory/storage objects.
     if magazine_binder.update_loadout_slots then pcall(magazine_binder.update_loadout_slots) end
     if magazine_binder.validate_loadout then pcall(magazine_binder.validate_loadout) end
     if magazines and magazines.inventory_refresh then pcall(magazines.inventory_refresh) end
@@ -4279,14 +4285,9 @@ end
 
 function store_actor_inventory()
     if not db.actor then return false end
-    -- If an equipment restore was still pending or queued, flush and clear it so new fight starts cleanly
+    -- Never replace the snapshot while its delayed equipment return is running.
     if inventory_restore_pending then
-        cancel_inventory_events()
-        inventory_restore_pending = false
-        saved_equipped_slots = {}
-        saved_belt_items = {}
-        saved_actor_item_ids = {}
-        saved_active_slot = nil
+        return false
     end
     if inventory_stored then
         restore_actor_inventory()
@@ -4294,6 +4295,7 @@ function store_actor_inventory()
             printe("! xcvb arena: Cannot store inventory, previous storage still active")
             return false
         end
+        if inventory_restore_pending then return false end
     end
     inventory_return_candidates = nil
     RemoveTimeEvent("arena_restore_equip_e1", "arena_restore_equip_a1")
@@ -4309,51 +4311,67 @@ function store_actor_inventory()
     
     saved_equipped_slots = {}
     saved_belt_items = {}
+    saved_magazine_data = {}
+    saved_carried_mags = {}
     saved_actor_item_ids = {}
+    xcvb_arena_wearable.finish_inspection()
     saved_active_slot = db.actor and db.actor:active_slot()
 
     -- 1. Record original equipped item slots (0 to 15) BEFORE moving to ruck
     for slot = 0, 15 do
         local itm = db.actor:item_in_slot(slot)
-        if itm then
+        if itm and not xcvb_arena_wearable.is_preserved(itm) then
             saved_equipped_slots[itm:id()] = slot
         end
     end
 
     -- 2. Record items currently on belt
-    if db.actor and db.actor.is_on_belt then
-        db.actor:iterate_inventory(function(owner, item)
-            if item and db.actor:is_on_belt(item) then
+    if db.actor.iterate_belt then
+        db.actor:iterate_belt(function(owner, item)
+            if item then
                 saved_belt_items[item:id()] = true
             end
         end, db.actor)
     end
 
     pcall(function() db.actor:activate_slot(0) end)
-    for s = 1, 15 do
-        local slot_itm = db.actor:item_in_slot(s)
-        if slot_itm and db.actor.move_to_ruck then
-            pcall(function() db.actor:move_to_ruck(slot_itm) end)
-        end
-    end
+    pcall(turn_off_actor_nightvision)
+    pcall(turn_off_actor_torch)
 
-    -- 3. Gather items to store (excluding PDA, torch, bolt, quest items)
+    -- 3. Gather items to store (excluding PDA, bolt, quest items; personal torch/NVG are stored)
     local items_to_store = {}
     db.actor:iterate_inventory(function(owner, item)
         if not item then return end
         local sec = item:section()
-        if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+        if xcvb_arena_wearable.is_preserved(item) then
+            saved_actor_item_ids[item:id()] = true
+            return
+        end
+        if sec == "device_pda" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
             return
         end
         saved_actor_item_ids[item:id()] = true
+        if magazine_binder and magazine_binder.get_data then
+            local data = magazine_binder.get_data(item:id())
+            if data ~= nil then saved_magazine_data[item:id()] = data end
+            if magazine_binder.is_carried_mag and magazine_binder.is_carried_mag(item:id()) then
+                saved_carried_mags[item:id()] = true
+            end
+        end
         table.insert(items_to_store, item)
     end, db.actor)
     
-    -- 4. Move items to ruck first, then transfer to the arena storage box
+    -- 4. Detach belt/slot references before changing ownership. A direct transfer
+    -- can leave the same object in both the engine belt and the returned rucksack.
     inventory_stored = true
     local ok, err = pcall(function()
         for _, item in ipairs(items_to_store) do
-            if db.actor.move_to_ruck then db.actor:move_to_ruck(item) end
+            if saved_belt_items[item:id()] then db.actor:move_to_ruck(item) end
+        end
+        for _, item in ipairs(items_to_store) do
+            if saved_equipped_slots[item:id()] ~= nil then db.actor:move_to_ruck(item) end
+        end
+        for _, item in ipairs(items_to_store) do
             db.actor:transfer_item(item, box)
         end
     end)
@@ -4368,10 +4386,18 @@ end
 
 local function fill_arena_magazine(mag_id, mag_sec, ammo_sec)
     if not (mag_id and mag_sec and ammo_sec) then return end
+    if not temporary_arena_item_ids[mag_id] or not alife_object(mag_id) then return end
     
     local cap = SYS_GetParam(2, mag_sec, "max_mag_size") or 30
     
     if mags_patches and mags_patches.fill_mag then
+        if magazine_binder and magazine_binder.get_data and magazine_binder.set_data then
+            local data = magazine_binder.get_data(mag_id)
+            if data then
+                data.loaded = {}
+                magazine_binder.set_data(mag_id, data)
+            end
+        end
         mags_patches.fill_mag(mag_id, mag_sec, cap, ammo_sec)
     elseif magazine_binder then
         local mag_data = magazine_binder.get_mag_loaded and magazine_binder.get_mag_loaded(mag_id)
@@ -4379,7 +4405,7 @@ local function fill_arena_magazine(mag_id, mag_sec, ammo_sec)
             mag_data = magazine_binder.create_mag_data(mag_id, mag_sec)
         end
         if mag_data then
-            mag_data.loaded = mag_data.loaded or {}
+            mag_data.loaded = {}
             for j = 1, cap do
                 table.insert(mag_data.loaded, ammo_sec)
             end
@@ -4390,6 +4416,10 @@ local function fill_arena_magazine(mag_id, mag_sec, ammo_sec)
     end
     
     if magazine_binder then
+        -- Bwais exposes this setter through the binder; arena rentals start new.
+        if magazine_binder.set_mag_spring_condition then
+            pcall(magazine_binder.set_mag_spring_condition, mag_id, 100)
+        end
         if magazine_binder.update_loadout_slots then pcall(magazine_binder.update_loadout_slots) end
         if magazine_binder.is_carried_mag and not magazine_binder.is_carried_mag(mag_id) then
             if magazine_binder.toggle_carried_mag then pcall(magazine_binder.toggle_carried_mag, mag_id) end
@@ -4449,10 +4479,14 @@ function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id, chosen_mag_sec)
     
     if wpn_id then
         CreateTimeEvent("arena_mags_e", "precharge_gun_" .. wpn_id, 0.4, function()
+            if not temporary_arena_item_ids[wpn_id] or not alife_object(wpn_id) then return true end
             if magazine_binder and magazine_binder.set_data then
                 local loaded_rounds = {}
                 for r = 1, cap do table.insert(loaded_rounds, ammo_sec) end
                 magazine_binder.set_data(wpn_id, { section = mag_sec, loaded = loaded_rounds })
+                if magazine_binder.set_mag_spring_condition then
+                    pcall(magazine_binder.set_mag_spring_condition, wpn_id, 100)
+                end
             end
             local w_obj = level.object_by_id(wpn_id)
             if w_obj then
@@ -4888,10 +4922,13 @@ end
 
 function restore_actor_inventory(is_retry)
     if not inventory_stored or not db.actor then return false end
+    xcvb_arena_wearable.finish_inspection()
     pcall(function() db.actor:activate_slot(0) end)
+    pcall(turn_off_actor_nightvision)
+    pcall(turn_off_actor_torch)
     for s = 1, 15 do
         local slot_itm = db.actor:item_in_slot(s)
-        if slot_itm and db.actor.move_to_ruck then
+        if slot_itm and not xcvb_arena_wearable.is_preserved(slot_itm) and db.actor.move_to_ruck then
             pcall(function() db.actor:move_to_ruck(slot_itm) end)
         end
     end
@@ -4917,6 +4954,7 @@ function restore_actor_inventory(is_retry)
     end
     cancel_inventory_events()
     pcall(turn_off_actor_nightvision)
+    pcall(turn_off_actor_torch)
     for item_id, _ in pairs(temporary_arena_item_ids) do
         release_actor_arena_item(item_id)
     end
@@ -4928,7 +4966,7 @@ function restore_actor_inventory(is_retry)
         -- Rewards acquired after a deferred return are not arena contraband.
         if inventory_return_candidates and not inventory_return_candidates[item:id()] then return end
         local sec = item:section()
-        if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+        if sec == "device_pda" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
             return
         end
         if saved_actor_item_ids and saved_actor_item_ids[item:id()] then
@@ -4957,6 +4995,12 @@ function restore_actor_inventory(is_retry)
     end
     inventory_stored = false
     inventory_return_candidates = nil
+    -- Restore every metadata field (including spring wear) before any tooltip.
+    if magazine_binder and magazine_binder.set_data then
+        for id, data in pairs(saved_magazine_data) do
+            if db.actor:object_id(id) then magazine_binder.set_data(id, data) end
+        end
+    end
     restore_actor_equipped_slots()
     return true
 end
@@ -4968,9 +5012,12 @@ function restore_actor_equipped_slots()
         if not db.actor then return true end
         for id, slot in pairs(saved_equipped_slots) do
             if slot == 7 or slot == 13 then
-                local itm = level.object_by_id(id)
-                if itm then
-                    pcall(function() db.actor:move_to_slot(itm, slot) end)
+                local in_slot = db.actor:item_in_slot(slot)
+                if (not in_slot) or in_slot:id() ~= id then
+                    local itm = level.object_by_id(id)
+                    if itm then
+                        pcall(function() db.actor:move_to_slot(itm, slot) end)
+                    end
                 end
             end
         end
@@ -4982,17 +5029,25 @@ function restore_actor_equipped_slots()
         if not db.actor then return true end
         for id, slot in pairs(saved_equipped_slots) do
             if slot == 12 or slot == 14 or slot == 10 or slot == 9 or slot == 5 or slot == 11 or slot == 8 or slot == 4 then
-                local itm = level.object_by_id(id)
-                if itm then
-                    pcall(function() db.actor:move_to_slot(itm, slot) end)
+                local in_slot = db.actor:item_in_slot(slot)
+                if (not in_slot) or in_slot:id() ~= id then
+                    local itm = level.object_by_id(id)
+                    if itm then
+                        pcall(function() db.actor:move_to_slot(itm, slot) end)
+                    end
                 end
             end
         end
         
         if db.actor.move_to_belt then
             for id, _ in pairs(saved_belt_items) do
-                local itm = level.object_by_id(id)
-                if itm then
+                local itm = db.actor:object_id(id)
+                local on_belt = false
+                db.actor:iterate_belt(function(_, belt_item)
+                    if belt_item and belt_item:id() == id then on_belt = true end
+                end, db.actor)
+                -- Remember Belt Items may already have equipped it after stage 1.
+                if itm and not on_belt then
                     pcall(function() db.actor:move_to_belt(itm) end)
                 end
             end
@@ -5005,9 +5060,12 @@ function restore_actor_equipped_slots()
         if not db.actor then return true end
         for id, slot in pairs(saved_equipped_slots) do
             if slot == 0 or slot == 1 or slot == 2 or slot == 3 or slot == 6 then
-                local itm = level.object_by_id(id)
-                if itm then
-                    pcall(function() db.actor:move_to_slot(itm, slot) end)
+                local in_slot = db.actor:item_in_slot(slot)
+                if (not in_slot) or in_slot:id() ~= id then
+                    local itm = level.object_by_id(id)
+                    if itm then
+                        pcall(function() db.actor:move_to_slot(itm, slot) end)
+                    end
                 end
             end
         end
@@ -5032,7 +5090,8 @@ function restore_actor_equipped_slots()
         pcall(function()
             if not db.actor then return end
             for id, slot in pairs(saved_equipped_slots) do
-                if not db.actor:item_in_slot(slot) then
+                local in_slot = db.actor:item_in_slot(slot)
+                if (not in_slot) or in_slot:id() ~= id then
                     local itm = level.object_by_id(id)
                     if itm then
                         pcall(function() db.actor:move_to_slot(itm, slot) end)
@@ -5050,11 +5109,24 @@ function restore_actor_equipped_slots()
             end
             ensure_weapon_raised()
             pcall(ensure_actor_default_comm)
+            if magazine_binder then
+                if magazine_binder.update_loadout_slots then pcall(magazine_binder.update_loadout_slots) end
+                for id, _ in pairs(saved_carried_mags) do
+                    if db.actor:object_id(id) and magazine_binder.is_carried_mag
+                        and not magazine_binder.is_carried_mag(id) and magazine_binder.toggle_carried_mag then
+                        pcall(magazine_binder.toggle_carried_mag, id)
+                    end
+                end
+                if magazine_binder.validate_loadout then pcall(magazine_binder.validate_loadout) end
+                if magazines and magazines.inventory_refresh then pcall(magazines.inventory_refresh) end
+            end
             news_manager.send_tip(db.actor, game.translate_string("st_arena_gear_restored"), 0, nil, 8000)
         end)
 
         saved_equipped_slots = {}
         saved_belt_items = {}
+        saved_magazine_data = {}
+        saved_carried_mags = {}
         saved_actor_item_ids = {}
         saved_active_slot = nil
         inventory_restore_pending = false
@@ -6230,7 +6302,7 @@ function get_random_endless_spawn_pos(prefer_idx)
     return p, get_safe_arena_lvid(p, 40551), 1796
 end
 
-function spawn_endless_squad(wave, enemy_type, difficulty)
+function spawn_endless_squad(wave, enemy_type, difficulty, extra_enemies, enemy_mult)
 
     local cur_wave = wave or 1
     local e_type = enemy_type or "stalkers"
@@ -6306,6 +6378,8 @@ function spawn_endless_squad(wave, enemy_type, difficulty)
         num_enemies = math.min(6, cur_wave)
     end
     
+    num_enemies = math.max(1, math.min(28,
+        math.ceil(num_enemies * (enemy_mult or 1)) + math.max(0, extra_enemies or 0)))
     local a_fac = get_actor_faction()
     local rank = math.max(0, math.min(4, tier - 1))
     if diff == "easy" then
@@ -6473,12 +6547,13 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
     end
     local cur_wave = wave or 1
     local diff = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
+    xcvb_arena_wearable.finish_inspection()
     
     if db.actor then
         pcall(function() db.actor:activate_slot(0) end)
         for s = 1, 15 do
             local slot_itm = db.actor:item_in_slot(s)
-            if slot_itm and db.actor.move_to_ruck then
+            if slot_itm and not xcvb_arena_wearable.is_preserved(slot_itm) and db.actor.move_to_ruck then
                 pcall(function() db.actor:move_to_ruck(slot_itm) end)
             end
         end
@@ -6506,7 +6581,10 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             if not item then return end
             local sec = item:section()
             -- Never touch essential actor items or quest items
-            if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+            if sec == "device_pda" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+                return
+            end
+            if xcvb_arena_main and xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
                 return
             end
             -- Never touch original actor items stored in the arena box
@@ -6724,7 +6802,10 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             db.actor:iterate_inventory(function(_, itm)
                 if not itm then return end
                 local sec = itm:section()
-                if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+                if sec == "device_pda" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+                    return
+                end
+                if xcvb_arena_main and xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
                     return
                 end
                 if saved_actor_item_ids and saved_actor_item_ids[itm:id()] then

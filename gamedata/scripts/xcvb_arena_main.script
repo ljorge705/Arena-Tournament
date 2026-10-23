@@ -27,6 +27,7 @@ end
 endless_checkpoint_wave = 1
 endless_checkpoint_type = "stalkers"
 endless_difficulty = "medium"
+endless_selected_variant = "classic"
 endless_artigrok_ammo = false
 endless_3dssg = false
 endless_weapon_class = "all"
@@ -53,14 +54,17 @@ endless_last_run_final_time = 0  -- total run time in last run
 endless_last_run_final_wave = 0  -- highest wave reached in last run
 
 function get_endless_pb_for_wave(w)
+	if xcvb_arena_plus and xcvb_arena_plus.active() then return xcvb_arena_plus.stats.pb[w] end
 	return endless_pb_times and endless_pb_times[w]
 end
 
 function get_endless_last_run_for_wave(w)
+	if xcvb_arena_plus and xcvb_arena_plus.active() then return (xcvb_arena_plus.stats.last or {})[w] end
 	return endless_last_run_wave_times and endless_last_run_wave_times[w]
 end
 
 function record_endless_wave_time(w, elapsed_seconds)
+	if xcvb_arena_plus and xcvb_arena_plus.active() then return false, nil end
 	endless_last_run_wave_times = endless_last_run_wave_times or {}
 	endless_last_run_wave_times[w] = elapsed_seconds
 	endless_last_run_final_time = elapsed_seconds
@@ -77,6 +81,11 @@ function record_endless_wave_time(w, elapsed_seconds)
 end
 
 function record_endless_run_ended(w, elapsed_seconds)
+	if xcvb_arena_plus and xcvb_arena_plus.active() then
+		xcvb_arena_plus.stats.last_time = elapsed_seconds
+		xcvb_arena_plus.stats.last_wave = xcvb_arena_plus.state.cleared
+		return
+	end
 	if elapsed_seconds and elapsed_seconds > 0 then
 		endless_last_run_final_time = elapsed_seconds
 		endless_last_run_final_wave = w or 1
@@ -963,6 +972,7 @@ function save_state(m_data)
 	m_data.xcvb_endless_checkpoint_wave = endless_checkpoint_wave
 	m_data.xcvb_endless_checkpoint_type = endless_checkpoint_type
 	m_data.xcvb_endless_difficulty = endless_difficulty
+	m_data.xcvb_endless_selected_variant = endless_selected_variant
 	m_data.xcvb_endless_artigrok_ammo = endless_artigrok_ammo
 	m_data.xcvb_endless_3dssg = endless_3dssg
 	m_data.xcvb_endless_weapon_class = endless_weapon_class
@@ -988,6 +998,11 @@ end
 
 function load_state(m_data)
 	xcvb_arena_utils.reset_arena_object_cache()
+	if m_data.xcvb_endless_selected_variant == "plus" or m_data.xcvb_endless_selected_variant == "classic" then
+		endless_selected_variant = m_data.xcvb_endless_selected_variant
+	else
+		endless_selected_variant = m_data.xcvb_endless_plus and m_data.xcvb_endless_plus.active == true and "plus" or "classic"
+	end
 	endless_3dssg = m_data.xcvb_endless_3dssg == true
 	endless_weapon_class = m_data.xcvb_endless_weapon_class or "all"
 	endless_escalation_mode = (m_data.xcvb_endless_escalation_mode == true)

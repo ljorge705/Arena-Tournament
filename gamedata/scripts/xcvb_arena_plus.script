@@ -1,0 +1,1062 @@
+-- Endless+ owns intermissions and persistent resources. The classic controller
+-- owns combat, spawning, evacuation and personal-inventory restoration.
+state = { active = false, phase = "idle" }
+stats = { best = 0, runs = 0, kills = 0, cleared = 0, pb = {} }
+local last_tick = nil
+local owns_pause = false
+local inventory_until = 0
+local budgets = { shotgun = 20, pistol = 60, rifle = 60, smg = 90, sniper = 15 }
+local periodic_caps = {shotgun = 3, pistol = 8, rifle = 8, smg = 12, sniper = 2}
+local periodic_rates = {easy = 0.15, medium = 0.10, hard = 0.05}
+local starting_contracts = {
+    {mags = 2, condition = 100, spring = 100, ammo = 1},
+    {mags = 2, condition = 85, spring = 80, ammo = 0.85},
+    {mags = 1, condition = 70, spring = 65, ammo = 0.75},
+    {mags = 1, condition = 55, spring = 50, ammo = 0.60},
+    {mags = 1, condition = 40, spring = 35, ammo = 0.50},
+}
+
+function active() return state.active == true end
+function in_combat() return active() and state.phase == "combat" end
+function elapsed() return math.floor((state.combat_ms or 0) / 1000) end
+function text(key) return game.translate_string("st_arena_plus_" .. key) end
+function starting_contract() return starting_contracts[state.start_tier or 1] end
+function selection_tier() return state.initial_choice and (state.start_tier or 1) or tier() end
+
+local function clone(value)
+    if type(value) ~= "table" then return value end
+    local out = {}; for k, v in pairs(value) do out[k] = clone(v) end; return out
+end
+
+function close_ui()
+    if owns_pause then owns_pause = false; pcall(function() device():pause(false) end) end
+    if xcvb_arena_plus_ui then pcall(xcvb_arena_plus_ui.close) end
+end
+
+function inventory_requested() inventory_until = time_global() + 500 end
+
+function stop()
+    close_ui()
+    state.active, state.phase = false, "idle"
+    last_tick = nil
+end
+
+function start(difficulty)
+    stop()
+    state = { active = true, phase = "initial", wave = 1, cleared = 0,
+        difficulty = difficulty or "medium", reward = 0, reward_mult = 1,
+        extra = 0, combat_ms = 0, remaining = 3, offers = {}, candidates = {}, supply_rules_version = 1 }
+    stats.runs = stats.runs + 1
+    stats.last = {}
+    last_tick = time_global()
+end
+
+function tier()
+    local w = state.wave or 1
+    if state.difficulty == "easy" then
+        return w >= 6 and 5 or w >= 4 and 4 or w >= 3 and 3 or w >= 2 and 2 or 1
+    end
+    return w >= 8 and 5 or w >= 6 and 4 or w >= 4 and 3 or w >= 2 and 2 or 1
+end
+
+function weapon()
+    if not db.actor then return nil end
+    for _, slot in ipairs({2, 3, 1}) do
+        local obj = db.actor:item_in_slot(slot)
+        if obj and IsWeapon(obj) and not IsMelee(obj) then return obj end
+    end
+end
+
+local function supported(w)
+    return w and magazine_binder and magazine_binder.is_supported_weapon
+        and magazine_binder.is_supported_weapon(w:section())
+        and #(xcvb_arena_utils.get_weapon_compatible_mags(w:section()) or {}) > 0
+end
+
+local function spring_support()
+    return magazine_binder and magazine_binder.get_mag_spring_condition
+        and magazine_binder.set_mag_spring_condition
+end
+
+function compatible_items()
+    local w = weapon(); local out = {}
+    if not supported(w) then return out end
+    local allowed = {}
+    for _, sec in ipairs(xcvb_arena_utils.get_weapon_compatible_mags(w:section()) or {}) do allowed[sec] = true end
+    out[1] = w
+    db.actor:iterate_inventory(function(_, obj)
+        if obj and allowed[obj:section()] then out[#out + 1] = obj end
+    end, db.actor)
+    return out
+end
+
+local function ammo_sections(w)
+    local out = {}
+    local raw = w and ini_sys:r_string_ex(w:section(), "ammo_class") or ""
+    for sec in string.gmatch(raw or "", "[^,%s]+") do out[sec] = true end
+    return out
+end
+
+local function loose_ammo(w)
+    local allowed, out = ammo_sections(w), {}
+    db.actor:iterate_inventory(function(_, obj)
+        if allowed[obj:section()] and not (xcvb_arena_utils.saved_actor_item_ids or {})[obj:id()] then out[#out + 1] = obj end
+    end, db.actor)
+    return out
+end
+
+local function loose_count(w)
+    local count = 0
+    for _, obj in ipairs(loose_ammo(w)) do count = count + obj:ammo_get_count() end
+    return count
+end
+
+local function inventory_sections(sec)
+    local out = {}
+    db.actor:iterate_inventory(function(_, obj)
+        if obj:section() == sec and not (xcvb_arena_utils.saved_actor_item_ids or {})[obj:id()] then out[#out + 1] = obj end
+    end, db.actor)
+    table.sort(out, function(a, b) return a:id() < b:id() end)
+    return out
+end
+
+local function recycling_mags()
+    local w, out = weapon(), {}
+    for _, obj in ipairs(compatible_items()) do
+        if obj:id() ~= w:id() and not (xcvb_arena_utils.saved_actor_item_ids or {})[obj:id()] then
+            local d = magazine_binder.get_data(obj:id())
+            if d and d.section ~= "no_mag" then out[#out + 1] = obj end
+        end
+    end
+    local function condition(obj)
+        local physical = obj:condition() * 100
+        return spring_support() and math.min(physical, magazine_binder.get_mag_spring_condition(obj:id())) or physical
+    end
+    table.sort(out, function(a, b)
+        local ac, bc = condition(a), condition(b)
+        return ac < bc or ac == bc and a:id() < b:id()
+    end)
+    return out, condition
+end
+
+local function recycle_leaves_ammo(count)
+    local w = weapon(); if not w then return false end
+    local mags = recycling_mags(); if #mags < count then return false end
+    local remaining = loose_count(w) + w:get_ammo_in_magazine()
+    for i, obj in ipairs(mags) do
+        local loaded = magazine_binder.get_data(obj:id()).loaded or {}
+        remaining = remaining + (i <= count and math.floor(#loaded / 2) or #loaded)
+    end
+    return remaining > 0
+end
+
+local function health_full()
+    if db.actor.health < 0.999 then return false end
+    if zzz_player_injuries and zzz_player_injuries.health then
+        for part, hp in pairs(zzz_player_injuries.health) do
+            local max = zzz_player_injuries.maxhp and zzz_player_injuries.maxhp[part]
+            if max and hp < max then return false end
+        end
+    end
+    return not db.actor.bleeding or db.actor.bleeding <= 0
+end
+
+local function set_health(cap, heal, amount)
+    db.actor.health = amount and math.min(1, db.actor.health + amount) or heal and 1 or math.min(db.actor.health, cap)
+    if heal or amount then db.actor.bleeding = 1 end
+    if zzz_player_injuries and zzz_player_injuries.health and zzz_player_injuries.maxhp then
+        local b = zzz_player_injuries
+        for _, part in ipairs({"head", "torso", "rightarm", "leftarm", "rightleg", "leftleg"}) do
+            local max = b.maxhp[part]
+            if max then
+                b.health[part] = amount and math.min(max, (b.health[part] or max) + max * amount)
+                    or heal and max or math.min(b.health[part] or max, math.max(0.1, max * cap))
+                if b.timedhp then b.timedhp[part] = 0 end
+                if b.preview and b.preview.health then b.preview.health[part] = b.health[part] end
+                if b.preview and b.preview.bonus then b.preview.bonus[part] = 0 end
+                if utils_obj and utils_obj.save_var then
+                    utils_obj.save_var(db.actor, "health." .. part, b.health[part])
+                    utils_obj.save_var(db.actor, "timedhp." .. part, 0)
+                end
+            end
+        end
+        b.myhealth = amount and math.min(1, (b.myhealth or 1) + amount) or heal and 1 or math.min(b.myhealth or 1, cap)
+    end
+end
+
+local function grant(sec, count)
+    assert(sec and ini_sys:section_exist(sec), "Endless+: unavailable supply " .. tostring(sec))
+    local obj
+    if count then
+        local created = create_ammo(sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id(), count)
+        obj = created and created[1]
+    else
+        obj = alife_create(sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+    end
+    assert(obj, "Endless+: supply spawn failed: " .. sec)
+    xcvb_arena_utils.temporary_arena_item_ids[obj.id] = true
+    return obj.id
+end
+
+local function grant_ammo(sec, count)
+    local size = math.max(1, SYS_GetParam(2, sec, "box_size", 1))
+    while count > 0 do
+        local n = math.min(size, count); grant(sec, n); count = count - n
+    end
+end
+
+local function issue_ammo(receipt)
+    if receipt.delivered then return end
+    receipt.remaining = receipt.remaining or receipt.count
+    receipt.ids = receipt.ids or {}
+    local size = math.max(1, SYS_GetParam(2, receipt.sec, "box_size", 1))
+    while receipt.remaining > 0 do
+        local count = math.min(size, receipt.remaining)
+        receipt.ids[#receipt.ids + 1] = grant(receipt.sec, count)
+        receipt.remaining = receipt.remaining - count
+    end
+    receipt.delivered = true
+end
+
+function periodic_amount(cls, difficulty)
+    return math.min(periodic_caps[cls] or 8, math.max(1,
+        math.floor((budgets[cls] or 60) * (periodic_rates[difficulty] or periodic_rates.medium))))
+end
+
+local function deliver_round_supply()
+    local receipt = state.round_supply
+    if not receipt or receipt.delivered then return end
+    if not receipt.sec then
+        local w = weapon()
+        local ammo = w and xcvb_arena_utils.get_weapon_ammo(w:section(), "fmj")
+        if not ammo then receipt.delivered, receipt.skipped = true, true; return end
+        receipt.sec = ammo
+        receipt.count = periodic_amount(xcvb_arena_utils.get_weapon_class(w:section()), state.difficulty)
+    end
+    issue_ammo(receipt)
+    if news_manager and news_manager.send_tip then
+        local name = ini_sys:r_string_ex(receipt.sec, "inv_name") or receipt.sec
+        news_manager.send_tip(db.actor, string.format(text("round_supply_received"), receipt.count,
+            game.translate_string(name)), 0, nil, 3500)
+    end
+end
+
+local function release(id)
+    xcvb_arena_utils.release_actor_arena_item(id)
+    xcvb_arena_utils.temporary_arena_item_ids[id] = nil
+end
+
+local function halve_loose(w)
+    -- Charge half of the total reserve, not half of each inventory stack.
+    -- Rounding up the retained half preserves the last available cartridge.
+    local items = loose_ammo(w)
+    table.sort(items, function(a, b) return a:id() < b:id() end)
+    local remove = math.floor(loose_count(w) / 2)
+    for _, obj in ipairs(items) do
+        local count = obj:ammo_get_count(); local take = math.min(count, remove)
+        if take > 0 then
+            if take == count then release(obj:id()) else obj:ammo_set_count(count - take) end
+            remove = remove - take
+        end
+    end
+end
+
+local function refresh(w)
+    if magazines and magazines.prep_weapon and supported(w) then magazines.prep_weapon(w) end
+    if magazines and magazines.inventory_refresh then magazines.inventory_refresh() end
+    if w then xcvb_arena_utils.ensure_weapon_raised() end
+end
+
+local function set_weapon_condition(w, condition)
+    -- GAMMA/ArtiGrok keeps condition in both the engine and per-part storage.
+    -- Change these together once, rather than allowing cached new parts at 100%.
+    if item_parts and item_parts.get_parts_con and item_parts.set_parts_con then
+        local parts = item_parts.get_parts_con(w, nil, true)
+        if type(parts) == "table" and next(parts) then
+            local pct = math.floor(condition * 100 + 0.5)
+            for key, value in pairs(parts) do
+                if type(value) == "number" then
+                    parts[key] = pct
+                    if arti_jamming and arti_jamming.update_part_con then arti_jamming.update_part_con(w:id(), key, pct) end
+                end
+            end
+            local parent = ini_sys:r_string_ex(w:section(), "parent_section") or w:section()
+            parts[parent] = pct
+            item_parts.set_parts_con(w:id(), parts)
+        end
+    end
+    w:set_condition(condition)
+end
+
+local function loaded_spare()
+    local w, chosen, chosen_data = weapon(), nil, nil
+    for _, obj in ipairs(compatible_items()) do
+        if obj:id() ~= w:id() and not (xcvb_arena_utils.saved_actor_item_ids or {})[obj:id()] then
+            local d = magazine_binder.get_data(obj:id())
+            if d and #(d.loaded or {}) > 0 and (not chosen_data or #d.loaded < #chosen_data.loaded
+                or #d.loaded == #chosen_data.loaded and obj:id() < chosen:id()) then chosen, chosen_data = obj, d end
+        end
+    end
+    return chosen, chosen_data
+end
+
+local function spring_cost_spares()
+    local out, w = {}, weapon()
+    if not spring_support() then return out end
+    for _, obj in ipairs(compatible_items()) do
+        if obj:id() ~= w:id() and not (xcvb_arena_utils.saved_actor_item_ids or {})[obj:id()]
+            and (not magazine_binder.has_mag_spring or magazine_binder.has_mag_spring(obj:id()))
+            and magazine_binder.get_mag_spring_condition(obj:id()) > 10 then out[#out + 1] = obj end
+    end
+    return out
+end
+
+local function unload_spare()
+    local obj, data = loaded_spare(); assert(obj, "Endless+: loaded spare missing")
+    local refund = {}
+    for _, sec in ipairs(data.loaded) do refund[sec] = (refund[sec] or 0) + 1 end
+    data.loaded = {}; magazine_binder.set_data(obj:id(), data)
+    for sec, count in pairs(refund) do grant_ammo(sec, count) end
+    refresh(weapon())
+end
+
+local function edit_rounds(fill)
+    local w = assert(weapon(), "Endless+: weapon missing")
+    if supported(w) then
+        for _, obj in ipairs(compatible_items()) do
+            local data = magazine_binder.get_data(obj:id())
+            if type(data) == "table" and data.section ~= "no_mag" then
+                data.loaded = data.loaded or {}
+                if fill then
+                    local ammo = data.loaded[1] or xcvb_arena_utils.get_weapon_ammo(w:section(), "auto")
+                    local cap = SYS_GetParam(2, data.section, "max_mag_size", 1)
+                    for i = #data.loaded + 1, cap do data.loaded[i] = ammo end
+                else
+                    for i = 1, math.floor(#data.loaded / 2) do table.remove(data.loaded) end
+                end
+                magazine_binder.set_data(obj:id(), data)
+            end
+        end
+    else
+        local current = w:get_ammo_in_magazine()
+        w:set_ammo_elapsed(fill and SYS_GetParam(2, w:section(), "ammo_mag_size", current) or math.ceil(current / 2))
+        if fill then
+            grant_ammo(xcvb_arena_utils.get_weapon_ammo(w:section(), "auto"), budgets[xcvb_arena_utils.get_weapon_class(w:section())] or 60)
+        end
+    end
+    refresh(w)
+end
+
+local function gear_options(slot, key)
+    local current = db.actor:item_in_slot(slot)
+    local current_tier = current and 1 or 0
+    for t = 1, 5 do
+        for _, sec in ipairs((xcvb_arena_utils.tournament_loadouts_t[t] or {})[key] or {}) do
+            if current and sec == current:section() then current_tier = t end
+        end
+    end
+    if current_tier >= 5 then return {} end
+    local out = {}
+    for _, sec in ipairs((xcvb_arena_utils.tournament_loadouts_t[current_tier + 1] or {})[key] or {}) do
+        if ini_sys:section_exist(sec) and (not current or sec ~= current:section()) then out[#out + 1] = sec end
+    end
+    return out
+end
+
+local function armour_options() return gear_options(7, "outfits") end
+local function helmet_options() return gear_options(12, "helmets") end
+
+local function weapon_candidates(only_class, selection_level)
+    local out, seen = {}, {}; local w = weapon()
+    local initial = state.phase == "initial" or state.initial_choice
+    local locked = xcvb_arena_main.endless_weapon_class or "all"
+    for _, cls in ipairs({"pistol", "shotgun", "rifle", "smg", "sniper"}) do
+        if (not only_class or only_class == cls) and (locked == "all" or locked == "none" or locked == cls) then
+            for _, entry in ipairs(xcvb_arena_utils.get_all_available_weapons_by_class(cls, selection_level or tier()) or {}) do
+                if not seen[entry.sec] and (initial or not w or entry.sec ~= w:section()) and ini_sys:section_exist(entry.sec)
+                    and xcvb_arena_utils.is_arena_weapon_allowed(entry.sec) then
+                    seen[entry.sec] = true
+                    local sec = entry.sec
+                    if xcvb_arena_main.endless_3dssg then
+                        for _, scope in ipairs(xcvb_arena_utils.get_weapon_scopes(sec) or {}) do
+                            if ini_sys:section_exist(sec .. "_" .. scope) then sec = sec .. "_" .. scope; break end
+                        end
+                    end
+                    if (initial or not w or sec ~= w:section()) and not seen["final:" .. sec] then
+                        seen["final:" .. sec] = true
+                        out[#out + 1] = {sec = sec, class = cls}
+                    end
+                end
+            end
+        end
+    end
+    local chosen = {}
+    while #out > 0 and #chosen < 3 do chosen[#chosen + 1] = table.remove(out, math.random(#out)) end
+    return chosen
+end
+
+local function prepare_weapons(selection_level)
+    state.categories, state.candidate_groups = {}, {}
+    for _, cls in ipairs({"pistol", "smg", "shotgun", "rifle", "sniper"}) do
+        local choices = weapon_candidates(cls, selection_level)
+        if #choices > 0 then
+            state.categories[#state.categories + 1] = cls
+            state.candidate_groups[cls] = choices
+        end
+    end
+    state.category = nil
+    state.candidates = state.candidate_groups[state.categories[1]] or {}
+end
+
+function select_initial_tier(level)
+    if not state.initial_choice or state.phase ~= "choice" or state.selected
+        or not state.initial_catalog or not state.initial_catalog[level]
+        or #state.initial_catalog[level].categories == 0 then return false end
+    local catalog = state.initial_catalog[level]
+    state.start_tier, state.categories, state.candidate_groups = level, catalog.categories, catalog.groups
+    state.category = nil
+    state.candidates = catalog.groups[catalog.categories[1]] or {}
+    return true
+end
+
+local function prepare_initial_catalog(preserve)
+    local original = preserve and {categories = state.categories, groups = state.candidate_groups}
+    state.initial_catalog = {}
+    for level = 1, 5 do
+        if level == 1 and original and original.categories and original.groups then
+            state.initial_catalog[level] = original
+        else
+            prepare_weapons(level)
+            state.initial_catalog[level] = {categories = state.categories, groups = state.candidate_groups}
+        end
+    end
+end
+
+function select_category(cls)
+    if state.phase ~= "choice" or not state.candidate_groups or not state.candidate_groups[cls] then return false end
+    state.category = cls
+    state.candidates = state.candidate_groups[cls]
+    return true
+end
+
+function begin_initial_choice()
+    if not active() or state.phase ~= "initial" then return end
+    -- A loaded initial equipment grant may still be a server object. Wait in
+    -- live simulation before pausing, so its equip callbacks can finish.
+    if not weapon() then
+        state.initial_tries = (state.initial_tries or 0) + 1
+        if state.initial_tries >= 100 then fail("starting weapon did not materialize")
+        else state.initial_wait = 0.2 end
+        return
+    end
+    state.initial_wait, state.initial_tries = nil, nil
+    prepare_initial_catalog(false)
+    state.phase, state.initial_choice, state.selected = "choice", true, nil
+    if not select_initial_tier(1) then fail("no starting weapons available"); return end
+    state.offers, state.rolls = {"weapon"}, {}
+    open_ui()
+end
+
+local function prepare_rolls()
+    -- Roll once before presenting offers. Saves retain every value, including
+    -- each individual magazine, rather than rerolling when a button is pressed.
+    if state.rolls then return end
+    state.rolls = {worn_weapon = {condition = math.random(30, 90)},
+        cache = {percent = math.random(25, 75)}, scavenged = {mags = {}}}
+    local helmets = helmet_options()
+    if #helmets > 0 then state.rolls.helmet = {sec = helmets[math.random(#helmets)]} end
+    local w = weapon()
+    local sections = w and xcvb_arena_utils.get_weapon_compatible_mags(w:section()) or {}
+    if supported(w) and #sections > 0 then
+        for i = 1, math.random(1, 3) do
+            state.rolls.scavenged.mags[i] = {sec = sections[math.random(#sections)],
+                condition = math.random(30, 80), fill = math.random(25, 75)}
+        end
+    end
+end
+
+local function prepare_supplies()
+    if state.initial_choice then return end
+    local prepared = state.supplies ~= nil
+    local w = weapon(); state.supplies = state.supplies or {}
+    if not w then return end
+    if not state.supplies.ammo then
+        local cls = xcvb_arena_utils.get_weapon_class(w:section())
+        local low, high = 10, 30
+        if cls == "shotgun" then low, high = 3, 8 elseif cls == "sniper" then low, high = 2, 5 end
+        state.supplies.ammo = {count = math.random(low, high), penalty = math.random(2) == 1 and "extra" or "reward"}
+    end
+    if prepared then return end
+    if supported(w) then
+        local mags = xcvb_arena_utils.get_weapon_compatible_mags(w:section())
+        local penalties = {"extra", "damaged"}
+        if loose_count(w) >= 2 then penalties[#penalties + 1] = "ammo" end
+        local penalty = penalties[math.random(#penalties)]
+        state.supplies.mag = {sec = mags[math.random(#mags)], penalty = penalty,
+            condition = penalty == "damaged" and math.random(40, 75) or 100,
+            amount = penalty == "ammo" and math.max(1, math.floor(loose_count(w) * math.random(15, 25) / 100)) or 0}
+    end
+end
+
+function available_supply(id)
+    if not active() or state.phase ~= "choice" or state.initial_choice or state.selected or not weapon() then return false end
+    prepare_supplies()
+    if id == "supply_ammo" then return state.supplies.ammo ~= nil end
+    local mag = state.supplies.mag
+    return id == "supply_mag" and supported(weapon()) and mag ~= nil
+        and (mag.penalty ~= "ammo" or loose_count(weapon()) > mag.amount)
+end
+
+local good_colour = "%c[255,110,230,135]"
+local bad_colour = "%c[255,245,110,105]"
+local normal_colour = "%c[255,215,215,215]"
+
+function colour_description(description)
+    local cost = string.find(description, text("cost_prefix"), 1, true)
+    if cost then
+        return good_colour .. string.sub(description, 1, cost - 1)
+            .. "\\n" .. bad_colour .. string.sub(description, cost) .. normal_colour
+    end
+    return good_colour .. description .. normal_colour
+end
+
+function weapon_supply_description(candidate, budget)
+    local detachable = magazine_binder and magazine_binder.is_supported_weapon
+        and magazine_binder.is_supported_weapon(candidate.sec)
+        and #(xcvb_arena_utils.get_weapon_compatible_mags(candidate.sec) or {}) > 0
+    if state.initial_choice then
+        local contract = starting_contract()
+        local bonus = math.max(1, math.floor((budgets[candidate.class] or 60) * 0.5 * contract.ammo))
+        return good_colour .. string.format(text(detachable and "start_supply_mags" or "start_supply_native"), budget,
+            contract.mags) .. "\\n" .. string.format(text("initial_reserve"), bonus)
+            .. "\\n" .. bad_colour .. string.format(text(spring_support() and "start_supply_cost" or "start_supply_cost_plain"), contract.condition, contract.spring)
+            .. normal_colour
+    end
+    return colour_description(string.format(text(detachable and "weapon_supply" or "native_supply"), budget))
+end
+
+function starting_description()
+    local c = starting_contract()
+    if spring_support() then
+        return colour_description(string.format(text("starting_terms"), state.start_tier or 1,
+            c.mags, c.condition, c.spring, math.floor(c.ammo * 100)))
+    end
+    return colour_description(string.format(text("starting_terms_plain"), state.start_tier or 1,
+        c.mags, c.condition, math.floor(c.ammo * 100)))
+end
+
+function offer_description(id, compact)
+    if id == "supply_ammo" or id == "supply_mag" then
+        prepare_supplies()
+        local roll = state.supplies[id == "supply_ammo" and "ammo" or "mag"]
+        if not roll then return text("supply_unavailable") end
+        local benefit = id == "supply_ammo" and string.format(text("supply_ammo_desc"), roll.count) or text("supply_mag_desc")
+        local cost
+        if roll.penalty == "extra" then cost = string.format(text("supply_extra_cost"), id == "supply_ammo" and 1 or 2)
+        elseif roll.penalty == "reward" then cost = text("supply_reward_cost")
+        elseif roll.penalty == "ammo" then cost = string.format(text("supply_ammo_cost"), roll.amount)
+        else cost = string.format(text(spring_support() and "supply_damage_cost" or "supply_damage_cost_plain"), roll.condition) end
+        return good_colour .. benefit .. "\\n" .. bad_colour .. cost .. normal_colour
+    end
+    local key = id == "scavenged" and compact and "scavenged_summary" or id .. "_desc"
+    if id == "ammo" and not supported(weapon()) then key = "native_ammo_desc" end
+    local description = colour_description(text(key))
+    local roll = (state.rolls or {})[id]
+    if id == "worn_weapon" and roll then
+        description = description .. "\\n" .. bad_colour .. string.format(text("condition_value"), roll.condition) .. normal_colour
+    elseif id == "cache" and roll then
+        description = description .. "\\n" .. good_colour .. string.format(text("cache_value"), roll.percent) .. normal_colour
+    elseif id == "scavenged" and roll then
+        for i, mag in ipairs(roll.mags) do
+            description = description .. "\\n" .. bad_colour .. string.format(text("mag_condition"), i, mag.condition)
+                .. good_colour .. string.format(text("mag_ammunition"), mag.fill) .. normal_colour
+        end
+    end
+    return description
+end
+
+function valid_offers()
+    local w = weapon(); local valid = {"medical", "bet", "rest"}
+    prepare_weapons(); prepare_rolls()
+    if #state.candidates > 0 then
+        valid[#valid + 1] = "weapon"; valid[#valid + 1] = "worn_weapon"
+    end
+    if w then
+        valid[#valid + 1] = "cache"
+        if w:condition() < 0.999 and w:get_ammo_in_magazine() >= 2 then valid[#valid + 1] = "gun_service" end
+        if supported(w) and #state.rolls.scavenged.mags > 0 then valid[#valid + 1] = "scavenged" end
+        local armour = db.actor:item_in_slot(7)
+        if armour and armour:condition() < 0.999 then valid[#valid + 1] = "armour_service" end
+        local needs_fill = not supported(w)
+        for _, obj in ipairs(compatible_items()) do
+            local d = magazine_binder.get_data(obj:id())
+            if d and d.section ~= "no_mag" and #(d.loaded or {}) < SYS_GetParam(2, d.section, "max_mag_size", 1) then needs_fill = true end
+        end
+        if needs_fill then valid[#valid + 1] = "ammo" end
+        if loose_count(w) >= 2 then
+            if #armour_options() > 0 then valid[#valid + 1] = "armour" end
+            if #helmet_options() > 0 and state.rolls.helmet then valid[#valid + 1] = "helmet" end
+        end
+        if #inventory_sections("bandage") >= 2 then valid[#valid + 1] = "recycle_meds" end
+        if loose_count(w) >= math.max(4, math.floor((budgets[xcvb_arena_utils.get_weapon_class(w:section())] or 60) / 2)) then
+            valid[#valid + 1] = "recycle_ammo"
+        end
+        if supported(w) then
+            local mags, condition = recycling_mags()
+            if #mags >= 2 and condition(mags[2]) < 99.9 and recycle_leaves_ammo(1) then valid[#valid + 1] = "recycle_mags" end
+            if #mags >= 1 and recycle_leaves_ammo(1) then valid[#valid + 1] = "recycle_mag_medical" end
+        end
+    end
+    if not health_full() then
+        valid[#valid + 1] = "heal"; valid[#valid + 1] = "heal_field"
+        if #spring_cost_spares() > 0 then valid[#valid + 1] = "heal_wear" end
+        if loaded_spare() then valid[#valid + 1] = "heal_partial" end
+    end
+    if spring_support() and #compatible_items() > 0 then
+        local worn = false
+        for _, obj in ipairs(compatible_items()) do
+            if magazine_binder.get_mag_spring_condition(obj:id()) < 100 then worn = true end
+        end
+        if worn and db.actor.health > 0.5 then valid[#valid + 1] = "springs" end
+        if state.cleared % 5 ~= 0 then valid[#valid + 1] = "workshop" end
+    end
+    return valid
+end
+
+function open_ui()
+    if state.phase == "choice" and not state.initial_choice then prepare_supplies() end
+    local ok, err = pcall(function()
+        if state.phase == "choice" then
+            if not device():is_paused() then device():pause(true); owns_pause = true end
+        end
+        xcvb_arena_plus_ui.open()
+    end)
+    if not ok then
+        printe("! Endless+ UI failed: %s", tostring(err))
+        close_ui()
+        xcvb_arena_fight.end_endless_fight(false, true)
+    end
+end
+
+function complete_wave(wave, difficulty, reward)
+    if not active() or state.phase ~= "combat" or state.cleared >= wave then return nil end
+    tick()
+    local base = difficulty == "easy" and 400 or difficulty == "hard" and 1000 or 700
+    local mult = xcvb_arena_mcm.get_config("endless_reward_mult") or 1
+    local class_mult = xcvb_arena_utils.get_endless_weapon_class_reward_mult()
+    state.reward = reward + math.floor(base * (wave + 1) * mult * class_mult * (state.reward_mult or 1))
+    state.reward_mult, state.extra, state.enemy_mult = 1, 0, 1
+    state.cleared, state.wave, state.phase = wave, wave + 1, "choice"
+    state.selected, state.workshop_granted, state.request_workshop = nil, false, false
+    state.rolls, state.supplies = nil, nil
+    state.legacy_ammo_offer = nil
+    state.round_supply = {wave = wave, delivered = false}
+    stats.best, stats.cleared = math.max(stats.best, wave), stats.cleared + 1
+    local time = elapsed(); stats.pb[wave] = math.min(stats.pb[wave] or time, time)
+    stats.last_time, stats.last_wave = time, wave
+    stats.last = stats.last or {}; stats.last[wave] = time
+    local pool = valid_offers(); state.offers = {}
+    while #pool > 0 and #state.offers < 3 do state.offers[#state.offers + 1] = table.remove(pool, math.random(#pool)) end
+    return state.reward
+end
+
+local function spring_state(id)
+    if not spring_support() then return {pct = 100} end
+    local d = magazine_binder.get_data(id)
+    if not d or d.section == "no_mag" then return nil end
+    return {pct = magazine_binder.get_mag_spring_condition(id), missing = magazine_binder.has_mag_spring and not magazine_binder.has_mag_spring(id)}
+end
+
+local function apply_spring(id, spring)
+    if not spring_support() then return end
+    if spring.missing and magazine_binder.remove_mag_spring then magazine_binder.remove_mag_spring(id)
+    else magazine_binder.set_mag_spring_condition(id, spring.pct) end
+end
+
+local function replace_weapon(candidate, worn)
+    local old = assert(weapon(), "Endless+: old weapon missing")
+    local wear = spring_state(old:id()); local spare = nil
+    for _, obj in ipairs(compatible_items()) do
+        if obj:id() ~= old:id() then
+            local s = spring_state(obj:id())
+            if s and (not spare or s.pct < spare.pct) then spare = s end
+        end
+    end
+    wear = wear or spare or {pct = 100}
+    local contract = state.initial_choice and starting_contract()
+    if contract then wear = {pct = contract.spring}; spare = {pct = contract.spring} end
+    local remove = {old:id()}
+    for _, obj in ipairs(compatible_items()) do if obj:id() ~= old:id() then remove[#remove + 1] = obj:id() end end
+    for _, obj in ipairs(loose_ammo(old)) do remove[#remove + 1] = obj:id() end
+    -- Allocate the replacement before releasing the old supply. All new IDs
+    -- are immediately owned by the arena, including during async materialization.
+    local sec, cls = candidate.sec, candidate.class
+    local id = grant(sec); local ammo = assert(xcvb_arena_utils.get_weapon_ammo(sec, "auto"))
+    local budget = budgets[cls] or 60
+    if worn then budget = math.floor(budget * 1.5) end
+    if contract then budget = math.max(1, math.floor(budget * contract.ammo)) end
+    local mags = xcvb_arena_utils.get_weapon_compatible_mags(sec)
+    local pending = { id = id, class = cls, ammo = ammo, spring = wear, spare_spring = spare or wear, tries = 0,
+        condition = contract and contract.condition / 100 or worn and state.rolls.worn_weapon.condition / 100 or 1 }
+    if magazine_binder and magazine_binder.is_supported_weapon and magazine_binder.is_supported_weapon(sec) and #mags > 0 then
+        pending.detachable = true
+        local mag = mags[1]; local cap = SYS_GetParam(2, mag, "max_mag_size", 1)
+        local loaded = {}; for i = 1, math.min(cap, budget) do loaded[i] = ammo end
+        magazine_binder.set_data(id, {section = mag, loaded = loaded, is_weapon = true})
+        pending.rounds = #loaded; budget = budget - #loaded
+        if not contract or contract.mags > 1 then
+            pending.spare = grant(mag)
+            loaded = {}; for i = 1, math.min(cap, budget) do loaded[i] = ammo end
+            magazine_binder.set_data(pending.spare, {section = mag, loaded = loaded, is_weapon = false})
+            if se_save_var then se_save_var(pending.spare, alife_object(pending.spare):name(), "unpatched", true) end
+            apply_spring(pending.spare, spare or wear)
+        end
+        apply_spring(id, wear)
+    else
+        pending.rounds = math.min(budget, SYS_GetParam(2, sec, "ammo_mag_size", budget))
+        pending.reserve = budget - pending.rounds
+    end
+    if contract then
+        pending.initial_bonus = math.max(1, math.floor((budgets[cls] or 60) * 0.5 * contract.ammo))
+        pending.reserve = (pending.reserve or 0) + pending.initial_bonus
+    end
+    state.pending = pending
+    for _, oid in ipairs(remove) do release(oid) end
+end
+
+local function recycle_magazines(count, replacement)
+    local mags = recycling_mags(); local refund = {}
+    local consumed = replacement and count - 1 or count
+    for i = 1, consumed do
+        local d = assert(magazine_binder.get_data(mags[i]:id()))
+        local loaded = d.loaded or {}
+        -- Return half of each sacrificed magazine, retaining the actual ammo
+        -- sections and their order instead of converting mixed rounds to FMJ.
+        for j = 1, math.floor(#loaded / 2) do refund[loaded[j]] = (refund[loaded[j]] or 0) + 1 end
+    end
+    if replacement then
+        -- Keep the second spare as the repaired result. Its identity, mixed
+        -- loaded rounds and carried status survive; only one magazine is lost.
+        local kept = mags[count]
+        kept:set_condition(1); apply_spring(kept:id(), {pct = 100})
+    end
+    for i = 1, consumed do release(mags[i]:id()) end
+    for sec, rounds in pairs(refund) do grant_ammo(sec, rounds) end
+    refresh(weapon())
+end
+
+local function first_existing(list)
+    for _, sec in ipairs(list) do if ini_sys:section_exist(sec) then return sec end end
+end
+
+function workshop_supplies()
+    if state.workshop_granted then return end
+    state.workshop_granted = true
+    if not spring_support() then return end
+    local w = weapon(); if not supported(w) then return end
+    local d = magazine_binder.get_data(w:id()); if not d or d.section == "no_mag" then return end
+    local size = SYS_GetParam(0, d.section, "mag_size", "medium")
+    if not db.actor:object("leatherman_tool") then grant("leatherman_tool") end
+    if size == "small" then
+        grant("prt_mag_spring_small"); grant(assert(first_existing({"toolkit_p", "toolkit_a"})))
+        grant(assert(first_existing({"cleaning_kit_p", "cleaning_kit_a"})))
+    elseif size == "large" then
+        grant("prt_mag_spring_large"); grant(assert(first_existing({"toolkit_r5", "toolkit_c"})))
+        grant(assert(first_existing({"cleaning_kit_r5", "cleaning_kit_c", "cleaning_kit_u"})))
+    else
+        grant("prt_mag_spring"); grant(assert(first_existing({"toolkit_s", "toolkit_b"})))
+        grant(assert(first_existing({"cleaning_kit_b", "cleaning_kit_s"})))
+    end
+end
+
+function countdown()
+    close_ui(); state.phase, state.remaining = "countdown", 3
+    last_tick = time_global()
+    if xcvb_arena_combat_hud then xcvb_arena_combat_hud.show_banner("Endless+", text("countdown"), 3000) end
+end
+
+local function after_apply()
+    deliver_round_supply()
+    state.pending = nil
+    state.initial_choice = nil
+    state.initial_catalog = nil
+    state.legacy_ammo_offer = nil
+    if state.request_workshop or (state.cleared > 0 and state.cleared % 5 == 0) then
+        state.phase, state.remaining = "workshop", 60
+        workshop_supplies(); last_tick = time_global(); open_ui()
+    else countdown() end
+end
+
+function choose(id, candidate_index)
+    if not active() or state.phase ~= "choice" or state.selected then return false end
+    if state.initial_choice and id ~= "weapon" and id ~= "retire" then return false end
+    if id ~= "skip" and id ~= "retire" then
+        local offered = (id == "supply_ammo" or id == "supply_mag") and available_supply(id)
+        for _, offer in ipairs(state.offers) do if offer == id then offered = true end end
+        if not offered then return false end
+    end
+    if (id == "weapon" or id == "worn_weapon") and not state.candidates[candidate_index or 0] then return false end
+    if id == "heal_wear" and #spring_cost_spares() == 0 then return false end
+    if id == "heal_partial" and not loaded_spare() then return false end
+    if (id == "scavenged" or id == "springs" or id == "recycle_mags" or id == "recycle_mag_medical") and not supported(weapon()) then return false end
+    if (id == "armour" or id == "helmet" or id == "recycle_ammo") and loose_count(weapon()) < 2 then return false end
+    if id == "recycle_meds" and #inventory_sections("bandage") < 2 then return false end
+    if id == "recycle_mags" then
+        local mags, condition = recycling_mags()
+        if #mags < 2 or condition(mags[2]) >= 99.9 or not recycle_leaves_ammo(1) then return false end
+    end
+    if id == "recycle_mag_medical" and not recycle_leaves_ammo(1) then return false end
+    state.selected, state.phase = id, "applying"
+    close_ui()
+    local ok, err = pcall(function()
+        if id == "retire" then xcvb_arena_fight.end_endless_fight(false, true); return end
+        if id == "supply_ammo" or id == "supply_mag" then
+            local w = assert(weapon()); local roll = state.supplies[id == "supply_ammo" and "ammo" or "mag"]
+            if roll.penalty == "extra" then state.extra = id == "supply_ammo" and 1 or 2
+            elseif roll.penalty == "reward" then state.reward_mult = 0.9
+            elseif roll.penalty == "ammo" then
+                local items = loose_ammo(w); local remaining = roll.amount
+                table.sort(items, function(a, b) return a:id() < b:id() end)
+                for _, obj in ipairs(items) do
+                    local n = obj:ammo_get_count(); local take = math.min(n, remaining)
+                    if take > 0 then
+                        if take == n then release(obj:id()) else obj:ammo_set_count(n - take) end
+                        remaining = remaining - take
+                    end
+                end
+            end
+            if id == "supply_ammo" then grant_ammo(xcvb_arena_utils.get_weapon_ammo(w:section(), "auto"), roll.count)
+            else
+                local mid = grant(roll.sec)
+                magazine_binder.set_data(mid, {section = roll.sec, loaded = {}, is_weapon = false})
+                if se_save_var then se_save_var(mid, alife_object(mid):name(), "unpatched", true) end
+                apply_spring(mid, {pct = roll.condition})
+                state.pending = {supplies = {{id = mid, condition = roll.condition}}, tries = 0}
+            end
+        elseif id == "weapon" or id == "worn_weapon" then replace_weapon(state.candidates[candidate_index], id == "worn_weapon")
+        elseif id == "ammo" then edit_rounds(true); state.extra = 3
+        elseif id == "springs" then
+            for _, obj in ipairs(compatible_items()) do magazine_binder.set_mag_spring_condition(obj:id(), 100) end
+            set_health(0.5, false)
+        elseif id == "heal" then set_health(1, true); state.reward_mult = 0.75
+        elseif id == "heal_wear" then
+            for _, obj in ipairs(spring_cost_spares()) do
+                magazine_binder.set_mag_spring_condition(obj:id(), math.max(10,
+                    magazine_binder.get_mag_spring_condition(obj:id()) * 0.7))
+            end
+            set_health(1, true)
+        elseif id == "heal_partial" then unload_spare(); set_health(1, false, 0.5)
+        elseif id == "heal_field" then set_health(1, false, 0.5); state.extra = 2
+        elseif id == "medical" then grant("medkit"); grant("bandage"); grant("bandage"); state.extra = 2
+        elseif id == "armour" then
+            local options = armour_options(); local new_id = grant(assert(options[math.random(#options)]))
+            local old = db.actor:item_in_slot(7)
+            if old then
+                local old_id = old:id()
+                xcvb_arena_utils.release_actor_arena_item(old_id); xcvb_arena_utils.temporary_arena_item_ids[old_id] = nil
+            end
+            halve_loose(weapon())
+            state.pending = {armour = new_id, tries = 0}
+        elseif id == "helmet" then
+            local new_id = grant(assert(state.rolls.helmet.sec))
+            local old = db.actor:item_in_slot(12)
+            if old then release(old:id()) end
+            halve_loose(weapon())
+            state.pending = {helmet = new_id, tries = 0}
+        elseif id == "rest" then state.enemy_mult, state.reward_mult = 0.5, 0.6
+        elseif id == "recycle_mags" then recycle_magazines(2, true)
+        elseif id == "recycle_mag_medical" then
+            recycle_magazines(1, false); grant("medkit"); grant("bandage"); grant("bandage")
+        elseif id == "recycle_meds" then
+            local items = inventory_sections("bandage"); release(items[1]:id()); release(items[2]:id())
+            local w = assert(weapon())
+            grant_ammo(xcvb_arena_utils.get_weapon_ammo(w:section(), "auto"), math.max(1,
+                math.floor((budgets[xcvb_arena_utils.get_weapon_class(w:section())] or 60) / 4)))
+        elseif id == "recycle_ammo" then
+            halve_loose(weapon()); grant("medkit"); grant("bandage"); grant("bandage")
+        elseif id == "bet" then state.reward_mult, state.extra = 1.5, 2
+        elseif id == "workshop" then state.reward_mult, state.request_workshop = 0.75, true
+        elseif id == "cache" then
+            local w = assert(weapon())
+            local count = math.max(1, math.floor((budgets[xcvb_arena_utils.get_weapon_class(w:section())] or 60) * state.rolls.cache.percent / 100))
+            grant_ammo(xcvb_arena_utils.get_weapon_ammo(w:section(), "auto"), count)
+            state.reward_mult = 0.75
+        elseif id == "gun_service" then
+            set_weapon_condition(weapon(), 1); edit_rounds(false)
+        elseif id == "armour_service" then
+            db.actor:item_in_slot(7):set_condition(1); state.extra = 3
+        elseif id == "scavenged" then
+            local w = assert(weapon()); local ammo = xcvb_arena_utils.get_weapon_ammo(w:section(), "auto")
+            local supplies = {}
+            for _, mag in ipairs(state.rolls.scavenged.mags) do
+                local mid = grant(mag.sec)
+                local cap = SYS_GetParam(2, mag.sec, "max_mag_size", 1)
+                local loaded = {}; for i = 1, math.max(1, math.floor(cap * mag.fill / 100)) do loaded[i] = ammo end
+                magazine_binder.set_data(mid, {section = mag.sec, loaded = loaded, is_weapon = false})
+                if se_save_var then se_save_var(mid, alife_object(mid):name(), "unpatched", true) end
+                apply_spring(mid, {pct = mag.condition})
+                supplies[#supplies + 1] = {id = mid, condition = mag.condition}
+            end
+            state.extra, state.pending = 2, {supplies = supplies, tries = 0}
+        end
+        if active() and not state.pending then after_apply() end
+    end)
+    if not ok then fail(err) end
+    return ok
+end
+
+function fail(err)
+    printe("! Endless+ failed: %s", tostring(err))
+    close_ui(); xcvb_arena_fight.end_endless_fight(false, true)
+end
+
+function combat_started()
+    state.phase, state.remaining = "combat", nil
+    last_tick = time_global()
+end
+
+function tick()
+    if not active() then return end
+    local now = time_global(); local dt = math.max(0, now - (last_tick or now)); last_tick = now
+    if state.phase == "initial" and state.initial_wait then
+        state.initial_wait = math.max(0, state.initial_wait - dt / 1000)
+        if state.initial_wait <= 0 then begin_initial_choice() end
+        return
+    end
+    if state.phase == "combat" then state.combat_ms = state.combat_ms + dt; return end
+    if state.phase == "choice" then return end
+    if state.phase == "applying" and state.pending then
+        local p = state.pending; p.tries = p.tries + 1
+        if p.supplies then
+            local ready = true
+            for _, supply in ipairs(p.supplies) do
+                local obj = db.actor:object_id(supply.id)
+                if not obj then ready = false end
+            end
+            if ready then
+                for _, supply in ipairs(p.supplies) do
+                    local obj = db.actor:object_id(supply.id)
+                    obj:set_condition(supply.condition / 100)
+                    apply_spring(supply.id, {pct = supply.condition})
+                    if magazine_binder.is_carried_mag and not magazine_binder.is_carried_mag(supply.id) then magazine_binder.toggle_carried_mag(supply.id) end
+                end
+                refresh(weapon()); after_apply()
+            elseif p.tries >= 100 then fail("magazine supplies did not materialize") end
+            return
+        end
+        local obj = db.actor:object_id(p.id or p.armour or p.helmet)
+        local spare = p.spare and db.actor:object_id(p.spare)
+        if obj and (not p.spare or spare) then
+            if p.armour or p.helmet then
+                obj:set_condition(1); db.actor:move_to_slot(obj, p.helmet and 12 or 7)
+            else
+                obj:set_condition(p.condition or 1)
+                xcvb_arena_utils.safe_equip_gun(obj, p.class == "pistol" and 1 or 2)
+                if p.detachable or p.spare then
+                    apply_spring(p.id, p.spring)
+                    if p.spare then
+                        apply_spring(p.spare, p.spare_spring)
+                        if magazine_binder.is_carried_mag and not magazine_binder.is_carried_mag(p.spare) then magazine_binder.toggle_carried_mag(p.spare) end
+                    end
+                end
+                -- The ammo chosen for a tube-fed shotgun may not be index 0.
+                -- Set that type explicitly before loading the correct count.
+                if not p.detachable and not p.spare then
+                    local index = 0
+                    for sec in string.gmatch(ini_sys:r_string_ex(obj:section(), "ammo_class") or "", "[^,%s]+") do
+                        if sec == p.ammo then obj:set_ammo_type(index); break end
+                        index = index + 1
+                    end
+                end
+                obj:set_ammo_elapsed(p.rounds); refresh(obj)
+                set_weapon_condition(obj, p.condition or 1)
+                if (p.reserve or 0) > 0 and not p.reserve_granted then
+                    -- Old ammo was released in replace_weapon. Spawning reserve
+                    -- now avoids merging new cartridges into a discarded stack.
+                    p.reserve_delivery = p.reserve_delivery or {sec = p.ammo, count = p.reserve}
+                    issue_ammo(p.reserve_delivery)
+                    p.reserve_granted = true
+                end
+            end
+            after_apply()
+        elseif p.tries >= 100 then fail("replacement did not materialize") end
+        return
+    end
+    if state.phase == "workshop" or state.phase == "countdown" then
+        state.remaining = math.max(0, (state.remaining or 0) - dt / 1000)
+        if state.remaining <= 0 then
+            if state.phase == "workshop" then countdown()
+            else
+                -- Mark spawning separately: no repeated spawn if a callback fails.
+                state.phase = "spawning"
+                local ok, err = pcall(xcvb_arena_fight.spawn_plus_wave, state.extra or 0)
+                if not ok then fail(err) end
+            end
+        elseif state.phase == "workshop" and now >= inventory_until and actor_menu.get_last_mode() == 0 and not Check_UI() then open_ui() end
+    end
+end
+
+function save_state(data)
+    -- Saving must not advance a phase, spawn objects or open a dialog.
+    local snapshot = clone(state)
+    local dt = math.max(0, time_global() - (last_tick or time_global()))
+    if active() and snapshot.phase == "combat" then snapshot.combat_ms = snapshot.combat_ms + dt
+    elseif active() and (snapshot.phase == "workshop" or snapshot.phase == "countdown") then
+        snapshot.remaining = math.max(0, (snapshot.remaining or 0) - dt / 1000)
+    end
+    data.xcvb_endless_plus = snapshot
+    data.xcvb_endless_plus_stats = clone(stats)
+end
+
+function load_state(data)
+    close_ui()
+    state = clone(data.xcvb_endless_plus or {active = false, phase = "idle"})
+    if not state.supply_rules_version then
+        state.legacy_ammo_offer = state.phase == "choice" and not state.initial_choice
+            and state.supplies ~= nil and state.supplies.ammo ~= nil or false
+        state.supply_rules_version = 1
+        -- Old completed waves never receive retroactive ammunition.
+        state.round_supply = nil
+    end
+    stats = clone(data.xcvb_endless_plus_stats or {best = 0, runs = 0, kills = 0, cleared = 0, pb = {}})
+    last_tick = nil
+end
+
+function resume()
+    if not active() then return end
+    last_tick = time_global()
+    if state.phase == "initial" then
+        if not state.initial_equipped then
+            xcvb_arena_endless.equip_endless_loadout(1, state.difficulty, xcvb_arena_main.endless_3dssg == true)
+            state.initial_equipped = true
+        end
+        -- Equipment timers do not survive loading. Re-equip already-created
+        -- rentals instead of generating another initial inventory.
+        db.actor:iterate_inventory(function(_, obj)
+            if xcvb_arena_utils.temporary_arena_item_ids[obj:id()] then
+                if IsOutfit and IsOutfit(obj) then db.actor:move_to_slot(obj, 7)
+                elseif IsHelmet and IsHelmet(obj) then db.actor:move_to_slot(obj, 12)
+                elseif IsWeapon(obj) and not IsMelee(obj) then
+                    local cls = xcvb_arena_utils.get_weapon_class(obj:section())
+                    xcvb_arena_utils.safe_equip_gun(obj, cls == "pistol" and 1 or 2)
+                end
+            end
+        end, db.actor)
+        state.initial_wait = 3
+    elseif state.phase == "choice" or state.phase == "workshop" then
+        if state.initial_choice and not state.initial_catalog then
+            prepare_initial_catalog(true); select_initial_tier(1)
+        end
+        open_ui()
+    elseif state.phase == "spawning" then state.phase, state.remaining = "countdown", 3 end
+end
+
+function block_save(key, bind, dis, flags)
+    if active() and (state.phase == "applying" or state.phase == "initial")
+        and bind == key_bindings.kQUICK_SAVE then flags.ret_value = false end
+end
+
+function on_game_start()
+    RegisterScriptCallback("on_before_key_press", block_save)
+    RegisterScriptCallback("actor_on_net_destroy", close_ui)
+end

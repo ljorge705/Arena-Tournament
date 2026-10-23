@@ -1,0 +1,52 @@
+-- Optional Wearable Devices 0.8.14 compatibility. WD keeps attachment state
+-- by object ID and detaches devices as soon as actor ownership is lost.
+-- Keep the actual objects instead of recreating devices or copying WD state.
+
+function is_available()
+    return ini_sys and ini_sys:section_exist("wd_bracer") or false
+end
+
+function is_preserved_section(section, id)
+    if not section or not is_available() then return false end
+
+    -- WD owns slot 15 and manages this helper's lifetime itself.
+    if section == "wd_emptyhands" or section == "wd_bracer" then return true end
+
+    -- Include both tiers even before WD has registered its slot handlers.
+    if section == "wd_metro_watch" or section == "wd_vektor" or section == "wd_vektor_2"
+        or section == "wd_promin" or section == "wd_promin_2" then
+        return true
+    end
+
+    if wd_slots then
+        if wd_slots.get_slot_of then
+            local slot = wd_slots.get_slot_of(section)
+            if slot == "wrist" or slot == "forearm" then return true end
+        end
+        -- Only retain the patch mounted on the bracer, not every faction patch.
+        if id and wd_slots.get_mounted_object then
+            local patch = wd_slots.get_mounted_object("patch")
+            if patch and patch:id() == id then return true end
+        end
+    end
+
+    -- Installing a module consumes its object; removing one creates a new ID.
+    -- Recognize loose modules too so arena cleanup cannot destroy them.
+    if d_promin_config and d_promin_config.get_module_of_section then
+        return d_promin_config.get_module_of_section(section) ~= nil
+    end
+    return false
+end
+
+function is_preserved(item)
+    return item and is_preserved_section(item:section(), item:id()) or false
+end
+
+function finish_inspection()
+    if not is_available() then return end
+    -- WD's teardown also requires releasing its inspection key before raising
+    -- the device again, so a held key cannot race an equipment transition.
+    if wd_inspect and wd_inspect.on_sleep then
+        wd_inspect.on_sleep()
+    end
+end

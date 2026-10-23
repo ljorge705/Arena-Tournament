@@ -1,0 +1,223 @@
+GUI = nil
+local function tr(key) return xcvb_arena_plus.text(key) end
+
+function close()
+    if GUI then GUI:HideDialog(); GUI = nil end
+    Unregister_UI("UIXcvbEndlessPlus")
+end
+
+function open()
+    close()
+    GUI = UIXcvbEndlessPlus()
+    GUI:ShowDialog(true)
+    Register_UI("UIXcvbEndlessPlus", "xcvb_arena_plus_ui")
+end
+
+class "UIXcvbEndlessPlus" (CUIScriptWnd)
+function UIXcvbEndlessPlus:__init() super()
+    self:SetWndRect(Frect():set(0, 0, 1024, 768))
+    self:SetAutoDelete(true); self:AllowWorkInPause(true)
+    local xml = CScriptXmlInit(); xml:ParseFile("ui_xcvb_endless_plus.xml")
+    xml:InitStatic("background", self)
+    self.title = xml:InitTextWnd("title", self)
+    self.status = xml:InitTextWnd("status", self)
+    self.detail = xml:InitTextWnd("detail", self)
+    self.start_info = xml:InitTextWnd("start_info", self)
+    self.tier_buttons = {}
+    for i = 1, 5 do
+        local index = i
+        local button = xml:Init3tButton("start_tier_" .. i, self)
+        self.tier_buttons[i] = button
+        self:Register(button, "start_tier_" .. i)
+        self:AddCallback("start_tier_" .. i, ui_events.BUTTON_CLICKED, function()
+            if xcvb_arena_plus.select_initial_tier(index) then
+                self.selection, self.candidate = nil, nil
+                self.category_view, self.weapon_view = true, false
+                self:refresh()
+            end
+        end, self)
+    end
+    self.class_buttons = {}
+    for _, cls in ipairs({"pistol", "smg", "shotgun", "rifle", "sniper"}) do
+        local category = cls
+        local button = xml:Init3tButton("class_" .. cls, self)
+        self.class_buttons[cls] = button
+        self:Register(button, "class_" .. cls)
+        self:AddCallback("class_" .. cls, ui_events.BUTTON_CLICKED, function()
+            if xcvb_arena_plus.select_category(category) then
+                self.category_view, self.weapon_view = false, true
+                self:refresh()
+            end
+        end, self)
+    end
+    self.rows, self.descriptions = {}, {}
+    for i = 1, 3 do
+        local index = i
+        self.rows[i] = xml:Init3tButton("offer_" .. i, self)
+        self.descriptions[i] = xml:InitTextWnd("desc_" .. i, self)
+        self:Register(self.rows[i], "offer_" .. i)
+        self:AddCallback("offer_" .. i, ui_events.BUTTON_CLICKED, function() self:pick(index) end, self)
+    end
+    for _, name in ipairs({"inventory", "finish", "skip", "retire", "supply_ammo", "supply_mag", "confirm", "back"}) do
+        self[name] = xml:Init3tButton(name, self)
+        self:Register(self[name], name)
+    end
+    self:AddCallback("confirm", ui_events.BUTTON_CLICKED, self.confirm_choice, self)
+    self:AddCallback("back", ui_events.BUTTON_CLICKED, self.go_back, self)
+    self:AddCallback("skip", ui_events.BUTTON_CLICKED, function() self.selection = "skip"; self:refresh() end, self)
+    self:AddCallback("retire", ui_events.BUTTON_CLICKED, function() self.selection = "retire"; self:refresh() end, self)
+    self:AddCallback("inventory", ui_events.BUTTON_CLICKED, self.open_inventory, self)
+    self:AddCallback("finish", ui_events.BUTTON_CLICKED, function() xcvb_arena_plus.countdown() end, self)
+    self:AddCallback("supply_ammo", ui_events.BUTTON_CLICKED, function()
+        if xcvb_arena_plus.available_supply("supply_ammo") then self.selection = "supply_ammo"; self:refresh() end
+    end, self)
+    self:AddCallback("supply_mag", ui_events.BUTTON_CLICKED, function()
+        if xcvb_arena_plus.available_supply("supply_mag") then self.selection = "supply_mag"; self:refresh() end
+    end, self)
+    if xcvb_arena_plus.state.initial_choice then
+        self.weapon_offer, self.category_view = "weapon", true
+    end
+    self:refresh()
+end
+function UIXcvbEndlessPlus:__finalize() end
+
+function UIXcvbEndlessPlus:pick(index)
+    local s = xcvb_arena_plus.state
+    if self.weapon_view then
+        if not s.candidates[index] then return end
+        self.candidate = index; self.selection = self.weapon_offer or "weapon"
+    else
+        local id = s.offers[index]; if not id then return end
+        if id == "weapon" or id == "worn_weapon" then
+            self.weapon_offer = id
+            self.category_view = s.categories ~= nil
+            self.weapon_view = not self.category_view
+            self.selection = nil
+        else self.selection = id end
+    end
+    self:refresh()
+end
+
+function UIXcvbEndlessPlus:go_back()
+    if self.selection then self.selection, self.candidate = nil, nil
+    elseif self.weapon_view then
+        self.weapon_view = false
+        self.category_view = xcvb_arena_plus.state.categories ~= nil
+    elseif not xcvb_arena_plus.state.initial_choice then self.category_view = false end
+    self:refresh()
+end
+
+function UIXcvbEndlessPlus:confirm_choice()
+    if not self.selection then return end
+    xcvb_arena_plus.choose(self.selection, self.candidate)
+end
+
+function UIXcvbEndlessPlus:open_inventory()
+    xcvb_arena_plus.inventory_requested()
+    close()
+    local key = bind_to_dik(key_bindings.kINVENTORY)
+    if key then level.press_action(key) end
+end
+
+function UIXcvbEndlessPlus:refresh()
+    local s = xcvb_arena_plus.state
+    local workshop = s.phase == "workshop"
+    self.title:SetText(workshop and tr("workshop_title") or "Endless+")
+    local tokens = xcvb_arena_mcm.get_config("economy_mode") == "tokens"
+    local reward = tokens and math.floor((s.reward or 0) / 100) or (s.reward or 0)
+    self.status:SetText(string.format(tr("status"), s.cleared or 0, s.wave or 1, reward,
+        tokens and "TOKENS" or "RU"))
+    local confirming = self.selection ~= nil
+    local function description(id, compact)
+        return xcvb_arena_plus.offer_description and xcvb_arena_plus.offer_description(id, compact) or tr(id .. "_desc")
+    end
+    local selected_weapon = self.candidate and s.candidates[self.candidate]
+    local selected_name = selected_weapon and game.translate_string(ini_sys:r_string_ex(selected_weapon.sec, "inv_name") or selected_weapon.sec) or ""
+    self.detail:SetText(workshop and string.format(tr("workshop_time"), math.ceil(s.remaining or 0))
+        or confirming and (tr("confirm_question") .. " " .. tr(self.selection .. "_name") .. " " .. selected_name .. "\\n" .. description(self.selection))
+        or self.category_view and string.format(tr(s.initial_choice and "starting_pick" or "category_pick"),
+            xcvb_arena_plus.selection_tier and xcvb_arena_plus.selection_tier() or xcvb_arena_plus.tier())
+        or self.weapon_view and tr("weapon_pick") or tr("choice_help"))
+    local initial_select = s.initial_choice and self.category_view and not confirming and not workshop
+    self.start_info:Show(initial_select or false)
+    if initial_select and xcvb_arena_plus.starting_description then self.start_info:SetText(xcvb_arena_plus.starting_description()) end
+    for i, button in ipairs(self.tier_buttons) do
+        local available = s.initial_catalog and s.initial_catalog[i] and #s.initial_catalog[i].categories > 0
+        button:Show(initial_select or false); button:Enable((initial_select and available) or false)
+        button:TextControl():SetText(string.format(tr("starting_tier"), i) .. ((s.start_tier or 1) == i and " [X]" or ""))
+    end
+    if confirming and s.initial_choice and selected_weapon and self.selection == "weapon" and xcvb_arena_plus.starting_description then
+        local c = xcvb_arena_plus.starting_contract()
+        local allowance = ({shotgun=20,pistol=60,rifle=60,smg=90,sniper=15})[selected_weapon.class] or 60
+        self.detail:SetText(tr("confirm_question") .. " " .. selected_name .. "\\n" .. xcvb_arena_plus.starting_description()
+            .. "\\n" .. xcvb_arena_plus.weapon_supply_description(selected_weapon, math.max(1, math.floor(allowance * c.ammo))))
+    end
+    for cls, button in pairs(self.class_buttons) do
+        local valid = s.candidate_groups and s.candidate_groups[cls] and #s.candidate_groups[cls] > 0
+        local show_cls = self.category_view and not confirming and not workshop and valid or false
+        button:Show(show_cls)
+        button:Enable(show_cls)
+        button:TextControl():SetText(game.translate_string("st_arena_class_" .. cls))
+    end
+    for i = 1, 3 do
+        local id = s.offers[i]; local candidate = self.weapon_view and s.candidates[i]
+        local visible = not workshop and not confirming and not self.category_view and (self.weapon_view and candidate ~= nil or not self.weapon_view and id ~= nil)
+        self.rows[i]:Show(visible); self.rows[i]:Enable(visible)
+        self.descriptions[i]:Show(visible)
+        if visible then
+            if candidate then
+                self.rows[i]:TextControl():SetText(game.translate_string(ini_sys:r_string_ex(candidate.sec, "inv_name") or candidate.sec))
+                local b = ({shotgun=20,pistol=60,rifle=60,smg=90,sniper=15})[candidate.class] or 60
+                if self.weapon_offer == "worn_weapon" then b = math.floor(b * 1.5) end
+                local condition = self.weapon_offer == "worn_weapon" and s.rolls.worn_weapon.condition or 100
+                if s.initial_choice and xcvb_arena_plus.starting_contract then
+                    local c = xcvb_arena_plus.starting_contract()
+                    b, condition = math.max(1, math.floor(b * c.ammo)), c.condition
+                end
+                local supply = string.format(tr("weapon_supply"), b)
+                if xcvb_arena_plus.weapon_supply_description then supply = xcvb_arena_plus.weapon_supply_description(candidate, b)
+                elseif xcvb_arena_plus.colour_description then supply = xcvb_arena_plus.colour_description(supply) end
+                local colour = condition < 100 and "%c[255,245,110,105]" or "%c[255,110,230,135]"
+                self.descriptions[i]:SetText(s.initial_choice and supply or supply .. "\\n" .. colour .. string.format(tr("condition_value"), condition) .. "%c[255,215,215,215]")
+            else
+                self.rows[i]:TextControl():SetText(tr(id .. "_name"))
+                self.descriptions[i]:SetText(description(id, true))
+            end
+        end
+    end
+    local show_confirm = confirming and not workshop
+    self.confirm:Show(show_confirm); self.confirm:Enable(show_confirm)
+    local show_back = (confirming or self.weapon_view or (self.category_view and not s.initial_choice)) and not workshop
+    self.back:Show(show_back); self.back:Enable(show_back)
+    local show_skip = not workshop and not confirming and not self.weapon_view and not self.category_view and not s.initial_choice
+    self.skip:Show(show_skip); self.skip:Enable(show_skip)
+    local show_retire = not workshop and not confirming and (s.initial_choice or (not self.weapon_view and not self.category_view))
+    self.retire:Show(show_retire); self.retire:Enable(show_retire)
+    self.inventory:Show(workshop); self.inventory:Enable(workshop)
+    self.finish:Show(workshop); self.finish:Enable(workshop)
+    local show_supplies = s.phase == "choice" and not s.initial_choice and not confirming
+    for _, name in ipairs({"supply_ammo", "supply_mag"}) do
+        local visible = show_supplies
+        local can_supply = visible and (xcvb_arena_plus.available_supply and xcvb_arena_plus.available_supply(name) or false)
+        self[name]:Show(visible)
+        self[name]:Enable(can_supply)
+    end
+    for _, name in ipairs({"confirm", "back", "skip", "retire", "inventory", "finish", "supply_ammo", "supply_mag"}) do
+        self[name]:TextControl():SetText(tr(name .. "_name"))
+    end
+end
+
+function UIXcvbEndlessPlus:Update()
+    CUIScriptWnd.Update(self)
+    if xcvb_arena_plus.state.phase == "workshop" then self:refresh() end
+end
+
+function UIXcvbEndlessPlus:OnKeyboard(key, action)
+    if action == ui_events.WINDOW_KEY_PRESSED then
+        if key == DIK_keys.DIK_ESCAPE then self:go_back(); return true end
+        if xcvb_arena_plus.state.phase == "workshop" and dik_to_bind(key) == key_bindings.kINVENTORY then
+            self:open_inventory(); return true
+        end
+    end
+    return CUIScriptWnd.OnKeyboard(self, key, action)
+end

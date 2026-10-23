@@ -261,6 +261,7 @@ local function safe_equip_gun(gun_obj, preferred_slot)
 end
 
 function equip_endless_loadout(wave, difficulty, use_3dssg)
+    xcvb_arena_wearable.finish_inspection()
     local cur_wave = wave or 1
     local diff = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
 
@@ -269,7 +270,7 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
         pcall(function() db.actor:activate_slot(0) end)
         for s = 1, 15 do
             local slot_itm = db.actor:item_in_slot(s)
-            if slot_itm and db.actor.move_to_ruck then
+            if slot_itm and not xcvb_arena_wearable.is_preserved(slot_itm) and db.actor.move_to_ruck then
                 pcall(function() db.actor:move_to_ruck(slot_itm) end)
             end
         end
@@ -296,7 +297,10 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
         db.actor:iterate_inventory(function(owner, item)
             if not item then return end
             local sec = item:section()
-            if sec == "device_pda" or string.find(sec, "device_torch") or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+            if sec == "device_pda" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
+                return
+            end
+            if xcvb_arena_main and xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
                 return
             end
             if xcvb_arena_utils.saved_actor_item_ids and xcvb_arena_utils.saved_actor_item_ids[item:id()] then
