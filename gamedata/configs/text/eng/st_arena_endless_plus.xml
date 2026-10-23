@@ -92,4 +92,5 @@
 <string id="st_arena_plus_supply_unavailable"><text>No compatible detachable magazines are available for this weapon.</text></string>
 <string id="st_arena_plus_initial_reserve"><text>Additional initial reserve: %d loose rounds. Granted once.</text></string>
 <string id="st_arena_plus_round_supply_received"><text>Round supply: %d rounds of %s.</text></string>
+<string id="st_arena_gear_restore_pending"><text>Equipment return is incomplete. Your items are safe. Open the arena and try entering again to retry the return.</text></string>
 </string_table>

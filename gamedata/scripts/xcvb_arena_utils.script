@@ -29,6 +29,47 @@ saved_active_slot = nil
 inventory_stored = false
 inventory_restore_pending = false
 inventory_return_candidates = nil
+inventory_restore_state = nil
+inventory_store_pending = nil
+night_device_epoch = 0
+night_device_id = nil
+night_personal_device_id = nil
+
+function arena_last_inventory_slot()
+    -- Match CInventory's dynamic slot allocation; querying beyond it is unsafe.
+    if not ini_sys.line_exist then return 15 end
+    local slot = 1
+    while ini_sys:line_exist("inventory", "slot_persistent_" .. slot)
+        and ini_sys:line_exist("inventory", "slot_active_" .. slot) do slot = slot + 1 end
+    return slot - 1
+end
+
+-- In this engine moves are network events, not immediate changes to inventory.
+function arena_move_to_slot(item, slot)
+    local ok, err = pcall(function() db.actor:move_to_slot(item, slot, true) end)
+    if not ok then
+        -- Older Anomaly builds expose the two-argument binding instead.
+        ok, err = pcall(function() db.actor:move_to_slot(item, slot) end)
+    end
+    if not ok then printe("! arena: slot %s item %s: %s", slot, item:id(), tostring(err)) end
+    return ok
+end
+
+function cancel_arena_night_device_events()
+    night_device_epoch = night_device_epoch + 1
+    for _, event in ipairs({
+        {"arena_equip_torch_e", "arena_equip_torch_a"},
+        {"arena_activate_torch_sub_e", "arena_activate_torch_sub_a"},
+        {"arena_activate_torch_found_e", "arena_activate_torch_found_a"},
+        {"arena_nvg_torch_off_e", "arena_nvg_torch_off_a"},
+        {"arena_endless_torch_recheck_e", "arena_endless_torch_recheck_a"},
+    }) do RemoveTimeEvent(event[1], event[2]) end
+end
+
+function is_arena_nvg_section(sec)
+    return sec and (ini_sys:r_string_ex(sec, "nv_effect") ~= nil
+        or string.find(sec, "^device_torch_nv_") ~= nil) or false
+end
 endless_squad_spawn_pos = {}
 endless_squad_spawn_lvid = {}
 npc_forest_designated_pos = {}
@@ -1923,7 +1964,9 @@ function activate_actor_nightvision(sec)
     end
 
     -- Safety check after 0.1s to ensure engine did not turn on torch light upon equipping slot 10
+    local epoch = night_device_epoch
     CreateTimeEvent("arena_nvg_torch_off_e", "arena_nvg_torch_off_a", 0.1, function()
+        if epoch ~= night_device_epoch then return true end
         turn_off_actor_torch()
         return true
     end)
@@ -2523,9 +2566,19 @@ function equip_and_enable_npc_torch(npc)
 end
 
 function ensure_actor_torch_active()
-    if not db.actor then return end
+    if not db.actor or not night_mode_combat_running or inventory_restore_pending then return end
     local target_sec = xcvb_arena_main.night_mode_device or "device_torch_dummy"
-    local is_nvg = (target_sec == "device_torch_nv_1" or target_sec == "device_torch_nv_2" or target_sec == "device_torch_nv_3")
+    local is_nvg = is_arena_nvg_section(target_sec)
+    local current = db.actor:item_in_slot(10)
+    -- With personal equipment enabled, ownership is intentionally retained.
+    if not inventory_stored and current and not temporary_arena_item_ids[current:id()] then
+        night_personal_device_id = night_personal_device_id or current:id()
+        if current:section() == target_sec then
+            if is_nvg then activate_actor_nightvision(target_sec)
+            else turn_off_actor_nightvision(); activate_actor_torch() end
+            return
+        end
+    end
 
     if target_sec == "none" then
         turn_off_actor_torch()
@@ -2539,70 +2592,60 @@ function ensure_actor_torch_active()
         return
     end
 
-    local torch = db.actor:item_in_slot(10)
-    if torch and torch:section() == target_sec then
-        if is_nvg then
-            activate_actor_nightvision(target_sec)
-        else
-            turn_off_actor_nightvision()
-            activate_actor_torch()
+    local epoch = night_device_epoch
+    local attempts = 0
+    RemoveTimeEvent("arena_equip_torch_e", "arena_equip_torch_a")
+    CreateTimeEvent("arena_equip_torch_e", "arena_equip_torch_a", 0.2, function()
+        if epoch ~= night_device_epoch or not night_mode_combat_running
+            or inventory_restore_pending or not db.actor
+            or target_sec ~= xcvb_arena_main.night_mode_device then return true end
+        attempts = attempts + 1
+        if attempts > 50 then
+            printe("! arena: night device transfer/equipment timed out")
+            return true
         end
-        return
-    end
-
-    -- If another torch is in slot 10 and we need target_sec:
-    if torch and torch:section() ~= target_sec then
-        if db.actor.move_to_ruck then
-            pcall(function() db.actor:move_to_ruck(torch) end)
+        -- The original personal device must have left actor ownership first.
+        local waiting = inventory_store_pending ~= nil
+        for id, slot in pairs(saved_equipped_slots) do
+            if slot == 10 and db.actor:object_id(id) then waiting = true end
         end
-    end
-
-    -- Search if actor has target_sec in ruck
-    local found_item = nil
-    db.actor:iterate_inventory(function(owner, item)
-        if not found_item and item and item:section() == target_sec then
-            found_item = item
-            if db.actor.move_to_slot then
-                pcall(function() db.actor:move_to_slot(item, 10) end)
+        if not waiting then
+            if night_device_id and not temporary_arena_item_ids[night_device_id] then night_device_id = nil end
+            if night_device_id then
+                local se = alife_object(night_device_id)
+                if not se then night_device_id = nil end
+                if se and se:section_name() ~= target_sec then
+                    release_actor_arena_item(night_device_id)
+                    temporary_arena_item_ids[night_device_id] = nil
+                    night_device_id = nil
+                end
             end
-        end
-    end, db.actor)
-
-    if not found_item then
-        local se_torch = alife_create_item(target_sec, db.actor)
-        if se_torch then
-            temporary_arena_item_ids[se_torch.id] = true
-            CreateTimeEvent("arena_equip_torch_e", "arena_equip_torch_a", 0.3, function()
-                local t_obj = level.object_by_id(se_torch.id)
-                if t_obj and db.actor then
-                    if db.actor.move_to_slot then
-                        pcall(function() db.actor:move_to_slot(t_obj, 10) end)
+            if not night_device_id then
+                -- Reuse only a tracked rental, never a matching personal item.
+                for id in pairs(temporary_arena_item_ids) do
+                    local se = alife_object(id)
+                    if se and se:section_name() == target_sec then night_device_id = id; break end
+                end
+                if not night_device_id then
+                    local se = alife_create_item(target_sec, db.actor)
+                    if se then
+                        night_device_id = se.id
+                        temporary_arena_item_ids[se.id] = true
                     end
                 end
-                CreateTimeEvent("arena_activate_torch_sub_e", "arena_activate_torch_sub_a", 0.2, function()
-                    if is_nvg then
-                        activate_actor_nightvision(target_sec)
-                    else
-                        turn_off_actor_nightvision()
-                        activate_actor_torch()
-                    end
-                    return true
-                end)
-                return true
-            end)
-            return
-        end
-    else
-        CreateTimeEvent("arena_activate_torch_found_e", "arena_activate_torch_found_a", 0.2, function()
-            if is_nvg then
-                activate_actor_nightvision(target_sec)
-            else
-                turn_off_actor_nightvision()
-                activate_actor_torch()
             end
-            return true
-        end)
-    end
+            local obj = night_device_id and db.actor:object_id(night_device_id)
+            local equipped = db.actor:item_in_slot(10)
+            if obj and equipped and equipped:id() == night_device_id then
+                if is_nvg then activate_actor_nightvision(target_sec)
+                else turn_off_actor_nightvision(); activate_actor_torch() end
+                return true
+            end
+            if obj and attempts % 5 == 1 then arena_move_to_slot(obj, 10) end
+        end
+        ResetTimeEvent("arena_equip_torch_e", "arena_equip_torch_a", 0.2)
+        return false
+    end)
 end
 
 function save_actor_survival_needs()
@@ -2766,6 +2809,16 @@ function enter_arena_night_mode()
 end
 
 function exit_arena_night_mode()
+    cancel_arena_night_device_events()
+    if not inventory_stored then
+        if night_device_id and temporary_arena_item_ids[night_device_id] then
+            release_actor_arena_item(night_device_id)
+            temporary_arena_item_ids[night_device_id] = nil
+        end
+        local original = db.actor and night_personal_device_id and db.actor:object_id(night_personal_device_id)
+        if original then arena_move_to_slot(original, 10) end
+        night_device_id, night_personal_device_id = nil, nil
+    end
     if not (level and level.name and level.name() == "l05_bar") then
         night_mode_combat_running = false
         if xcvb_arena_main and xcvb_arena_main.night_mode_saved_render then
@@ -4283,10 +4336,68 @@ function purge_all_arena_mags()
     if mag_hud and mag_hud.HUD and mag_hud.HUD.Update then pcall(function() mag_hud.HUD:Update(true) end) end
 end
 
+function resume_inventory_storage()
+    if not inventory_store_pending or not db.actor then return end
+    local attempts = 0
+    CreateTimeEvent("arena_inventory_store_e", "arena_inventory_store_a", 0.2, function()
+        if not inventory_store_pending or inventory_restore_pending then return true end
+        attempts = attempts + 1
+        local box = get_or_create_arena_box()
+        local in_box = {}
+        if box then box:iterate_inventory_box(function(_, item) in_box[item:id()] = true end, box) end
+        local pending = false
+        local belt = {}
+        db.actor:iterate_belt(function(_, item) belt[item:id()] = true end)
+        for id in pairs(inventory_store_pending) do
+            if not in_box[id] then pending = true end
+            local obj = db.actor:object_id(id)
+            if obj then
+                pending = true
+                local slotted = false
+                for slot = 0, arena_last_inventory_slot() do
+                    local current = db.actor:item_in_slot(slot)
+                    if current and current:id() == id then slotted = true end
+                end
+                if attempts % 5 == 1 then
+                    if slotted or belt[id] then db.actor:move_to_ruck(obj)
+                    elseif box then db.actor:transfer_item(obj, box) end
+                end
+            end
+        end
+        if not pending then inventory_store_pending = nil; return true end
+        if attempts >= 50 then
+            printe("! arena: personal equipment storage timed out; returning equipment")
+            inventory_store_pending = nil
+            restore_actor_inventory()
+            return true
+        end
+        ResetTimeEvent("arena_inventory_store_e", "arena_inventory_store_a", 0.2)
+        return false
+    end)
+end
+
+function wait_for_inventory_storage(callback)
+    local epoch = night_device_epoch
+    CreateTimeEvent("arena_inventory_entry_e", "arena_inventory_entry_a", 0.2, function()
+        if epoch ~= night_device_epoch or inventory_restore_pending or not inventory_stored then return true end
+        if not inventory_store_pending then callback(); return true end
+        ResetTimeEvent("arena_inventory_entry_e", "arena_inventory_entry_a", 0.2)
+        return false
+    end)
+end
+
+local function copy_arena_inventory_data(data)
+    if type(data) ~= "table" then return data end
+    local copy = {}
+    for k, v in pairs(data) do copy[k] = copy_arena_inventory_data(v) end
+    return copy
+end
+
 function store_actor_inventory()
     if not db.actor then return false end
     -- Never replace the snapshot while its delayed equipment return is running.
     if inventory_restore_pending then
+        restore_actor_equipped_slots()
         return false
     end
     if inventory_stored then
@@ -4314,11 +4425,15 @@ function store_actor_inventory()
     saved_magazine_data = {}
     saved_carried_mags = {}
     saved_actor_item_ids = {}
+    inventory_restore_state = nil
+    cancel_arena_night_device_events()
+    night_device_id = nil
+    night_personal_device_id = nil
     xcvb_arena_wearable.finish_inspection()
     saved_active_slot = db.actor and db.actor:active_slot()
 
-    -- 1. Record original equipped item slots (0 to 15) BEFORE moving to ruck
-    for slot = 0, 15 do
+    -- 1. Record actual slots, including custom engine slots, before moving to ruck.
+    for slot = 0, arena_last_inventory_slot() do
         local itm = db.actor:item_in_slot(slot)
         if itm and not xcvb_arena_wearable.is_preserved(itm) then
             saved_equipped_slots[itm:id()] = slot
@@ -4353,7 +4468,7 @@ function store_actor_inventory()
         saved_actor_item_ids[item:id()] = true
         if magazine_binder and magazine_binder.get_data then
             local data = magazine_binder.get_data(item:id())
-            if data ~= nil then saved_magazine_data[item:id()] = data end
+            if data ~= nil then saved_magazine_data[item:id()] = copy_arena_inventory_data(data) end
             if magazine_binder.is_carried_mag and magazine_binder.is_carried_mag(item:id()) then
                 saved_carried_mags[item:id()] = true
             end
@@ -4361,18 +4476,15 @@ function store_actor_inventory()
         table.insert(items_to_store, item)
     end, db.actor)
     
-    -- 4. Detach belt/slot references before changing ownership. A direct transfer
-    -- can leave the same object in both the engine belt and the returned rucksack.
+    -- 4. Wait for unequip acknowledgements before transferring ownership.
     inventory_stored = true
+    inventory_store_pending = {}
     local ok, err = pcall(function()
         for _, item in ipairs(items_to_store) do
-            if saved_belt_items[item:id()] then db.actor:move_to_ruck(item) end
-        end
-        for _, item in ipairs(items_to_store) do
-            if saved_equipped_slots[item:id()] ~= nil then db.actor:move_to_ruck(item) end
-        end
-        for _, item in ipairs(items_to_store) do
-            db.actor:transfer_item(item, box)
+            inventory_store_pending[item:id()] = true
+            if saved_belt_items[item:id()] or saved_equipped_slots[item:id()] ~= nil then
+                db.actor:move_to_ruck(item)
+            end
         end
     end)
     if not ok then
@@ -4381,6 +4493,7 @@ function store_actor_inventory()
         return false
     end
     purge_all_arena_mags()
+    resume_inventory_storage()
     return true
 end
 
@@ -4894,6 +5007,8 @@ end
 function cancel_inventory_events()
     local equip_events = {
         {"arena_inventory_retry_e", "arena_inventory_retry_a"},
+        {"arena_inventory_store_e", "arena_inventory_store_a"},
+        {"arena_inventory_restore_e", "arena_inventory_restore_a"},
         {"arena_restore_equip_e1", "arena_restore_equip_a1"},
         {"arena_restore_equip_e2", "arena_restore_equip_a2"},
         {"arena_restore_equip_e3", "arena_restore_equip_a3"},
@@ -4922,11 +5037,16 @@ end
 
 function restore_actor_inventory(is_retry)
     if not inventory_stored or not db.actor then return false end
+    if inventory_restore_pending then restore_actor_equipped_slots(); return true end
+    cancel_arena_night_device_events()
+    night_device_id = nil
+    inventory_store_pending = nil
+    RemoveTimeEvent("arena_inventory_store_e", "arena_inventory_store_a")
     xcvb_arena_wearable.finish_inspection()
     pcall(function() db.actor:activate_slot(0) end)
     pcall(turn_off_actor_nightvision)
     pcall(turn_off_actor_torch)
-    for s = 1, 15 do
+    for s = 1, arena_last_inventory_slot() do
         local slot_itm = db.actor:item_in_slot(s)
         if slot_itm and not xcvb_arena_wearable.is_preserved(slot_itm) and db.actor.move_to_ruck then
             pcall(function() db.actor:move_to_ruck(slot_itm) end)
@@ -4956,7 +5076,7 @@ function restore_actor_inventory(is_retry)
     pcall(turn_off_actor_nightvision)
     pcall(turn_off_actor_torch)
     for item_id, _ in pairs(temporary_arena_item_ids) do
-        release_actor_arena_item(item_id)
+        if not saved_actor_item_ids[item_id] then release_actor_arena_item(item_id) end
     end
     temporary_arena_item_ids = {}
 
@@ -4983,156 +5103,124 @@ function restore_actor_inventory(is_retry)
     if item_exo_device and item_exo_device.reset_speed then pcall(item_exo_device.reset_speed) end
     if speed and speed.remove_speed then pcall(speed.remove_speed, "exo_speed") end
     
-    if box then
-        local items_to_restore = {}
-        box:iterate_inventory_box(function(b_obj, item)
-            if item then table.insert(items_to_restore, item) end
-        end, box)
-        
-        for _, item in ipairs(items_to_restore) do
-            box:transfer_item(item, db.actor)
-        end
-    end
-    inventory_stored = false
     inventory_return_candidates = nil
-    -- Restore every metadata field (including spring wear) before any tooltip.
+    -- Restore metadata before ownership callbacks can build a tooltip.
     if magazine_binder and magazine_binder.set_data then
         for id, data in pairs(saved_magazine_data) do
-            if db.actor:object_id(id) then magazine_binder.set_data(id, data) end
+            magazine_binder.set_data(id, data)
         end
     end
+    inventory_restore_state = {stage = "transfer", attempts = 0}
     restore_actor_equipped_slots()
     return true
 end
 
 function restore_actor_equipped_slots()
     inventory_restore_pending = true
-    -- Stage 1 (0.4s): Outfit (slot 7) and Backpack (slot 13)
-    CreateTimeEvent("arena_restore_equip_e1", "arena_restore_equip_a1", 0.4, function()
-        if not db.actor then return true end
-        for id, slot in pairs(saved_equipped_slots) do
-            if slot == 7 or slot == 13 then
-                local in_slot = db.actor:item_in_slot(slot)
-                if (not in_slot) or in_slot:id() ~= id then
-                    local itm = level.object_by_id(id)
-                    if itm then
-                        pcall(function() db.actor:move_to_slot(itm, slot) end)
-                    end
-                end
+    inventory_restore_state = inventory_restore_state or {stage = "transfer", attempts = 0}
+    inventory_restore_state.attempts = 0
+    inventory_restore_state.failed = nil
+    RemoveTimeEvent("arena_inventory_restore_e", "arena_inventory_restore_a")
+    CreateTimeEvent("arena_inventory_restore_e", "arena_inventory_restore_a", 0.2, function()
+        if not inventory_restore_pending then return true end
+        local state = inventory_restore_state
+        state.attempts = state.attempts + 1
+        local ok, ready = pcall(restore_inventory_step, state)
+        if not ok then state.error = tostring(ready); ready = false end
+        if ready then
+            local next_stage = {transfer = "capacity", capacity = "devices", devices = "belt",
+                belt = "weapons", weapons = "magazines", magazines = "active", active = "verify"}
+            if next_stage[state.stage] then
+                state.stage, state.attempts = next_stage[state.stage], 0
+            else
+                saved_equipped_slots, saved_belt_items, saved_magazine_data = {}, {}, {}
+                saved_carried_mags, saved_actor_item_ids = {}, {}
+                saved_active_slot = nil
+                inventory_restore_state = nil
+                inventory_stored, inventory_restore_pending = false, false
+                pcall(ensure_actor_default_comm)
+                if news_manager then news_manager.send_tip(db.actor, game.translate_string("st_arena_gear_restored"), 0, nil, 8000) end
+                return true
             end
+        elseif state.attempts >= 50 then
+            state.failed = true
+            printe("! arena: inventory restoration pending at %s: %s", state.stage, state.error or "movement not acknowledged")
+            if news_manager then news_manager.send_tip(db.actor, game.translate_string("st_arena_gear_restore_pending"), 0, nil, 10000) end
+            return true
         end
-        return true
-    end)
-
-    -- Stage 2 (0.8s): Helmet (12), Patch (14), Devices (9, 10, 5, 11, 8, 4), and Belt items
-    CreateTimeEvent("arena_restore_equip_e2", "arena_restore_equip_a2", 0.8, function()
-        if not db.actor then return true end
-        for id, slot in pairs(saved_equipped_slots) do
-            if slot == 12 or slot == 14 or slot == 10 or slot == 9 or slot == 5 or slot == 11 or slot == 8 or slot == 4 then
-                local in_slot = db.actor:item_in_slot(slot)
-                if (not in_slot) or in_slot:id() ~= id then
-                    local itm = level.object_by_id(id)
-                    if itm then
-                        pcall(function() db.actor:move_to_slot(itm, slot) end)
-                    end
-                end
-            end
-        end
-        
-        if db.actor.move_to_belt then
-            for id, _ in pairs(saved_belt_items) do
-                local itm = db.actor:object_id(id)
-                local on_belt = false
-                db.actor:iterate_belt(function(_, belt_item)
-                    if belt_item and belt_item:id() == id then on_belt = true end
-                end, db.actor)
-                -- Remember Belt Items may already have equipped it after stage 1.
-                if itm and not on_belt then
-                    pcall(function() db.actor:move_to_belt(itm) end)
-                end
-            end
-        end
-        return true
-    end)
-
-    -- Stage 3 (1.2s): Weapons (Knife 0, Pistol 1, Primary 2, Secondary 3) and activate active slot
-    CreateTimeEvent("arena_restore_equip_e3", "arena_restore_equip_a3", 1.2, function()
-        if not db.actor then return true end
-        for id, slot in pairs(saved_equipped_slots) do
-            if slot == 0 or slot == 1 or slot == 2 or slot == 3 or slot == 6 then
-                local in_slot = db.actor:item_in_slot(slot)
-                if (not in_slot) or in_slot:id() ~= id then
-                    local itm = level.object_by_id(id)
-                    if itm then
-                        pcall(function() db.actor:move_to_slot(itm, slot) end)
-                    end
-                end
-            end
-        end
-        
-        local slot_to_act = saved_active_slot
-        if (not slot_to_act) or (slot_to_act == 0 and not db.actor:item_in_slot(0)) then
-            if db.actor:item_in_slot(2) then slot_to_act = 2
-            elseif db.actor:item_in_slot(3) then slot_to_act = 3
-            elseif db.actor:item_in_slot(1) then slot_to_act = 1
-            elseif db.actor:item_in_slot(0) then slot_to_act = 0
-            end
-        end
-        if slot_to_act then
-            pcall(function() db.actor:activate_slot(slot_to_act) end)
-        end
-        ensure_weapon_raised()
-        return true
-    end)
-
-    -- Stage 4 (1.6s): Verification check and notification
-    CreateTimeEvent("arena_restore_equip_e4", "arena_restore_equip_a4", 1.6, function()
-        pcall(function()
-            if not db.actor then return end
-            for id, slot in pairs(saved_equipped_slots) do
-                local in_slot = db.actor:item_in_slot(slot)
-                if (not in_slot) or in_slot:id() ~= id then
-                    local itm = level.object_by_id(id)
-                    if itm then
-                        pcall(function() db.actor:move_to_slot(itm, slot) end)
-                    end
-                end
-            end
-
-            if saved_active_slot and db.actor:active_slot() ~= saved_active_slot then
-                pcall(function() db.actor:activate_slot(saved_active_slot) end)
-            elseif db.actor:active_slot() == 0 and not db.actor:item_in_slot(0) then
-                if db.actor:item_in_slot(2) then pcall(function() db.actor:activate_slot(2) end)
-                elseif db.actor:item_in_slot(3) then pcall(function() db.actor:activate_slot(3) end)
-                elseif db.actor:item_in_slot(1) then pcall(function() db.actor:activate_slot(1) end)
-                end
-            end
-            ensure_weapon_raised()
-            pcall(ensure_actor_default_comm)
-            if magazine_binder then
-                if magazine_binder.update_loadout_slots then pcall(magazine_binder.update_loadout_slots) end
-                for id, _ in pairs(saved_carried_mags) do
-                    if db.actor:object_id(id) and magazine_binder.is_carried_mag
-                        and not magazine_binder.is_carried_mag(id) and magazine_binder.toggle_carried_mag then
-                        pcall(magazine_binder.toggle_carried_mag, id)
-                    end
-                end
-                if magazine_binder.validate_loadout then pcall(magazine_binder.validate_loadout) end
-                if magazines and magazines.inventory_refresh then pcall(magazines.inventory_refresh) end
-            end
-            news_manager.send_tip(db.actor, game.translate_string("st_arena_gear_restored"), 0, nil, 8000)
-        end)
-
-        saved_equipped_slots = {}
-        saved_belt_items = {}
-        saved_magazine_data = {}
-        saved_carried_mags = {}
-        saved_actor_item_ids = {}
-        saved_active_slot = nil
-        inventory_restore_pending = false
-        return true
+        ResetTimeEvent("arena_inventory_restore_e", "arena_inventory_restore_a", 0.2)
+        return false
     end)
     return true
+end
+
+function restore_inventory_step(state)
+    if not db.actor then return false end
+    local stage, ready = state.stage, true
+    local issue = state.attempts % 5 == 1
+    if stage == "transfer" then
+        local box = get_or_create_arena_box()
+        if not box then return false end
+        local in_box = {}
+        box:iterate_inventory_box(function(_, item) in_box[item:id()] = item end, box)
+        for id in pairs(saved_actor_item_ids) do
+            if not db.actor:object_id(id) then
+                ready = false
+                if in_box[id] and issue then box:transfer_item(in_box[id], db.actor) end
+            end
+        end
+        return ready
+    end
+    local function slot_group(slot)
+        if slot == 7 or slot == 13 then return "capacity" end
+        if slot == 0 or slot == 1 or slot == 2 or slot == 3 or slot == 6 then return "weapons" end
+        return "devices"
+    end
+    for id, slot in pairs(saved_equipped_slots) do
+        if slot_group(slot) == stage or stage == "verify" then
+            local current = db.actor:item_in_slot(slot)
+            if not current or current:id() ~= id then
+                ready = false
+                local obj = db.actor:object_id(id)
+                if obj and issue then arena_move_to_slot(obj, slot) end
+            end
+        end
+    end
+    if stage == "belt" or stage == "verify" then
+        local on_belt = {}
+        db.actor:iterate_belt(function(_, item) on_belt[item:id()] = true end, db.actor)
+        for id in pairs(saved_belt_items) do
+            if not on_belt[id] then
+                ready = false
+                local obj = db.actor:object_id(id)
+                if obj and issue then db.actor:move_to_belt(obj) end
+            end
+        end
+    end
+    if (stage == "magazines" or stage == "verify") and magazine_binder then
+        magazine_binder.update_loadout_slots()
+        for id in pairs(saved_carried_mags) do
+            if not magazine_binder.is_carried_mag(id) then
+                ready = false
+                if issue and db.actor:object_id(id) then magazine_binder.toggle_carried_mag(id) end
+            end
+        end
+        if ready then
+            magazine_binder.validate_loadout()
+            for id in pairs(saved_carried_mags) do
+                if not magazine_binder.is_carried_mag(id) then ready = false end
+            end
+            if magazines and magazines.inventory_refresh then magazines.inventory_refresh() end
+        end
+    end
+    if stage == "active" or stage == "verify" then
+        if saved_active_slot ~= nil and db.actor:active_slot() ~= saved_active_slot then
+            ready = false
+            if issue then db.actor:activate_slot(saved_active_slot) end
+        end
+        if ready then ensure_weapon_raised() end
+    end
+    return ready
 end
 
 function set_teams_relation(squad_id1, squad_id2)
@@ -6906,8 +6994,9 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
 
     if xcvb_arena_main.night_mode_active then
         pcall(ensure_actor_torch_active)
+        local epoch = night_device_epoch
         CreateTimeEvent("arena_endless_torch_recheck_e", "arena_endless_torch_recheck_a", 0.5, function()
-            pcall(ensure_actor_torch_active)
+            if epoch == night_device_epoch then pcall(ensure_actor_torch_active) end
             return true
         end)
     end

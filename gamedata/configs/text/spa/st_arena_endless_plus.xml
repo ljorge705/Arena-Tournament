@@ -92,4 +92,5 @@
 <string id="st_arena_plus_supply_unavailable"><text>No hay cargadores desmontables compatibles para esta arma.</text></string>
 <string id="st_arena_plus_initial_reserve"><text>Reserva inicial adicional: %d cartuchos sueltos. Se entrega una sola vez.</text></string>
 <string id="st_arena_plus_round_supply_received"><text>Suministro de ronda: %d cartuchos de %s.</text></string>
+<string id="st_arena_gear_restore_pending"><text>La devolución del equipo está pendiente. Tus objetos están a salvo. Abre la arena e intenta entrar de nuevo para reintentar la devolución.</text></string>
 </string_table>
