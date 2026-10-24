@@ -1,4 +1,49 @@
 -- Tournament & Spectator Arena Fight Controller
+function inventory_compatible(report)
+    local u = xcvb_arena_utils or {}
+    local missing = {}
+    for _, name in ipairs({"cancel_arena_night_device_events", "store_actor_inventory",
+        "restore_actor_inventory", "restore_actor_equipped_slots", "wait_for_inventory_storage",
+        "arena_move_to_slot", "arena_last_inventory_slot", "is_arena_nvg_section"}) do
+        if type(u[name]) ~= "function" then missing[#missing + 1] = name end
+    end
+    local ok = u.inventory_api_version == 3 and #missing == 0
+    if report or not ok then
+        printe("! arena inventory API: expected=3 loaded=%s missing=%s", tostring(u.inventory_api_version), table.concat(missing, ","))
+    end
+    if not ok and db.actor and news_manager then
+        local message = game.translate_string("st_arena_inventory_version_error")
+        if message == "st_arena_inventory_version_error" then
+            message = "Arena files are incompatible. Reinstall the complete update and check mods replacing xcvb_arena_utils.script."
+        end
+        news_manager.send_tip(db.actor, message, 0, nil, 15000)
+    end
+    return ok
+end
+
+function cancel_night_device_events_safe()
+    if xcvb_arena_utils and type(xcvb_arena_utils.cancel_arena_night_device_events) == "function" then
+        xcvb_arena_utils.cancel_arena_night_device_events()
+        return
+    end
+    -- Loading an older/overridden utility module must not crash the save.
+    for _, pair in ipairs({
+        {"arena_equip_torch_e", "arena_equip_torch_a"},
+        {"arena_activate_torch_sub_e", "arena_activate_torch_sub_a"},
+        {"arena_activate_torch_found_e", "arena_activate_torch_found_a"},
+        {"arena_nvg_torch_off_e", "arena_nvg_torch_off_a"},
+        {"arena_endless_torch_recheck_e", "arena_endless_torch_recheck_a"},
+        {"arena_inventory_entry_e", "arena_inventory_entry_a"},
+    }) do RemoveTimeEvent(pair[1], pair[2]) end
+end
+
+function is_nvg_section_safe(sec)
+    if xcvb_arena_utils and type(xcvb_arena_utils.is_arena_nvg_section) == "function" then
+        return xcvb_arena_utils.is_arena_nvg_section(sec)
+    end
+    return sec and (string.find(sec, "^device_torch_nv_") ~= nil or ini_sys:r_string_ex(sec, "nv_effect") ~= nil) or false
+end
+
 local squad_team_1_id
 local squad_team_2_id
 tournament_enemy_squad_id = nil
@@ -254,9 +299,9 @@ function sync_night_mode_device_from_actor()
     if slot10 and xcvb_arena_utils.saved_actor_item_ids[slot10:id()] then return end
     local slot10_sec = slot10 and slot10:section()
 
-    if xcvb_arena_utils.is_arena_nvg_section(slot10_sec) then
+    if is_nvg_section_safe(slot10_sec) then
         last_selected_nvg_sec = slot10_sec
-    elseif xcvb_arena_utils.is_arena_nvg_section(xcvb_arena_main.night_mode_device) then
+    elseif is_nvg_section_safe(xcvb_arena_main.night_mode_device) then
         last_selected_nvg_sec = xcvb_arena_main.night_mode_device
     end
 
@@ -266,11 +311,11 @@ function sync_night_mode_device_from_actor()
     if torch_on and not nvg_on then
         xcvb_arena_main.night_mode_device = "device_torch_dummy"
     elseif nvg_on and not torch_on then
-        xcvb_arena_main.night_mode_device = (xcvb_arena_utils.is_arena_nvg_section(slot10_sec) and slot10_sec) or last_selected_nvg_sec or "device_torch_nv_1"
+        xcvb_arena_main.night_mode_device = (is_nvg_section_safe(slot10_sec) and slot10_sec) or last_selected_nvg_sec or "device_torch_nv_1"
     elseif slot10_sec then
         if slot10_sec == "device_torch_dummy" and not nvg_on then
             xcvb_arena_main.night_mode_device = "device_torch_dummy"
-        elseif xcvb_arena_utils.is_arena_nvg_section(slot10_sec) and not torch_on then
+        elseif is_nvg_section_safe(slot10_sec) and not torch_on then
             xcvb_arena_main.night_mode_device = slot10_sec
         end
     end
@@ -486,6 +531,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
         return false
     end
     local random_eq = xcvb_arena_mcm.get_config("random_equipment")
+    if random_eq ~= false and not inventory_compatible() then return false end
     if random_eq ~= false and not inventory_ready then
         if not xcvb_arena_utils.store_actor_inventory() then return false end
         if xcvb_arena_utils.inventory_store_pending then
@@ -1354,6 +1400,7 @@ end
 
 function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, variant, inventory_ready)
     if not db.actor then return false end
+    if not inventory_compatible() then return false end
     if not inventory_ready then
         if not xcvb_arena_utils.store_actor_inventory() then return false end
         if xcvb_arena_utils.inventory_store_pending then
@@ -1448,9 +1495,9 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
     CreateTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a", 0.3, function()
         if endless_ending or endless_fight_closed then return true end
         if xcvb_arena_endless and xcvb_arena_endless.equip_endless_loadout then
-            xcvb_arena_endless.equip_endless_loadout(endless_wave, endless_difficulty, use_3dssg == true)
+            xcvb_arena_endless.equip_endless_loadout(endless_wave, endless_difficulty, variant ~= "plus" and use_3dssg == true)
         else
-            xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, use_3dssg == true)
+            xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, variant ~= "plus" and use_3dssg == true)
         end
         if xcvb_arena_plus and xcvb_arena_plus.active() then xcvb_arena_plus.state.initial_equipped = true end
         return true
@@ -1963,7 +2010,7 @@ function spawn_plus_wave(extra_enemies)
         pcall(xcvb_arena_companions.cleanup_dead_companions)
     end
     local squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty, extra_enemies,
-        xcvb_arena_plus.state.enemy_mult or 1)
+        (xcvb_arena_plus.state.enemy_mult or 1) * (xcvb_arena_plus_extension and xcvb_arena_plus_extension.enemy_multiplier() or 1))
     endless_enemy_squad_ids = {}
     for _, squad in ipairs(squads or {}) do if squad.id then endless_enemy_squad_ids[#endless_enemy_squad_ids + 1] = squad.id end end
     if #endless_enemy_squad_ids == 0 then error("Endless+: no enemies spawned") end
@@ -3174,7 +3221,7 @@ function load_state(m_data)
     xcvb_arena_utils.inventory_restore_pending = m_data.xcvb_arena_inventory_restore_pending == true
     xcvb_arena_utils.inventory_restore_state = m_data.xcvb_arena_inventory_restore_state
     xcvb_arena_utils.inventory_store_pending = m_data.xcvb_arena_inventory_store_pending
-    xcvb_arena_utils.cancel_arena_night_device_events()
+    cancel_night_device_events_safe()
     xcvb_arena_utils.night_device_id = m_data.xcvb_arena_night_device_id
     xcvb_arena_utils.night_personal_device_id = m_data.xcvb_arena_night_personal_device_id
     xcvb_arena_utils.inventory_return_candidates = m_data.xcvb_arena_inventory_return_candidates
@@ -3198,13 +3245,14 @@ function load_state(m_data)
 end
 
 function actor_on_first_update()
+    local inventory_api_ok = inventory_compatible(true)
     tourn_ending = false
     endless_ending = false
     setup_teams()
     xcvb_arena_utils.init_arena_box()
-    if xcvb_arena_utils.inventory_restore_pending then
+    if inventory_api_ok and xcvb_arena_utils.inventory_restore_pending then
         xcvb_arena_utils.restore_actor_equipped_slots()
-    elseif xcvb_arena_utils.inventory_store_pending then
+    elseif inventory_api_ok and xcvb_arena_utils.inventory_store_pending then
         -- A save during entry has not started combat; return the snapshot safely.
         xcvb_arena_utils.restore_actor_inventory()
     end
@@ -3245,7 +3293,7 @@ function actor_on_first_update()
         elseif get_endless_total_enemies_alive() <= 0 then
             advance_endless_wave()
         end
-    elseif xcvb_arena_utils.inventory_stored and not HI("xcvb_tournament_started") then
+    elseif inventory_api_ok and xcvb_arena_utils.inventory_stored and not HI("xcvb_tournament_started") then
         xcvb_arena_utils.restore_actor_inventory()
     end
     if xcvb_arena_main.night_mode_active and not xcvb_arena_utils.inventory_restore_pending

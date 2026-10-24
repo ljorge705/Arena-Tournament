@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+<string id="st_arena_plus_guided_free"><text>Начальная подготовка: без штрафов и затрат ресурсов.</text></string>
+<string id="st_arena_plus_scope_free_name"><text>Выбрать прицел</text></string>
+<string id="st_arena_plus_scope_free_desc"><text>Установите совместимый прицел. Начальная подготовка: без размытия зрения и дополнительных задержек.</text></string>
+<string id="st_arena_plus_scope_unavailable_name"><text>Прицел недоступен</text></string>
+<string id="st_arena_plus_scope_unavailable_desc"><text>Включите 3DSS в меню арены. Нужен совместимый прицел текущего уровня. Встроенная оптика и отсутствие батареи могут ограничивать выбор.</text></string>
+</string_table>

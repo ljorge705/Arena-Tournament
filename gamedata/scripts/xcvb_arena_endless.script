@@ -374,7 +374,8 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
             if tier == 1 then table.insert(classes, "pistol") end
             chosen_cls = classes[math.random(#classes)]
         end
-        local is_dssg = (use_3dssg == true) or (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true)
+        local is_dssg = ((use_3dssg == true) or (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true))
+            and not (xcvb_arena_plus and xcvb_arena_plus.active())
         wpn_sec = get_endless_random_weapon(tier, chosen_cls, is_dssg)
     end
 
@@ -611,7 +612,8 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
     end)
 
     -- Timer 5: 3DSSG Scope Attachment (1.1s)
-    local is_dssg = (use_3dssg == true) or (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true)
+    local is_dssg = ((use_3dssg == true) or (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true))
+        and not (xcvb_arena_plus and xcvb_arena_plus.active())
     if custom_loadout.enabled then
         if custom_loadout.scope_sec == "off" then
             is_dssg = false
@@ -619,6 +621,7 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
             is_dssg = true
         end
     end
+    if xcvb_arena_plus and xcvb_arena_plus.active() then is_dssg = false end
     if is_dssg then
         CreateTimeEvent("arena_equip_endless_3dssg", "arena_equip_endless_3dssg", 1.1, function()
             if not db.actor then return true end

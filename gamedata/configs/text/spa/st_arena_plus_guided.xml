@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<string_table>
+<string id="st_arena_plus_guided_free"><text>Preparación inicial: sin penalizaciones ni costes de recursos.</text></string>
+<string id="st_arena_plus_scope_free_name"><text>Elegir mira</text></string>
+<string id="st_arena_plus_scope_free_desc"><text>Instala una mira compatible. Preparación inicial: sin visión borrosa ni atascos adicionales.</text></string>
+<string id="st_arena_plus_scope_unavailable_name"><text>Mira no disponible</text></string>
+<string id="st_arena_plus_scope_unavailable_desc"><text>Activa 3DSS en el menú de arena. El arma debe admitir una mira de este nivel; las ópticas integradas y las alimentadas sin batería utilizable pueden no estar disponibles.</text></string>
+</string_table>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<string_table>
+<string id="st_arena_plus_scope_blur_name"><text>Mira: adaptación visual</text></string>
+<string id="st_arena_plus_scope_blur_desc"><text>Elige una mira compatible. Coste: visión borrosa durante los primeros 10 segundos de combate de la próxima ronda.</text></string>
+<string id="st_arena_plus_scope_jam_name"><text>Mira: montaje defectuoso</text></string>
+<string id="st_arena_plus_scope_jam_desc"><text>Elige una mira compatible. Coste: tirada adicional de atasco del 30% por disparo con esta arma durante la próxima ronda. Se mantienen los atascos normales.</text></string>
+<string id="st_arena_plus_scope_pick"><text>Elige una mira compatible. Cambiar de mira no cambia la penalización de esta oferta.</text></string>
+<string id="st_arena_plus_initial_outfit_name"><text>Elige el traje inicial</text></string>
+<string id="st_arena_plus_initial_outfit_desc"><text>Elige un traje del nivel inicial al 100%. El nivel del arma no mejora la protección.</text></string>
+<string id="st_arena_plus_initial_helmet_name"><text>Elige el casco inicial</text></string>
+<string id="st_arena_plus_initial_helmet_desc"><text>Elige un casco compatible del nivel inicial al 100%.</text></string>
+<string id="st_arena_plus_initial_ready_name"><text>Confirmar equipo inicial</text></string>
+<string id="st_arena_plus_initial_review_name"><text>Revisar equipo inicial</text></string>
+<string id="st_arena_plus_initial_equipment_desc"><text>Estado: 100%. Protección del nivel inicial incluida en la dotación.</text></string>
+<string id="st_arena_plus_no_separate_helmet"><text>Sin casco separado: restricción del traje o ningún casco compatible disponible.</text></string>
+<string id="st_arena_plus_category_icon_help"><text>Los iconos de categoría son ejemplos. Selecciona una categoría para ver las armas ofrecidas.</text></string>
+<string id="st_arena_inventory_version_error"><text>Archivos de arena incompatibles. Reinstala la actualización completa y revisa los mods que reemplazan xcvb_arena_utils.script.</text></string>
+</string_table>

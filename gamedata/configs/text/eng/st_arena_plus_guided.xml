@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<string_table>
+<string id="st_arena_plus_guided_free"><text>Starting preparation: no penalties or resource costs.</text></string>
+<string id="st_arena_plus_scope_free_name"><text>Choose an optic</text></string>
+<string id="st_arena_plus_scope_free_desc"><text>Install a compatible optic. Starting preparation: no blur or additional jams.</text></string>
+<string id="st_arena_plus_scope_unavailable_name"><text>Optic unavailable</text></string>
+<string id="st_arena_plus_scope_unavailable_desc"><text>Enable 3DSS in the arena menu. The weapon also needs a compatible optic for this tier; integrated optics and powered optics without a usable battery may be unavailable.</text></string>
+</string_table>

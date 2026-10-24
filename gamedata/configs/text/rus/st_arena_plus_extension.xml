@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+<string id="st_arena_plus_scope_blur_name"><text>Прицел: адаптация зрения</text></string>
+<string id="st_arena_plus_scope_blur_desc"><text>Выберите совместимый прицел. Цена: размытое зрение в первые 10 секунд боя следующей волны.</text></string>
+<string id="st_arena_plus_scope_jam_name"><text>Прицел: ненадёжная установка</text></string>
+<string id="st_arena_plus_scope_jam_desc"><text>Выберите совместимый прицел. Цена: дополнительная вероятность задержки 30% при каждом выстреле из этого оружия в следующей волне. Обычные задержки сохраняются.</text></string>
+<string id="st_arena_plus_scope_pick"><text>Выберите совместимый прицел. Смена прицела не меняет штраф предложения.</text></string>
+<string id="st_arena_plus_initial_outfit_name"><text>Выберите начальный костюм</text></string>
+<string id="st_arena_plus_initial_outfit_desc"><text>Выберите костюм начального уровня в состоянии 100%. Уровень оружия не улучшает защиту.</text></string>
+<string id="st_arena_plus_initial_helmet_name"><text>Выберите начальный шлем</text></string>
+<string id="st_arena_plus_initial_helmet_desc"><text>Выберите совместимый шлем начального уровня в состоянии 100%.</text></string>
+<string id="st_arena_plus_initial_ready_name"><text>Подтвердить снаряжение</text></string>
+<string id="st_arena_plus_initial_review_name"><text>Проверить снаряжение</text></string>
+<string id="st_arena_plus_initial_equipment_desc"><text>Состояние: 100%. Защита начального уровня включена в снаряжение.</text></string>
+<string id="st_arena_plus_no_separate_helmet"><text>Без отдельного шлема: ограничение костюма или нет совместимого шлема.</text></string>
+<string id="st_arena_plus_category_icon_help"><text>Значки категорий показаны для примера. Выберите категорию, чтобы увидеть предложенное оружие.</text></string>
+<string id="st_arena_inventory_version_error"><text>Файлы арены несовместимы. Установите полное обновление и проверьте моды, заменяющие xcvb_arena_utils.script.</text></string>
+</string_table>

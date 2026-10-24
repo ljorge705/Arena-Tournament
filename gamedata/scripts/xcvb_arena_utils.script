@@ -18,6 +18,7 @@ function set_bloodsucker_enemy(npc, target)
 end
 
 temporary_arena_item_ids = {}
+inventory_api_version = 3
 arena_spawned_combatant_ids = {}
 xcvb_arena_storage_box_id = nil
 saved_equipped_slots = {}

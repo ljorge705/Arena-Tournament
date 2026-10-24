@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<string_table>
+<string id="st_arena_plus_scope_blur_name"><text>Optic: visual adaptation</text></string>
+<string id="st_arena_plus_scope_blur_desc"><text>Choose a compatible optic. Cost: blurred vision during the first 10 seconds of combat next wave.</text></string>
+<string id="st_arena_plus_scope_jam_name"><text>Optic: unreliable mount</text></string>
+<string id="st_arena_plus_scope_jam_desc"><text>Choose a compatible optic. Cost: an additional 30% jam roll per shot with this weapon next wave. Normal jams still apply.</text></string>
+<string id="st_arena_plus_scope_pick"><text>Choose a compatible optic. Changing the optic does not change this offer's penalty.</text></string>
+<string id="st_arena_plus_initial_outfit_name"><text>Choose your starting outfit</text></string>
+<string id="st_arena_plus_initial_outfit_desc"><text>Choose a starting-tier outfit at 100% condition. Weapon tier does not improve protection.</text></string>
+<string id="st_arena_plus_initial_helmet_name"><text>Choose your starting helmet</text></string>
+<string id="st_arena_plus_initial_helmet_desc"><text>Choose a compatible starting-tier helmet at 100% condition.</text></string>
+<string id="st_arena_plus_initial_ready_name"><text>Confirm starting equipment</text></string>
+<string id="st_arena_plus_initial_review_name"><text>Review starting equipment</text></string>
+<string id="st_arena_plus_initial_equipment_desc"><text>100% condition. Starting-tier protection, included in the initial loadout.</text></string>
+<string id="st_arena_plus_no_separate_helmet"><text>No separate helmet: outfit restriction or no compatible helmet available.</text></string>
+<string id="st_arena_plus_category_icon_help"><text>Category icons are examples. Choose a category to see the actual weapon offers.</text></string>
+<string id="st_arena_inventory_version_error"><text>Arena files are incompatible. Reinstall the complete update and check mods replacing xcvb_arena_utils.script.</text></string>
+</string_table>

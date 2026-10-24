@@ -18,9 +18,19 @@
     <offer_2 x="392" y="155" width="240" height="40"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica18"/></offer_2>
     <offer_3 x="664" y="155" width="240" height="40"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica18"/></offer_3>
     <!-- Keep the central pause-label band free of descriptions and buttons. -->
-    <desc_1 x="130" y="208" width="220" height="170" complex_mode="1"><text font="letterica16" r="215" g="215" b="215"/></desc_1>
-    <desc_2 x="402" y="208" width="220" height="170" complex_mode="1"><text font="letterica16" r="215" g="215" b="215"/></desc_2>
-    <desc_3 x="674" y="208" width="220" height="170" complex_mode="1"><text font="letterica16" r="215" g="215" b="215"/></desc_3>
+    <icon_1 x="130" y="200" width="220" height="45"/>
+    <icon_2 x="402" y="200" width="220" height="45"/>
+    <icon_3 x="674" y="200" width="220" height="45"/>
+    <class_icon_pistol x="135" y="300" width="115" height="45"/>
+    <class_icon_smg x="295" y="300" width="115" height="45"/>
+    <class_icon_shotgun x="455" y="300" width="115" height="45"/>
+    <class_icon_rifle x="615" y="300" width="115" height="45"/>
+    <class_icon_sniper x="775" y="300" width="115" height="45"/>
+    <ammo_icon x="355" y="435" width="80" height="25"/>
+    <mag_icon x="589" y="435" width="80" height="25"/>
+    <desc_1 x="130" y="250" width="220" height="128" complex_mode="1"><text font="letterica16" r="215" g="215" b="215"/></desc_1>
+    <desc_2 x="402" y="250" width="220" height="128" complex_mode="1"><text font="letterica16" r="215" g="215" b="215"/></desc_2>
+    <desc_3 x="674" y="250" width="220" height="128" complex_mode="1"><text font="letterica16" r="215" g="215" b="215"/></desc_3>
     <confirm x="290" y="470" width="210" height="40"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica18"/></confirm>
     <back x="524" y="470" width="210" height="40"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica18"/></back>
     <skip x="290" y="530" width="210" height="35"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica18"/></skip>
