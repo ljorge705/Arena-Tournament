@@ -11,6 +11,7 @@ local gt = game.translate_string
 GUI_SHOP = nil
 
 function open_shop()
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
     if GUI_SHOP then
         if GUI_SHOP:IsShown() then
             GUI_SHOP:HideDialog()
@@ -26,18 +27,8 @@ function open_shop()
     GUI_SHOP:refresh()
 end
 
-if rawget(_G, "xr_effects") then
-    _G.xr_effects.open_arena_shop = function(actor, npc)
-        open_shop()
-    end
-end
-
 function on_game_start()
-    if xr_effects then
-        xr_effects.open_arena_shop = function(actor, npc)
-            open_shop()
-        end
-    end
+    -- Dialog functors are installed/restored by the Rostok controller.
 end
 
 -- =============================================================================
@@ -489,6 +480,7 @@ function UIXcvbShop:refresh()
 end
 
 function UIXcvbShop:OnBuy(slot_idx)
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
     local cat_items = get_category_items(self.current_cat)
     local actual_idx = (self.current_page - 1) * 5 + slot_idx
     local item = cat_items[actual_idx]

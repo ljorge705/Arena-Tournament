@@ -7,6 +7,11 @@
 local gt = game.translate_string
 
 -- Legacy compatibility stub
+local function CreateTimeEvent(...)
+    if xcvb_arena_runtime then return xcvb_arena_runtime.schedule(...) end
+    return _G.CreateTimeEvent(...)
+end
+
 function play_immersion_sound(key, vol, override_path)
     -- Sounds removed by user request
 end
@@ -107,5 +112,6 @@ function actor_on_net_destroy()
 end
 
 function on_game_start()
+    if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_immersion) end
     RegisterScriptCallback("actor_on_net_destroy", actor_on_net_destroy)
 end

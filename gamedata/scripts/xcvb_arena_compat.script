@@ -1,0 +1,113 @@
+-- Local evidence only. Size checks cannot certify hashes or rebuilt graphs.
+compat_api_version = 1
+local checked, seen = false, {}
+last_result = nil
+local function value(ini, section, key)
+    return ini and ini:r_string_ex(section, key)
+end
+
+local function manifest(path)
+    if not getFS():exist("$game_config$", path) then return nil end
+    return ini_file(path)
+end
+
+local function size(alias, path)
+    local entry = getFS():exist(alias, path)
+    return entry and entry.size_real or nil
+end
+
+local function ai_header()
+    local fs = getFS()
+    local path = "l05_bar\\level.ai"
+    local bytes = size("$game_levels$", path)
+    if not bytes or bytes < 56 then return nil end
+    local r = fs:r_open("$game_levels$", path)
+    if not r then return nil end
+    local ok, header = pcall(function()
+        local h = {version = r:r_u32(), nodes = r:r_u32(), bytes = bytes}
+        r:r_seek(40)
+        local guid = {}; for i=1,16 do guid[i] = string.format("%02x", r:r_u8()) end
+        h.guid = table.concat(guid)
+        return h
+    end)
+    fs:r_close(r)
+    return ok and header or nil
+end
+
+local function collision_header(map)
+    local fs = getFS()
+    local path = "l05_bar\\level.cform"
+    if (size("$game_levels$", path) or 0) < 36 then return false end
+    local r = fs:r_open("$game_levels$", path)
+    if not r then return false end
+    local ok, matches = pcall(function()
+        return r:r_u32() == 4
+            and r:r_u32() == tonumber(value(map, "map", "collision_vertices"))
+            and r:r_u32() == tonumber(value(map, "map", "collision_triangles"))
+    end)
+    fs:r_close(r)
+    return ok and matches
+end
+
+function check(force)
+    if checked and not force then return last_result end
+    checked = true
+    local result = {status = "unverified", detail = {}}
+    local core = manifest("arena\\compat_core.ltx")
+    local map = manifest("arena\\compat_map.ltx")
+    local u = xcvb_arena_utils or {}
+    if not core or u.inventory_api_version ~= 3
+        or not xcvb_arena_runtime or xcvb_arena_runtime.runtime_api_version ~= 1
+        or type(u.cancel_arena_night_device_events) ~= "function"
+        or type(u.install_squad_target_hook) ~= "function" then
+        result.status = "mixed"
+    elseif not map then result.status = "wrong_variant"
+    else
+        result.variant = value(map, "map", "variant")
+        if value(map, "map", "required_core") ~= value(core, "core", "revision") then result.status = "mixed" end
+        if result.variant ~= "GAMMA" and result.variant ~= "Wormhole" then result.status = "wrong_variant" end
+        local scripts = value(core, "core", "scripts") or ""
+        for name in scripts:gmatch("[^,%s]+") do
+            local expected = tonumber(value(core, "sizes", name))
+            local actual = size("$game_scripts$", name)
+            if not actual or actual ~= expected then
+                result.status = "mixed"; result.detail[#result.detail+1] = name
+            end
+        end
+        for name in (value(map, "map", "files") or ""):gmatch("[^,%s]+") do
+            if size("$game_levels$", "l05_bar\\" .. name) ~= tonumber(value(map, "sizes", name)) then
+                if result.status ~= "mixed" then result.status = "wrong_variant" end
+                result.detail[#result.detail+1] = name
+            end
+        end
+        if not collision_header(map) and result.status ~= "mixed" then result.status = "wrong_variant" end
+        local h = ai_header()
+        result.ai = h
+        if not h or h.version ~= tonumber(value(map, "map", "ai_version"))
+            or h.nodes ~= tonumber(value(map, "map", "ai_nodes"))
+            or h.guid ~= value(map, "map", "ai_guid") then
+            if result.status ~= "mixed" then result.status = "navigation" end
+        end
+        -- Header/size checks cannot certify an engine-rebuilt cross table.
+        -- Manual game testing remains necessary for effective navigation.
+    end
+    last_result = result
+    if printf then printf("[Arena compatibility] status=%s variant=%s details=%s", result.status,
+        tostring(result.variant), table.concat(result.detail, ",")) end
+    if db and db.actor and news_manager and (force or not seen[result.status]) then
+        seen[result.status] = true
+        news_manager.send_tip(db.actor, game.translate_string("st_arena_compat_" .. result.status), 0, nil, 15000)
+    end
+    return result
+end
+
+function entry_allowed()
+    local r = check(false)
+    return r.status == "compatible" or r.status == "unverified"
+end
+
+function tick()
+    if not checked and db and db.actor then check(false) end
+end
+
+function repeat_check() checked = false; return check(true) end

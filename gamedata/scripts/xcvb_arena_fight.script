@@ -11,7 +11,7 @@ function inventory_compatible(report)
     if report or not ok then
         printe("! arena inventory API: expected=3 loaded=%s missing=%s", tostring(u.inventory_api_version), table.concat(missing, ","))
     end
-    if not ok and db.actor and news_manager then
+    if not ok and db.actor and news_manager and not xcvb_arena_compat then
         local message = game.translate_string("st_arena_inventory_version_error")
         if message == "st_arena_inventory_version_error" then
             message = "Arena files are incompatible. Reinstall the complete update and check mods replacing xcvb_arena_utils.script."
@@ -87,11 +87,13 @@ local tournament_pending_result
 local resume_endless_transition = false
 local loaded_legacy_practice = false
 local callback_epoch = 0
+local interrupted_level = false
 local engine_create_time_event = CreateTimeEvent
 local function CreateTimeEvent(event, action, delay, callback)
     local epoch = callback_epoch
-    return engine_create_time_event(event, action, delay, function(...)
-        if epoch ~= callback_epoch then return true end
+    local scheduler = xcvb_arena_runtime and xcvb_arena_runtime.schedule or engine_create_time_event
+    return scheduler(event, action, delay, function(...)
+        if epoch ~= callback_epoch or (xcvb_arena_runtime and not xcvb_arena_runtime.allowed()) then return true end
         return callback(...)
     end)
 end
@@ -201,7 +203,7 @@ local function restore_intro_actor_body()
     end
 end
 
-local function cancel_player_combat_events()
+local function cancel_player_combat_events(without_actor)
     local events = {
         {"arena_corpse_clean_e", "arena_corpse_clean_a"},
         {"arena_spawn_loadout_e", "arena_spawn_loadout_a"},
@@ -231,8 +233,8 @@ local function cancel_player_combat_events()
     }
     for _, event in ipairs(events) do RemoveTimeEvent(event[1], event[2]) end
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
-    restore_intro_actor_body()
-    if db.actor then
+    if not without_actor then restore_intro_actor_body() end
+    if db.actor and not without_actor then
         pcall(level.remove_cam_effector, 987126)
         pcall(level.enable_input)
         pcall(level.show_indicators)
@@ -3131,6 +3133,7 @@ function squad_on_npc_death(squad, se_obj, killer)
 end
 
 function save_state(m_data)
+    m_data.xcvb_arena_interrupted_level = interrupted_level
     if xcvb_arena_plus then xcvb_arena_plus.save_state(m_data) end
     m_data.xcvb_arena_state_version = 2
     m_data.xcvb_tournament_is_practice = current_tournament_is_practice
@@ -3178,11 +3181,12 @@ function save_state(m_data)
 end
 
 function load_state(m_data)
+    interrupted_level = m_data.xcvb_arena_interrupted_level == true
     if xcvb_arena_plus then xcvb_arena_plus.load_state(m_data) end
     callback_epoch = callback_epoch + 1
     xcvb_arena_utils.cancel_inventory_events()
     loaded_legacy_practice = m_data.xcvb_tournament_is_practice == nil
-    cancel_player_combat_events()
+    cancel_player_combat_events(true)
     tournament_fight_closed = false
     endless_fight_closed = false
     spectator_fight_closed = false
@@ -3245,7 +3249,22 @@ function load_state(m_data)
 end
 
 function actor_on_first_update()
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then
+        if is_fight_in_progress() then interrupted_level = true end
+        return
+    end
+    if xcvb_arena_runtime then xcvb_arena_runtime.actor_on_update() end
     local inventory_api_ok = inventory_compatible(true)
+    if interrupted_level then
+        if not inventory_api_ok then return end
+        interrupted_level = false
+        if is_endless_mode then end_endless_fight(false, true)
+        elseif current_tournament_round_id then end_tournament_fight(tournament_pending_result == true)
+        elseif #battle_royale_squad_ids > 0 then end_battle_royale(0)
+        elseif squad_team_1_id or squad_team_2_id then end_arena_fight(0)
+        elseif xcvb_arena_utils.inventory_stored then xcvb_arena_utils.restore_actor_inventory() end
+        return
+    end
     tourn_ending = false
     endless_ending = false
     setup_teams()
@@ -3321,12 +3340,17 @@ function actor_on_first_update()
     end
 end
 
+function suspend_level()
+    if is_fight_in_progress() then interrupted_level = true end
+    callback_epoch = callback_epoch + 1
+    cancel_night_device_events_safe()
+    if xcvb_arena_utils then xcvb_arena_utils.cancel_inventory_events(true) end
+    if xcvb_arena_immersion then xcvb_arena_immersion.stop_all_sounds() end
+    if xcvb_arena_combat_hud then xcvb_arena_combat_hud.hide() end
+end
+
 function on_game_start()
-    if xcvb_arena_utils then
-        if xcvb_arena_utils.install_item_parts_safeguard then pcall(xcvb_arena_utils.install_item_parts_safeguard) end
-        if xcvb_arena_utils.install_itms_manager_safeguard then pcall(xcvb_arena_utils.install_itms_manager_safeguard) end
-        if xcvb_arena_utils.install_trader_autoinject_safeguard then pcall(xcvb_arena_utils.install_trader_autoinject_safeguard) end
-    end
+    if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_fight) end
     RegisterScriptCallback("actor_on_update", actor_on_update)
     RegisterScriptCallback("actor_on_before_death", actor_on_before_death)
     RegisterScriptCallback("on_enemy_eval", on_enemy_eval)

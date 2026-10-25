@@ -30,6 +30,7 @@ function close()
 end
 
 function open()
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
     close()
     GUI = UIXcvbEndlessPlus()
     GUI:ShowDialog(true)

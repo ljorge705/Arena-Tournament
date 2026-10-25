@@ -1,0 +1,156 @@
+-- Only this module decides where Arena may perform gameplay work.
+runtime_api_version = 1
+local hooks, console_values = {}, {}
+local bound = setmetatable({}, {__mode = "k"})
+local entered = false
+local epoch = 0
+local queued = {}
+
+function allowed()
+    return level and level.name and level.name() == "l05_bar" or false
+end
+
+function generation() return epoch end
+
+-- Save/load and metadata remain available outside Bar. Public mutations and
+-- callbacks use the same gate, including references registered before a trip.
+function protect(module)
+    if not module then return end
+    for name, fn in pairs(module) do
+        if type(fn) == "function" and not bound[fn] and name ~= "on_game_start"
+            and name ~= "save_state" and name ~= "load_state"
+            and name ~= "close_ui" and name ~= "reset_effect"
+            and name ~= "actor_on_net_destroy" and name ~= "inventory_compatible"
+            and name ~= "actor_on_first_update"
+            and name ~= "cancel_night_device_events_safe"
+            and name ~= "suspend_level" and name ~= "leave_level"
+            and name ~= "stop_all_sounds" and name ~= "hide"
+            and name ~= "refresh_companion_id_cache" and name ~= "reset_arena_object_cache"
+            and name ~= "ctime_to_table" and name ~= "table_to_ctime"
+            and not name:match("^get_") and not name:match("^is_")
+            and not name:match("^_is_")
+            and not name:match("^cancel_") and not name:match("^install_")
+            and name ~= "active" and name ~= "in_combat" and name ~= "elapsed"
+            and name ~= "text" and name ~= "periodic_amount" then
+            local original = fn
+            local wrapper = function(...)
+                if not allowed() then return end
+                if name:match("^start_") and xcvb_arena_compat and not xcvb_arena_compat.entry_allowed() then return false end
+                return original(...)
+            end
+            bound[wrapper] = true
+            module[name] = wrapper
+        end
+    end
+end
+
+-- Wrap scheduled work, not the global scheduler used by other addons.
+function schedule(event, action, delay, callback)
+    if not allowed() then return end
+    local token = epoch
+    queued[event .. "\n" .. action] = {event, action}
+    return CreateTimeEvent(event, action, delay, function(...)
+        if token ~= epoch or not allowed() then return true end
+        return callback(...)
+    end)
+end
+
+local function hook_tables()
+    return {_G, xr_effects, sr_light, item_parts, itms_manager, gameplay_disguise,
+        actor_menu, trader_autoinject, m1a1_autoinject,
+        sim_squad_scripted and sim_squad_scripted.sim_squad_scripted}
+end
+
+local function install_hooks()
+    if #hooks > 0 then
+        for _, h in ipairs(hooks) do
+            if h.owner[h.key] == h.original then h.owner[h.key] = h.wrapper end
+        end
+        return
+    end
+    local snapshots = {}
+    for _, owner in pairs(hook_tables()) do
+        local copy = {}; for k,v in pairs(owner) do copy[k] = v end
+        snapshots[#snapshots + 1] = {owner = owner, copy = copy}
+    end
+    local u = xcvb_arena_utils
+    if xr_effects then
+        xr_effects.open_arena_gui = function() if allowed() then xcvb_arena_gui.open_gui() end end
+        xr_effects.open_arena_shop = function() if allowed() then xcvb_arena_shop.open_shop() end end
+        xr_effects.open_companion_ui = function() if allowed() then xcvb_arena_companion_ui.open_companion_ui() end end
+    end
+    for _, name in ipairs({"init_sr_light_hook", "install_squad_target_hook",
+        "install_item_parts_safeguard", "install_itms_manager_safeguard",
+        "install_disguise_safeguard", "install_trader_autoinject_safeguard"}) do
+        if u and u[name] then u[name]() end
+    end
+    for _, snapshot in ipairs(snapshots) do
+        for k,v in pairs(snapshot.owner) do
+            local owned_global = snapshot.owner ~= _G or k == "inside_disguise_zone"
+                or k == "try_to_disguise" or k == "set_msg"
+            if owned_global and v ~= snapshot.copy[k] then
+                hooks[#hooks + 1] = {owner = snapshot.owner, key = k,
+                    original = snapshot.copy[k], wrapper = v}
+            end
+        end
+    end
+end
+
+function combat_console(enable)
+    if not get_console then return end
+    local c = get_console()
+    if not c then return end
+    if enable and allowed() then
+        for _, key in ipairs({"ai_use_smart_covers", "ai_move_to_cover_run"}) do
+            if console_values[key] == nil then
+                local ok, value = pcall(function() return c:get_bool(key) end)
+                -- Never change a setting we cannot restore.
+                if ok and value ~= nil then
+                    console_values[key] = value and 1 or 0
+                    c:execute(key .. " 1")
+                end
+            end
+        end
+    else
+        for key,value in pairs(console_values) do c:execute(key .. " " .. value) end
+        console_values = {}
+    end
+end
+
+function leave()
+    epoch = epoch + 1
+    for _, pair in pairs(queued) do RemoveTimeEvent(pair[1], pair[2]) end
+    queued = {}
+    -- These routines deliberately do not touch Actor()->Cameras().
+    if xcvb_arena_fight and xcvb_arena_fight.suspend_level then xcvb_arena_fight.suspend_level() end
+    if xcvb_arena_plus then xcvb_arena_plus.close_ui() end
+    if xcvb_arena_plus_extension then xcvb_arena_plus_extension.reset_effect() end
+    if xcvb_arena_night and xcvb_arena_night.leave_level then xcvb_arena_night.leave_level() end
+    if xcvb_arena_utils and xcvb_arena_utils.leave_level then xcvb_arena_utils.leave_level() end
+    for _, pair in ipairs({{xcvb_arena_gui, "GUI"}, {xcvb_arena_shop, "GUI_SHOP"},
+        {xcvb_arena_companion_ui, "GUI_COMPANION"}}) do
+        local window = pair[1] and pair[1][pair[2]]
+        if window then pcall(function() window:HideDialog() end) end
+    end
+    for _, h in ipairs(hooks) do
+        if h.owner[h.key] == h.wrapper then h.owner[h.key] = h.original end
+    end
+    combat_console(false)
+    entered = false
+end
+
+function actor_on_update()
+    if allowed() then
+        if not entered then
+            entered = true
+            install_hooks()
+        end
+        combat_console(xcvb_arena_utils and xcvb_arena_utils.is_any_arena_fight_active())
+    elseif entered then leave() end
+    if xcvb_arena_compat then xcvb_arena_compat.tick() end
+end
+
+function on_game_start()
+    RegisterScriptCallback("actor_on_update", actor_on_update)
+    RegisterScriptCallback("actor_on_net_destroy", leave)
+end

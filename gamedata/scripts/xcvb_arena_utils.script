@@ -1,4 +1,8 @@
 local ini_rel = ini_file("creatures\\game_relations.ltx")
+local function CreateTimeEvent(...)
+    if xcvb_arena_runtime then return xcvb_arena_runtime.schedule(...) end
+    return _G.CreateTimeEvent(...)
+end
 
 function sound_if_exists(path)
     if getFS():exist("$game_sounds$", path .. ".ogg") then
@@ -1076,7 +1080,7 @@ local ARENA_SPAWN_SITES = {
             { pos = vector():set(154.5, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 },
             { pos = vector():set(151.2, -20.0543, 128.0), fallback_lvid = 40551, gvid = 1796 },
             { pos = vector():set(156.0, -20.0543, 120.0), fallback_lvid = 40551, gvid = 1796 },
-            { pos = vector():set(151.2, -20.0543, 124.0), fallback_lvid = 40551, gvid = 1796 },
+            { pos = vector():set(151.9, -20.0543, 124.7), fallback_lvid = 40551, gvid = 1796 },
             { pos = vector():set(158.0, -20.0543, 118.0), fallback_lvid = 40551, gvid = 1796 },
             { pos = vector():set(153.0, -20.0543, 121.0), fallback_lvid = 40551, gvid = 1796 },
         },
@@ -1090,7 +1094,7 @@ local ARENA_SPAWN_SITES = {
             { pos = vector():set(160.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 },
             { pos = vector():set(156.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 },
             { pos = vector():set(152.6, -20.0598, 81.5), fallback_lvid = 40761, gvid = 1684 },
-            { pos = vector():set(156.0, -20.0598, 90.0), fallback_lvid = 40761, gvid = 1684 },
+            { pos = vector():set(156.7, -20.0598, 90.0), fallback_lvid = 40761, gvid = 1684 },
             { pos = vector():set(152.6, -20.0598, 86.0), fallback_lvid = 40761, gvid = 1684 },
             { pos = vector():set(158.0, -20.0598, 92.0), fallback_lvid = 40761, gvid = 1684 },
             { pos = vector():set(153.0, -20.0598, 89.0), fallback_lvid = 40761, gvid = 1684 },
@@ -1819,9 +1823,7 @@ function apply_night_mode_lighting(enable)
             for _, cmd in ipairs(VIDEO_RENDER_COMMANDS) do
                 local v = get_console_val(cmd)
                 -- Defaults are only for unreadable settings, not valid zeros.
-                if DEFAULT_DAYLIGHT_SETTINGS[cmd] and (v == nil or v == "") then
-                    orig[cmd] = DEFAULT_DAYLIGHT_SETTINGS[cmd]
-                elseif v ~= nil and v ~= "" then
+                if v ~= nil and v ~= "" then
                     orig[cmd] = tostring(v)
                 end
             end
@@ -1831,17 +1833,22 @@ function apply_night_mode_lighting(enable)
 
         -- 2. Apply darkness settings
         -- Keep direct sun off, but preserve baseline ambient & hemi fill so NVG tubes and first-person weapon meshes are visible
-        pcall(function() exec_console_cmd("r2_sun_lumscale 0.0") end)
-        pcall(function() exec_console_cmd("r2_sun_lumscale_amb 0.3") end)
-        pcall(function() exec_console_cmd("r2_sun_lumscale_hemi 0.2") end)
+        local function owned_setting(cmd, val)
+            if xcvb_arena_main.night_mode_saved_render[cmd] ~= nil then
+                pcall(exec_console_cmd, cmd .. " " .. val)
+            end
+        end
+        owned_setting("r2_sun_lumscale", "0.0")
+        owned_setting("r2_sun_lumscale_amb", "0.3")
+        owned_setting("r2_sun_lumscale_hemi", "0.2")
         -- Normal dynamic range in shadows: do not crush low luminance to black (allows NVG to amplify scene & weapon/hands models)
-        pcall(function() exec_console_cmd("r2_tonemap_lowlum 0.0001") end)
-        pcall(function() exec_console_cmd("r2_tonemap_middlegray 0.9") end)
+        owned_setting("r2_tonemap_lowlum", "0.0001")
+        owned_setting("r2_tonemap_middlegray", "0.9")
         -- Tell Screen Space Shaders to treat the area as underground (disables outdoor sky bounce & SSR reflections)
-        pcall(function() exec_console_cmd("ssfx_is_underground 1") end)
+        owned_setting("ssfx_is_underground", "1")
         -- Eliminate glowing volumetric fog in dark arena
-        pcall(function() exec_console_cmd("ssfx_fog_scattering 0") end)
-        pcall(function() exec_console_cmd("ssfx_fog (0,0,0,0)") end)
+        owned_setting("ssfx_fog_scattering", "0")
+        owned_setting("ssfx_fog", "(0,0,0,0)")
 
         -- Clamp engine fog & ambient colors to nocturnal levels so NVG intensifier shaders have light to amplify
         if weather and weather.set_value_vector then
@@ -2543,7 +2550,8 @@ function init_sr_light_hook()
     if sr_light and sr_light.check_light and not orig_sr_light_check_light then
         orig_sr_light_check_light = sr_light.check_light
         sr_light.check_light = function(stalker)
-            if night_mode_combat_running and stalker and stalker:alive() and is_stalker_in_arena(stalker) then
+            if (not xcvb_arena_runtime or xcvb_arena_runtime.allowed())
+                and night_mode_combat_running and stalker and stalker:alive() and is_stalker_in_arena(stalker) then
                 local npc_id = stalker:id()
                 local tg = time_global()
                 if tg >= (npc_light_check_at[npc_id] or 0) then
@@ -5005,7 +5013,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
     end)
 end
 
-function cancel_inventory_events()
+function cancel_inventory_events(preserve_pending)
     local equip_events = {
         {"arena_inventory_retry_e", "arena_inventory_retry_a"},
         {"arena_inventory_store_e", "arena_inventory_store_a"},
@@ -5027,7 +5035,7 @@ function cancel_inventory_events()
         {"arena_equip_endless_3dssg", "arena_equip_endless_3dssg"},
     }
     for _, event in ipairs(equip_events) do RemoveTimeEvent(event[1], event[2]) end
-    inventory_restore_pending = false
+    if not preserve_pending then inventory_restore_pending = false end
 end
 
 function cancel_all_arena_events()
@@ -5659,8 +5667,11 @@ function scr_hit(npc, who, power)
     who:hit(h)
 end
 
-local orig_get_script_target = sim_squad_scripted.sim_squad_scripted.get_script_target
-function sim_squad_scripted.sim_squad_scripted.get_script_target(self)
+local orig_get_script_target
+local function arena_get_script_target(self)
+    if not (xcvb_arena_runtime and xcvb_arena_runtime.allowed()) then
+        return orig_get_script_target and orig_get_script_target(self)
+    end
     if self.scripted_target then
         if self.scripted_target == "actor" or self.scripted_target == 0 then
             return 0
@@ -5682,6 +5693,14 @@ end
 --------------------------------------------------------------------------------
 -- BATALLA CAMPAL (MULTIBANDO) HELPERS
 --------------------------------------------------------------------------------
+
+function install_squad_target_hook()
+    local target = sim_squad_scripted and sim_squad_scripted.sim_squad_scripted
+    if target and not orig_get_script_target then
+        orig_get_script_target = target.get_script_target
+        target.get_script_target = arena_get_script_target
+    end
+end
 
 function get_safe_arena_lvid(pos, fallback_lvid)
     local def_lvid = fallback_lvid or 40551
@@ -7164,7 +7183,7 @@ function install_item_parts_safeguard()
         local orig_get_parts_con = item_parts.get_parts_con
         item_parts.get_parts_con = function(obj, id, evaluate)
             local res = orig_get_parts_con(obj, id, evaluate)
-            if res == nil and evaluate then
+            if res == nil and evaluate and is_any_arena_fight_active() then
                 return {}
             end
             return res
@@ -7181,6 +7200,7 @@ function install_trader_autoinject_safeguard()
         if trader_autoinject.timed_update and not trader_autoinject.__arena_safeguard_installed then
             local orig_timed_update = trader_autoinject.timed_update
             trader_autoinject.timed_update = function(npc)
+                if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return orig_timed_update(npc) end
                 if not npc then return true end
                 local ok, id = pcall(function() return npc:id() end)
                 if not ok or not id then return true end
@@ -7193,6 +7213,7 @@ function install_trader_autoinject_safeguard()
         if trader_autoinject.update and not trader_autoinject.__arena_update_safeguard_installed then
             local orig_update = trader_autoinject.update
             trader_autoinject.update = function(npc)
+                if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return orig_update(npc) end
                 if not npc then return end
                 local ok, id = pcall(function() return npc:id() end)
                 if not ok or not id then return end
@@ -7205,6 +7226,7 @@ function install_trader_autoinject_safeguard()
         if trader_autoinject.get_trader_type and not trader_autoinject.__arena_type_safeguard_installed then
             local orig_get_trader_type = trader_autoinject.get_trader_type
             trader_autoinject.get_trader_type = function(npc)
+                if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return orig_get_trader_type(npc) end
                 if not npc then return -1 end
                 local ok, id = pcall(function() return npc:id() end)
                 if not ok or not id then return -1 end
@@ -7219,6 +7241,7 @@ function install_trader_autoinject_safeguard()
     if m1a1_autoinject and m1a1_autoinject.m1a1_trade_spawn and not m1a1_autoinject.__arena_safeguard_installed then
         local orig_m1a1 = m1a1_autoinject.m1a1_trade_spawn
         m1a1_autoinject.m1a1_trade_spawn = function(npc)
+            if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return orig_m1a1(npc) end
             if not npc then return end
             local ok, sec = pcall(function() return npc:section() end)
             if not ok or not sec then return end
@@ -7261,49 +7284,8 @@ local function safe_bolt_manager_functor()
 end
 
 function install_itms_manager_safeguard()
-    -- 1. Hook CreateTimeEvent globally so any time bolt_manager is created, it uses our safe handler
-    if not _G.__arena_bolt_manager_hooked then
-        _G.__arena_bolt_manager_hooked = true
-        local orig_CreateTimeEvent = _G.CreateTimeEvent
-        if orig_CreateTimeEvent then
-            _G.CreateTimeEvent = function(ev_id, act_id, timer, f, ...)
-                if act_id == "bolt_manager" then
-                    f = safe_bolt_manager_functor
-                end
-                return orig_CreateTimeEvent(ev_id, act_id, timer, f, ...)
-            end
-        end
-    end
-
-    -- 2. Replace module bolt_manager and force-update the active event in the engine queue
-    if itms_manager then
-        itms_manager.bolt_manager = safe_bolt_manager_functor
-        pcall(RemoveTimeEvent, "cycle", "bolt_manager")
-        pcall(CreateTimeEvent, "cycle", "bolt_manager", 60, safe_bolt_manager_functor)
-
-        if itms_manager.save_state and not itms_manager.__arena_save_safeguarded then
-            itms_manager.__arena_save_safeguarded = true
-            itms_manager.save_state = function(m_data)
-                if not (m_data and db.actor) then return end
-                local bolts = {}
-                local function safe_itr(obj)
-                    if not obj then return end
-                    local ok, sec = pcall(function() return obj:section() end)
-                    if not (ok and sec) then return end
-                    if (sec == "bolt") or (sec == "bolt_bullet") then
-                        if not bolts[sec] then bolts[sec] = 0 end
-                        bolts[sec] = bolts[sec] + 1
-                    end
-                    return false
-                end
-                pcall(function() db.actor:inventory_for_each(safe_itr) end)
-                m_data.bolts = bolts
-                local slot6 = db.actor:item_in_slot(6)
-                m_data.bolt_slot = slot6 and slot6:section() or nil
-            end
-        end
-        itms_manager.__arena_safeguard_installed = true
-    end
+    -- Leave the other addon's global scheduler and save callback untouched.
+    return
 end
 
 --------------------------------------------------------------------------------
@@ -7483,19 +7465,18 @@ function install_disguise_safeguard()
 end
 
 function on_game_start()
-    pcall(install_item_parts_safeguard)
-    pcall(install_itms_manager_safeguard)
-    pcall(install_disguise_safeguard)
-    pcall(install_trader_autoinject_safeguard)
-    RegisterScriptCallback("actor_on_first_update", function()
-        pcall(install_disguise_safeguard)
-        pcall(install_trader_autoinject_safeguard)
-    end)
+    if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_utils) end
 end
 
-pcall(init_sr_light_hook)
-pcall(install_item_parts_safeguard)
-pcall(install_itms_manager_safeguard)
-pcall(install_disguise_safeguard)
-pcall(install_trader_autoinject_safeguard)
+function leave_level()
+    -- Restore owned render cvars without touching actors, lamps or cameras.
+    local saved = xcvb_arena_main and xcvb_arena_main.night_mode_saved_render
+    if saved then
+        restore_arena_lighting_settings(saved)
+        xcvb_arena_main.night_mode_saved_render = nil
+        if weather and weather.pause then pcall(weather.pause, false) end
+    end
+    night_mode_combat_running = false
+    npc_light_check_at, cached_arena_lamp_ids = {}, {}
+end
 

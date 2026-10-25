@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+  <string id="st_arena_compat_compatible"><text>Арена: локальные файлы и навигация соответствуют проверенному набору.</text></string>
+  <string id="st_arena_compat_mixed"><text>Арена: смешанные или неполные файлы ядра. Переустановите полное обновление и проверьте моды, заменяющие скрипты Арены. Новые бои заблокированы.</text></string>
+  <string id="st_arena_compat_wrong_variant"><text>Арена: отсутствует, изменён или неверно выбран вариант карты. Переустановите только один вариант GAMMA или Wormhole и проверьте, какой мод заменяет файлы карты Бара.</text></string>
+  <string id="st_arena_compat_navigation"><text>Арена: заголовок AI-карты Бара не соответствует выбранному набору. Проверьте совместимость AI-карты, игрового графа, перекрёстной таблицы и spawn перед загрузкой Бара.</text></string>
+  <string id="st_arena_compat_unverified"><text>Арена: базовая локальная проверка пройдена. Навигацию карты необходимо проверить вручную в игре. Это не означает, что Wormhole устарел.</text></string>
+  <string id="ui_mcm_xcvb_arena_compatibility_check"><text>Повторить локальную проверку совместимости</text></string>
+</string_table>

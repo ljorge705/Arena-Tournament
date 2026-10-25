@@ -20,7 +20,12 @@ local forest_combat_data = {
 -- CONSULTAS DE ESTADO
 --------------------------------------------------------------------------------
 function is_active()
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return false end
     return xcvb_arena_main and xcvb_arena_main.selected_map == "forest"
+end
+
+function on_game_start()
+    if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_forest_ai) end
 end
 
 local npc_advance_completed = {}

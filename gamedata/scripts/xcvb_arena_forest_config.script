@@ -65,8 +65,8 @@ SPAWN_SITES = {
     },
     [3] = {
         -- Variante 3: Actor al Oeste, Enemigos al Este (Flanco Este-Oeste)
-        actor = { x = 98.0, y = -21.060, z = 100.1, lvid = 102042, gvid = 1684, dir = -1.57 },
-        enemy_base = { x = 116.2, y = -21.060, z = 109.9, lvid = 103652, gvid = 1684 },
+        actor = { x = 98.0, y = -21.060, z = 100.1, lvid = 102238, gvid = 1684, dir = -1.57 },
+        enemy_base = { x = 116.9, y = -21.060, z = 109.9, lvid = 103652, gvid = 1684 },
         enemy_slots = {
             { x = 116.9, y = -21.060, z = 109.9, lvid = 103652 },
             { x = 116.2, y = -21.060, z = 121.8, lvid = 103609 },

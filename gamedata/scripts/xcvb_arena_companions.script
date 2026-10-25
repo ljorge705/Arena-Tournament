@@ -741,7 +741,7 @@ end
 function save_state(m_data)
     local saved = {}
     for _, entry in ipairs(active_companions) do
-        if _is_companion_alive(entry) then
+        if (xcvb_arena_runtime and not xcvb_arena_runtime.allowed()) or _is_companion_alive(entry) then
             table.insert(saved, {
                 squad_id = entry.squad_id,
                 npc_id   = entry.npc_id,
@@ -759,7 +759,7 @@ function load_state(m_data)
     for _, entry in ipairs(saved) do
         if entry.squad_id then
             local squad = alife_object(entry.squad_id)
-            if squad and squad:npc_count() > 0 then
+            if (xcvb_arena_runtime and not xcvb_arena_runtime.allowed()) or (squad and squad:npc_count() > 0) then
                 table.insert(active_companions, {
                     squad_id = entry.squad_id,
                     npc_id   = entry.npc_id,
@@ -777,6 +777,7 @@ end
 -- ─────────────────────────────────────────────────────────────────────────────
 
 function on_game_start()
+    if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_companions) end
     RegisterScriptCallback("on_enemy_eval", on_enemy_eval)
     RegisterScriptCallback("actor_on_update", actor_on_update)
     RegisterScriptCallback("save_state", save_state)

@@ -10,6 +10,10 @@
 
 -- Ring buffer of recently spawned weapons in Endless to ensure variety
 local recent_weapons = {}
+local function CreateTimeEvent(...)
+    if xcvb_arena_runtime then return xcvb_arena_runtime.schedule(...) end
+    return _G.CreateTimeEvent(...)
+end
 local MAX_RECENT_WEAPONS = 8
 
 -- Custom Loadout Configuration for Endless Mode
@@ -808,6 +812,7 @@ function load_state(m_data)
 end
 
 function on_game_start()
+    if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_endless) end
     RegisterScriptCallback("save_state", save_state)
     RegisterScriptCallback("load_state", load_state)
 end

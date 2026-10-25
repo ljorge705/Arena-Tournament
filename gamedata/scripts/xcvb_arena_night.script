@@ -10,6 +10,10 @@ local saved_cvars = {}
 local turned_off_lamps = {}
 local cached_arena_lamp_ids = {}
 local cached_lamp_level = nil
+local function CreateTimeEvent(...)
+    if xcvb_arena_runtime then return xcvb_arena_runtime.schedule(...) end
+    return _G.CreateTimeEvent(...)
+end
 
 local CVAR_LIST = {
     { name = "r2_sun_lumscale",      night = "0.0" },
@@ -218,8 +222,8 @@ local function save_and_apply_cvars()
         pcall(function() val = con:get_string(entry.name) end)
         if val ~= nil and val ~= "" then
             saved_cvars[entry.name] = val
+          pcall(function() con:execute(entry.name .. " " .. entry.night) end)
         end
-        pcall(function() con:execute(entry.name .. " " .. entry.night) end)
     end
 end
 
@@ -347,7 +351,16 @@ local function on_load_state(m_data)
     end
 end
 
+function leave_level()
+    is_night_active = false
+    restore_saved_cvars()
+    -- Lamp objects belong to the unloaded level. Keep no client references.
+    turned_off_lamps, cached_arena_lamp_ids = {}, {}
+    cached_lamp_level = nil
+end
+
 function on_game_start()
+    if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_night) end
     RegisterScriptCallback("save_state", on_save_state)
     RegisterScriptCallback("load_state", on_load_state)
 end

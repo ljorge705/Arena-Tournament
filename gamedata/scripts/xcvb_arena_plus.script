@@ -1057,6 +1057,7 @@ function save_state(data)
     -- Saving must not advance a phase, spawn objects or open a dialog.
     local snapshot = clone(state)
     local dt = device():is_paused() and 0 or math.max(0, time_global() - (last_tick or time_global()))
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then dt = 0 end
     if active() and snapshot.phase == "combat" then
         snapshot.combat_ms = snapshot.combat_ms + dt
         if snapshot.scope_penalty and snapshot.scope_penalty.remaining then
@@ -1119,6 +1120,7 @@ function block_save(key, bind, dis, flags)
 end
 
 function on_game_start()
+    if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_plus) end
     RegisterScriptCallback("on_before_key_press", block_save)
     RegisterScriptCallback("actor_on_net_destroy", close_ui)
     if xcvb_arena_plus_extension then xcvb_arena_plus_extension.register_callbacks() end

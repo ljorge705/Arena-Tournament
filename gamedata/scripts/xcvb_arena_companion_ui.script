@@ -10,6 +10,7 @@ local gt = game.translate_string
 GUI_COMPANION = nil
 
 function open_companion_ui()
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
     if GUI_COMPANION then
         if GUI_COMPANION:IsShown() then
             GUI_COMPANION:HideDialog()
@@ -25,18 +26,8 @@ function open_companion_ui()
     GUI_COMPANION:refresh()
 end
 
-if rawget(_G, "xr_effects") then
-    _G.xr_effects.open_companion_ui = function(actor, npc)
-        open_companion_ui()
-    end
-end
-
 function on_game_start()
-    if xr_effects then
-        xr_effects.open_companion_ui = function(actor, npc)
-            open_companion_ui()
-        end
-    end
+    -- Dialog functors are installed/restored by the Rostok controller.
 end
 
 -- =============================================================================
@@ -124,6 +115,7 @@ function UIXcvbCompanion:OnClose()
 end
 
 function UIXcvbCompanion:OnHire(def_idx)
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
     local ok, reason = xcvb_arena_companions.hire_companion(def_idx)
     if not ok then
         news_manager.send_tip(db.actor, reason or gt("st_arena_companion_err_generic"), 0, nil, 4000)
@@ -132,6 +124,7 @@ function UIXcvbCompanion:OnHire(def_idx)
 end
 
 function UIXcvbCompanion:OnFire(list_idx)
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
     local active = xcvb_arena_companions.get_active_companions()
     if not active[list_idx] then
         self:refresh()

@@ -1,10 +1,16 @@
 -- Arena GUI Controller (Tournament & Spectator Mode)
 local gt = game.translate_string
+local function CreateTimeEvent(...)
+    if xcvb_arena_runtime then return xcvb_arena_runtime.schedule(...) end
+    return _G.CreateTimeEvent(...)
+end
 local endless_types = { "stalkers", "mutants", "chaos" }
 
 GUI = nil
 
 function open_gui()
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
+    if xcvb_arena_compat and not xcvb_arena_compat.entry_allowed() then return end
 	if GUI then
 		if GUI:IsShown() then
 			GUI:HideDialog()

@@ -9,14 +9,14 @@
           <plugins order="Explicit">
             
             <plugin name="G.A.M.MA / Anomaly">
-              <description>Needs a custom level to use night mode / New forest map </description>
+              <description>Arena map for GAMMA / Anomaly without Wormhole. Installs its own geometry, collision, AI-map and compatibility manifest. Choose exactly one map variant. Compatibility notices appear in-game; see ROSTOK_COMPATIBILITY.md for manual testing.</description>
               <files>
                 <folder source="GAMMA" destination="gamedata" priority="1"/>
               </files>
               <typeDescriptor><type name="Recommended"/></typeDescriptor>
             </plugin>
             <plugin name="[Vasgen's Cozy Spots] Bar (Rostok) Expansion | Wormhole">
-              <description>Needs a custom level to use night mode / New forest map ( https://www.moddb.com/mods/stalker-anomaly/addons/ens-cozvasgy-spots-barrostok-expansion-s2-anomaly-v05 ).</description>
+              <description>Arena map matched to the locally tested Wormhole assets. Select only with Wormhole installed. A matching effective game graph/cross table is also required. Compatibility notices appear in-game. No external tools or online version checks are required.</description>
               <files>
                 <folder source="Wormhole" destination="gamedata" priority="1"/>
               </files>
@@ -29,5 +29,6 @@
   </installSteps>
   <requiredInstallFiles>
     <folder source="gamedata" destination="gamedata" priority="0"/>
+    <file source="ROSTOK_COMPATIBILITY.md" destination="ROSTOK_COMPATIBILITY.md" priority="0"/>
   </requiredInstallFiles>
 </config>

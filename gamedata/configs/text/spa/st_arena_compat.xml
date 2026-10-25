@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<string_table>
+  <string id="st_arena_compat_compatible"><text>Arena: los archivos locales y la navegación coinciden con la referencia de compatibilidad comprobada.</text></string>
+  <string id="st_arena_compat_mixed"><text>Arena: archivos del núcleo mezclados o incompletos. Reinstala la actualización completa y revisa los mods que reemplazan scripts de Arena. Se bloquean las sesiones nuevas.</text></string>
+  <string id="st_arena_compat_wrong_variant"><text>Arena: variante de mapa ausente, alterada o incorrecta. Reinstala una sola variante coherente GAMMA o Wormhole y revisa qué mod reemplaza los archivos del mapa Bar.</text></string>
+  <string id="st_arena_compat_navigation"><text>Arena: la cabecera de la AI-map del Bar no coincide con la referencia seleccionada. Revisa el conjunto de AI-map, game graph, cross table y spawn antes de cargar Bar.</text></string>
+  <string id="st_arena_compat_unverified"><text>Arena: comprobaciones locales básicas superadas. Falta probar manualmente la navegación del mapa dentro del juego. Esto no significa que Wormhole esté desactualizado.</text></string>
+  <string id="ui_mcm_xcvb_arena_compatibility_check"><text>Repetir comprobación local de compatibilidad</text></string>
+</string_table>

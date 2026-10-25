@@ -1223,7 +1223,9 @@ function actor_on_update()
 end
 
 function actor_on_first_update()
-	pcall(function() if xcvb_arena_utils and xcvb_arena_utils.init_sr_light_hook then xcvb_arena_utils.init_sr_light_hook() end end)
+	if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
+    if xcvb_arena_runtime then xcvb_arena_runtime.actor_on_update() end
+    init_arena_main_t()
 	xcvb_arena_utils.check_and_spawn_board()
 	xcvb_arena_utils.handle_removed_teams()
 
@@ -1248,45 +1250,12 @@ function actor_on_first_update()
 	end
 end
 
-local function apply_arena_combat_ai()
-	if not get_console then return end
-
-	local console = get_console()
-	if not console then return end
-
-	-- The bodycam fork exposes these cvars. They improve target acquisition and
-	local commands = {
-		"ai_use_smart_covers 1",
-		"ai_move_to_cover_run 1",
-	}
-
-	for _, command in ipairs(commands) do
-		console:execute(command)
-	end
-end
-
 function on_game_start()
-	pcall(function() if xcvb_arena_utils and xcvb_arena_utils.init_sr_light_hook then xcvb_arena_utils.init_sr_light_hook() end end)
+	if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_main) end
 	RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
 	RegisterScriptCallback("actor_on_update", actor_on_update)
 	RegisterScriptCallback("save_state", save_state)
 	RegisterScriptCallback("load_state", load_state)
-	apply_arena_combat_ai()
 	init_arena_main_t()
 
-	if xr_effects and not xr_effects.open_arena_gui then
-		xr_effects.open_arena_gui = function(actor, npc)
-			if xcvb_arena_gui and xcvb_arena_gui.open_gui then
-				xcvb_arena_gui.open_gui()
-			end
-		end
-	end
-
-	if xr_effects and not xr_effects.open_companion_ui then
-		xr_effects.open_companion_ui = function(actor, npc)
-			if xcvb_arena_companion_ui and xcvb_arena_companion_ui.open_companion_ui then
-				xcvb_arena_companion_ui.open_companion_ui()
-			end
-		end
-	end
 end

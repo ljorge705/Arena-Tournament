@@ -321,5 +321,6 @@ function actor_on_net_destroy()
 end
 
 function on_game_start()
+    if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_combat_hud) end
     RegisterScriptCallback("actor_on_net_destroy", actor_on_net_destroy)
 end

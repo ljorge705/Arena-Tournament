@@ -379,6 +379,7 @@ function weapon_fired(actor, wpn)
 end
 
 function register_callbacks()
+    if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_plus_extension) end
     RegisterScriptCallback("actor_on_weapon_fired", weapon_fired)
     RegisterScriptCallback("actor_on_net_destroy", reset_effect)
 end
