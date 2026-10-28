@@ -15,7 +15,7 @@ function generation() return epoch end
 -- Save/load and metadata remain available outside Bar. Public mutations and
 -- callbacks use the same gate, including references registered before a trip.
 function protect(module)
-    if not module then return end
+    if type(module) ~= "table" then return end
     for name, fn in pairs(module) do
         if type(fn) == "function" and not bound[fn] and name ~= "on_game_start"
             and name ~= "save_state" and name ~= "load_state"
@@ -35,7 +35,6 @@ function protect(module)
             local original = fn
             local wrapper = function(...)
                 if not allowed() then return end
-                if name:match("^start_") and xcvb_arena_compat and not xcvb_arena_compat.entry_allowed() then return false end
                 return original(...)
             end
             bound[wrapper] = true
@@ -55,10 +54,21 @@ function schedule(event, action, delay, callback)
     end)
 end
 
-local function hook_tables()
-    return {_G, xr_effects, sr_light, item_parts, itms_manager, gameplay_disguise,
-        actor_menu, trader_autoinject, m1a1_autoinject,
-        sim_squad_scripted and sim_squad_scripted.sim_squad_scripted}
+local function hook_targets()
+    -- Luabind classes are userdata: their named methods can be accessed, but
+    -- pairs(class) is invalid. Track only the fields our installers change.
+    return {
+        {owner = _G, keys = {"inside_disguise_zone", "try_to_disguise", "set_msg"}},
+        {owner = xr_effects, keys = {"open_arena_gui", "open_arena_shop", "open_companion_ui"}},
+        {owner = sr_light, keys = {"check_light"}},
+        {owner = item_parts, keys = {"get_parts_con", "__arena_safeguard_installed"}},
+        {owner = gameplay_disguise, keys = {"inside_disguise_zone", "try_to_disguise", "set_comm", "set_msg"}},
+        {owner = actor_menu, keys = {"set_msg"}},
+        {owner = trader_autoinject, keys = {"timed_update", "update", "get_trader_type",
+            "__arena_safeguard_installed", "__arena_update_safeguard_installed", "__arena_type_safeguard_installed"}},
+        {owner = m1a1_autoinject, keys = {"m1a1_trade_spawn", "__arena_safeguard_installed"}},
+        {owner = sim_squad_scripted and sim_squad_scripted.sim_squad_scripted, keys = {"get_script_target"}},
+    }
 end
 
 local function install_hooks()
@@ -69,9 +79,15 @@ local function install_hooks()
         return
     end
     local snapshots = {}
-    for _, owner in pairs(hook_tables()) do
-        local copy = {}; for k,v in pairs(owner) do copy[k] = v end
-        snapshots[#snapshots + 1] = {owner = owner, copy = copy}
+    for _, target in ipairs(hook_targets()) do
+        if target.owner then
+            for _, key in ipairs(target.keys) do
+                local ok, original = pcall(function() return target.owner[key] end)
+                if ok then
+                    snapshots[#snapshots + 1] = {owner = target.owner, key = key, original = original}
+                end
+            end
+        end
     end
     local u = xcvb_arena_utils
     if xr_effects then
@@ -85,13 +101,10 @@ local function install_hooks()
         if u and u[name] then u[name]() end
     end
     for _, snapshot in ipairs(snapshots) do
-        for k,v in pairs(snapshot.owner) do
-            local owned_global = snapshot.owner ~= _G or k == "inside_disguise_zone"
-                or k == "try_to_disguise" or k == "set_msg"
-            if owned_global and v ~= snapshot.copy[k] then
-                hooks[#hooks + 1] = {owner = snapshot.owner, key = k,
-                    original = snapshot.copy[k], wrapper = v}
-            end
+        local current = snapshot.owner[snapshot.key]
+        if current ~= snapshot.original then
+            hooks[#hooks + 1] = {owner = snapshot.owner, key = snapshot.key,
+                original = snapshot.original, wrapper = current}
         end
     end
 end
@@ -142,12 +155,11 @@ end
 function actor_on_update()
     if allowed() then
         if not entered then
-            entered = true
             install_hooks()
+            entered = true
         end
         combat_console(xcvb_arena_utils and xcvb_arena_utils.is_any_arena_fight_active())
     elseif entered then leave() end
-    if xcvb_arena_compat then xcvb_arena_compat.tick() end
 end
 
 function on_game_start()

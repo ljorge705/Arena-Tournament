@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+  <string id="st_arena_map_btn_factory"><text>AREA: FABRICA</text></string>
+  <string id="st_arena_map_factory_name"><text>Fabrica</text></string>
+  <string id="st_arena_factory_navigation_missing"><text>La navegacion de Fabrica no esta disponible. Instala el level.ai y la opcion de spawn correspondientes antes de empezar un combate.</text></string>
+</string_table>

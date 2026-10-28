@@ -1,0 +1,3 @@
+-- Factory spawn clearance data. No fixed Factory light sources.
+points = {
+}

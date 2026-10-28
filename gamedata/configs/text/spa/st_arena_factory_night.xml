@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+  <string id="st_arena_factory_night_required"><text>El modo nocturno de Factory requiere la noche real. Vuelve entre las 20:00 y las 06:00 o desactiva el modo nocturno. Factory utiliza el cielo y el amanecer naturales.</text></string>
+</string_table>

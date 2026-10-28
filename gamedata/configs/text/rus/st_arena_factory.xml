@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+  <string id="st_arena_map_btn_factory"><text>ЗОНА: ФАБРИКА</text></string>
+  <string id="st_arena_map_factory_name"><text>Фабрика</text></string>
+  <string id="st_arena_factory_navigation_missing"><text>Навигация фабрики недоступна. Установите соответствующие level.ai и вариант spawn перед началом боя.</text></string>
+</string_table>

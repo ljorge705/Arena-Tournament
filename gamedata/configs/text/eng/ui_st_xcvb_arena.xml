@@ -1330,12 +1330,7 @@
 	<string id="ui_mcm_xcvb_arena_arena_light_mult_desc">
 		<text>Ambient and sky bounce light multiplier for the main indoor arena hangar (default: 2.8). Increase for more brightness or decrease if using a bright reshade.</text>
 	</string>
-	<string id="ui_mcm_xcvb_arena_forest_light_mult">
-		<text>Lighting - Forest Arena</text>
-	</string>
-	<string id="ui_mcm_xcvb_arena_forest_light_mult_desc">
-		<text>Ambient light multiplier for the outdoor forest arena map (default: 1.4). Adjusts visibility among the trees.</text>
-	</string>	<string id="st_arena_loadout_mag_title">
+	<string id="st_arena_loadout_mag_title">
 		<text>MAGAZINE</text>
 	</string>
 	<string id="st_arena_loadout_mag_none">
@@ -1898,19 +1893,13 @@
 		<text>Endless Map Rotation Interval</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval_desc">
-		<text>Rotates the combat map between Arena and Forest every X cleared waves (0 = disabled).</text>
+		<text>Rotates the combat map between Arena and Factory every X cleared waves (0 = disabled).</text>
 	</string>
-	<string id="st_arena_endless_swap_to_forest">
-		<text>WAVE %s - SECTOR ROTATION: FOREST! Enemies will attack through the woods.</text>
+	<string id="st_arena_endless_swap_to_factory">
+		<text>WAVE %s - SECTOR ROTATION: FACTORY!</text>
 	</string>
 	<string id="st_arena_endless_swap_to_arena">
 		<text>WAVE %s - SECTOR ROTATION: ARENA! Returning to the closed combat arena.</text>
-	</string>
-	<string id="st_arena_map_forest_short">
-		<text>FOREST</text>
-	</string>
-	<string id="st_arena_forced_forest_desc">
-		<text>Mandatory Location: Forest Arena.</text>
 	</string>
 
 
@@ -2198,12 +2187,6 @@
 	</string>
 	<string id="st_arena_map_btn_arena">
 		<text>Standard Arena</text>
-	</string>
-	<string id="st_arena_map_btn_forest">
-		<text>Wild Forest Sector</text>
-	</string>
-	<string id="st_arena_map_forest_name">
-		<text>Wild Forest Sector</text>
 	</string>
 	<string id="st_arena_map_mismatch_tip">
 		<text>Map selection mismatch. Synchronizing arena location.</text>

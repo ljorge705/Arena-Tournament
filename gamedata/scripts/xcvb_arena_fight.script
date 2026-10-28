@@ -11,7 +11,7 @@ function inventory_compatible(report)
     if report or not ok then
         printe("! arena inventory API: expected=3 loaded=%s missing=%s", tostring(u.inventory_api_version), table.concat(missing, ","))
     end
-    if not ok and db.actor and news_manager and not xcvb_arena_compat then
+    if not ok and db.actor and news_manager then
         local message = game.translate_string("st_arena_inventory_version_error")
         if message == "st_arena_inventory_version_error" then
             message = "Arena files are incompatible. Reinstall the complete update and check mods replacing xcvb_arena_utils.script."
@@ -77,6 +77,9 @@ local endless_transitioning = false
 local endless_fight_closed = false
 local endless_difficulty = "medium"
 local endless_initial_map = nil
+local function factory_available()
+    return not xcvb_arena_installation or xcvb_arena_installation.factory_enabled ~= false
+end
 local tourn_saved_selected_map = nil
 local trigger_medic_rescue
 local is_medic_rescuing = false
@@ -528,6 +531,8 @@ end
 function start_tournament_fight(category, round_id, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec, forced_mag_count, forced_ammo_count, inventory_ready)
     local round_data = xcvb_arena_main.get_round_data(category or "stalker", round_id)
     if not round_data or not db.actor then return false end
+    local entry_map = factory_available() and (round_data.forced_map or round_data.map or xcvb_arena_main.selected_map) or "arena"
+    if xcvb_arena_factory and not xcvb_arena_factory.allow_entry(entry_map) then return false end
     if xcvb_arena_utils.inventory_restore_pending then
         xcvb_arena_utils.restore_actor_equipped_slots()
         return false
@@ -578,7 +583,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     current_tournament_round_id = round_id
 
     local forced_m = round_data.forced_map or round_data.map
-    local target_m = forced_m or xcvb_arena_main.selected_map or "arena"
+    local target_m = factory_available() and (forced_m or xcvb_arena_main.selected_map or "arena") or "arena"
     tourn_saved_selected_map = xcvb_arena_main.selected_map
     xcvb_arena_main.selected_map = target_m
 
@@ -633,9 +638,6 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
         cam_duration = play_arena_intro_camera(round_id) or 5.0
     end
 
-    if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() then
-        xcvb_arena_forest_ai.on_fight_start()
-    end
     local enemy_squad = xcvb_arena_utils.spawn_tournament_squad(round_data)
     if not enemy_squad then
         printe("! xcvb arena: Failed to spawn tournament squad for %s round %s", current_tournament_category, round_id)
@@ -863,7 +865,7 @@ end
 -- SPECTATOR MODE (Original Balcony Betting)
 --------------------------------------------------------------------------------
 function start_arena_fight(bout_idx)
-	if xcvb_arena_main and xcvb_arena_main.selected_map == "forest" then
+	if xcvb_arena_main and xcvb_arena_main.selected_map ~= "arena" then
 		return false
 	end
     cancel_player_combat_events()
@@ -1146,7 +1148,7 @@ end
 -- BATALLA CAMPAL MULTIBANDO (BETA TESTING)
 --------------------------------------------------------------------------------
 function start_battle_royale_fight(br_data)
-	if xcvb_arena_main and xcvb_arena_main.selected_map == "forest" then
+	if xcvb_arena_main and xcvb_arena_main.selected_map ~= "arena" then
 		return false
 	end
     if not br_data then return end
@@ -1401,6 +1403,13 @@ function get_endless_enemy_squad_ids()
 end
 
 function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, variant, inventory_ready)
+    if xcvb_arena_factory and not xcvb_arena_factory.allow_entry() then return false end
+    local entry_interval = xcvb_arena_mcm and xcvb_arena_mcm.get_config("endless_map_swap_interval") or 0
+    if variant ~= "plus" and factory_available() and entry_interval > 0 and (start_wave or 1) > 1
+        and math.floor(((start_wave or 1)-1)/entry_interval)%2 == 1 then
+        local entry_map = xcvb_arena_main.selected_map == "factory" and "arena" or "factory"
+        if xcvb_arena_factory and not xcvb_arena_factory.allow_entry(entry_map) then return false end
+    end
     if not db.actor then return false end
     if not inventory_compatible() then return false end
     if not inventory_ready then
@@ -1428,10 +1437,10 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
     endless_reward = 0
     endless_initial_map = xcvb_arena_main.selected_map
     local swap_interval = xcvb_arena_mcm and xcvb_arena_mcm.get_config("endless_map_swap_interval") or 0
-    if swap_interval and swap_interval > 0 and endless_wave > 1 then
+    if factory_available() and swap_interval and swap_interval > 0 and endless_wave > 1 then
         local num_swaps = math.floor((endless_wave - 1) / swap_interval)
         if num_swaps % 2 == 1 then
-            xcvb_arena_main.selected_map = (endless_initial_map == "forest") and "arena" or "forest"
+            xcvb_arena_main.selected_map = (endless_initial_map == "factory") and "arena" or "factory"
         else
             xcvb_arena_main.selected_map = endless_initial_map
         end
@@ -1506,9 +1515,6 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
     end)
 
     give_info("xcvb_endless_started")
-    if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() then
-        xcvb_arena_forest_ai.on_fight_start()
-    end
 
     endless_enemy_squad_ids = {}
 
@@ -1711,7 +1717,9 @@ function advance_endless_wave(resume_pending)
     end -- On load the wave reward and checkpoint have already been recorded.
 
     local swap_interval = xcvb_arena_mcm and xcvb_arena_mcm.get_config("endless_map_swap_interval") or 0
-    local should_swap = (swap_interval and swap_interval > 0 and endless_wave > 1 and ((endless_wave - 1) % swap_interval == 0))
+    local should_swap = (factory_available() and swap_interval and swap_interval > 0 and endless_wave > 1 and ((endless_wave - 1) % swap_interval == 0))
+    if should_swap and xcvb_arena_main.selected_map ~= "factory" and xcvb_arena_factory
+        and not xcvb_arena_factory.night_available(true,"factory") then should_swap = false end
 
     if should_swap then
         xcvb_arena_utils.arena_fade_in_out(0.2)
@@ -1725,7 +1733,7 @@ function advance_endless_wave(resume_pending)
             endless_enemy_squad_ids = {}
             xcvb_arena_utils.clean_arena_corpses()
 
-            local next_map = (xcvb_arena_main.selected_map == "forest") and "arena" or "forest"
+            local next_map = (xcvb_arena_main.selected_map == "factory") and "arena" or "factory"
             xcvb_arena_main.selected_map = next_map
 
             local ac_pos, ac_lvid, ac_gvid, ac_dir = xcvb_arena_utils.get_actor_tournament_pos(endless_wave)
@@ -1743,15 +1751,7 @@ function advance_endless_wave(resume_pending)
                 pcall(xcvb_arena_utils.apply_night_mode_lighting, false)
             end
 
-            if xcvb_arena_forest_ai then
-                if next_map == "forest" then
-                    xcvb_arena_forest_ai.on_fight_start()
-                else
-                    pcall(xcvb_arena_forest_ai.reset_combat_data)
-                end
-            end
-
-            local swap_fmt = (next_map == "forest") and gt("st_arena_endless_swap_to_forest") or gt("st_arena_endless_swap_to_arena")
+            local swap_fmt = (next_map == "factory") and gt("st_arena_endless_swap_to_factory") or gt("st_arena_endless_swap_to_arena")
             news_manager.send_tip(db.actor, string.format(swap_fmt, endless_wave), 0, nil, 6000)
             return true
         end)
@@ -1786,9 +1786,6 @@ function advance_endless_wave(resume_pending)
             heal_actor_completely()
 
             local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
-            if xcvb_arena_forest_ai then
-                pcall(xcvb_arena_forest_ai.reset_combat_data)
-            end
             endless_enemy_squad_ids = {}
             if next_squads then
                 if next_squads.id then
@@ -1912,9 +1909,6 @@ function advance_endless_wave(resume_pending)
             heal_actor_completely()
 
             local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
-            if xcvb_arena_forest_ai then
-                pcall(xcvb_arena_forest_ai.reset_combat_data)
-            end
             endless_enemy_squad_ids = {}
             if next_squads then
                 if next_squads.id then
@@ -1997,8 +1991,10 @@ end
 function spawn_plus_wave(extra_enemies)
     if endless_fight_closed or not xcvb_arena_plus.active() then return end
     local interval = xcvb_arena_mcm.get_config("endless_map_swap_interval") or 0
-    if interval > 0 and endless_wave > 1 and (endless_wave - 1) % interval == 0 then
-        xcvb_arena_main.selected_map = xcvb_arena_main.selected_map == "forest" and "arena" or "forest"
+    local swap_allowed = not xcvb_arena_factory or xcvb_arena_main.selected_map == "factory"
+        or xcvb_arena_factory.night_available(true,"factory")
+    if factory_available() and interval > 0 and endless_wave > 1 and (endless_wave - 1) % interval == 0 and swap_allowed then
+        xcvb_arena_main.selected_map = xcvb_arena_main.selected_map == "factory" and "arena" or "factory"
         local pos, lv, gv, dir = xcvb_arena_utils.get_actor_tournament_pos(endless_wave)
         db.actor:set_actor_position(pos, lv, gv); db.actor:set_actor_direction(dir or 0)
         if xcvb_arena_companions and xcvb_arena_companions.relocate_companions_to_actor then
@@ -2018,10 +2014,6 @@ function spawn_plus_wave(extra_enemies)
     if #endless_enemy_squad_ids == 0 then error("Endless+: no enemies spawned") end
     endless_transitioning = false
     xcvb_arena_plus.combat_started()
-    if xcvb_arena_forest_ai then
-        pcall(xcvb_arena_forest_ai.reset_combat_data)
-        if xcvb_arena_forest_ai.is_active() then pcall(xcvb_arena_forest_ai.on_fight_start) end
-    end
     CreateTimeEvent("allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a", 0.8, function()
         if endless_fight_closed then return true end
         xcvb_arena_utils.setup_endless_squads_aggro(endless_enemy_squad_ids)
@@ -2295,12 +2287,6 @@ function actor_on_update()
         end
         
         local tg = time_global()
-        local is_forest = xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active()
-
-        -- Modulo Forest: Lógica táctica, avance, flanqueo y contención perimetral
-        if is_forest then
-            xcvb_arena_forest_ai.on_tick(tg, tournament_enemy_squad_id, nil)
-        end
 
         if tg > hit_timer then
             local is_night = xcvb_arena_main.night_mode_active == true
@@ -2320,7 +2306,7 @@ function actor_on_update()
                                 end)
                             elseif is_night then
                                 update_npc_night_state(npc, tg, vision_ctx)
-                            elseif not has_live_enemy(npc) and not is_forest then
+                            elseif not has_live_enemy(npc) then
                                 xcvb_arena_utils.scr_hit(db.actor, npc)
                             end
                         end
@@ -2349,12 +2335,6 @@ function actor_on_update()
         end
 
         local tg = time_global()
-        local is_forest = xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active()
-
-        -- Modulo Forest: Lógica táctica para Modo Supervivencia (Endless)
-        if is_forest then
-            xcvb_arena_forest_ai.on_tick(tg, nil, endless_enemy_squad_ids)
-        end
 
         if tg > hit_timer then
             local is_night = (xcvb_arena_main.night_mode_active == true)
@@ -2366,11 +2346,7 @@ function actor_on_update()
                     if squad then
                         squad.scripted_target = "actor"
                         squad.assigned_target_id = 0
-                        -- Forest tiene su propio controlador táctico. No sobrescribirlo
-                        -- cada dos segundos, especialmente durante el sigilo nocturno.
-                        if not is_forest then
-                            squad.rush_to_target = not is_night
-                        end
+                        squad.rush_to_target = not is_night
                         for m in squad:squad_members() do
                             local npc = level.object_by_id(m.id)
                             if npc and npc:alive() then
@@ -2383,7 +2359,7 @@ function actor_on_update()
                                 elseif is_night then
                                     update_npc_night_state(npc, tg, vision_ctx)
                                 else
-                                    if not has_live_enemy(npc) and not is_forest then
+                                    if not has_live_enemy(npc) then
                                         xcvb_arena_utils.scr_hit(db.actor, npc)
                                     end
                                     xcvb_arena_utils.set_bloodsucker_enemy(npc, db.actor)
@@ -2714,10 +2690,6 @@ function npc_on_before_hit(npc, s_hit)
         return
     end
 
-    -- In Forest mode: let dedicated forest AI handle contact alerts and assault lane convergence
-    if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() then
-        xcvb_arena_forest_ai.on_hit(npc, s_hit)
-    end
 
     -- In active combat modes (Endless or Tournament), if player shoots a wounded enemy, ensure lethal damage
     if (HI("xcvb_endless_started") or is_endless_mode or HI("xcvb_tournament_started")) and is_npc_wounded(npc) then
@@ -3181,7 +3153,9 @@ function save_state(m_data)
 end
 
 function load_state(m_data)
-    interrupted_level = m_data.xcvb_arena_interrupted_level == true
+    local saved_map=m_data.xcvb_selected_map
+    local retired_layout=saved_map and saved_map~="arena" and (saved_map~="factory" or not factory_available())
+    interrupted_level = m_data.xcvb_arena_interrupted_level == true or retired_layout == true
     if xcvb_arena_plus then xcvb_arena_plus.load_state(m_data) end
     callback_epoch = callback_epoch + 1
     xcvb_arena_utils.cancel_inventory_events()
@@ -3235,8 +3209,8 @@ function load_state(m_data)
     tournament_inventory_stored = m_data.xcvb_tournament_inventory_stored == true
         or (current_tournament_round_id ~= nil and xcvb_arena_utils.inventory_stored)
     is_endless_mode = m_data.xcvb_is_endless_mode or false
-    endless_initial_map = m_data.xcvb_endless_initial_map
-    tourn_saved_selected_map = m_data.xcvb_tourn_saved_selected_map
+    endless_initial_map = m_data.xcvb_endless_initial_map and (factory_available() and m_data.xcvb_endless_initial_map == "factory" and "factory" or "arena")
+    tourn_saved_selected_map = m_data.xcvb_tourn_saved_selected_map and (factory_available() and m_data.xcvb_tourn_saved_selected_map == "factory" and "factory" or "arena")
     endless_wave = m_data.xcvb_endless_wave or 1
     endless_reward = m_data.xcvb_endless_reward or 0
     endless_enemy_type = m_data.xcvb_endless_enemy_type or "stalkers"

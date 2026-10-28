@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<string_table>
-  <string id="st_arena_compat_compatible"><text>Arena: local assets and navigation match the tested compatibility reference.</text></string>
-  <string id="st_arena_compat_mixed"><text>Arena: mixed or incomplete core files. Reinstall the complete update and check overrides of Arena scripts. New arena sessions are blocked.</text></string>
-  <string id="st_arena_compat_wrong_variant"><text>Arena: missing, altered or incorrect map variant. Reinstall exactly one coherent GAMMA or Wormhole variant and check which mod overrides the Bar map files.</text></string>
-  <string id="st_arena_compat_navigation"><text>Arena: the Bar AI-map header does not match the selected map reference. Check the coherent AI-map, game graph, cross table and spawn set before loading Bar.</text></string>
-  <string id="st_arena_compat_unverified"><text>Arena: basic local checks passed. Effective map navigation still needs manual testing in-game. This does not mean Wormhole is outdated.</text></string>
-  <string id="ui_mcm_xcvb_arena_compatibility_check"><text>Repeat local compatibility check</text></string>
-</string_table>

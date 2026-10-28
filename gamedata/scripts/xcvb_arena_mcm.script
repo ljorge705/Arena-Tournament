@@ -22,7 +22,6 @@ local defaults = {
 	["night_vision_mult"] = 1.0,
 	["night_elite_nvg"] = true,
 	["arena_light_mult"] = 2.8,
-	["forest_light_mult"] = 1.4,
 	["combat_hud"] = true,
 	["combat_hud_title"] = false,
 	["combat_hud_wave"] = true,
@@ -56,7 +55,6 @@ function on_mcm_load()
 		sh = true,
 		gr = {
 			{ id = "title", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_xcvb_arena_title", size = {512, 50}, spacing = 20 },
-            { id = "compatibility_check", type = "button", functor = {function() return xcvb_arena_compat.repeat_check() end} },
 
 			-- Tournament & Economy Settings
 			{ id = "economy_mode", type = "list", val = 0, def = "tokens", no_str = true,

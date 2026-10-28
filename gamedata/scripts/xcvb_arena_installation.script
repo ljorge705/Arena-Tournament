@@ -1,0 +1,2 @@
+-- Installed content profile. The Arena-only FOMOD option overrides this file.
+factory_enabled = true

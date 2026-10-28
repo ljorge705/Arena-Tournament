@@ -129,8 +129,9 @@ end
 --------------------------------------------------------------------------------
 local function is_within_arena_bounds(pos)
     if not pos then return false end
-    -- Check box bounds covering both original arena and underground forest sector (X:75-185, Z:60-150, Y:-26 to 25)
-    if (pos.x >= 75 and pos.x <= 185 and pos.z >= 60 and pos.z <= 150 and pos.y >= -26 and pos.y <= 25) then
+    if xcvb_arena_factory and xcvb_arena_factory.contains(pos) then return true end
+    -- Original arena volume; Factory was checked separately above.
+    if (pos.x >= 125.5 and pos.x <= 185 and pos.z >= 60 and pos.z <= 150 and pos.y >= -26 and pos.y <= 25) then
         return true
     end
     local arena_center = vector():set(ARENA_CENTER_X, ARENA_CENTER_Y, ARENA_CENTER_Z)

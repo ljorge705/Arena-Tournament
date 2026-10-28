@@ -1330,12 +1330,6 @@
 	<string id="ui_mcm_xcvb_arena_arena_light_mult_desc">
 		<text>Множитель окружающего освещения в ангаре обычной арены (по умолчанию: 2.8).</text>
 	</string>
-	<string id="ui_mcm_xcvb_arena_forest_light_mult">
-		<text>Освещение - Лесная Арена</text>
-	</string>
-	<string id="ui_mcm_xcvb_arena_forest_light_mult_desc">
-		<text>Множитель окружающего освещения на карте Лесной Арены (по умолчанию: 1.4).</text>
-	</string>
 	<string id="st_arena_loadout_mag_title">
 		<text>МАГАЗИН</text>
 	</string>
@@ -1905,19 +1899,13 @@
 		<text>Интервал смены локации в Endless</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval_desc">
-		<text>Переключает арену между Ареной и Лесом каждые X пройденных волн (0 = выключено).</text>
+		<text>Переключает арену между Ареной и Фабрикой каждые X пройденных волн (0 = выключено).</text>
 	</string>
-	<string id="st_arena_endless_swap_to_forest">
-		<text>ВОЛНА %s - СМЕНА СЕКТОРА: ЛЕС! Враги атакуют среди деревьев.</text>
+	<string id="st_arena_endless_swap_to_factory">
+		<text>ВОЛНА %s - СМЕНА СЕКТОРА: ФАБРИКА!</text>
 	</string>
 	<string id="st_arena_endless_swap_to_arena">
 		<text>ВОЛНА %s - СМЕНА СЕКТОРА: АРЕНА! Возвращение в закрытый сектор арены.</text>
-	</string>
-	<string id="st_arena_map_forest_short">
-		<text>ЛЕС</text>
-	</string>
-	<string id="st_arena_forced_forest_desc">
-		<text>Обязательная локация: Лесная Арена.</text>
 	</string>
 	<string id="st_arena_status_locked_map">
 		<text>[БЛОК: КАРТА]</text>
@@ -1928,14 +1916,8 @@
 	<string id="st_arena_map_mismatch_tip">
 		<text>Несоответствие арены: этот бой проходит на локации %s. Используйте верхнюю кнопку ЗОНА для смены карты.</text>
 	</string>
-	<string id="st_arena_map_forest_name">
-		<text>Лес</text>
-	</string>
 	<string id="st_arena_map_arena_name">
 		<text>Арена Бара</text>
-	</string>
-	<string id="st_arena_map_btn_forest">
-		<text>ЗОНА: ЛЕС</text>
 	</string>
 	<string id="st_arena_map_btn_arena">
 		<text>ЗОНА: АРЕНА</text>

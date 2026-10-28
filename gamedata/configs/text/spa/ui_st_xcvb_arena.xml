@@ -1330,12 +1330,7 @@
 	<string id="ui_mcm_xcvb_arena_arena_light_mult_desc">
 		<text>Multiplicador de luz ambiental en el hangar de la arena normal (predeterminado: 2.8). Aumenta para mayor claridad o reduce si tu shader o reshade es muy brillante.</text>
 	</string>
-	<string id="ui_mcm_xcvb_arena_forest_light_mult">
-		<text>Iluminacion - Mapa Bosque (Forest)</text>
-	</string>
-	<string id="ui_mcm_xcvb_arena_forest_light_mult_desc">
-		<text>Multiplicador de luz ambiental en el mapa bosque al aire libre (predeterminado: 1.4). Ajusta la visibilidad entre los arboles.</text>
-	</string>	<string id="st_arena_loadout_mag_title">
+	<string id="st_arena_loadout_mag_title">
 		<text>CARGADOR</text>
 	</string>
 	<string id="st_arena_loadout_mag_none">
@@ -1851,19 +1846,13 @@
 		<text>Rotacion de Mapa en Endless (Oleadas)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval_desc">
-		<text>Cambia de mapa entre Arena y Bosque cada X oleadas superadas (0 = desactivado).</text>
+		<text>Cambia de mapa entre Arena y Fabrica cada X oleadas superadas (0 = desactivado).</text>
 	</string>
-	<string id="st_arena_endless_swap_to_forest">
-		<text>OLEADA %s - CAMBIO DE SECTOR: BOSQUE! Los enemigos atacaran entre la vegetacion y los arboles.</text>
+	<string id="st_arena_endless_swap_to_factory">
+		<text>OLEADA %s - CAMBIO DE SECTOR: FABRICA!</text>
 	</string>
 	<string id="st_arena_endless_swap_to_arena">
 		<text>OLEADA %s - CAMBIO DE SECTOR: ARENA! Regresando al foso de combate cerrado.</text>
-	</string>
-	<string id="st_arena_map_forest_short">
-		<text>BOSQUE</text>
-	</string>
-	<string id="st_arena_forced_forest_desc">
-		<text>Ubicacion Obligatoria: Bosque de la Arena.</text>
 	</string>
 	<string id="st_arena_status_locked_map">
 		<text>[BLOQUEADO: MAPA]</text>
@@ -1874,14 +1863,8 @@
 	<string id="st_arena_map_mismatch_tip">
 		<text>Ubicacion de combate no coincide: este combate se disputa en %s. Usa el boton de AREA superior para cambiar de mapa.</text>
 	</string>
-	<string id="st_arena_map_forest_name">
-		<text>Bosque</text>
-	</string>
 	<string id="st_arena_map_arena_name">
 		<text>Arena del Bar</text>
-	</string>
-	<string id="st_arena_map_btn_forest">
-		<text>AREA: BOSQUE</text>
 	</string>
 	<string id="st_arena_map_btn_arena">
 		<text>AREA: ARENA</text>

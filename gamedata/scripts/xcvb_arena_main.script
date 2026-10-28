@@ -41,6 +41,10 @@ night_mode_saved_render = nil
 night_mode_device = "device_torch_dummy"
 selected_map = "arena"
 
+function factory_available()
+    return not xcvb_arena_installation or xcvb_arena_installation.factory_enabled ~= false
+end
+
 arena_tokens = 0
 daily_cashout_done = 0
 last_cashout_day = 0
@@ -556,12 +560,9 @@ tournament_mutant_tiers_t = {
 
 
 
-function is_round_forest(category, round_id)
-	local r_data = get_round_data(category, round_id)
-	return r_data and (r_data.forced_map == "forest" or r_data.map == "forest")
-end
 
 function get_round_forced_map(category, round_id)
+    if not factory_available() then return "arena" end
 	local r_data = get_round_data(category, round_id)
 	return r_data and (r_data.forced_map or r_data.map)
 end
@@ -1012,7 +1013,8 @@ function load_state(m_data)
 	night_mode_saved_needs = m_data.xcvb_night_mode_saved_needs
 	night_mode_saved_render = m_data.xcvb_night_mode_saved_render
 	night_mode_device = m_data.xcvb_night_mode_device or "device_torch_dummy"
-	selected_map = (m_data.xcvb_selected_map == "forest") and "forest" or "arena"
+	selected_map = factory_available() and (m_data.xcvb_selected_map == "factory")
+        and m_data.xcvb_selected_map or "arena"
 	arena_tokens = m_data.xcvb_arena_tokens or 0
 	daily_cashout_done = m_data.xcvb_daily_cashout_done or 0
 	last_cashout_day = m_data.xcvb_last_cashout_day or 0

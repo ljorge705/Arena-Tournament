@@ -179,7 +179,10 @@ function hire_companion(def_idx)
     end
 
     local spawn_pos, spawn_lvid, spawn_gvid = xcvb_arena_utils.get_actor_tournament_pos()
-    if db.actor then
+    if xcvb_arena_factory and xcvb_arena_factory.active() then
+        spawn_pos, spawn_lvid, spawn_gvid = xcvb_arena_factory.get_companion_spawn()
+        if not spawn_pos then return false, gt("st_arena_companion_err_spawn") end
+    elseif db.actor then
         local ap = db.actor:position()
         if ap then
             -- Determine arena half: South (< 105) moves +Z toward center; North (>= 105) moves -Z toward center
@@ -187,18 +190,10 @@ function hire_companion(def_idx)
             local offset_x = (math.random() - 0.5) * 1.5
             local offset_z = dir_z * (2.5 + math.random() * 0.5)
             local min_x, max_x, min_z, max_z
-            if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() and xcvb_arena_forest_config then
-                local b = xcvb_arena_forest_config.BOUNDS
-                min_x = b.min_x
-                max_x = b.corridor_safe_x_max
-                min_z = b.min_z
-                max_z = b.max_z
-            else
                 min_x = 146.0
                 max_x = 157.0
                 min_z = 84.0
                 max_z = 126.0
-            end
             local target_x = math.max(min_x, math.min(max_x, ap.x + offset_x))
             local target_z = math.max(min_z, math.min(max_z, ap.z + offset_z))
             spawn_pos = vector():set(target_x, ap.y, target_z)
@@ -397,8 +392,8 @@ function _setup_single_companion_ai(entry, enemy_squad_ids)
     end
 
     -- 2. Prevent companion from leaving the arena
-    if xcvb_arena_forest_ai and xcvb_arena_forest_ai.is_active() then
-        xcvb_arena_forest_ai.clamp_npc_position(npc)
+    if xcvb_arena_factory and xcvb_arena_factory.active() then
+        xcvb_arena_factory.prepare_npc(npc)
     else
         pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end)
     end
@@ -687,7 +682,6 @@ function relocate_companions_to_actor()
     local ap = db.actor:position()
     if not ap then return end
     local gvid = db.actor:game_vertex_id()
-    local is_forest = xcvb_arena_utils and xcvb_arena_utils.forest_arena_selected and xcvb_arena_utils.forest_arena_selected()
 
     local idx = 0
     for _, comp_data in ipairs(active_companions) do
@@ -701,38 +695,34 @@ function relocate_companions_to_actor()
             local offset_z = dir_z * (2.0 + (idx * 0.4))
 
             local min_x, max_x, min_z, max_z
-            if is_forest and xcvb_arena_forest_config then
-                local b = xcvb_arena_forest_config.BOUNDS
-                min_x = b.min_x
-                max_x = b.corridor_safe_x_max
-                min_z = b.min_z
-                max_z = b.max_z
-            else
                 min_x = 146.0
                 max_x = 157.0
                 min_z = 84.0
                 max_z = 126.0
-            end
             local target_x = math.max(min_x, math.min(max_x, ap.x + offset_x))
             local target_z = math.max(min_z, math.min(max_z, ap.z + offset_z))
             local target_pos = vector():set(target_x, ap.y, target_z)
             local target_lvid = nil
-            if level and level.vertex_id then
+            if xcvb_arena_factory and xcvb_arena_factory.active() then
+                target_pos,target_lvid,gvid=xcvb_arena_factory.get_companion_spawn(idx)
+            elseif level and level.vertex_id then
                 local vid = level.vertex_id(target_pos)
                 if vid and vid > 0 and vid < 2^32 - 1 then
                     target_lvid = vid
                 end
             end
-            if not target_lvid then
+            if target_pos and not target_lvid then
                 target_lvid = db.actor:level_vertex_id()
             end
 
+            if target_pos and target_lvid then
             se_npc.position = vector():set(target_pos.x, target_pos.y, target_pos.z)
             se_npc.m_level_vertex_id = target_lvid
             se_npc.m_game_vertex_id = gvid
             if npc then
                 pcall(npc.set_npc_position, npc, target_pos)
                 pcall(function() npc:set_dest_level_vertex_id(target_lvid) end)
+            end
             end
         end
     end

@@ -1,0 +1,366 @@
+-- Factory uses the native multi-floor AI-map; never substitute an original arena node.
+local function data() return xcvb_arena_navigation_data end
+local function spawn_clear(point)
+    local blocked=xcvb_arena_factory_lights_data and xcvb_arena_factory_lights_data.spawn_blocked
+    local ceiling=data() and data().top_floor_y or -18.8
+    return point and point.y<=ceiling and not (blocked and blocked[point.lvid])
+end
+local pending, checked = {}, {}
+local next_update = 0
+local ambient_override
+
+local function ambient_api()
+    return weather and weather.get_value_vector and weather.set_value_vector
+end
+
+local function ambient_profile()
+    local forced=xcvb_arena_main and xcvb_arena_main.night_mode_active==true
+    if night_mode_manager and type(night_mode_manager.is_active)=='function' then
+        local ok,value=pcall(night_mode_manager.is_active)
+        forced=forced or (ok and value==true)
+    end
+    local daylight=1
+    if level and level.get_time_hours then
+        local ok,hour=pcall(level.get_time_hours)
+        if ok and type(hour)=='number' then
+            local minute=0
+            if level.get_time_minutes then
+                local good,value=pcall(level.get_time_minutes)
+                if good and type(value)=='number' then minute=value end
+            end
+            hour=hour+minute/60
+            daylight=math.min(1,math.max(0,(hour-6)/2))*math.min(1,math.max(0,(20-hour)/2))
+        end
+    end
+    if forced then daylight=0 end
+    local day,night={.125,.125,.120},{.009,.012,.018}
+    -- Use the live sky's colour, not a permanent coloured point light. The
+    -- roof still casts real shadows; ambient is diffuse reflected daylight.
+    if daylight>0 and ambient_api() then
+        local ok,sky=pcall(weather.get_value_vector,'hemisphere_color')
+        if ok and sky and type(sky.x)=='number' and type(sky.y)=='number' and type(sky.z)=='number' then
+            local mean=(sky.x+sky.y+sky.z)/3
+            if mean>.0001 then
+                for i,key in ipairs({'x','y','z'}) do
+                    local tint=math.max(.75,math.min(1.25,sky[key]/mean))
+                    day[i]=day[i]*(.65+.35*tint)
+                end
+            end
+        end
+    end
+    local profile={}
+    for i=1,3 do profile[i]=night[i]+(day[i]-night[i])*daylight end
+    return profile,forced
+end
+
+local function update_ambient()
+    if not ambient_api() then return false end
+    -- CurrentEnv is rebuilt as weather advances. Read that live value every
+    -- frame, retain its baseline, and impose only a minimum while inside.
+    -- Unlike a weather boost/reset, this never clears another mod's boosts.
+    local ok,current=pcall(weather.get_value_vector,'ambient_color')
+    if not (ok and current) then return false end
+    local baseline,target={},{}
+    local profile,forced=ambient_profile()
+    for i,key in ipairs({'x','y','z'}) do
+        local value=current[key]
+        if type(value)~='number' then return false end
+        if ambient_override and math.abs(value-ambient_override.applied[i])<0.000001 then
+            baseline[i]=ambient_override.baseline[i]
+        else baseline[i]=value end
+        -- Forced night can be enabled at daytime without changing the clock.
+        -- Cap its ambient independently; natural weather otherwise keeps any
+        -- brighter value. There are no fixed Factory light sources.
+        target[i]=forced and profile[i] or math.max(baseline[i],profile[i])
+    end
+    if not pcall(weather.set_value_vector,'ambient_color',target[1],target[2],target[3],0) then return false end
+    ambient_override={baseline=baseline,applied=target}
+    return true
+end
+
+local function restore_ambient()
+    if not ambient_override then return end
+    if ambient_api() then
+        local ok,current=pcall(weather.get_value_vector,'ambient_color')
+        if ok and current then
+            local restored={}
+            for i,key in ipairs({'x','y','z'}) do
+                local value=current[key]
+                restored[i]=math.abs(value-ambient_override.applied[i])<0.000001
+                    and ambient_override.baseline[i] or value
+            end
+            pcall(weather.set_value_vector,'ambient_color',restored[1],restored[2],restored[3],0)
+        end
+    end
+    ambient_override=nil
+end
+
+function active()
+    if xcvb_arena_installation and xcvb_arena_installation.factory_enabled == false then return false end
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return false end
+    return xcvb_arena_main and xcvb_arena_main.selected_map == "factory"
+end
+
+function legacy_vertex(id)
+    if xcvb_arena_installation and xcvb_arena_installation.factory_enabled == false then return id end
+    local d = data()
+    return d and d.legacy_vertices and d.legacy_vertices[id] or id
+end
+
+function contains(pos)
+    local b=data() and data().factory_bounds
+    if b then
+        return pos and pos.x>=b.min_x and pos.x<=b.max_x and pos.z>=b.min_z and pos.z<=b.max_z
+            and pos.y>=b.min_y and pos.y<=b.max_y
+    end
+    return pos and pos.x >= 186 and pos.x <= 232 and pos.z >= 83 and pos.z <= 125
+        and pos.y >= -29 and pos.y <= -15.15
+end
+
+local function resolve(point)
+    if not (spawn_clear(point) and level and level.vertex_position) then return nil end
+    local ok, pos = pcall(level.vertex_position, point.lvid)
+    if not (ok and contains(pos)) then return nil end
+    local dx, dy, dz = pos.x-point.x, pos.y-point.y, pos.z-point.z
+    if dx*dx+dz*dz > 0.04 or math.abs(dy) > 0.05 then return nil end
+    return vector():set(pos.x, pos.y, pos.z), point.lvid, point.gvid
+end
+
+function ready()
+    local d = data()
+    if not (d and d.factory_sites and d.factory_sites[1]) then return false end
+    return resolve(d.factory_sites[1].actor) ~= nil and resolve(d.factory_sites[1].enemy) ~= nil
+end
+
+function night_available(report, map, enabled)
+    if (map or (xcvb_arena_main and xcvb_arena_main.selected_map)) ~= "factory" then return true end
+    if enabled == nil then enabled=xcvb_arena_main and xcvb_arena_main.night_mode_active end
+    if not enabled then return true end
+    local ok,hour=false,nil
+    if level and level.get_time_hours then ok,hour=pcall(level.get_time_hours) end
+    -- Factory is outdoors: use the actual clock, never simulate a daytime night.
+    local available=ok and type(hour)=="number" and (hour>=20 or hour<6)
+    if not available and report and news_manager and news_manager.send_tip then
+        news_manager.send_tip(db.actor, game.translate_string("st_arena_factory_night_required"), nil, nil, 10000)
+    end
+    return available
+end
+
+function allow_entry(map)
+    if not night_available(true,map) then return false end
+    if (map or (xcvb_arena_main and xcvb_arena_main.selected_map)) ~= "factory" or ready() then return true end
+    if news_manager and news_manager.send_tip then
+        news_manager.send_tip(db.actor, game.translate_string("st_arena_factory_navigation_missing"), nil, nil, 10000)
+    end
+    return false
+end
+
+local function site(round)
+    local sites = {}
+    for _,entry in ipairs(data().factory_sites) do
+        if entry.actor.y<=(data().top_floor_y or -18.8) then sites[#sites+1]=entry end
+    end
+    return sites[((math.max(1,tonumber(round) or 1)-1) % #sites)+1]
+end
+
+function get_actor_spawn(round)
+    local s = site(round)
+    local pos,lvid,gvid = resolve(s.actor)
+    return pos,lvid,gvid,s.direction
+end
+
+function get_enemy_spawn(round)
+    return resolve(site(round).enemy)
+end
+
+function get_formation_slot(index, round)
+    local slots = {}
+    for _,point in ipairs(site(round).slots) do
+        if spawn_clear(point) then slots[#slots+1]=point end
+    end
+    if #slots==0 then return nil end
+    return resolve(slots[((index-1) % #slots)+1])
+end
+
+function get_companion_spawn(index)
+    local actor = db.actor and db.actor:position()
+    if not actor then return nil end
+    local candidates={}
+    for _,point in ipairs(data().factory_pool) do
+        local distance = (point.x-actor.x)^2+(point.z-actor.z)^2
+        if spawn_clear(point) and math.abs(point.y-actor.y)<0.4 and distance>=2.25 and distance<=36 then
+            local cost = math.abs(distance-6.25)
+            candidates[#candidates+1]={point=point,cost=cost}
+        end
+    end
+    table.sort(candidates,function(a,b) return a.cost<b.cost end)
+    local selected=candidates[((math.max(1,index or 1)-1)%math.max(1,#candidates))+1]
+    return resolve(selected and selected.point)
+end
+
+function get_endless_positions(count)
+    local actor = db.actor and db.actor:position()
+    if not actor or not count or count < 1 then return {} end
+    local candidates = {}
+    for _,point in ipairs(data().factory_pool) do
+        local dx,dz = point.x-actor.x,point.z-actor.z
+        -- A different floor does not make a spawn horizontally distant.
+        -- Recompute from the live actor position for every wave.
+        local distance = math.sqrt(dx*dx+dz*dz)
+        if distance >= 22 and spawn_clear(point) then
+            local floor_distance=math.abs(point.y-actor.y)
+            candidates[#candidates+1]={point=point,distance=distance,
+                band=floor_distance<0.5 and 1 or (floor_distance<4.5 and 2 or 3),noise=math.random()}
+        end
+    end
+    table.sort(candidates,function(a,b) return a.distance>b.distance end)
+    if xcvb_arena_main.endless_spawn_grouping == "together" and candidates[1] then
+        local anchor = candidates[1].point
+        for _,candidate in ipairs(candidates) do
+            if candidate.band==1 then anchor=candidate.point;break end
+        end
+        table.sort(candidates,function(a,b)
+            local function score(c)
+                return (c.point.x-anchor.x)^2+(c.point.z-anchor.z)^2+100*(c.point.y-anchor.y)^2
+            end
+            return score(a)<score(b)
+        end)
+    end
+    local grouped=xcvb_arena_main.endless_spawn_grouping == "together"
+    if not grouped then
+        -- Roughly half the pressure comes from the player's own floor; the
+        -- rest approaches through adjacent stairs. Do not strand a small wave
+        -- entirely on a distant top floor just because those nodes are farthest.
+        table.sort(candidates,function(a,b) return a.noise<b.noise end)
+    end
+    local result,used = {},{}
+    local function take(candidate,spacing)
+        if used[candidate.point.lvid] then return false end
+        for _,entry in ipairs(result) do
+            local p=candidate.point
+            if math.abs(p.y-entry.pos.y)<0.5 and (p.x-entry.pos.x)^2+(p.z-entry.pos.z)^2<spacing^2 then return false end
+        end
+        local pos,lvid,gvid=resolve(candidate.point)
+        if not pos then return false end
+        result[#result+1]={pos=pos,lvid=lvid,gvid=gvid};used[lvid]=true
+        return true
+    end
+    if not grouped then
+        for band=1,3 do
+            local target=band==1 and math.ceil(count*.5) or (band==2 and math.ceil(count*.85) or count)
+            for _,candidate in ipairs(candidates) do
+                if #result>=target then break end
+                if candidate.band==band then take(candidate,2.8) end
+            end
+        end
+    end
+    -- Dense waves relax spacing only after every wider valid slot was tried.
+    for _,spacing in ipairs(grouped and {1.3,0} or {2.8,1.3,0}) do
+        for _,candidate in ipairs(candidates) do
+            if #result>=count then break end
+            take(candidate,spacing)
+        end
+    end
+    return result
+end
+
+function register_spawn(id, pos, lvid, gvid)
+    if not (active() and id and contains(pos)) then return end
+    pending[id] = {pos=vector():set(pos.x,pos.y,pos.z),lvid=lvid,gvid=gvid,expires=time_global()+15000}
+    checked[id] = nil
+    if printf then printf(string.format('[Arena Factory] spawn id=%s node=%s graph=%s pos=%.2f,%.2f,%.2f',
+        tostring(id),tostring(lvid),tostring(gvid),pos.x,pos.y,pos.z)) end
+end
+
+function prepare_npc(npc)
+    if not (active() and npc and npc:alive()) then return end
+    -- This restrictor describes the ORIGINAL arena. Applying it here can make
+    -- the engine relocate an NPC to an accessible node outside the building.
+    pcall(function() npc:remove_restrictions('bar_arena_restrictor','bar_arena_restrictor') end)
+    local id = npc:id()
+    if checked[id] then return end
+    local current = npc:position()
+    local target = pending[id]
+    local retired=xcvb_arena_factory_lights_data and xcvb_arena_factory_lights_data.retired_nodes
+    local stranded=false
+    if retired then
+        local ok,node=pcall(function() return npc:level_vertex_id() end)
+        stranded=ok and retired[node]==true
+    end
+    if not target and (not contains(current) or stranded) then
+        local safe=get_endless_positions(1)[1]
+        local p,l,g
+        if safe then p,l,g=safe.pos,safe.lvid,safe.gvid
+        else p,l,g=get_enemy_spawn(xcvb_arena_fight and xcvb_arena_fight.endless_wave or 1) end
+        if p then target={pos=p,lvid=l,gvid=g} end
+    end
+    local corrected = false
+    if target and current then
+        local dx,dz = current.x-target.pos.x,current.z-target.pos.z
+        local actor=db.actor and db.actor:position()
+        local relocated_near_actor=actor and (current.x-actor.x)^2+(current.z-actor.z)^2<22^2
+            and dx*dx+dz*dz>9
+        if not contains(current) or stranded or relocated_near_actor or (dx*dx+dz*dz<4 and math.abs(current.y-target.pos.y)>0.8) then
+            local se = alife_object(id)
+            if se then
+                se.position=vector():set(target.pos.x,target.pos.y,target.pos.z)
+                se.m_level_vertex_id=target.lvid
+                se.m_game_vertex_id=target.gvid
+            end
+            npc:set_npc_position(target.pos)
+            npc:set_dest_level_vertex_id(target.lvid)
+            corrected=true
+        end
+    end
+    checked[id]=true
+    pending[id]=nil
+    if printf and current then printf(string.format('[Arena Factory] online id=%s actual=%.2f,%.2f,%.2f corrected=%s',
+        tostring(id),current.x,current.y,current.z,tostring(corrected))) end
+end
+
+function clear_runtime()
+    restore_ambient()
+    pending,checked={},{}
+    next_update=0
+end
+
+function actor_on_update()
+    if xcvb_arena_installation and xcvb_arena_installation.factory_enabled == false then
+        if ambient_override or next(pending) or next(checked) then clear_runtime() end
+        return
+    end
+    -- Older Factory saves may place the player on the retired fourth floor.
+    -- Move once to the third-floor entry without restarting or rewarding a wave.
+    if active() and db.actor and not (data() and data().outdoor) then
+        local p=db.actor:position()
+        if p and p.x>=186 and p.x<=232 and p.z>=83 and p.z<=125 and p.y>-15.15 and p.y<=-6 then
+            local pos,lv,gv,dir=get_actor_spawn(3)
+            if pos then
+                db.actor:set_actor_position(pos,lv,gv)
+                if dir and db.actor.set_actor_direction then db.actor:set_actor_direction(dir) end
+            end
+        end
+    end
+    if not (xcvb_arena_runtime and xcvb_arena_runtime.allowed() and db.actor
+        and contains(db.actor:position())) then
+        if ambient_override or next(pending) or next(checked) then clear_runtime() end
+        return
+    end
+    if data() and data().outdoor then restore_ambient() else update_ambient() end
+    local now=time_global()
+    if now<next_update then return end
+    next_update=now+500
+    for id,entry in pairs(pending) do
+        local npc=level.object_by_id(id)
+        if npc then prepare_npc(npc)
+        elseif now>entry.expires then
+            if printf then printf('[Arena Factory] NPC id=%s did not become online at planned spawn',tostring(id)) end
+            pending[id]=nil
+        end
+    end
+end
+
+function on_game_start()
+    RegisterScriptCallback('actor_on_update',actor_on_update)
+    RegisterScriptCallback('actor_on_net_destroy',clear_runtime)
+end

@@ -10,7 +10,6 @@ GUI = nil
 
 function open_gui()
     if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
-    if xcvb_arena_compat and not xcvb_arena_compat.entry_allowed() then return end
 	if GUI then
 		if GUI:IsShown() then
 			GUI:HideDialog()
@@ -907,11 +906,11 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		self.beta_cont:Show(is_beta)
 		self.beta_cont:Enable(is_beta)
 	end
-	if self.btn_mode then self.btn_mode:Enable(allow_bg and not self:is_forest_map()) end
+	if self.btn_mode then self.btn_mode:Enable(allow_bg and not self:is_secondary_map()) end
 	if self.btn_beta then self.btn_beta:Enable(allow_bg) end
 	if self.btn_practice then self.btn_practice:Enable(allow_bg) end
 	if self.btn_map then self.btn_map:Enable(allow_bg) end
-	if self.beta_tab_br then self.beta_tab_br:Enable(allow_bg and not self:is_forest_map()) end
+	if self.beta_tab_br then self.beta_tab_br:Enable(allow_bg and not self:is_secondary_map()) end
 
 	if not any_modal_open then
 		self:update_loadout_buttons()
@@ -1297,34 +1296,46 @@ end
 -- MODE AND CATEGORY SWITCHING
 --------------------------------------------------------------------------------
 
-function UIXcvbArena:is_forest_map()
-	return xcvb_arena_main and xcvb_arena_main.selected_map == "forest"
+
+function UIXcvbArena:is_secondary_map()
+    return xcvb_arena_main and xcvb_arena_main.selected_map ~= "arena"
+end
+
+function UIXcvbArena:map_matches(forced_map)
+    return not forced_map or forced_map == xcvb_arena_main.selected_map
 end
 
 function UIXcvbArena:update_map_button()
-	local is_forest = self:is_forest_map()
+	local available = not xcvb_arena_installation or xcvb_arena_installation.factory_enabled ~= false
+	if not available then xcvb_arena_main.selected_map = "arena" end
+	if self.btn_map then self.btn_map:Enable(available) end
+	local is_factory = xcvb_arena_main.selected_map == "factory"
 	if self.btn_map and self.btn_map:TextControl() then
-		self.btn_map:TextControl():SetFont(GetFontLetterica18Russian())
-		local btn_txt = is_forest and (gt("st_arena_map_btn_forest") or "AREA: FOREST") or (gt("st_arena_map_btn_arena") or "AREA: ARENA")
-		if not btn_txt or btn_txt == "st_arena_map_btn_forest" then btn_txt = "AREA: FOREST" end
-		if btn_txt == "st_arena_map_btn_arena" then btn_txt = "AREA: ARENA" end
+		self.btn_map:TextControl():SetFont(GetFontLetterica16Russian())
+		local btn_txt = is_factory and "Area: Factory (NEW)" or "Area: Arena (default)"
 		self.btn_map:TextControl():SetText(btn_txt)
-		self.btn_map:TextControl():SetTextColor(is_forest and GetARGB(255, 120, 255, 120) or GetARGB(255, 255, 220, 140))
+		self.btn_map:TextControl():SetTextColor(is_factory and GetARGB(255,100,210,255)
+            or GetARGB(255,255,220,140))
 	end
 	if self.btn_mode then
-		self.btn_mode:Enable(not is_forest)
+		self.btn_mode:Enable(not self:is_secondary_map())
 	end
 	if self.beta_tab_br then
-		self.beta_tab_br:Enable(not is_forest)
+		self.beta_tab_br:Enable(not self:is_secondary_map())
 	end
 end
 
 function UIXcvbArena:on_click_map()
-	local select_forest = not self:is_forest_map()
-	xcvb_arena_main.selected_map = select_forest and "forest" or "arena"
+	if xcvb_arena_installation and xcvb_arena_installation.factory_enabled == false then
+		xcvb_arena_main.selected_map = "arena"
+		self:update_map_button()
+		return
+	end
+	local next_map = {arena="factory",factory="arena"}
+	xcvb_arena_main.selected_map = next_map[xcvb_arena_main.selected_map] or "arena"
 
-	if select_forest then
-		-- Forest has no betting/spectator or Battle Royale support yet.
+	if self:is_secondary_map() then
+		-- Alternate layouts support Tournament and both Endless variants.
 		if self.current_mode == "spectator" then
 			self.current_mode = "tournament"
 		end
@@ -1341,14 +1352,14 @@ function UIXcvbArena:on_click_map()
 	if self.current_mode == "tournament" then
 		local cur_rd = xcvb_arena_main.get_round_data(self.current_category, self.selected_round_id)
 		local cur_forced = cur_rd and (cur_rd.forced_map or cur_rd.map)
-		if cur_forced and ((cur_forced == "forest") ~= select_forest) then
+		if not self:map_matches(cur_forced) then
 			local start_round = (self.current_tier - 1) * 3 + 1
 			local best_round = nil
 			for r = 0, 2 do
 				local cand = start_round + r
 				local r_data = xcvb_arena_main.get_round_data(self.current_category, cand)
 				local cand_forced = r_data and (r_data.forced_map or r_data.map)
-				if not cand_forced or ((cand_forced == "forest") == select_forest) then
+				if self:map_matches(cand_forced) then
 					local unl = xcvb_arena_main.is_round_unlocked(self.current_category, cand)
 					local comp = xcvb_arena_main.is_round_completed(self.current_category, cand)
 					if unl and not comp then
@@ -1374,7 +1385,7 @@ function UIXcvbArena:on_click_map()
 end
 
 function UIXcvbArena:on_click_mode()
-	if self:is_forest_map() then return end
+	if self:is_secondary_map() then return end
 	if self.current_mode == "tournament" then
 		self.current_mode = "spectator"
 	else
@@ -1416,6 +1427,11 @@ function UIXcvbArena:on_click_beta_mode()
 end
 
 function UIXcvbArena:on_click_night_mode()
+	if not xcvb_arena_main.night_mode_active and xcvb_arena_main.selected_map == "factory"
+		and xcvb_arena_factory and xcvb_arena_factory.night_available then
+		local allowed = xcvb_arena_factory.night_available(true, "factory", true)
+		if not allowed then return end
+	end
 	pcall(function()
 		local snd = sound_object([[interface\inv_torch]]) or sound_object([[device\torch_click]])
 		if snd then snd:play(db.actor, 0, sound_object.s2d) end
@@ -1531,14 +1547,13 @@ function UIXcvbArena:auto_select_current_round()
 	self.current_tier = tier
 	local start_round = (tier - 1) * 3 + 1
 	local target_round = nil
-	local is_forest = self:is_forest_map()
 
 	-- 1. Uncompleted + unlocked matching current map
 	for r = 0, 2 do
 		local cand = start_round + r
 		local r_data = xcvb_arena_main.get_round_data(cat, cand)
 		local cand_forced = r_data and (r_data.forced_map or r_data.map)
-		if not cand_forced or ((cand_forced == "forest") == is_forest) then
+		if self:map_matches(cand_forced) then
 			if xcvb_arena_main.is_round_unlocked(cat, cand) and not xcvb_arena_main.is_round_completed(cat, cand) then
 				target_round = cand
 				break
@@ -1551,7 +1566,7 @@ function UIXcvbArena:auto_select_current_round()
 			local cand = start_round + r
 			local r_data = xcvb_arena_main.get_round_data(cat, cand)
 			local cand_forced = r_data and (r_data.forced_map or r_data.map)
-			if not cand_forced or ((cand_forced == "forest") == is_forest) then
+			if self:map_matches(cand_forced) then
 				if xcvb_arena_main.is_round_unlocked(cat, cand) then
 					target_round = cand
 					break
@@ -1584,14 +1599,13 @@ function UIXcvbArena:on_click_tier(tier)
 	self.current_tier = tier
 	local start_round = (tier - 1) * 3 + 1
 	local target_round = nil
-	local is_forest = self:is_forest_map()
 
 	-- 1. Uncompleted + unlocked matching current map
 	for r = 0, 2 do
 		local cand = start_round + r
 		local r_data = xcvb_arena_main.get_round_data(self.current_category, cand)
 		local cand_forced = r_data and (r_data.forced_map or r_data.map)
-		if not cand_forced or ((cand_forced == "forest") == is_forest) then
+		if self:map_matches(cand_forced) then
 			if xcvb_arena_main.is_round_unlocked(self.current_category, cand) and not xcvb_arena_main.is_round_completed(self.current_category, cand) then
 				target_round = cand
 				break
@@ -1604,7 +1618,7 @@ function UIXcvbArena:on_click_tier(tier)
 			local cand = start_round + r
 			local r_data = xcvb_arena_main.get_round_data(self.current_category, cand)
 			local cand_forced = r_data and (r_data.forced_map or r_data.map)
-			if not cand_forced or ((cand_forced == "forest") == is_forest) then
+			if self:map_matches(cand_forced) then
 				if xcvb_arena_main.is_round_unlocked(self.current_category, cand) then
 					target_round = cand
 					break
@@ -1630,7 +1644,7 @@ function UIXcvbArena:on_click_action(row_idx)
 	local forced_m = r_data and (r_data.forced_map or r_data.map)
 	local map_matches = true
 	if forced_m then
-		map_matches = (forced_m == "forest" and self:is_forest_map()) or (forced_m == "arena" and not self:is_forest_map())
+		map_matches = self:map_matches(forced_m)
 	end
 
 	if not map_matches then
@@ -1661,7 +1675,7 @@ function UIXcvbArena:on_click_action(row_idx)
 end
 
 function UIXcvbArena:update_view_mode()
-	if self:is_forest_map() then
+	if self:is_secondary_map() then
 		if self.current_mode == "spectator" then self.current_mode = "tournament" end
 		if self.beta_subview == "br" then self.beta_subview = "endless" end
 	end
@@ -1817,9 +1831,9 @@ function UIXcvbArena:update_tournament_display()
 			local forced_m = r_data and (r_data.forced_map or r_data.map)
 			local map_matches = true
 			if forced_m then
-				map_matches = (forced_m == "forest" and self:is_forest_map()) or (forced_m == "arena" and not self:is_forest_map())
+				map_matches = self:map_matches(forced_m)
 			end
-			local map_tag = (forced_m == "forest") and (" [" .. gt("st_arena_map_forest_short") .. "]") or ""
+			local map_tag = (forced_m == "factory") and (" [" .. gt("st_arena_map_btn_factory") .. "]") or ""
 			row.name:SetText(gt(r_data.name) .. map_tag)
 			row.diff:SetText(gt("st_arena_difficulty_label") .. " " .. gt(r_data.diff_str))
 			row.enemies:SetText(gt("st_arena_enemies_label") .. " " .. enemy_label)
@@ -1899,12 +1913,11 @@ function UIXcvbArena:update_tournament_display()
 		local sel_forced_m = sel_data and (sel_data.forced_map or sel_data.map)
 		local sel_map_matches = true
 		if sel_forced_m then
-			sel_map_matches = (sel_forced_m == "forest" and self:is_forest_map()) or (sel_forced_m == "arena" and not self:is_forest_map())
+			sel_map_matches = self:map_matches(sel_forced_m)
 		end
 
 		if not sel_map_matches then
-			local needed_name = (sel_forced_m == "forest") and (gt("st_arena_map_forest_name") or "Forest") or (gt("st_arena_map_arena_name") or "Arena")
-			if needed_name == "st_arena_map_forest_name" then needed_name = "Forest" end
+			local needed_name = (sel_forced_m == "factory") and gt("st_arena_map_btn_factory") or (gt("st_arena_map_arena_name") or "Arena")
 			if needed_name == "st_arena_map_arena_name" then needed_name = "Arena" end
 			local tip_fmt = gt("st_arena_map_mismatch_tip")
 			if not tip_fmt or tip_fmt == "st_arena_map_mismatch_tip" then
@@ -1922,10 +1935,7 @@ function UIXcvbArena:update_tournament_display()
 			end
 		end
 
-		if sel_map_matches and sel_forced_m == "forest" then
-			sel_desc = sel_desc .. "\\n\\n" .. gt("st_arena_forced_forest_desc")
-		end
-		local sel_map_tag = (sel_forced_m == "forest") and (" [" .. gt("st_arena_map_forest_short") .. "]") or ""
+		local sel_map_tag = (sel_forced_m == "factory") and (" [" .. gt("st_arena_map_btn_factory") .. "]") or ""
 		self.detail_title:SetText(gt(sel_data.name) .. sel_map_tag .. " - " .. gt(sel_data.diff_str))
 		self.detail_desc:SetText(sel_desc)
 
@@ -1978,7 +1988,7 @@ function UIXcvbArena:update_tourn_start_button()
 	local sel_forced_m = sel_data and (sel_data.forced_map or sel_data.map)
 	local sel_map_matches = true
 	if sel_forced_m then
-		sel_map_matches = (sel_forced_m == "forest" and self:is_forest_map()) or (sel_forced_m == "arena" and not self:is_forest_map())
+		sel_map_matches = self:map_matches(sel_forced_m)
 	end
 
 	if not sel_map_matches then
@@ -2607,9 +2617,7 @@ function UIXcvbArena:on_click_tourn_start()
 	local sel_rd = xcvb_arena_main.get_round_data(cat, self.selected_round_id)
 	local forced_m = sel_rd and (sel_rd.forced_map or sel_rd.map)
 	if forced_m then
-		local is_forest_round = (forced_m == "forest")
-		local current_is_forest = self:is_forest_map()
-		if is_forest_round ~= current_is_forest then
+		if not self:map_matches(forced_m) then
 			return
 		end
 	end
@@ -2672,8 +2680,6 @@ function UIXcvbArena:on_click_tourn_start()
 	local forced_m = sel_rd and (sel_rd.forced_map or sel_rd.map)
 	if forced_m then
 		xcvb_arena_main.selected_map = forced_m
-	else
-		xcvb_arena_main.selected_map = self:is_forest_map() and "forest" or "arena"
 	end
 	local started = xcvb_arena_fight.start_tournament_fight(cat, self.selected_round_id, chosen_cls, chosen_tier, chosen_ammo, chosen_weapon, chosen_forced_ammo, chosen_3dssg_mode, chosen_3dssg_scope, chosen_mag, chosen_mag_count, chosen_ammo_count)
 	if started == false and not is_practice and fee > 0 and db.actor then
@@ -2736,7 +2742,7 @@ function UIXcvbArena:on_click_mult(row_idx, team_idx)
 end
 
 function UIXcvbArena:on_click_bet(row_idx, team_idx, dir)
-	if self:is_forest_map() then return end
+	if self:is_secondary_map() then return end
 	local main_t = xcvb_arena_main.arena_main_t[row_idx]
 	if not main_t or not main_t.team1 or #main_t.team1 == 0 or not main_t.team2 or #main_t.team2 == 0 then
 		return
@@ -2862,7 +2868,7 @@ function UIXcvbArena:update_spectator_display()
 end
 
 function UIXcvbArena:on_click_spectator_start()
-	if self:is_forest_map() then return end
+	if self:is_secondary_map() then return end
 	local bet = xcvb_arena_main.bet_amount or 0
 	local team = xcvb_arena_main.team_bet or 0
 	local bout_idx = xcvb_arena_main.selected_spec_bout or 1
@@ -3259,7 +3265,7 @@ function UIXcvbArena:update_bc_display()
 end
 
 function UIXcvbArena:on_click_bc_start()
-	if self:is_forest_map() then return end
+	if self:is_secondary_map() then return end
 	local is_mutants = (self.bc_submode == "mutants")
 	local bet_team = is_mutants and self.bc_monster_bet_team or self.bc_bet_team
 	local bet_amount = is_mutants and (self.bc_monster_bet_amount or 0) or (self.bc_bet_amount or 0)
@@ -3303,7 +3309,7 @@ function UIXcvbArena:on_click_bc_start()
 end
 
 function UIXcvbArena:on_click_beta_tab(tab)
-	if tab == "br" and self:is_forest_map() then return end
+	if tab == "br" and self:is_secondary_map() then return end
 	self.beta_subview = tab
 	self:update_view_mode()
 end
@@ -3315,7 +3321,7 @@ function UIXcvbArena:update_beta_display()
 
 	-- Highlight Tab Buttons
 	if self.beta_tab_br then
-		self.beta_tab_br:Enable(not self:is_forest_map())
+		self.beta_tab_br:Enable(not self:is_secondary_map())
 		self.beta_tab_br:TextControl():SetTextColor(is_endless and GetARGB(255, 170, 170, 170) or GetARGB(255, 255, 220, 140))
 	end
 	if self.beta_tab_endless then

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+  <string id="st_arena_factory_night_required"><text>Factory Night Mode requires real nighttime. Return between 20:00 and 06:00, or turn Night Mode off. Factory follows the natural sky and sunrise.</text></string>
+</string_table>

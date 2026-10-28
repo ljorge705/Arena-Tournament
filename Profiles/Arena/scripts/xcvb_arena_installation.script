@@ -1,0 +1,2 @@
+-- Original arena only: preserve the installation's AI-map and all.spawn.
+factory_enabled = false
