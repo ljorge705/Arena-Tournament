@@ -2200,4 +2200,133 @@
 	<string id="st_arena_endless_sum_spoils_round">
 		<text>Смена по раундам (Следующая волна с оружием последней жертвы)</text>
 	</string>
+	<string id="st_arena_loadout_sum_outfit">
+		<text>БРОНЯ</text>
+	</string>
+	<string id="st_arena_loadout_sum_helmet">
+		<text>ШЛЕМ</text>
+	</string>
+	<string id="st_arena_outfit_menu_title">
+		<text>ВЫБОР БРОНИ</text>
+	</string>
+	<string id="st_arena_outfit_menu_subtitle">
+		<text>Выберите броню для боя (Очки Арены)</text>
+	</string>
+	<string id="st_arena_helmet_menu_title">
+		<text>ВЫБОР ШЛЕМА</text>
+	</string>
+	<string id="st_arena_helmet_menu_subtitle">
+		<text>Выберите шлем для боя (Очки Арены)</text>
+	</string>
+	<string id="st_arena_meds_menu_title">
+		<text>МЕДИКАМЕНТЫ</text>
+	</string>
+	<string id="st_arena_meds_menu_subtitle">
+		<text>Выберите набор медикаментов (Очки Арены)</text>
+	</string>
+	<string id="st_arena_meds_pack_standard">
+		<text>Базовый набор</text>
+	</string>
+	<string id="st_arena_meds_pack_standard_desc">
+		<text>1x Аптечка, 2x Бинт</text>
+	</string>
+	<string id="st_arena_meds_pack_combat">
+		<text>Боевой набор</text>
+	</string>
+	<string id="st_arena_meds_pack_combat_desc">
+		<text>2x Армейские аптечки, 3x Бинт, 1x Стимулятор</text>
+	</string>
+	<string id="st_arena_meds_pack_elite">
+		<text>Элитный набор</text>
+	</string>
+	<string id="st_arena_meds_pack_elite_desc">
+		<text>2x Научные аптечки, 4x Бинт, 1x Морфин</text>
+	</string>
+	<string id="st_arena_meds_pack_survival">
+		<text>Набор выживания</text>
+	</string>
+	<string id="st_arena_meds_pack_survival_desc">
+		<text>3x Армейские аптечки, 5x Бинт, 2x Стимулятор</text>
+	</string>
+	<string id="st_arena_loadout_auto_armor">
+		<text>[AUTO] Броня раунда</text>
+	</string>
+	<string id="st_arena_loadout_auto_helmet">
+		<text>[AUTO] Шлем раунда</text>
+	</string>
+	<string id="st_arena_loadout_no_helmet">
+		<text>[---] Без шлема</text>
+	</string>
+	<string id="st_arena_loadout_selected">
+		<text>[ВЫБРАНО]</text>
+	</string>
+	<string id="st_arena_btn_armor">
+		<text>БРОНЯ</text>
+	</string>
+	<string id="st_arena_btn_helmet">
+		<text>ШЛЕМ</text>
+	</string>
+	<string id="st_arena_btn_meds">
+		<text>МЕДИКАМЕНТЫ</text>
+	</string>
+	<string id="st_arena_btn_grenades">
+		<text>ГРАНАТЫ</text>
+	</string>
+	<string id="st_arena_grenades_none">
+		<text>Нет</text>
+	</string>
+	<string id="st_arena_grenades_auto">
+		<text>Авто (Раунд)</text>
+	</string>
+	<string id="st_arena_btn_insufficient_tokens">
+		<text>НЕДОСТАТОЧНО ОЧКОВ</text>
+	</string>
+	<string id="st_arena_title_gear">
+		<text>ТАКТИЧЕСКИЙ КОСТЮМ И ШЛЕМ</text>
+	</string>
+	<string id="st_arena_title_supplies">
+		<text>МЕДИКАМЕНТЫ И ГРАНАТЫ</text>
+	</string>
+	<string id="st_arena_grenades_menu_title">
+		<text>РУЧНЫЕ ГРАНАТЫ</text>
+	</string>
+	<string id="st_arena_grenades_menu_subtitle">
+		<text>Выберите тип и количество гранат (Очки Арены)</text>
+	</string>
+	<string id="st_arena_lbl_medkits">
+		<text>Аптечки</text>
+	</string>
+	<string id="st_arena_lbl_bandages">
+		<text>Бинты</text>
+	</string>
+	<string id="st_arena_lbl_stimpacks">
+		<text>Стимуляторы</text>
+	</string>
+	<string id="st_arena_lbl_grenades">
+		<text>Гранаты</text>
+	</string>
+	<string id="st_arena_btn_confirm_supplies">
+		<text>ПОДТВЕРДИТЬ СНАБЖЕНИЕ</text>
+	</string>
+	<string id="st_arena_btn_confirm_grenades">
+		<text>ПОДТВЕРДИТЬ ГРАНАТЫ</text>
+	</string>
+	<string id="st_arena_grenade_rgd5">
+		<text>Граната РГД-5</text>
+	</string>
+	<string id="st_arena_grenade_f1">
+		<text>Граната Ф-1 Оборонительная</text>
+	</string>
+	<string id="st_arena_grenade_smoke">
+		<text>Дымовая граната ГД-05</text>
+	</string>
+	<string id="st_arena_preset_custom">
+		<text>Особое снаряжение</text>
+	</string>
+	<string id="st_arena_preset_none">
+		<text>Нет</text>
+	</string>
+	<string id="st_arena_qty_format">
+		<text>Кол-во: %d</text>
+	</string>
 </string_table>

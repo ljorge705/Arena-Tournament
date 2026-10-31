@@ -3621,17 +3621,42 @@ tournament_loadouts_t = {
 last_spawned_weapon_sec = nil
 
 -- These sections have incompatible lowered/sprint viewmodels in common
--- Anomaly/GAMMA weapon packs.  Spawning one as actor-owned arena gear can leave
--- it invisible while its HUD update keeps running every frame.
+-- Anomaly/GAMMA weapon packs, or are explosive heavy weapons (RPGs, grenade launchers)
+-- excluded from arena matches to preserve competitive combat (hand grenades remain enabled).
 local arena_weapon_blacklist = {
     wpn_pb = true,
     wpn_pb_custom = true,
     wpn_m24 = true,
     wpn_m24_custom = true,
+    wpn_rpg7 = true,
+    wpn_rpg7_missile = true,
+    wpn_rg_6 = true,
+    ["wpn_rg-6"] = true,
+    wpn_rg6 = true,
+    wpn_m79 = true,
+    wpn_rpo = true,
+    wpn_rpo_a = true,
 }
 
+function is_explosive_launcher(sec)
+    if not sec then return false end
+    if arena_weapon_blacklist[sec] and (string.find(sec, "rpg") or string.find(sec, "rg") or string.find(sec, "m79") or string.find(sec, "rpo")) then
+        return true
+    end
+    if string.find(sec, "rpg7") or string.find(sec, "rg%-6") or string.find(sec, "rg6") or string.find(sec, "m79") or string.find(sec, "rpo") then
+        return true
+    end
+    if ini_sys and ini_sys:section_exist(sec) then
+        local cls = ini_sys:r_string_ex(sec, "class") or ""
+        if cls == "WP_RPG7" or cls == "WP_RG6" or cls == "WP_GL" then
+            return true
+        end
+    end
+    return false
+end
+
 function is_arena_weapon_allowed(sec)
-    return sec and not arena_weapon_blacklist[sec]
+    return sec and not arena_weapon_blacklist[sec] and not is_explosive_launcher(sec)
 end
 
 function pick_valid_section(list, exclude_sec)
@@ -4653,7 +4678,7 @@ function power_up_exoskeleton(spawned_outfit_id, outfit_sec)
     end)
 end
 
-function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier, chosen_ammo_type, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec, forced_mag_count, forced_ammo_count)
+function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier, chosen_ammo_type, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec, forced_mag_count, forced_ammo_count, forced_outfit_sec, forced_helm_sec, forced_meds_pack, forced_grenades_type)
     local effective_tier = (forced_tier and tonumber(forced_tier) and tonumber(forced_tier) > 0) and tonumber(forced_tier) or round_tier
     local t_data = tournament_loadouts_t[effective_tier] or tournament_loadouts_t[1]
     
@@ -4661,7 +4686,12 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
     local spawned_helm_id = nil
     local spawned_wpn_id = nil
     
-    local outfit_sec = pick_valid_section(t_data.outfits)
+    local outfit_sec = nil
+    if forced_outfit_sec and forced_outfit_sec ~= "auto" and ini_sys:section_exist(forced_outfit_sec) then
+        outfit_sec = forced_outfit_sec
+    else
+        outfit_sec = pick_valid_section(t_data.outfits)
+    end
     if outfit_sec then
         local se = alife_create(outfit_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
         if se then
@@ -4671,7 +4701,14 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
         end
     end
     
-    local helm_sec = pick_valid_section(t_data.helmets)
+    local helm_sec = nil
+    if forced_helm_sec == "none" then
+        helm_sec = nil
+    elseif forced_helm_sec and forced_helm_sec ~= "auto" and ini_sys:section_exist(forced_helm_sec) then
+        helm_sec = forced_helm_sec
+    else
+        helm_sec = pick_valid_section(t_data.helmets)
+    end
     if helm_sec then
         local se = alife_create(helm_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
         if se then
@@ -4751,8 +4788,31 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
         if se then temporary_arena_item_ids[se.id] = true end
     end
     
-    if t_data.meds then
-        for _, med_sec in ipairs(t_data.meds) do
+    local meds_list = t_data.meds
+    if forced_meds_pack == "none" then
+        meds_list = nil
+    elseif forced_meds_pack == "combat" then
+        meds_list = { "bandage", "bandage", "bandage", "medkit_army", "medkit_army", "stimpack" }
+    elseif forced_meds_pack == "elite" then
+        meds_list = { "bandage", "bandage", "bandage", "bandage", "medkit_scientic", "medkit_scientic", "stimpack_army", "drug_psy_blockade" }
+    elseif forced_meds_pack == "survival" then
+        meds_list = { "bandage", "bandage", "bandage", "bandage", "bandage", "medkit_army", "medkit_army", "medkit_army", "stimpack_army", "stimpack_army", "drug_antidot" }
+    elseif forced_meds_pack and string.find(forced_meds_pack, "^custom:") then
+        local m_sec, m_cnt, b_cnt, s_cnt = string.match(forced_meds_pack, "^custom:([^:]*):(%d+):(%d+):(%d+)$")
+        if m_sec and m_cnt then
+            meds_list = {}
+            local mc = tonumber(m_cnt) or 0
+            local bc = tonumber(b_cnt) or 0
+            local sc = tonumber(s_cnt) or 0
+            if m_sec ~= "" and m_sec ~= "none" then
+                for k = 1, mc do table.insert(meds_list, m_sec) end
+            end
+            for k = 1, bc do table.insert(meds_list, "bandage") end
+            for k = 1, sc do table.insert(meds_list, "stimpack") end
+        end
+    end
+    if meds_list then
+        for _, med_sec in ipairs(meds_list) do
             if ini_sys:section_exist(med_sec) then
                 local se = alife_create(med_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
                 if se then temporary_arena_item_ids[se.id] = true end
@@ -4760,8 +4820,33 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
         end
     end
     
-    if t_data.grenades then
-        for _, gr_sec in ipairs(t_data.grenades) do
+    local gr_list = t_data.grenades
+    if forced_grenades_type == "none" then
+        gr_list = nil
+    elseif forced_grenades_type == "rgd5_1" then
+        gr_list = { "grenade_rgd5" }
+    elseif forced_grenades_type == "rgd5_2" then
+        gr_list = { "grenade_rgd5", "grenade_rgd5" }
+    elseif forced_grenades_type == "f1_1" then
+        gr_list = { "grenade_f1" }
+    elseif forced_grenades_type == "f1_2" then
+        gr_list = { "grenade_f1", "grenade_f1" }
+    elseif forced_grenades_type == "smoke_1" then
+        gr_list = { ini_sys:section_exist("grenade_gd-05") and "grenade_gd-05" or "grenade_rgd5" }
+    elseif forced_grenades_type and string.find(forced_grenades_type, "^([^:]+):(%d+)$") then
+        local g_sec, g_cnt = string.match(forced_grenades_type, "^([^:]+):(%d+)$")
+        if g_sec and g_cnt then
+            local count = tonumber(g_cnt) or 0
+            if count <= 0 or g_sec == "none" then
+                gr_list = nil
+            else
+                gr_list = {}
+                for k = 1, count do table.insert(gr_list, g_sec) end
+            end
+        end
+    end
+    if gr_list then
+        for _, gr_sec in ipairs(gr_list) do
             if ini_sys:section_exist(gr_sec) then
                 local se = alife_create(gr_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
                 if se then temporary_arena_item_ids[se.id] = true end
@@ -4781,6 +4866,21 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
         end
         if outfit_obj then
             db.actor:move_to_slot(outfit_obj, 7)
+        end
+
+        if spawned_helm_id then
+            local h_obj = level.object_by_id(spawned_helm_id)
+            if not h_obj then
+                db.actor:iterate_inventory(function(_, itm)
+                    if is_helmet_item(itm) and temporary_arena_item_ids[itm:id()] then
+                        h_obj = itm
+                        return true
+                    end
+                end, db.actor)
+            end
+            if h_obj then
+                db.actor:move_to_slot(h_obj, 12)
+            end
         end
         
         local target_slot = (loadout_class == "pistol") and 1 or 2
@@ -5013,6 +5113,16 @@ function restore_actor_inventory(is_retry)
     return true
 end
 
+inventory_return_hotfix_version = 1
+
+local function all_personal_items_returned()
+    if not db.actor then return false end
+    for id in pairs(saved_actor_item_ids) do
+        if not db.actor:object_id(id) then return false end
+    end
+    return true
+end
+
 function restore_actor_equipped_slots()
     inventory_restore_pending = true
     inventory_restore_state = inventory_restore_state or {stage = "transfer", attempts = 0}
@@ -5025,6 +5135,15 @@ function restore_actor_equipped_slots()
         state.attempts = state.attempts + 1
         local ok, ready = pcall(restore_inventory_step, state)
         if not ok then state.error = tostring(ready); ready = false end
+        -- Slot/belt/loadout restoration is best effort: engine or addon rules can
+        -- reject the old arrangement even after every personal item is returned.
+        -- Keep retrying real ownership failures; never discard their snapshot.
+        if not ready and state.attempts >= 50 and state.stage ~= "transfer"
+            and all_personal_items_returned() then
+            printe("! arena: equipment returned; leaving rejected arrangement in inventory (%s: %s)",
+                state.stage, state.error or "movement not acknowledged")
+            state.stage, ready = "verify", true
+        end
         if ready then
             local next_stage = {transfer = "capacity", capacity = "devices", devices = "belt",
                 belt = "weapons", weapons = "magazines", magazines = "active", active = "verify"}
@@ -5057,6 +5176,9 @@ function restore_inventory_step(state)
     local stage, ready = state.stage, true
     local issue = state.attempts % 5 == 1
     if stage == "transfer" then
+        -- A saved return may outlive the storage box going offline. Once all
+        -- original objects belong to the actor the box is no longer required.
+        if all_personal_items_returned() then return true end
         local box = get_or_create_arena_box()
         if not box then return false end
         local in_box = {}
@@ -5069,6 +5191,7 @@ function restore_inventory_step(state)
         end
         return ready
     end
+    if not all_personal_items_returned() then return false end
     local function slot_group(slot)
         if slot == 7 or slot == 13 then return "capacity" end
         if slot == 0 or slot == 1 or slot == 2 or slot == 3 or slot == 6 then return "weapons" end
@@ -5844,13 +5967,43 @@ end
 
 function ensure_npc_combat_loadout(npc)
     if not (npc and IsStalker and IsStalker(npc)) then return end
+
+    -- Check and remove forbidden rocket launchers / explosive weapons from hardest levels
+    local explosive_items = {}
+    npc:iterate_inventory(function(owner, item)
+        if item and item.clsid and IsWeapon and IsWeapon(nil, item:clsid()) then
+            local sec = item:section()
+            if is_explosive_launcher(sec) then
+                table.insert(explosive_items, item:id())
+            end
+        end
+    end, npc)
+    for _, item_id in ipairs(explosive_items) do
+        alife_release_id(item_id)
+    end
+
     local weapons = {}
     npc:iterate_inventory(function(owner, item)
         if item and IsWeapon and IsWeapon(nil, item:clsid()) then
             table.insert(weapons, item)
         end
     end, npc)
-    if #weapons == 0 then return end
+
+    -- If all weapons were stripped because of explosive launchers, provide a top-tier rifle
+    if #weapons == 0 then
+        local fallback_rifles = { "wpn_fn2000", "wpn_ak12", "wpn_val", "wpn_pkm" }
+        local chosen_fallback = nil
+        for _, r_sec in ipairs(fallback_rifles) do
+            if ini_sys:section_exist(r_sec) then
+                chosen_fallback = r_sec
+                break
+            end
+        end
+        if chosen_fallback then
+            alife_create_item(chosen_fallback, npc)
+        end
+        return
+    end
 
     for _, wpn in ipairs(weapons) do
         local sec = wpn:section()
@@ -6885,7 +7038,7 @@ end
 --------------------------------------------------------------------------------
 -- LOADOUT RENTAL FEE CALCULATION
 --------------------------------------------------------------------------------
-function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_ammo, weapon_sec, scope_sec, mag_sec, mag_count, ammo_count)
+function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_ammo, weapon_sec, scope_sec, mag_sec, mag_count, ammo_count, forced_outfit_sec, forced_helm_sec, forced_meds_pack, forced_grenades_type)
     if xcvb_arena_main and xcvb_arena_main.practice_mode_active then
         return 0
     end
@@ -6992,11 +7145,89 @@ function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_a
         total_fee = total_fee + 500
     end
 
+    -- 6. Custom Outfit fee
+    if forced_outfit_sec and forced_outfit_sec ~= "auto" then
+        local outfit_costs = {
+            novice_outfit = 500,
+            stalker_outfit = 1500,
+            specops_outfit = 3000,
+            military_outfit = 5000,
+            exo_outfit = 8000,
+        }
+        total_fee = total_fee + (outfit_costs[forced_outfit_sec] or 1500)
+    end
+
+    -- 7. Custom Helmet fee
+    if forced_helm_sec and forced_helm_sec ~= "auto" and forced_helm_sec ~= "none" then
+        local helm_costs = {
+            helm_respirator = 300,
+            helm_ach7 = 1000,
+            helm_protective = 1800,
+            helm_battle = 2800,
+            helm_exo = 4000,
+        }
+        total_fee = total_fee + (helm_costs[forced_helm_sec] or 1000)
+    end
+
+    -- 8. Custom Medical pack fee
+    if forced_meds_pack and forced_meds_pack ~= "standard" and forced_meds_pack ~= "auto" and forced_meds_pack ~= "none" then
+        local m_sec, m_cnt, b_cnt, s_cnt = string.match(forced_meds_pack, "^custom:([^:]*):(%d+):(%d+):(%d+)$")
+        if m_sec and m_cnt then
+            m_cnt = tonumber(m_cnt) or 0
+            b_cnt = tonumber(b_cnt) or 0
+            s_cnt = tonumber(s_cnt) or 0
+            local med_price = 300
+            if m_sec == "medkit_army" then med_price = 500
+            elseif m_sec == "medkit_scientic" then med_price = 800 end
+            if m_sec == "" or m_sec == "none" then med_price = 0; m_cnt = 0 end
+            local total_med_cost = (m_cnt * med_price) + (b_cnt * 100) + (s_cnt * 400)
+            local extra_cost = math.max(0, total_med_cost - 500)
+            total_fee = total_fee + extra_cost
+        else
+            local meds_costs = {
+                combat = 1000,
+                elite = 2200,
+                survival = 3500,
+            }
+            total_fee = total_fee + (meds_costs[forced_meds_pack] or 1000)
+        end
+    end
+
+    -- 9. Custom Grenades fee
+    if forced_grenades_type and forced_grenades_type ~= "none" and forced_grenades_type ~= "auto" then
+        local g_sec, g_cnt = string.match(forced_grenades_type, "^([^:]+):(%d+)$")
+        if g_sec and g_cnt then
+            local count = tonumber(g_cnt) or 1
+            local unit_price = 500
+            if g_sec == "grenade_f1" then unit_price = 1000
+            elseif g_sec == "grenade_gd-05" then unit_price = 400 end
+            total_fee = total_fee + (unit_price * count)
+        else
+            local grenade_costs = {
+                rgd5_1 = 500,
+                rgd5_2 = 1000,
+                f1_1 = 1000,
+                f1_2 = 1800,
+                smoke_1 = 400,
+            }
+            total_fee = total_fee + (grenade_costs[forced_grenades_type] or 500)
+        end
+    end
+
     total_fee = total_fee * mult
     if total_fee > 0 then
         total_fee = math.max(100, math.floor((total_fee / 50) + 0.5) * 50)
     else
         total_fee = 0
+    end
+
+    local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+    if econ_mode == "tokens" then
+        if total_fee > 0 then
+            total_fee = math.max(1, math.floor((total_fee / 100) + 0.5))
+        else
+            total_fee = 0
+        end
     end
 
     return total_fee
@@ -7034,7 +7265,11 @@ function get_endless_loadout_rental_fee(diff_or_wave)
         scope_param,
         cl.mag_sec,
         cl.mag_count or 4,
-        cl.ammo_count or 4
+        cl.ammo_count or 4,
+        cl.outfit_sec,
+        cl.helmet_sec,
+        cl.meds_pack,
+        cl.grenades_type
     )
 end
 

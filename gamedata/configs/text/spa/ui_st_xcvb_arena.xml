@@ -2149,5 +2149,127 @@
 	<string id="st_arena_endless_sum_spoils_round">
 		<text>Cambio por Ronda (Siguiente oleada usa arma de ultima baja)</text>
 	</string>
+	<string id="st_arena_outfit_menu_title">
+		<text>SELECCION DE ARMADURA</text>
+	</string>
+	<string id="st_arena_outfit_menu_subtitle">
+		<text>Elige la armadura para el combate (Pts de Arena)</text>
+	</string>
+	<string id="st_arena_helmet_menu_title">
+		<text>SELECCION DE CASCO</text>
+	</string>
+	<string id="st_arena_helmet_menu_subtitle">
+		<text>Elige el casco para el combate (Pts de Arena)</text>
+	</string>
+	<string id="st_arena_meds_menu_title">
+		<text>PAQUETES MEDICOS</text>
+	</string>
+	<string id="st_arena_meds_menu_subtitle">
+		<text>Elige el paquete medico de suministros (Pts de Arena)</text>
+	</string>
+	<string id="st_arena_meds_pack_standard">
+		<text>Paquete Basico</text>
+	</string>
+	<string id="st_arena_meds_pack_standard_desc">
+		<text>1x Botiquin Basico, 2x Vendas</text>
+	</string>
+	<string id="st_arena_meds_pack_combat">
+		<text>Paquete de Combate</text>
+	</string>
+	<string id="st_arena_meds_pack_combat_desc">
+		<text>2x Botiquin Militar, 3x Vendas, 1x Estimulante</text>
+	</string>
+	<string id="st_arena_meds_pack_elite">
+		<text>Paquete Elite</text>
+	</string>
+	<string id="st_arena_meds_pack_elite_desc">
+		<text>2x Botiquin Cientifico, 4x Vendas, 1x Morfina</text>
+	</string>
+	<string id="st_arena_meds_pack_survival">
+		<text>Paquete de Supervivencia</text>
+	</string>
+	<string id="st_arena_meds_pack_survival_desc">
+		<text>3x Botiquin Militar, 5x Vendas, 2x Estimulante</text>
+	</string>
+	<string id="st_arena_loadout_auto_armor">
+		<text>[AUTO] Armadura de Ronda</text>
+	</string>
+	<string id="st_arena_loadout_auto_helmet">
+		<text>[AUTO] Casco de Ronda</text>
+	</string>
+	<string id="st_arena_loadout_no_helmet">
+		<text>[---] Sin Casco</text>
+	</string>
+	<string id="st_arena_loadout_selected">
+		<text>[SELECCIONADO]</text>
+	</string>
+	<string id="st_arena_btn_armor">
+		<text>ARMADURA</text>
+	</string>
+	<string id="st_arena_btn_helmet">
+		<text>CASCO</text>
+	</string>
+	<string id="st_arena_btn_meds">
+		<text>MEDICINAS</text>
+	</string>
+	<string id="st_arena_btn_grenades">
+		<text>GRANADAS</text>
+	</string>
+	<string id="st_arena_grenades_none">
+		<text>Ninguna</text>
+	</string>
+	<string id="st_arena_grenades_auto">
+		<text>Auto (Ronda)</text>
+	</string>
+	<string id="st_arena_btn_insufficient_tokens">
+		<text>PUNTOS INSUFICIENTES</text>
+	</string>
+	<string id="st_arena_title_gear">
+		<text>TRAJE TACTICO Y CASCO DE COMBATE</text>
+	</string>
+	<string id="st_arena_title_supplies">
+		<text>SUMINISTROS MEDICOS Y GRANADAS</text>
+	</string>
+	<string id="st_arena_grenades_menu_title">
+		<text>GRANADAS DE MANO</text>
+	</string>
+	<string id="st_arena_grenades_menu_subtitle">
+		<text>Selecciona tipo y cantidad de granadas (Pts de Arena)</text>
+	</string>
+	<string id="st_arena_lbl_medkits">
+		<text>Botiquines</text>
+	</string>
+	<string id="st_arena_lbl_bandages">
+		<text>Vendas</text>
+	</string>
+	<string id="st_arena_lbl_stimpacks">
+		<text>Estimulantes</text>
+	</string>
+	<string id="st_arena_lbl_grenades">
+		<text>Granadas</text>
+	</string>
+	<string id="st_arena_btn_confirm_supplies">
+		<text>CONFIRMAR SUMINISTROS</text>
+	</string>
+	<string id="st_arena_btn_confirm_grenades">
+		<text>CONFIRMAR GRANADAS</text>
+	</string>
+	<string id="st_arena_grenade_rgd5">
+		<text>Granada RGD-5</text>
+	</string>
+	<string id="st_arena_grenade_f1">
+		<text>Granada F-1 Defensiva</text>
+	</string>
+	<string id="st_arena_grenade_smoke">
+		<text>Granada de Humo GD-05</text>
+	</string>
+	<string id="st_arena_preset_custom">
+		<text>Suministros Personalizados</text>
+	</string>
+	<string id="st_arena_preset_none">
+		<text>Ninguno</text>
+	</string>
+	<string id="st_arena_qty_format">
+		<text>Cant: %d</text>
+	</string>
 </string_table>
-

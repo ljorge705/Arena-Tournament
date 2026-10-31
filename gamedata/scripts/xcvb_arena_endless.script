@@ -28,6 +28,10 @@ local custom_loadout = {
     mag_count = 4,
     ammo_count = 4,
     scope_sec = nil,
+    outfit_sec = "auto",
+    helmet_sec = "auto",
+    meds_pack = "standard",
+    grenades_type = "auto",
 }
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -92,6 +96,22 @@ end
 
 function set_custom_mag_sec(mag_sec)
     custom_loadout.mag_sec = mag_sec
+end
+
+function set_custom_outfit(sec)
+    custom_loadout.outfit_sec = sec or "auto"
+end
+
+function set_custom_helmet(sec)
+    custom_loadout.helmet_sec = sec or "auto"
+end
+
+function set_custom_meds(pack)
+    custom_loadout.meds_pack = pack or "standard"
+end
+
+function set_custom_grenades(gr_type)
+    custom_loadout.grenades_type = gr_type or "auto"
 end
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -341,7 +361,12 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
 
     -- 5. Spawn armor and helmet
     local spawned_outfit_id = nil
-    local outfit_sec = xcvb_arena_utils.pick_valid_section(t_data.outfits)
+    local outfit_sec = nil
+    if is_custom and custom_loadout.outfit_sec and custom_loadout.outfit_sec ~= "auto" and ini_sys:section_exist(custom_loadout.outfit_sec) then
+        outfit_sec = custom_loadout.outfit_sec
+    else
+        outfit_sec = xcvb_arena_utils.pick_valid_section(t_data.outfits)
+    end
     if outfit_sec then
         local se = alife_create(outfit_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
         if se then
@@ -352,7 +377,14 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
     end
 
     local spawned_helm_id = nil
-    local helm_sec = xcvb_arena_utils.pick_valid_section(t_data.helmets)
+    local helm_sec = nil
+    if is_custom and custom_loadout.helmet_sec == "none" then
+        helm_sec = nil
+    elseif is_custom and custom_loadout.helmet_sec and custom_loadout.helmet_sec ~= "auto" and ini_sys:section_exist(custom_loadout.helmet_sec) then
+        helm_sec = custom_loadout.helmet_sec
+    else
+        helm_sec = xcvb_arena_utils.pick_valid_section(t_data.helmets)
+    end
     if helm_sec then
         local se = alife_create(helm_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
         if se then
@@ -426,24 +458,84 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
         end
     end
 
-    -- 8. Spawn knife and medical supplies
+    -- 8. Spawn knife, medical supplies, and grenades
     local knife_sec = t_data.knife or "wpn_knife"
     if ini_sys:section_exist(knife_sec) then
         local se = alife_create(knife_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
         if se then xcvb_arena_utils.temporary_arena_item_ids[se.id] = true end
     end
 
-    if t_data.meds then
-        for _, med_sec in ipairs(t_data.meds) do
+    local meds_list = t_data.meds
+    if is_custom and custom_loadout.meds_pack == "none" then
+        meds_list = nil
+    elseif is_custom and custom_loadout.meds_pack == "combat" then
+        meds_list = { "bandage", "bandage", "bandage", "medkit_army", "medkit_army", "stimpack" }
+    elseif is_custom and custom_loadout.meds_pack == "elite" then
+        meds_list = { "bandage", "bandage", "bandage", "bandage", "medkit_scientic", "medkit_scientic", "stimpack_army", "drug_psy_blockade" }
+    elseif is_custom and custom_loadout.meds_pack == "survival" then
+        meds_list = { "bandage", "bandage", "bandage", "bandage", "bandage", "medkit_army", "medkit_army", "medkit_army", "stimpack_army", "stimpack_army", "drug_antidot" }
+    elseif is_custom and custom_loadout.meds_pack and string.find(custom_loadout.meds_pack, "^custom:") then
+        local m_sec, m_cnt, b_cnt, s_cnt = string.match(custom_loadout.meds_pack, "^custom:([^:]*):(%d+):(%d+):(%d+)$")
+        if m_sec and m_cnt then
+            meds_list = {}
+            local mc = tonumber(m_cnt) or 0
+            local bc = tonumber(b_cnt) or 0
+            local sc = tonumber(s_cnt) or 0
+            if m_sec ~= "" and m_sec ~= "none" then
+                for k = 1, mc do table.insert(meds_list, m_sec) end
+            end
+            for k = 1, bc do table.insert(meds_list, "bandage") end
+            for k = 1, sc do table.insert(meds_list, "stimpack") end
+        end
+    end
+    if meds_list then
+        for _, med_sec in ipairs(meds_list) do
             if ini_sys:section_exist(med_sec) then
                 local se = alife_create(med_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
                 if se then xcvb_arena_utils.temporary_arena_item_ids[se.id] = true end
             end
         end
-        if diff == "easy" then
+        if (not is_custom or custom_loadout.meds_pack == "standard") and diff == "easy" then
             local bonus_med = "medkit"
             if ini_sys:section_exist(bonus_med) then
                 local se = alife_create(bonus_med, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+                if se then xcvb_arena_utils.temporary_arena_item_ids[se.id] = true end
+            end
+        end
+    end
+
+    local gr_list = t_data.grenades
+    if is_custom then
+        local g_type = custom_loadout.grenades_type
+        if g_type == "none" then
+            gr_list = nil
+        elseif g_type == "rgd5_1" then
+            gr_list = { "grenade_rgd5" }
+        elseif g_type == "rgd5_2" then
+            gr_list = { "grenade_rgd5", "grenade_rgd5" }
+        elseif g_type == "f1_1" then
+            gr_list = { "grenade_f1" }
+        elseif g_type == "f1_2" then
+            gr_list = { "grenade_f1", "grenade_f1" }
+        elseif g_type == "smoke_1" then
+            gr_list = { ini_sys:section_exist("grenade_gd-05") and "grenade_gd-05" or "grenade_rgd5" }
+        elseif g_type and string.find(g_type, "^([^:]+):(%d+)$") then
+            local g_sec, g_cnt = string.match(g_type, "^([^:]+):(%d+)$")
+            if g_sec and g_cnt then
+                local count = tonumber(g_cnt) or 0
+                if count <= 0 or g_sec == "none" then
+                    gr_list = nil
+                else
+                    gr_list = {}
+                    for k = 1, count do table.insert(gr_list, g_sec) end
+                end
+            end
+        end
+    end
+    if gr_list then
+        for _, gr_sec in ipairs(gr_list) do
+            if ini_sys:section_exist(gr_sec) then
+                local se = alife_create(gr_sec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
                 if se then xcvb_arena_utils.temporary_arena_item_ids[se.id] = true end
             end
         end
@@ -792,6 +884,10 @@ function save_state(m_data)
             mag_count = custom_loadout.mag_count,
             ammo_count = custom_loadout.ammo_count,
             scope_sec = custom_loadout.scope_sec,
+            outfit_sec = custom_loadout.outfit_sec,
+            helmet_sec = custom_loadout.helmet_sec,
+            meds_pack = custom_loadout.meds_pack,
+            grenades_type = custom_loadout.grenades_type,
         }
     }
 end
@@ -809,6 +905,10 @@ function load_state(m_data)
     custom_loadout.mag_count = cl.mag_count or 4
     custom_loadout.ammo_count = cl.ammo_count or 4
     custom_loadout.scope_sec = cl.scope_sec
+    custom_loadout.outfit_sec = cl.outfit_sec or "auto"
+    custom_loadout.helmet_sec = cl.helmet_sec or "auto"
+    custom_loadout.meds_pack = cl.meds_pack or "standard"
+    custom_loadout.grenades_type = cl.grenades_type or "auto"
 end
 
 function on_game_start()

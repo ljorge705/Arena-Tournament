@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <fomod>
-  <Name>Arena-Tournament 1.3.1(BETA)</Name>
+  <Name>Arena Tournament 1.3.2</Name>
   <Author>JonnySniper</Author>
-  <Version>1.3.1(BETA)</Version>
+  <Version>1.3.2</Version>
   <Website>https://github.com/ljorge705/Arena-Tournament</Website>
   <Description>Arena + Factory requires a NEW GAME. Arena only preserves native navigation and all.spawn, Choose your Bar map.</Description>
 </fomod>

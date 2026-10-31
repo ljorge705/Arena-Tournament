@@ -2194,5 +2194,127 @@
 	<string id="st_arena_status_locked_map">
 		<text>Map Locked</text>
 	</string>
+	<string id="st_arena_outfit_menu_title">
+		<text>ARMOR SELECTION</text>
+	</string>
+	<string id="st_arena_outfit_menu_subtitle">
+		<text>Select combat armor suit (Arena Pts)</text>
+	</string>
+	<string id="st_arena_helmet_menu_title">
+		<text>HELMET SELECTION</text>
+	</string>
+	<string id="st_arena_helmet_menu_subtitle">
+		<text>Select combat helmet (Arena Pts)</text>
+	</string>
+	<string id="st_arena_meds_menu_title">
+		<text>MEDICAL SUPPLIES</text>
+	</string>
+	<string id="st_arena_meds_menu_subtitle">
+		<text>Select medical pack (Arena Pts)</text>
+	</string>
+	<string id="st_arena_meds_pack_standard">
+		<text>Basic Medical Pack</text>
+	</string>
+	<string id="st_arena_meds_pack_standard_desc">
+		<text>1x Basic Medkit, 2x Bandages</text>
+	</string>
+	<string id="st_arena_meds_pack_combat">
+		<text>Combat Medical Pack</text>
+	</string>
+	<string id="st_arena_meds_pack_combat_desc">
+		<text>2x Army Medkits, 3x Bandages, 1x Stimpack</text>
+	</string>
+	<string id="st_arena_meds_pack_elite">
+		<text>Elite Medical Pack</text>
+	</string>
+	<string id="st_arena_meds_pack_elite_desc">
+		<text>2x Scientific Medkits, 4x Bandages, 1x Morphine</text>
+	</string>
+	<string id="st_arena_meds_pack_survival">
+		<text>Survival Medical Pack</text>
+	</string>
+	<string id="st_arena_meds_pack_survival_desc">
+		<text>3x Army Medkits, 5x Bandages, 2x Stimpack</text>
+	</string>
+	<string id="st_arena_loadout_auto_armor">
+		<text>[AUTO] Round Armor</text>
+	</string>
+	<string id="st_arena_loadout_auto_helmet">
+		<text>[AUTO] Round Helmet</text>
+	</string>
+	<string id="st_arena_loadout_no_helmet">
+		<text>[---] No Helmet</text>
+	</string>
+	<string id="st_arena_loadout_selected">
+		<text>[SELECTED]</text>
+	</string>
+	<string id="st_arena_btn_armor">
+		<text>ARMOR</text>
+	</string>
+	<string id="st_arena_btn_helmet">
+		<text>HELMET</text>
+	</string>
+	<string id="st_arena_btn_meds">
+		<text>MEDS</text>
+	</string>
+	<string id="st_arena_btn_grenades">
+		<text>GRENADES</text>
+	</string>
+	<string id="st_arena_grenades_none">
+		<text>None</text>
+	</string>
+	<string id="st_arena_grenades_auto">
+		<text>Auto (Round)</text>
+	</string>
+	<string id="st_arena_btn_insufficient_tokens">
+		<text>INSUFFICIENT TOKENS</text>
+	</string>
+	<string id="st_arena_title_gear">
+		<text>TACTICAL SUIT &amp; COMBAT HELMET</text>
+	</string>
+	<string id="st_arena_title_supplies">
+		<text>MEDICAL SUPPLIES &amp; HAND GRENADES</text>
+	</string>
+	<string id="st_arena_grenades_menu_title">
+		<text>HAND GRENADES</text>
+	</string>
+	<string id="st_arena_grenades_menu_subtitle">
+		<text>Select hand grenade type and quantity (Arena Pts)</text>
+	</string>
+	<string id="st_arena_lbl_medkits">
+		<text>Medkits</text>
+	</string>
+	<string id="st_arena_lbl_bandages">
+		<text>Bandages</text>
+	</string>
+	<string id="st_arena_lbl_stimpacks">
+		<text>Stimpacks</text>
+	</string>
+	<string id="st_arena_lbl_grenades">
+		<text>Grenades</text>
+	</string>
+	<string id="st_arena_btn_confirm_supplies">
+		<text>CONFIRM SUPPLIES</text>
+	</string>
+	<string id="st_arena_btn_confirm_grenades">
+		<text>CONFIRM GRENADES</text>
+	</string>
+	<string id="st_arena_grenade_rgd5">
+		<text>RGD-5 Grenade</text>
+	</string>
+	<string id="st_arena_grenade_f1">
+		<text>F-1 Defensive Grenade</text>
+	</string>
+	<string id="st_arena_grenade_smoke">
+		<text>GD-05 Smoke Grenade</text>
+	</string>
+	<string id="st_arena_preset_custom">
+		<text>Custom Supplies</text>
+	</string>
+	<string id="st_arena_preset_none">
+		<text>None</text>
+	</string>
+	<string id="st_arena_qty_format">
+		<text>Qty: %d</text>
+	</string>
 </string_table>
-

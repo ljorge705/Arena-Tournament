@@ -26,21 +26,150 @@ function open_gui()
 	GUI:update_view_mode()
 end
 
+function open_arena_gui(actor, npc)
+	open_gui()
+end
+
 if rawget(_G, "xr_effects") then
-	_G.xr_effects.open_arena_gui = function(actor, npc)
-		open_gui()
-	end
+	_G.xr_effects.open_arena_gui = open_arena_gui
 end
 
 function on_game_start()
 	if xr_effects then
-		xr_effects.open_arena_gui = function(actor, npc)
-			open_gui()
-		end
+		xr_effects.open_arena_gui = open_arena_gui
 	end
 end
 
+
+local function paint_icon(icon, sec, x, y, width, height)
+	if not icon then return false end
+	icon:Show(false)
+	if not sec or sec == "" or sec == "none" or sec == "off" then return false end
+	if not ini_sys or not ini_sys:section_exist(sec) then return false end
+	if not utils_xml then return false end
+	local ok = pcall(function()
+		local axis = utils_xml.get_item_axis(sec)
+		if not axis or axis.w <= 0 or axis.h <= 0 then return end
+		local ratio = utils_xml.screen_ratio and utils_xml.screen_ratio() or 1
+		local factor = math.min(width / (axis.w * ratio), height / axis.h)
+		local w = math.floor(axis.w * ratio * factor)
+		local h = math.floor(axis.h * factor)
+		local pos_x = math.floor(x + (width - w) / 2)
+		local pos_y = math.floor(y + (height - h) / 2)
+		icon:InitTexture(utils_xml.get_icons_texture(sec))
+		icon:SetTextureRect(Frect():set(axis.x1, axis.y1, axis.x2, axis.y2))
+		icon:SetStretchTexture(true)
+		icon:SetWndPos(vector2():set(pos_x, pos_y))
+		icon:SetWndSize(vector2():set(w, h))
+		icon:Show(true)
+	end)
+	if not ok then
+		icon:Show(false)
+		return false
+	end
+	return true
+end
+
+local function get_item_hint(sec)
+	if not sec or sec == "" or sec == "none" or sec == "off" then return "" end
+	if not ini_sys or not ini_sys:section_exist(sec) then return sec end
+	local inv_name = ini_sys:r_string_ex(sec, "inv_name")
+	if inv_name and gt(inv_name) then
+		return gt(inv_name)
+	end
+	return sec
+end
+
+local function create_ui_icon_slot(parent, x, y, w, h, bg_texture, btn_name, owner)
+	local bg = nil
+	local btn = nil
+	if btn_name and owner then
+		btn = CUI3tButton()
+		btn:SetAutoDelete(true)
+		btn:InitTexture(bg_texture or "ui_inGame2_Mp_bigbuttone")
+		btn:SetStretchTexture(true)
+		btn:SetWndPos(vector2():set(x, y))
+		btn:SetWndSize(vector2():set(w, h))
+		parent:AttachChild(btn)
+		owner:Register(btn, btn_name)
+		bg = btn
+	elseif bg_texture then
+		bg = CUIStatic()
+		bg:SetAutoDelete(true)
+		bg:InitTexture(bg_texture)
+		bg:SetStretchTexture(true)
+		bg:SetWndPos(vector2():set(x, y))
+		bg:SetWndSize(vector2():set(w, h))
+		bg:Show(false)
+		parent:AttachChild(bg)
+	end
+
+	local target_parent = btn or parent
+	local slot_x = btn and 0 or x
+	local slot_y = btn and 0 or y
+
+	local icon = CUIStatic()
+	icon:SetAutoDelete(true)
+	icon:SetWndPos(vector2():set(slot_x, slot_y))
+	icon:SetWndSize(vector2():set(w, h))
+	icon:Enable(false)
+	icon:Show(false)
+	target_parent:AttachChild(icon)
+
+	local count_txt = CUITextWnd()
+	count_txt:SetAutoDelete(true)
+	count_txt:SetWndPos(vector2():set(slot_x + 2, slot_y + h - 16))
+	count_txt:SetWndSize(vector2():set(w - 6, 14))
+	count_txt:SetFont(GetFontLetterica16Russian())
+	count_txt:SetTextColor(GetARGB(255, 255, 230, 120))
+	if count_txt.SetTextAlignment then count_txt:SetTextAlignment(2) end
+	count_txt:Show(false)
+	target_parent:AttachChild(count_txt)
+
+	return { bg = bg, btn = btn, icon = icon, count = count_txt, x = x, y = y, w = w, h = h }
+end
+
+local function paint_slot_item(slot, sec, count_str, hint_prefix)
+	if not slot or not slot.icon then return end
+	if not sec or sec == "" or sec == "none" or sec == "off" or not (ini_sys and ini_sys:section_exist(sec)) then
+		slot.icon:Show(false)
+		if slot.bg then slot.bg:Show(slot.persist_bg == true) end
+		if slot.persist_bg and slot.bg and slot.bg.SetHint and hint_prefix and hint_prefix ~= "" then slot.bg:SetHint(hint_prefix .. ": ---") end
+		if slot.btn and slot.btn.SetHint and hint_prefix and hint_prefix ~= "" then slot.btn:SetHint(hint_prefix .. ": ---") end
+		if slot.count then slot.count:Show(false) end
+		return
+	end
+	if slot.bg then slot.bg:Show(true) end
+	local px = slot.btn and 0 or slot.x
+	local py = slot.btn and 0 or slot.y
+	paint_icon(slot.icon, sec, px, py, slot.w, slot.h)
+	if slot.count then
+		if count_str and count_str ~= "" then
+			slot.count:SetText(count_str)
+			slot.count:Show(true)
+		else
+			slot.count:Show(false)
+		end
+	end
+	pcall(function()
+		local hint = get_item_hint(sec)
+		if hint_prefix and hint_prefix ~= "" then
+			hint = hint_prefix .. ": " .. hint
+		end
+		if count_str and count_str ~= "" then
+			hint = hint .. " (" .. count_str .. ")"
+		end
+		if slot.icon and slot.icon.SetHint then
+			slot.icon:SetHint(hint)
+		end
+		if slot.btn and slot.btn.SetHint then
+			slot.btn:SetHint(hint)
+		end
+	end)
+end
+
 class "UIXcvbArena" (CUIScriptWnd)
+
 
 function UIXcvbArena:__init() super()
 	self.current_mode = "tournament" -- "tournament" or "spectator"
@@ -247,8 +376,52 @@ function UIXcvbArena:InitControls()
 	self.summary_helmet = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_helmet", self.loadout_summary_frame)
 	self.summary_scope = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_scope", self.loadout_summary_frame)
 	self.summary_cost = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_cost", self.loadout_summary_frame)
+	-- Tournament Loadout Icons
+	if self.loadout_summary_frame then
+		self.loadout_slots = {
+			weapon  = create_ui_icon_slot(self.loadout_summary_frame, 26, 36, 252, 36, "ui_inGame2_Mp_bigbuttone", "btn_slot_weapon", self),
+			scope   = create_ui_icon_slot(self.loadout_summary_frame, 286, 36, 52, 36, "ui_inGame2_Mp_bigbuttone", "btn_slot_scope", self),
+			outfit  = create_ui_icon_slot(self.loadout_summary_frame, 22, 92, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_outfit", self),
+			helmet  = create_ui_icon_slot(self.loadout_summary_frame, 102, 92, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_helmet", self),
+			ammo    = create_ui_icon_slot(self.loadout_summary_frame, 192, 92, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_ammo", self),
+			mag     = create_ui_icon_slot(self.loadout_summary_frame, 272, 92, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_mag", self),
+			knife   = create_ui_icon_slot(self.loadout_summary_frame, 22, 146, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_knife", self),
+			meds    = create_ui_icon_slot(self.loadout_summary_frame, 102, 146, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_meds", self),
+			grenade = create_ui_icon_slot(self.loadout_summary_frame, 192, 146, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_grenade", self),
+			device  = create_ui_icon_slot(self.loadout_summary_frame, 272, 146, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_device", self),
+		}
+		for k, slot in pairs(self.loadout_slots) do
+			if k ~= "scope" then
+				slot.persist_bg = true
+				if slot.bg then slot.bg:Show(true) end
+			end
+		end
+	end
 
 	-- Main Action Button
+	-- Dedicated Loadout Options Buttons (Main Screen)
+	self.btn_loadout_armor = xml:Init3tButton("tournament_cont:btn_loadout_armor", self.tournament_cont)
+	self:Register(self.btn_loadout_armor, "btn_loadout_armor")
+	self.btn_loadout_helmet = xml:Init3tButton("tournament_cont:btn_loadout_helmet", self.tournament_cont)
+	self:Register(self.btn_loadout_helmet, "btn_loadout_helmet")
+	self.btn_loadout_meds = xml:Init3tButton("tournament_cont:btn_loadout_meds", self.tournament_cont)
+	self:Register(self.btn_loadout_meds, "btn_loadout_meds")
+	self.btn_meds_qty_prev = xml:Init3tButton("tournament_cont:btn_meds_qty_prev", self.tournament_cont)
+	if self.btn_meds_qty_prev then self:Register(self.btn_meds_qty_prev, "btn_meds_qty_prev") end
+	self.btn_meds_qty = xml:Init3tButton("tournament_cont:btn_meds_qty", self.tournament_cont)
+	if self.btn_meds_qty then self:Register(self.btn_meds_qty, "btn_meds_qty") end
+	self.btn_meds_qty_next = xml:Init3tButton("tournament_cont:btn_meds_qty_next", self.tournament_cont)
+	if self.btn_meds_qty_next then self:Register(self.btn_meds_qty_next, "btn_meds_qty_next") end
+
+	self.btn_loadout_grenades = xml:Init3tButton("tournament_cont:btn_loadout_grenades", self.tournament_cont)
+	self:Register(self.btn_loadout_grenades, "btn_loadout_grenades")
+	self.btn_grenade_qty_prev = xml:Init3tButton("tournament_cont:btn_grenade_qty_prev", self.tournament_cont)
+	if self.btn_grenade_qty_prev then self:Register(self.btn_grenade_qty_prev, "btn_grenade_qty_prev") end
+	self.btn_grenade_qty = xml:Init3tButton("tournament_cont:btn_grenade_qty", self.tournament_cont)
+	if self.btn_grenade_qty then self:Register(self.btn_grenade_qty, "btn_grenade_qty") end
+	self.btn_grenade_qty_next = xml:Init3tButton("tournament_cont:btn_grenade_qty_next", self.tournament_cont)
+	if self.btn_grenade_qty_next then self:Register(self.btn_grenade_qty_next, "btn_grenade_qty_next") end
+
 	self.btn_tourn_start = xml:Init3tButton("tournament_cont:tourn_start_btn", self.tournament_cont)
 	self:Register(self.btn_tourn_start, "btn_tourn_start")
 
@@ -513,6 +686,18 @@ function UIXcvbArena:InitControls()
 		self.btn_diff_reset_stats = xml:Init3tButton("endless_diff_menu:diff_summary_frame:btn_diff_reset_stats", self.diff_summary_frame)
 		self:Register(self.btn_diff_reset_stats, "btn_diff_reset_stats")
 	end
+	if self.diff_summary_frame then
+		self.endless_diff_slots = {
+			weapon = create_ui_icon_slot(self.diff_summary_frame, 12, 158, 90, 36, "xcvb_arena_gui_row_frame"),
+			scope  = create_ui_icon_slot(self.diff_summary_frame, 108, 158, 42, 36, "xcvb_arena_gui_row_frame"),
+			outfit = create_ui_icon_slot(self.diff_summary_frame, 156, 158, 46, 36, "xcvb_arena_gui_row_frame"),
+			helmet = create_ui_icon_slot(self.diff_summary_frame, 208, 158, 46, 36, "xcvb_arena_gui_row_frame"),
+			ammo   = create_ui_icon_slot(self.diff_summary_frame, 260, 158, 46, 36, "xcvb_arena_gui_row_frame"),
+			mag    = create_ui_icon_slot(self.diff_summary_frame, 312, 158, 46, 36, "xcvb_arena_gui_row_frame"),
+			knife  = create_ui_icon_slot(self.diff_summary_frame, 364, 158, 46, 36, "xcvb_arena_gui_row_frame"),
+			meds   = create_ui_icon_slot(self.diff_summary_frame, 416, 158, 46, 36, "xcvb_arena_gui_row_frame"),
+		}
+	end
 
 	self.diff_start_title = xml:InitTextWnd("endless_diff_menu:title_start", self.endless_diff_menu)
 
@@ -577,6 +762,15 @@ function UIXcvbArena:InitControls()
 		self.btn_ec_box_next = xml:Init3tButton("endless_custom_menu:btn_ec_box_next", self.endless_custom_menu)
 		self:Register(self.btn_ec_box_next, "btn_ec_box_next")
 
+		self.btn_ec_armor = xml:Init3tButton("endless_custom_menu:btn_ec_armor", self.endless_custom_menu)
+		if self.btn_ec_armor then self:Register(self.btn_ec_armor, "btn_ec_armor") end
+		self.btn_ec_helmet = xml:Init3tButton("endless_custom_menu:btn_ec_helmet", self.endless_custom_menu)
+		if self.btn_ec_helmet then self:Register(self.btn_ec_helmet, "btn_ec_helmet") end
+		self.btn_ec_meds = xml:Init3tButton("endless_custom_menu:btn_ec_meds", self.endless_custom_menu)
+		if self.btn_ec_meds then self:Register(self.btn_ec_meds, "btn_ec_meds") end
+		self.btn_ec_grenades = xml:Init3tButton("endless_custom_menu:btn_ec_grenades", self.endless_custom_menu)
+		if self.btn_ec_grenades then self:Register(self.btn_ec_grenades, "btn_ec_grenades") end
+
 		self.ec_summary_frame = xml:InitStatic("endless_custom_menu:ec_summary_frame", self.endless_custom_menu)
 		if self.ec_summary_frame then
 			self.ec_sum_status = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_status", self.ec_summary_frame)
@@ -586,6 +780,23 @@ function UIXcvbArena:InitControls()
 			self.ec_sum_mags = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_mags", self.ec_summary_frame)
 			self.ec_sum_cost = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_cost", self.ec_summary_frame)
 			self.ec_sum_note = xml:InitTextWnd("endless_custom_menu:ec_summary_frame:ec_sum_note", self.ec_summary_frame)
+		end
+		if self.ec_summary_frame then
+			self.endless_custom_slots = {
+				weapon  = create_ui_icon_slot(self.ec_summary_frame, 500, 20, 260, 48, "ui_inGame2_Mp_bigbuttone", "btn_ec_slot_weapon", self),
+				scope   = create_ui_icon_slot(self.ec_summary_frame, 770, 20, 85, 48, "ui_inGame2_Mp_bigbuttone", "btn_ec_slot_scope", self),
+				ammo    = create_ui_icon_slot(self.ec_summary_frame, 500, 78, 80, 44, "ui_inGame2_Mp_bigbuttone", "btn_ec_slot_ammo", self),
+				mag     = create_ui_icon_slot(self.ec_summary_frame, 590, 78, 80, 44, "ui_inGame2_Mp_bigbuttone", "btn_ec_slot_mag", self),
+				outfit  = create_ui_icon_slot(self.ec_summary_frame, 680, 78, 80, 44, "ui_inGame2_Mp_bigbuttone", "btn_ec_slot_outfit", self),
+				helmet  = create_ui_icon_slot(self.ec_summary_frame, 770, 78, 80, 44, "ui_inGame2_Mp_bigbuttone", "btn_ec_slot_helmet", self),
+				knife   = create_ui_icon_slot(self.ec_summary_frame, 500, 132, 80, 44, "ui_inGame2_Mp_bigbuttone", "btn_ec_slot_knife", self),
+				meds    = create_ui_icon_slot(self.ec_summary_frame, 590, 132, 80, 44, "ui_inGame2_Mp_bigbuttone", "btn_ec_slot_meds", self),
+				grenade = create_ui_icon_slot(self.ec_summary_frame, 680, 132, 80, 44, "ui_inGame2_Mp_bigbuttone", "btn_ec_slot_grenade", self),
+			}
+			for k, slot in pairs(self.endless_custom_slots) do
+				slot.persist_bg = true
+				if slot.bg then slot.bg:Show(true) end
+			end
 		end
 
 		self.btn_ec_confirm = xml:Init3tButton("endless_custom_menu:btn_ec_confirm", self.endless_custom_menu)
@@ -615,6 +826,14 @@ function UIXcvbArena:InitControls()
 		local btn = xml:Init3tButton("dssg_menu:dssg_row_" .. i, self.dssg_menu)
 		self.arr_3dssg_rows[i] = btn
 		self:Register(btn, "btn_arr_3dssg_" .. i)
+	end
+	self.arr_3dssg_icons = {}
+	for i = 1, 7 do
+		local icon = CUIStatic()
+		icon:SetAutoDelete(true)
+		icon:Enable(false)
+		self.dssg_menu:AttachChild(icon)
+		self.arr_3dssg_icons[i] = icon
 	end
 	self.arr_3dssg_page_prev = xml:Init3tButton("dssg_menu:dssg_page_prev", self.dssg_menu)
 	self:Register(self.arr_3dssg_page_prev, "btn_arr_3dssg_prev")
@@ -704,6 +923,14 @@ function UIXcvbArena:InitControls()
 			self.arr_wpn_rows[i] = btn
 			self:Register(btn, "btn_arr_wpn_" .. i)
 		end
+		self.arr_wpn_icons = {}
+		for i = 1, 7 do
+			local icon = CUIStatic()
+			icon:SetAutoDelete(true)
+			icon:Enable(false)
+			self.wpn_menu:AttachChild(icon)
+			self.arr_wpn_icons[i] = icon
+		end
 
 		self.wpn_page_prev = xml:Init3tButton("wpn_menu:wpn_page_prev", self.wpn_menu)
 		self:Register(self.wpn_page_prev, "btn_wpn_page_prev")
@@ -718,6 +945,133 @@ function UIXcvbArena:InitControls()
 		self:Register(self.btn_wpn_close, "btn_wpn_close")
 	end
 
+	-- Outfit Selection Popup Menu
+	self.outfit_menu = xml:InitStatic("outfit_menu", self.bg)
+	if self.outfit_menu then
+		self.outfit_menu:Show(false)
+		self.arr_outfit_rows = {}
+		self.arr_outfit_icons = {}
+		for i = 1, 6 do
+			local btn = xml:Init3tButton("outfit_menu:outfit_row_" .. i, self.outfit_menu)
+			self.arr_outfit_rows[i] = btn
+			self:Register(btn, "btn_arr_outfit_" .. i)
+			local icon = CUIStatic()
+			icon:SetAutoDelete(true)
+			icon:Enable(false)
+			self.outfit_menu:AttachChild(icon)
+			self.arr_outfit_icons[i] = icon
+		end
+		self.btn_outfit_close = xml:Init3tButton("outfit_menu:btn_outfit_close", self.outfit_menu)
+		self:Register(self.btn_outfit_close, "btn_outfit_close")
+	end
+
+	-- Helmet Selection Popup Menu
+	self.helmet_menu = xml:InitStatic("helmet_menu", self.bg)
+	if self.helmet_menu then
+		self.helmet_menu:Show(false)
+		self.arr_helmet_rows = {}
+		self.arr_helmet_icons = {}
+		for i = 1, 7 do
+			local btn = xml:Init3tButton("helmet_menu:helmet_row_" .. i, self.helmet_menu)
+			self.arr_helmet_rows[i] = btn
+			self:Register(btn, "btn_arr_helmet_" .. i)
+			local icon = CUIStatic()
+			icon:SetAutoDelete(true)
+			icon:Enable(false)
+			self.helmet_menu:AttachChild(icon)
+			self.arr_helmet_icons[i] = icon
+		end
+		self.btn_helmet_close = xml:Init3tButton("helmet_menu:btn_helmet_close", self.helmet_menu)
+		self:Register(self.btn_helmet_close, "btn_helmet_close")
+	end
+
+	-- Medical Pack Selection Popup Menu
+	self.meds_menu = xml:InitStatic("meds_menu", self.bg)
+	if self.meds_menu then
+		self.meds_menu:Show(false)
+		self.arr_meds_rows = {}
+		self.arr_meds_icons = {}
+		for i = 1, 4 do
+			local btn = xml:Init3tButton("meds_menu:meds_row_" .. i, self.meds_menu)
+			self.arr_meds_rows[i] = btn
+			self:Register(btn, "btn_arr_meds_" .. i)
+			local icon = CUIStatic()
+			icon:SetAutoDelete(true)
+			icon:Enable(false)
+			self.meds_menu:AttachChild(icon)
+			self.arr_meds_icons[i] = icon
+		end
+
+		self.btn_med_type_basic = xml:Init3tButton("meds_menu:btn_med_type_basic", self.meds_menu)
+		if self.btn_med_type_basic then self:Register(self.btn_med_type_basic, "btn_med_type_basic") end
+		self.btn_med_type_army = xml:Init3tButton("meds_menu:btn_med_type_army", self.meds_menu)
+		if self.btn_med_type_army then self:Register(self.btn_med_type_army, "btn_med_type_army") end
+		self.btn_med_type_sci = xml:Init3tButton("meds_menu:btn_med_type_sci", self.meds_menu)
+		if self.btn_med_type_sci then self:Register(self.btn_med_type_sci, "btn_med_type_sci") end
+		self.btn_med_type_none = xml:Init3tButton("meds_menu:btn_med_type_none", self.meds_menu)
+		if self.btn_med_type_none then self:Register(self.btn_med_type_none, "btn_med_type_none") end
+
+		self.btn_med_cnt_prev = xml:Init3tButton("meds_menu:btn_med_cnt_prev", self.meds_menu)
+		if self.btn_med_cnt_prev then self:Register(self.btn_med_cnt_prev, "btn_med_cnt_prev") end
+		self.btn_med_cnt_val = xml:Init3tButton("meds_menu:btn_med_cnt_val", self.meds_menu)
+		if self.btn_med_cnt_val then self:Register(self.btn_med_cnt_val, "btn_med_cnt_val") end
+		self.btn_med_cnt_next = xml:Init3tButton("meds_menu:btn_med_cnt_next", self.meds_menu)
+		if self.btn_med_cnt_next then self:Register(self.btn_med_cnt_next, "btn_med_cnt_next") end
+
+		self.btn_band_cnt_prev = xml:Init3tButton("meds_menu:btn_band_cnt_prev", self.meds_menu)
+		if self.btn_band_cnt_prev then self:Register(self.btn_band_cnt_prev, "btn_band_cnt_prev") end
+		self.btn_band_cnt_val = xml:Init3tButton("meds_menu:btn_band_cnt_val", self.meds_menu)
+		if self.btn_band_cnt_val then self:Register(self.btn_band_cnt_val, "btn_band_cnt_val") end
+		self.btn_band_cnt_next = xml:Init3tButton("meds_menu:btn_band_cnt_next", self.meds_menu)
+		if self.btn_band_cnt_next then self:Register(self.btn_band_cnt_next, "btn_band_cnt_next") end
+
+		self.btn_stim_cnt_prev = xml:Init3tButton("meds_menu:btn_stim_cnt_prev", self.meds_menu)
+		if self.btn_stim_cnt_prev then self:Register(self.btn_stim_cnt_prev, "btn_stim_cnt_prev") end
+		self.btn_stim_cnt_val = xml:Init3tButton("meds_menu:btn_stim_cnt_val", self.meds_menu)
+		if self.btn_stim_cnt_val then self:Register(self.btn_stim_cnt_val, "btn_stim_cnt_val") end
+		self.btn_stim_cnt_next = xml:Init3tButton("meds_menu:btn_stim_cnt_next", self.meds_menu)
+		if self.btn_stim_cnt_next then self:Register(self.btn_stim_cnt_next, "btn_stim_cnt_next") end
+
+		self.meds_cost_label = xml:InitTextWnd("meds_menu:meds_cost_label", self.meds_menu)
+		self.btn_meds_confirm = xml:Init3tButton("meds_menu:btn_meds_confirm", self.meds_menu)
+		if self.btn_meds_confirm then self:Register(self.btn_meds_confirm, "btn_meds_confirm") end
+
+		self.btn_meds_close = xml:Init3tButton("meds_menu:btn_meds_close", self.meds_menu)
+		self:Register(self.btn_meds_close, "btn_meds_close")
+	end
+
+	-- Grenade Selection Popup Menu
+	self.grenade_menu = xml:InitStatic("grenade_menu", self.bg)
+	if self.grenade_menu then
+		self.grenade_menu:Show(false)
+		self.arr_grenade_rows = {}
+		self.arr_grenade_icons = {}
+		for i = 1, 5 do
+			local btn = xml:Init3tButton("grenade_menu:grenade_row_" .. i, self.grenade_menu)
+			self.arr_grenade_rows[i] = btn
+			self:Register(btn, "btn_arr_grenade_" .. i)
+			local icon = CUIStatic()
+			icon:SetAutoDelete(true)
+			icon:Enable(false)
+			self.grenade_menu:AttachChild(icon)
+			self.arr_grenade_icons[i] = icon
+		end
+
+		self.btn_gr_cnt_prev = xml:Init3tButton("grenade_menu:btn_gr_cnt_prev", self.grenade_menu)
+		if self.btn_gr_cnt_prev then self:Register(self.btn_gr_cnt_prev, "btn_gr_cnt_prev") end
+		self.btn_gr_cnt_val = xml:Init3tButton("grenade_menu:btn_gr_cnt_val", self.grenade_menu)
+		if self.btn_gr_cnt_val then self:Register(self.btn_gr_cnt_val, "btn_gr_cnt_val") end
+		self.btn_gr_cnt_next = xml:Init3tButton("grenade_menu:btn_gr_cnt_next", self.grenade_menu)
+		if self.btn_gr_cnt_next then self:Register(self.btn_gr_cnt_next, "btn_gr_cnt_next") end
+
+		self.gr_cost_label = xml:InitTextWnd("grenade_menu:gr_cost_label", self.grenade_menu)
+		self.btn_grenade_confirm = xml:Init3tButton("grenade_menu:btn_grenade_confirm", self.grenade_menu)
+		if self.btn_grenade_confirm then self:Register(self.btn_grenade_confirm, "btn_grenade_confirm") end
+
+		self.btn_grenade_close = xml:Init3tButton("grenade_menu:btn_grenade_close", self.grenade_menu)
+		if self.btn_grenade_close then self:Register(self.btn_grenade_close, "btn_grenade_close") end
+	end
+
 	xml:InitStatic("vert_line1", self.bg)
 	xml:InitStatic("vert_line2", self.bg)
 	xml:InitStatic("vert_line3", self.bg)
@@ -728,6 +1082,9 @@ function UIXcvbArena:InitControls()
 	self:set_modal_active("night_device", false)
 	self:set_modal_active("wpn", false)
 	self:set_modal_active("endless_custom", false)
+	self:set_modal_active("outfit", false)
+	self:set_modal_active("helmet", false)
+	self:set_modal_active("meds", false)
 	self:update_endless_custom_btn()
 end
 
@@ -736,12 +1093,16 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 
 	if not self.modal_orig_pos then
 		self.modal_orig_pos = {
-			wpn = vector2():set(140, 85),
-			dssg = vector2():set(140, 94),
-			mag = vector2():set(140, 94),
-			night_device = vector2():set(180, 140),
-			endless_diff = vector2():set(50, 74),
-			endless_custom = vector2():set(120, 60),
+			wpn = vector2():set(50, 96),
+			dssg = vector2():set(50, 96),
+			mag = vector2():set(50, 96),
+			night_device = vector2():set(50, 96),
+			endless_diff = vector2():set(50, 96),
+			endless_custom = vector2():set(50, 96),
+			outfit = vector2():set(50, 96),
+			helmet = vector2():set(50, 96),
+			meds = vector2():set(50, 96),
+			grenade = vector2():set(50, 96),
 		}
 	end
 
@@ -749,7 +1110,7 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 
 	if modal_name == "dssg" then
 		if self.dssg_menu then
-			local pos = is_shown and (self.modal_orig_pos.dssg or vector2():set(140, 94)) or off_pos
+			local pos = is_shown and (self.modal_orig_pos.dssg or vector2():set(50, 96)) or off_pos
 			self.dssg_menu:SetWndPos(pos)
 			self.dssg_menu:Show(is_shown)
 			self.dssg_menu:Enable(is_shown)
@@ -767,9 +1128,16 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 				end
 			end
 		end
+		if self.arr_3dssg_icons then
+			for i = 1, 7 do
+				if self.arr_3dssg_icons[i] then
+					self.arr_3dssg_icons[i]:Show(is_shown)
+				end
+			end
+		end
 	elseif modal_name == "mag" then
 		if self.mag_menu then
-			local pos = is_shown and (self.modal_orig_pos.mag or vector2():set(140, 94)) or off_pos
+			local pos = is_shown and (self.modal_orig_pos.mag or vector2():set(50, 96)) or off_pos
 			self.mag_menu:SetWndPos(pos)
 			self.mag_menu:Show(is_shown)
 			self.mag_menu:Enable(is_shown)
@@ -791,7 +1159,7 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		end
 	elseif modal_name == "endless_diff" then
 		if self.endless_diff_menu then
-			local pos = is_shown and (self.modal_orig_pos.endless_diff or vector2():set(50, 74)) or off_pos
+			local pos = is_shown and (self.modal_orig_pos.endless_diff or vector2():set(50, 96)) or off_pos
 			self.endless_diff_menu:SetWndPos(pos)
 			self.endless_diff_menu:Show(is_shown)
 			self.endless_diff_menu:Enable(is_shown)
@@ -812,9 +1180,18 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		if self.btn_diff_enter then self.btn_diff_enter:Show(is_shown); self.btn_diff_enter:Enable(is_shown) end
 		if self.btn_diff_cancel then self.btn_diff_cancel:Show(is_shown); self.btn_diff_cancel:Enable(is_shown) end
 		if self.btn_diff_reset_stats then self.btn_diff_reset_stats:Show(is_shown); self.btn_diff_reset_stats:Enable(is_shown) end
+		if self.endless_diff_slots then
+			for _, slot in pairs(self.endless_diff_slots) do
+				if not is_shown then
+					if slot.icon then slot.icon:Show(false) end
+					if slot.bg then slot.bg:Show(slot.persist_bg == true) end
+					if slot.count then slot.count:Show(false) end
+				end
+			end
+		end
 	elseif modal_name == "wpn" then
 		if self.wpn_menu then
-			local pos = is_shown and (self.modal_orig_pos.wpn or vector2():set(140, 85)) or off_pos
+			local pos = is_shown and (self.modal_orig_pos.wpn or vector2():set(50, 96)) or off_pos
 			self.wpn_menu:SetWndPos(pos)
 			self.wpn_menu:Show(is_shown)
 			self.wpn_menu:Enable(is_shown)
@@ -839,9 +1216,16 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 				end
 			end
 		end
+		if self.arr_wpn_icons then
+			for i = 1, 7 do
+				if self.arr_wpn_icons[i] then
+					self.arr_wpn_icons[i]:Show(is_shown)
+				end
+			end
+		end
 	elseif modal_name == "endless_custom" then
 		if self.endless_custom_menu then
-			local pos = is_shown and (self.modal_orig_pos.endless_custom or vector2():set(120, 60)) or off_pos
+			local pos = is_shown and (self.modal_orig_pos.endless_custom or vector2():set(50, 96)) or off_pos
 			self.endless_custom_menu:SetWndPos(pos)
 			self.endless_custom_menu:Show(is_shown)
 			self.endless_custom_menu:Enable(is_shown)
@@ -859,6 +1243,15 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 				if b then b:Show(is_shown); b:Enable(is_shown) end
 			end
 		end
+		if self.endless_custom_slots then
+			for _, slot in pairs(self.endless_custom_slots) do
+				if not is_shown then
+					if slot.icon then slot.icon:Show(false) end
+					if slot.bg then slot.bg:Show(slot.persist_bg == true) end
+					if slot.count then slot.count:Show(false) end
+				end
+			end
+		end
 		if self.btn_ec_mag_prev then self.btn_ec_mag_prev:Show(is_shown); self.btn_ec_mag_prev:Enable(is_shown) end
 		if self.btn_ec_mag_label then self.btn_ec_mag_label:Show(is_shown); self.btn_ec_mag_label:Enable(is_shown) end
 		if self.btn_ec_mag_next then self.btn_ec_mag_next:Show(is_shown); self.btn_ec_mag_next:Enable(is_shown) end
@@ -869,7 +1262,7 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		if self.btn_ec_cancel then self.btn_ec_cancel:Show(is_shown); self.btn_ec_cancel:Enable(is_shown) end
 	elseif modal_name == "night_device" then
 		if self.night_device_menu then
-			local pos = is_shown and (self.modal_orig_pos.night_device or vector2():set(180, 140)) or off_pos
+			local pos = is_shown and (self.modal_orig_pos.night_device or vector2():set(50, 96)) or off_pos
 			self.night_device_menu:SetWndPos(pos)
 			self.night_device_menu:Show(is_shown)
 			self.night_device_menu:Enable(is_shown)
@@ -880,6 +1273,118 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		if self.btn_dev_nvg3 then self.btn_dev_nvg3:Show(is_shown); self.btn_dev_nvg3:Enable(is_shown) end
 		if self.btn_dev_none then self.btn_dev_none:Show(is_shown); self.btn_dev_none:Enable(is_shown) end
 		if self.btn_dev_close then self.btn_dev_close:Show(is_shown); self.btn_dev_close:Enable(is_shown) end
+	elseif modal_name == "outfit" then
+		if self.outfit_menu then
+			local pos = is_shown and (self.modal_orig_pos.outfit or vector2():set(50, 96)) or off_pos
+			self.outfit_menu:SetWndPos(pos)
+			self.outfit_menu:Show(is_shown)
+			self.outfit_menu:Enable(is_shown)
+		end
+		if self.btn_outfit_close then self.btn_outfit_close:Show(is_shown); self.btn_outfit_close:Enable(is_shown) end
+		if self.arr_outfit_rows then
+			for i = 1, 6 do
+				if self.arr_outfit_rows[i] then
+					self.arr_outfit_rows[i]:Show(is_shown)
+					self.arr_outfit_rows[i]:Enable(is_shown)
+				end
+			end
+		end
+		if self.arr_outfit_icons then
+			for i = 1, 6 do
+				if self.arr_outfit_icons[i] then
+					self.arr_outfit_icons[i]:Show(is_shown)
+				end
+			end
+		end
+	elseif modal_name == "helmet" then
+		if self.helmet_menu then
+			local pos = is_shown and (self.modal_orig_pos.helmet or vector2():set(50, 96)) or off_pos
+			self.helmet_menu:SetWndPos(pos)
+			self.helmet_menu:Show(is_shown)
+			self.helmet_menu:Enable(is_shown)
+		end
+		if self.btn_helmet_close then self.btn_helmet_close:Show(is_shown); self.btn_helmet_close:Enable(is_shown) end
+		if self.arr_helmet_rows then
+			for i = 1, 7 do
+				if self.arr_helmet_rows[i] then
+					self.arr_helmet_rows[i]:Show(is_shown)
+					self.arr_helmet_rows[i]:Enable(is_shown)
+				end
+			end
+		end
+		if self.arr_helmet_icons then
+			for i = 1, 7 do
+				if self.arr_helmet_icons[i] then
+					self.arr_helmet_icons[i]:Show(is_shown)
+				end
+			end
+		end
+	elseif modal_name == "meds" then
+		if self.meds_menu then
+			local pos = is_shown and (self.modal_orig_pos.meds or vector2():set(50, 96)) or off_pos
+			self.meds_menu:SetWndPos(pos)
+			self.meds_menu:Show(is_shown)
+			self.meds_menu:Enable(is_shown)
+		end
+		if self.btn_meds_close then self.btn_meds_close:Show(is_shown); self.btn_meds_close:Enable(is_shown) end
+		if self.btn_meds_confirm then self.btn_meds_confirm:Show(is_shown); self.btn_meds_confirm:Enable(is_shown) end
+		if self.meds_cost_label then self.meds_cost_label:Show(is_shown) end
+		if self.btn_med_type_basic then self.btn_med_type_basic:Show(is_shown); self.btn_med_type_basic:Enable(is_shown) end
+		if self.btn_med_type_army then self.btn_med_type_army:Show(is_shown); self.btn_med_type_army:Enable(is_shown) end
+		if self.btn_med_type_sci then self.btn_med_type_sci:Show(is_shown); self.btn_med_type_sci:Enable(is_shown) end
+		if self.btn_med_type_none then self.btn_med_type_none:Show(is_shown); self.btn_med_type_none:Enable(is_shown) end
+		if self.btn_med_cnt_prev then self.btn_med_cnt_prev:Show(is_shown); self.btn_med_cnt_prev:Enable(is_shown) end
+		if self.btn_med_cnt_val then self.btn_med_cnt_val:Show(is_shown); self.btn_med_cnt_val:Enable(is_shown) end
+		if self.btn_med_cnt_next then self.btn_med_cnt_next:Show(is_shown); self.btn_med_cnt_next:Enable(is_shown) end
+		if self.btn_band_cnt_prev then self.btn_band_cnt_prev:Show(is_shown); self.btn_band_cnt_prev:Enable(is_shown) end
+		if self.btn_band_cnt_val then self.btn_band_cnt_val:Show(is_shown); self.btn_band_cnt_val:Enable(is_shown) end
+		if self.btn_band_cnt_next then self.btn_band_cnt_next:Show(is_shown); self.btn_band_cnt_next:Enable(is_shown) end
+		if self.btn_stim_cnt_prev then self.btn_stim_cnt_prev:Show(is_shown); self.btn_stim_cnt_prev:Enable(is_shown) end
+		if self.btn_stim_cnt_val then self.btn_stim_cnt_val:Show(is_shown); self.btn_stim_cnt_val:Enable(is_shown) end
+		if self.btn_stim_cnt_next then self.btn_stim_cnt_next:Show(is_shown); self.btn_stim_cnt_next:Enable(is_shown) end
+		if self.arr_meds_rows then
+			for i = 1, 4 do
+				if self.arr_meds_rows[i] then
+					self.arr_meds_rows[i]:Show(is_shown)
+					self.arr_meds_rows[i]:Enable(is_shown)
+				end
+			end
+		end
+		if self.arr_meds_icons then
+			for i = 1, 4 do
+				if self.arr_meds_icons[i] then
+					self.arr_meds_icons[i]:Show(is_shown)
+				end
+			end
+		end
+	elseif modal_name == "grenade" then
+		if self.grenade_menu then
+			local pos = is_shown and (self.modal_orig_pos.grenade or vector2():set(50, 96)) or off_pos
+			self.grenade_menu:SetWndPos(pos)
+			self.grenade_menu:Show(is_shown)
+			self.grenade_menu:Enable(is_shown)
+		end
+		if self.btn_grenade_close then self.btn_grenade_close:Show(is_shown); self.btn_grenade_close:Enable(is_shown) end
+		if self.btn_grenade_confirm then self.btn_grenade_confirm:Show(is_shown); self.btn_grenade_confirm:Enable(is_shown) end
+		if self.gr_cost_label then self.gr_cost_label:Show(is_shown) end
+		if self.btn_gr_cnt_prev then self.btn_gr_cnt_prev:Show(is_shown); self.btn_gr_cnt_prev:Enable(is_shown) end
+		if self.btn_gr_cnt_val then self.btn_gr_cnt_val:Show(is_shown); self.btn_gr_cnt_val:Enable(is_shown) end
+		if self.btn_gr_cnt_next then self.btn_gr_cnt_next:Show(is_shown); self.btn_gr_cnt_next:Enable(is_shown) end
+		if self.arr_grenade_rows then
+			for i = 1, 5 do
+				if self.arr_grenade_rows[i] then
+					self.arr_grenade_rows[i]:Show(is_shown)
+					self.arr_grenade_rows[i]:Enable(is_shown)
+				end
+			end
+		end
+		if self.arr_grenade_icons then
+			for i = 1, 5 do
+				if self.arr_grenade_icons[i] then
+					self.arr_grenade_icons[i]:Show(is_shown)
+				end
+			end
+		end
 	end
 
 	local any_modal_open = (self.dssg_menu and self.dssg_menu:IsShown())
@@ -888,6 +1393,10 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		or (self.endless_custom_menu and self.endless_custom_menu:IsShown())
 		or (self.night_device_menu and self.night_device_menu:IsShown())
 		or (self.wpn_menu and self.wpn_menu:IsShown())
+		or (self.outfit_menu and self.outfit_menu:IsShown())
+		or (self.helmet_menu and self.helmet_menu:IsShown())
+		or (self.meds_menu and self.meds_menu:IsShown())
+		or (self.grenade_menu and self.grenade_menu:IsShown())
 
 	local allow_bg = not any_modal_open
 	local is_tourn = allow_bg and (self.current_mode == "tournament")
@@ -1085,6 +1594,94 @@ function UIXcvbArena:InitCallbacks()
 	for i = 1, 7 do
 		local row = i
 		self:AddCallback("btn_arr_wpn_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_wpn_row(row) end, self)
+	end
+
+	-- Main Screen Dedicated Loadout Option Buttons & Steppers
+	self:AddCallback("btn_loadout_armor", ui_events.BUTTON_CLICKED, function() self:show_outfit_menu(true, "tournament") end, self)
+	self:AddCallback("btn_loadout_helmet", ui_events.BUTTON_CLICKED, function() self:show_helmet_menu(true, "tournament") end, self)
+	self:AddCallback("btn_loadout_meds", ui_events.BUTTON_CLICKED, function() self:show_meds_menu(true, "tournament") end, self)
+	self:AddCallback("btn_meds_qty_prev", ui_events.BUTTON_CLICKED, function() self:on_click_meds_stepper(-1) end, self)
+	self:AddCallback("btn_meds_qty", ui_events.BUTTON_CLICKED, function() self:show_meds_menu(true, "tournament") end, self)
+	self:AddCallback("btn_meds_qty_next", ui_events.BUTTON_CLICKED, function() self:on_click_meds_stepper(1) end, self)
+
+	self:AddCallback("btn_loadout_grenades", ui_events.BUTTON_CLICKED, function() self:show_grenade_menu(true, "tournament") end, self)
+	self:AddCallback("btn_grenade_qty_prev", ui_events.BUTTON_CLICKED, function() self:on_click_grenade_stepper(-1) end, self)
+	self:AddCallback("btn_grenade_qty", ui_events.BUTTON_CLICKED, function() self:show_grenade_menu(true, "tournament") end, self)
+	self:AddCallback("btn_grenade_qty_next", ui_events.BUTTON_CLICKED, function() self:on_click_grenade_stepper(1) end, self)
+
+	-- Loadout Slots Direct Click Callbacks (Tournament)
+	self:AddCallback("btn_slot_weapon", ui_events.BUTTON_CLICKED, function() self:open_wpn_menu(self.selected_loadout_class or "rifle", "tournament") end, self)
+	self:AddCallback("btn_slot_scope", ui_events.BUTTON_CLICKED, function() self:open_dssg_menu("tournament") end, self)
+	self:AddCallback("btn_slot_outfit", ui_events.BUTTON_CLICKED, function() self:show_outfit_menu(true, "tournament") end, self)
+	self:AddCallback("btn_slot_helmet", ui_events.BUTTON_CLICKED, function() self:show_helmet_menu(true, "tournament") end, self)
+	self:AddCallback("btn_slot_ammo", ui_events.BUTTON_CLICKED, self.on_cycle_loadout_ammo, self)
+	self:AddCallback("btn_slot_mag", ui_events.BUTTON_CLICKED, self.on_click_mag_btn, self)
+	self:AddCallback("btn_slot_knife", ui_events.BUTTON_CLICKED, function() if db.actor then news_manager.send_tip(db.actor, gt("st_arena_knife_title") or "Combat Knife", 0, nil, 2500) end end, self)
+	self:AddCallback("btn_slot_meds", ui_events.BUTTON_CLICKED, function() self:show_meds_menu(true, "tournament") end, self)
+	self:AddCallback("btn_slot_grenade", ui_events.BUTTON_CLICKED, function() self:show_grenade_menu(true, "tournament") end, self)
+
+	-- Endless Custom Dedicated Loadout Buttons
+	self:AddCallback("btn_ec_armor", ui_events.BUTTON_CLICKED, self.on_click_ec_outfit, self)
+	self:AddCallback("btn_ec_helmet", ui_events.BUTTON_CLICKED, self.on_click_ec_helmet, self)
+	self:AddCallback("btn_ec_meds", ui_events.BUTTON_CLICKED, self.on_click_ec_meds, self)
+	self:AddCallback("btn_ec_grenades", ui_events.BUTTON_CLICKED, function() self:show_grenade_menu(true, "endless") end, self)
+
+	-- Endless Custom Slots Direct Click Callbacks
+	self:AddCallback("btn_ec_slot_weapon", ui_events.BUTTON_CLICKED, self.on_click_ec_select_wpn, self)
+	self:AddCallback("btn_ec_slot_scope", ui_events.BUTTON_CLICKED, self.on_click_ec_3dssg, self)
+	self:AddCallback("btn_ec_slot_ammo", ui_events.BUTTON_CLICKED, self.on_cycle_endless_ammo, self)
+	self:AddCallback("btn_ec_slot_mag", ui_events.BUTTON_CLICKED, function() self:on_click_ec_mag_cycle(1) end, self)
+	self:AddCallback("btn_ec_slot_outfit", ui_events.BUTTON_CLICKED, self.on_click_ec_outfit, self)
+	self:AddCallback("btn_ec_slot_helmet", ui_events.BUTTON_CLICKED, self.on_click_ec_helmet, self)
+	self:AddCallback("btn_ec_slot_knife", ui_events.BUTTON_CLICKED, function() if db.actor then news_manager.send_tip(db.actor, gt("st_arena_knife_title") or "Combat Knife", 0, nil, 2500) end end, self)
+	self:AddCallback("btn_ec_slot_meds", ui_events.BUTTON_CLICKED, self.on_click_ec_meds, self)
+	self:AddCallback("btn_ec_slot_grenade", ui_events.BUTTON_CLICKED, function() self:show_grenade_menu(true, "endless") end, self)
+	self:AddCallback("btn_slot_device", ui_events.BUTTON_CLICKED, function()
+		if xcvb_arena_main and xcvb_arena_main.night_mode_active then
+			self:set_modal_active("night_device", true)
+		end
+	end, self)
+
+	-- Outfit Modal Callbacks
+	self:AddCallback("btn_outfit_close", ui_events.BUTTON_CLICKED, function() self:show_outfit_menu(false) end, self)
+	for i = 1, 6 do
+		local r = i
+		self:AddCallback("btn_arr_outfit_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_outfit_row(r) end, self)
+	end
+
+	-- Helmet Modal Callbacks
+	self:AddCallback("btn_helmet_close", ui_events.BUTTON_CLICKED, function() self:show_helmet_menu(false) end, self)
+	for i = 1, 7 do
+		local r = i
+		self:AddCallback("btn_arr_helmet_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_helmet_row(r) end, self)
+	end
+
+	-- Meds Modal Callbacks
+	self:AddCallback("btn_meds_close", ui_events.BUTTON_CLICKED, function() self:show_meds_menu(false) end, self)
+	self:AddCallback("btn_meds_confirm", ui_events.BUTTON_CLICKED, self.on_click_meds_confirm, self)
+	for i = 1, 4 do
+		local r = i
+		self:AddCallback("btn_arr_meds_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_meds_row(r) end, self)
+	end
+	self:AddCallback("btn_med_type_basic", ui_events.BUTTON_CLICKED, function() self:on_click_meds_type("medkit") end, self)
+	self:AddCallback("btn_med_type_army", ui_events.BUTTON_CLICKED, function() self:on_click_meds_type("medkit_army") end, self)
+	self:AddCallback("btn_med_type_sci", ui_events.BUTTON_CLICKED, function() self:on_click_meds_type("medkit_scientic") end, self)
+	self:AddCallback("btn_med_type_none", ui_events.BUTTON_CLICKED, function() self:on_click_meds_type("none") end, self)
+	self:AddCallback("btn_med_cnt_prev", ui_events.BUTTON_CLICKED, function() self:on_click_meds_custom_qty("med", -1) end, self)
+	self:AddCallback("btn_med_cnt_next", ui_events.BUTTON_CLICKED, function() self:on_click_meds_custom_qty("med", 1) end, self)
+	self:AddCallback("btn_band_cnt_prev", ui_events.BUTTON_CLICKED, function() self:on_click_meds_custom_qty("band", -1) end, self)
+	self:AddCallback("btn_band_cnt_next", ui_events.BUTTON_CLICKED, function() self:on_click_meds_custom_qty("band", 1) end, self)
+	self:AddCallback("btn_stim_cnt_prev", ui_events.BUTTON_CLICKED, function() self:on_click_meds_custom_qty("stim", -1) end, self)
+	self:AddCallback("btn_stim_cnt_next", ui_events.BUTTON_CLICKED, function() self:on_click_meds_custom_qty("stim", 1) end, self)
+
+	-- Grenade Modal Callbacks
+	self:AddCallback("btn_grenade_close", ui_events.BUTTON_CLICKED, function() self:show_grenade_menu(false) end, self)
+	self:AddCallback("btn_grenade_confirm", ui_events.BUTTON_CLICKED, self.on_click_grenade_confirm, self)
+	self:AddCallback("btn_gr_cnt_prev", ui_events.BUTTON_CLICKED, function() self:on_click_grenade_menu_qty(-1) end, self)
+	self:AddCallback("btn_gr_cnt_next", ui_events.BUTTON_CLICKED, function() self:on_click_grenade_menu_qty(1) end, self)
+	for i = 1, 5 do
+		local r = i
+		self:AddCallback("btn_arr_grenade_" .. i, ui_events.BUTTON_CLICKED, function() self:on_click_grenade_row(r) end, self)
 	end
 
 	-- Main enter button callback
@@ -1533,8 +2130,16 @@ function UIXcvbArena:reset_loadout_selection()
 	self.selected_mag_count = "auto"
 	self.selected_ammo_count = "auto"
 	self.arr_mag_page = 1
+	self.selected_loadout_outfit = nil
+	self.selected_loadout_helmet = nil
+	self.selected_loadout_meds = nil
+	self.selected_loadout_grenades = nil
 	self:show_dssg_menu(false)
 	self:show_mag_menu(false)
+	self:show_outfit_menu(false)
+	self:show_helmet_menu(false)
+	self:show_meds_menu(false)
+	self:show_grenade_menu(false)
 	if self.loadout_class_btns then
 		self:update_loadout_buttons()
 	end
@@ -1946,6 +2551,30 @@ function UIXcvbArena:update_tournament_display()
 	self:update_loadout_buttons()
 end
 
+function UIXcvbArena:is_tokens_economy()
+	local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
+	return econ_mode == "tokens"
+end
+
+function UIXcvbArena:get_player_arena_funds()
+	if self:is_tokens_economy() then
+		return (xcvb_arena_main and xcvb_arena_main.get_arena_tokens and xcvb_arena_main.get_arena_tokens()) or 0
+	else
+		return (db.actor and db.actor:money()) or 0
+	end
+end
+
+function UIXcvbArena:format_rental_fee(fee)
+	if not fee or fee == 0 then
+		return gt("st_arena_cost_free") or "FREE"
+	end
+	if self:is_tokens_economy() then
+		return tostring(fee) .. " Pts"
+	else
+		return tostring(fee) .. " RU"
+	end
+end
+
 function UIXcvbArena:get_current_loadout_rental_fee()
 	return xcvb_arena_utils.get_loadout_rental_fee(
 		self.selected_round_id,
@@ -1956,7 +2585,11 @@ function UIXcvbArena:get_current_loadout_rental_fee()
 		self.selected_3dssg_scope,
 		self.selected_loadout_mag,
 		self.selected_mag_count,
-		self.selected_ammo_count
+		self.selected_ammo_count,
+		self.selected_loadout_outfit,
+		self.selected_loadout_helmet,
+		self.selected_loadout_meds,
+		self.selected_loadout_grenades
 	)
 end
 
@@ -1982,7 +2615,8 @@ function UIXcvbArena:update_tourn_start_button()
 	if xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher() then
 		fee = 0
 	end
-	local actor_money = db.actor and db.actor:money() or 0
+	local funds = self:get_player_arena_funds()
+	local no_funds_txt = self:is_tokens_economy() and (gt("st_arena_btn_insufficient_tokens") or "INSUFFICIENT TOKENS") or (gt("st_arena_btn_insufficient_funds") or "INSUFFICIENT FUNDS")
 
 	local sel_data = xcvb_arena_main.get_round_data(cat, self.selected_round_id)
 	local sel_forced_m = sel_data and (sel_data.forced_map or sel_data.map)
@@ -2008,11 +2642,11 @@ function UIXcvbArena:update_tourn_start_button()
 		self.btn_tourn_start:Enable(false)
 	elseif sel_comp then
 		if sel_remain_sec > 0 then
-			if fee > 0 and actor_money < fee then
-				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_insufficient_funds"))
+			if fee > 0 and funds < fee then
+				self.btn_tourn_start:TextControl():SetText(no_funds_txt)
 				self.btn_tourn_start:Enable(false)
 			elseif fee > 0 then
-				self.btn_tourn_start:TextControl():SetText(string.format(gt("st_arena_btn_replay_fee"), tostring(fee)))
+				self.btn_tourn_start:TextControl():SetText((gt("st_arena_btn_replay") or "REPETIR") .. " (" .. self:format_rental_fee(fee) .. ")")
 				self.btn_tourn_start:Enable(true)
 			else
 				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay_no_reward"))
@@ -2022,11 +2656,11 @@ function UIXcvbArena:update_tourn_start_button()
 			self.btn_tourn_start:TextControl():SetText(gt("st_arena_status_completed"))
 			self.btn_tourn_start:Enable(false)
 		else
-			if fee > 0 and actor_money < fee then
-				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_insufficient_funds"))
+			if fee > 0 and funds < fee then
+				self.btn_tourn_start:TextControl():SetText(no_funds_txt)
 				self.btn_tourn_start:Enable(false)
 			elseif fee > 0 then
-				self.btn_tourn_start:TextControl():SetText(string.format(gt("st_arena_btn_replay_fee"), tostring(fee)))
+				self.btn_tourn_start:TextControl():SetText((gt("st_arena_btn_replay") or "REPETIR") .. " (" .. self:format_rental_fee(fee) .. ")")
 				self.btn_tourn_start:Enable(true)
 			else
 				self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_replay"))
@@ -2034,11 +2668,11 @@ function UIXcvbArena:update_tourn_start_button()
 			end
 		end
 	elseif sel_unlocked then
-		if fee > 0 and actor_money < fee then
-			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_insufficient_funds"))
+		if fee > 0 and funds < fee then
+			self.btn_tourn_start:TextControl():SetText(no_funds_txt)
 			self.btn_tourn_start:Enable(false)
 		elseif fee > 0 then
-			self.btn_tourn_start:TextControl():SetText(string.format(gt("st_arena_btn_enter_with_fee"), tostring(fee)))
+			self.btn_tourn_start:TextControl():SetText((gt("st_arena_btn_enter") or "ENTRAR A LA ARENA") .. " (" .. self:format_rental_fee(fee) .. ")")
 			self.btn_tourn_start:Enable(true)
 		else
 			self.btn_tourn_start:TextControl():SetText(gt("st_arena_btn_enter"))
@@ -2230,14 +2864,16 @@ function UIXcvbArena:update_loadout_buttons()
 	if eff_tier > 5 then eff_tier = 5 end
 
 	-- Refresh available weapons cache
-	if self.selected_loadout_class ~= "random" then
-		if self.selected_weapon_sec then
-			eff_tier = xcvb_arena_utils.get_weapon_tier(self.selected_weapon_sec) or eff_tier
-			self.selected_loadout_tier = eff_tier
-		else
-			self.available_weapons_cache = xcvb_arena_utils.get_available_weapons(eff_tier, self.selected_loadout_class)
-			self.selected_weapon_sec = self.available_weapons_cache and self.available_weapons_cache[1] or nil
+	if self.selected_weapon_sec then
+		if self.selected_loadout_class == "random" then
+			self.selected_loadout_class = (xcvb_arena_utils and xcvb_arena_utils.get_weapon_class and xcvb_arena_utils.get_weapon_class(self.selected_weapon_sec)) or "rifle"
 		end
+		eff_tier = (xcvb_arena_utils and xcvb_arena_utils.get_weapon_tier and xcvb_arena_utils.get_weapon_tier(self.selected_weapon_sec)) or eff_tier
+		self.selected_loadout_tier = eff_tier
+		self.available_weapons_cache = xcvb_arena_utils.get_available_weapons(eff_tier, self.selected_loadout_class)
+	elseif self.selected_loadout_class ~= "random" then
+		self.available_weapons_cache = xcvb_arena_utils.get_available_weapons(eff_tier, self.selected_loadout_class)
+		self.selected_weapon_sec = self.available_weapons_cache and self.available_weapons_cache[1] or nil
 	else
 		self.available_weapons_cache = xcvb_arena_utils.get_available_weapons(eff_tier, "random")
 		self.selected_weapon_sec = nil
@@ -2263,14 +2899,14 @@ function UIXcvbArena:update_loadout_buttons()
 	}
 
 	local ammo_keys = { "auto", "fmj", "ap", "hp", "special" }
-	local w = 132
-	local step = 137
+	local w = 180
+	local step = 186
 	for idx, at in ipairs(ammo_keys) do
 		local btn = self.loadout_ammo_btns and self.loadout_ammo_btns[at]
 		if btn then
 			btn:Show(true)
-			btn:SetWndPos(vector2():set((idx - 1) * step, 322))
-			btn:SetWndSize(vector2():set(w, 22))
+			btn:SetWndPos(vector2():set((idx - 1) * step, 318))
+			btn:SetWndSize(vector2():set(w, 24))
 			local a_name = ammo_names[at] or at:upper()
 			if at == self.selected_loadout_ammo then
 				btn:TextControl():SetText(a_name .. " [ON]")
@@ -2566,29 +3202,41 @@ function UIXcvbArena:update_loadout_buttons()
 			if string.len(sum_str) > 28 then
 				sum_str = string.sub(sum_str, 1, 26) .. ".."
 			end
-			self.summary_ammo:SetText(format_label(gt("st_arena_loadout_sum_ammo"), sum_str))
+			self.summary_ammo:Show(false)
+			self.summary_ammo:SetText("")
 		end
 
 		local outfit_sec, helmet_sec = xcvb_arena_utils.get_tier_preview_gear(eff_tier)
+		if self.selected_loadout_outfit and self.selected_loadout_outfit ~= "auto" then
+			outfit_sec = self.selected_loadout_outfit
+		end
+		if self.selected_loadout_helmet == "none" then
+			helmet_sec = nil
+		elseif self.selected_loadout_helmet and self.selected_loadout_helmet ~= "auto" then
+			helmet_sec = self.selected_loadout_helmet
+		end
 		local none_str = gt("st_none")
 		if (not none_str) or none_str == "st_none" then none_str = "---" end
 
 		if self.summary_outfit then
 			local o_name = outfit_sec and xcvb_arena_utils.get_item_name(outfit_sec) or none_str
 			if string.len(o_name) > 22 then o_name = string.sub(o_name, 1, 20) .. ".." end
-			self.summary_outfit:SetText(format_label(gt("st_arena_loadout_sum_outfit"), o_name))
+			self.summary_outfit:Show(false)
+			self.summary_outfit:SetText("")
 		end
 
 		if self.summary_helmet then
 			local h_name = helmet_sec and xcvb_arena_utils.get_item_name(helmet_sec) or none_str
 			if string.len(h_name) > 22 then h_name = string.sub(h_name, 1, 20) .. ".." end
-			self.summary_helmet:SetText(format_label(gt("st_arena_loadout_sum_helmet"), h_name))
+			self.summary_helmet:Show(false)
+			self.summary_helmet:SetText("")
 		end
 
 		if self.summary_scope then
 			local s_name = self.selected_3dssg_scope and xcvb_arena_utils.get_item_short_name(self.selected_3dssg_scope) or none_str
 			if string.len(s_name) > 22 then s_name = string.sub(s_name, 1, 20) .. ".." end
-			self.summary_scope:SetText(format_label("3DSSG", s_name))
+			self.summary_scope:Show(false)
+			self.summary_scope:SetText("")
 		end
 
 		if self.summary_cost then
@@ -2598,15 +3246,253 @@ function UIXcvbArena:update_loadout_buttons()
 				self.summary_cost:SetText(format_label(cost_label, gt("st_arena_cost_free")))
 				self.summary_cost:SetTextColor(GetARGB(255, 120, 240, 120))
 			else
-				local actor_money = db.actor and db.actor:money() or 0
-				self.summary_cost:SetText(format_label(cost_label, tostring(fee) .. " RU"))
-				if actor_money >= fee then
+				local funds = self:get_player_arena_funds()
+				self.summary_cost:SetText(format_label(cost_label, self:format_rental_fee(fee)))
+				if funds >= fee then
 					self.summary_cost:SetTextColor(GetARGB(255, 255, 220, 100))
 				else
 					self.summary_cost:SetTextColor(GetARGB(255, 255, 100, 100))
 				end
 			end
 		end
+
+		if self.loadout_slots then
+			local t_data = (xcvb_arena_utils.tournament_loadouts_t and xcvb_arena_utils.tournament_loadouts_t[eff_tier])
+				or (xcvb_arena_utils.tournament_loadouts_t and xcvb_arena_utils.tournament_loadouts_t[1])
+				or {}
+
+			-- Scope check
+			local eff_scope = nil
+			if self.selected_3dssg_mode ~= "off" then
+				eff_scope = self.selected_3dssg_scope
+				if not eff_scope and scope_list and #scope_list > 0 then
+					eff_scope = scope_list[1]
+				end
+			end
+
+			-- Weapon (Dynamic width if scope present)
+			local eff_wpn = self.selected_weapon_sec
+			if not eff_wpn and self.available_weapons_cache and #self.available_weapons_cache > 0 then
+				eff_wpn = self.available_weapons_cache[1]
+			end
+
+			if eff_scope then
+				self.loadout_slots.weapon.w = 252
+				if self.loadout_slots.weapon.bg then
+					self.loadout_slots.weapon.bg:SetWndSize(vector2():set(252, 36))
+				end
+				paint_slot_item(self.loadout_slots.weapon, eff_wpn, nil, gt("st_arena_loadout_weapon_title"))
+				paint_slot_item(self.loadout_slots.scope, eff_scope, nil, "3DSSG")
+			else
+				self.loadout_slots.weapon.w = 312
+				if self.loadout_slots.weapon.bg then
+					self.loadout_slots.weapon.bg:SetWndSize(vector2():set(312, 36))
+				end
+				paint_slot_item(self.loadout_slots.weapon, eff_wpn, nil, gt("st_arena_loadout_weapon_title"))
+				paint_slot_item(self.loadout_slots.scope, nil, nil, "3DSSG")
+			end
+
+			-- 3. Outfit & Helmet
+			paint_slot_item(self.loadout_slots.outfit, outfit_sec, nil, gt("st_arena_loadout_sum_outfit"))
+			paint_slot_item(self.loadout_slots.helmet, helmet_sec, nil, gt("st_arena_loadout_sum_helmet"))
+
+			-- 4. Ammo box
+			local ammo_box_badge = ""
+			if eff_ammo then
+				if self.selected_ammo_count == "auto" or not self.selected_ammo_count then
+					ammo_box_badge = "1-3x"
+				else
+					ammo_box_badge = tostring(self.selected_ammo_count) .. "x"
+				end
+			end
+			paint_slot_item(self.loadout_slots.ammo, eff_ammo, ammo_box_badge, gt("st_arena_loadout_ammo_title"))
+
+			-- 5. Magazine
+			local eff_mag = self.selected_loadout_mag or (eff_wpn and xcvb_arena_utils.get_weapon_basic_mag(eff_wpn))
+			local mag_badge = ""
+			if eff_mag then
+				if self.selected_mag_count == "auto" or not self.selected_mag_count then
+					mag_badge = "1-3x"
+				else
+					mag_badge = tostring(self.selected_mag_count) .. "x"
+				end
+			end
+			paint_slot_item(self.loadout_slots.mag, eff_mag, mag_badge, gt("st_arena_loadout_mag_title"))
+
+			-- 6. Knife
+			local knife_sec = t_data.knife or "wpn_knife"
+			paint_slot_item(self.loadout_slots.knife, knife_sec, nil, gt("st_arena_knife_title") or "Cuchillo")
+
+			-- 7. Meds
+			local chosen_med_pack = self.selected_loadout_meds or "standard"
+			local med_sec = (t_data.meds and t_data.meds[1]) or "medkit"
+			local med_badge = "1x"
+			if string.find(chosen_med_pack, "^custom:") then
+				local m_sec, m_cnt, b_cnt, s_cnt = string.match(chosen_med_pack, "^custom:([^:]*):(%d+):(%d+):(%d+)$")
+				m_cnt = tonumber(m_cnt) or 0
+				b_cnt = tonumber(b_cnt) or 0
+				s_cnt = tonumber(s_cnt) or 0
+				med_sec = (m_sec and m_sec ~= "" and m_sec ~= "none" and ini_sys:section_exist(m_sec)) and m_sec or ((b_cnt > 0) and "bandage" or "medkit")
+				local total_c = m_cnt + b_cnt + s_cnt
+				med_badge = (total_c > 0) and (tostring(total_c) .. "x") or ""
+			elseif chosen_med_pack == "combat" then
+				med_sec = "medkit_army"
+				med_badge = "6x"
+			elseif chosen_med_pack == "elite" then
+				med_sec = "medkit_scientic"
+				med_badge = "8x"
+			elseif chosen_med_pack == "survival" then
+				med_sec = "medkit_army"
+				med_badge = "11x"
+			elseif t_data.meds and #t_data.meds > 0 then
+				med_badge = tostring(#t_data.meds) .. "x"
+			end
+			paint_slot_item(self.loadout_slots.meds, med_sec, med_badge, gt("st_arena_meds_title") or "Meds")
+
+			-- 8. Grenades
+			local chosen_grenade = self.selected_loadout_grenades or "auto"
+			local gr_sec = (t_data.grenades and t_data.grenades[1]) or nil
+			local gr_badge = t_data.grenades and (#t_data.grenades > 0 and (tostring(#t_data.grenades) .. "x")) or ""
+			if chosen_grenade == "none" then
+				gr_sec = nil
+				gr_badge = ""
+			elseif string.find(chosen_grenade, "^([^:]+):(%d+)$") then
+				local gs, gc = string.match(chosen_grenade, "^([^:]+):(%d+)$")
+				gr_sec = (gs ~= "none" and ini_sys:section_exist(gs)) and gs or nil
+				local c = tonumber(gc) or 1
+				gr_badge = (gr_sec and c > 0) and (tostring(c) .. "x") or ""
+			elseif chosen_grenade == "rgd5_1" then
+				gr_sec = "grenade_rgd5"
+				gr_badge = "1x"
+			elseif chosen_grenade == "rgd5_2" then
+				gr_sec = "grenade_rgd5"
+				gr_badge = "2x"
+			elseif chosen_grenade == "f1_1" then
+				gr_sec = "grenade_f1"
+				gr_badge = "1x"
+			elseif chosen_grenade == "f1_2" then
+				gr_sec = "grenade_f1"
+				gr_badge = "2x"
+			elseif chosen_grenade == "smoke_1" then
+				gr_sec = (ini_sys and ini_sys:section_exist("grenade_gd-05")) and "grenade_gd-05" or "grenade_rgd5"
+				gr_badge = "1x"
+			end
+			paint_slot_item(self.loadout_slots.grenade, gr_sec, gr_badge, gt("st_arena_grenades_title") or "Granadas")
+
+			-- 9. Night device (torch/NVG)
+			local dev_sec = nil
+			if xcvb_arena_main and xcvb_arena_main.night_mode_active then
+				dev_sec = self.selected_night_device or "device_torch_dummy"
+			end
+			paint_slot_item(self.loadout_slots.device, dev_sec, nil, gt("st_arena_night_device_title") or "Night Device")
+		end
+	end
+
+	-- Update Dedicated Loadout Buttons (Armor, Helmet, Meds, Grenades)
+	if self.btn_loadout_armor and self.btn_loadout_armor:TextControl() then
+		local a_lbl = gt("st_arena_btn_armor") or "ARMOR"
+		local cur_arm = self.selected_loadout_outfit or "auto"
+		local val_str = (cur_arm == "auto") and (gt("st_arena_loadout_auto_armor") or "AUTO") or (xcvb_arena_utils.get_item_name(cur_arm) or cur_arm)
+		if string.len(val_str) > 36 then val_str = string.sub(val_str, 1, 33) .. ".." end
+		self.btn_loadout_armor:TextControl():SetText(string.format("%s: %s", a_lbl, val_str))
+		self.btn_loadout_armor:TextControl():SetTextColor((cur_arm ~= "auto") and GetARGB(255, 120, 240, 255) or GetARGB(255, 200, 200, 200))
+	end
+
+	if self.btn_loadout_helmet and self.btn_loadout_helmet:TextControl() then
+		local h_lbl = gt("st_arena_btn_helmet") or "HELMET"
+		local cur_helm = self.selected_loadout_helmet or "auto"
+		local val_str = ""
+		if cur_helm == "auto" then
+			val_str = gt("st_arena_loadout_auto_helmet") or "AUTO"
+		elseif cur_helm == "none" then
+			val_str = gt("st_arena_loadout_no_helmet") or "NONE"
+		else
+			val_str = xcvb_arena_utils.get_item_name(cur_helm) or cur_helm
+		end
+		if string.len(val_str) > 36 then val_str = string.sub(val_str, 1, 33) .. ".." end
+		self.btn_loadout_helmet:TextControl():SetText(string.format("%s: %s", h_lbl, val_str))
+		self.btn_loadout_helmet:TextControl():SetTextColor((cur_helm ~= "auto") and GetARGB(255, 120, 240, 255) or GetARGB(255, 200, 200, 200))
+	end
+
+	local cur_m = self.selected_loadout_meds or "standard"
+	local m_display = ""
+	local m_qty_badge = "1x"
+	if string.find(cur_m, "^custom:") then
+		local m_sec, m_cnt, b_cnt, s_cnt = string.match(cur_m, "^custom:([^:]*):(%d+):(%d+):(%d+)$")
+		m_cnt = tonumber(m_cnt) or 0
+		b_cnt = tonumber(b_cnt) or 0
+		s_cnt = tonumber(s_cnt) or 0
+		local parts = {}
+		if m_sec and m_sec ~= "" and m_sec ~= "none" and m_cnt > 0 then
+			local sn = xcvb_arena_utils.get_item_short_name(m_sec) or "Med"
+			table.insert(parts, tostring(m_cnt) .. "x " .. sn)
+		end
+		if b_cnt > 0 then table.insert(parts, tostring(b_cnt) .. "x Band") end
+		if s_cnt > 0 then table.insert(parts, tostring(s_cnt) .. "x Stim") end
+		if #parts == 0 then
+			m_display = gt("st_arena_preset_none") or "None"
+			m_qty_badge = "0x"
+		else
+			m_display = table.concat(parts, ", ")
+			local total_c = m_cnt + b_cnt + s_cnt
+			m_qty_badge = tostring(total_c) .. "x"
+		end
+	else
+		local m_name_key = "st_arena_meds_pack_" .. cur_m
+		m_display = gt(m_name_key) or cur_m:upper()
+		if cur_m == "standard" then m_qty_badge = "3x"
+		elseif cur_m == "combat" then m_qty_badge = "6x"
+		elseif cur_m == "elite" then m_qty_badge = "8x"
+		elseif cur_m == "survival" then m_qty_badge = "11x"
+		end
+	end
+	if string.len(m_display) > 28 then m_display = string.sub(m_display, 1, 26) .. ".." end
+	if self.btn_loadout_meds and self.btn_loadout_meds:TextControl() then
+		local m_lbl = gt("st_arena_btn_meds") or "MEDS"
+		self.btn_loadout_meds:TextControl():SetText(string.format("%s: %s", m_lbl, m_display))
+		self.btn_loadout_meds:TextControl():SetTextColor((cur_m ~= "standard") and GetARGB(255, 120, 240, 255) or GetARGB(255, 200, 200, 200))
+	end
+	if self.btn_meds_qty and self.btn_meds_qty:TextControl() then
+		self.btn_meds_qty:TextControl():SetText(m_qty_badge)
+	end
+
+	local cur_g = self.selected_loadout_grenades or "auto"
+	local g_display = ""
+	local g_qty_badge = "1x"
+	if cur_g == "none" then
+		g_display = gt("st_arena_grenades_none") or "NONE"
+		g_qty_badge = "0x"
+	elseif cur_g == "auto" then
+		g_display = gt("st_arena_grenades_auto") or "AUTO"
+		g_qty_badge = "1x"
+	elseif string.find(cur_g, "^([^:]+):(%d+)$") then
+		local g_sec, g_cnt = string.match(cur_g, "^([^:]+):(%d+)$")
+		local count = tonumber(g_cnt) or 1
+		local g_name = xcvb_arena_utils.get_item_short_name(g_sec) or g_sec
+		g_display = tostring(count) .. "x " .. g_name
+		g_qty_badge = tostring(count) .. "x"
+	elseif cur_g == "rgd5_1" then
+		g_display = "1x RGD-5"; g_qty_badge = "1x"
+	elseif cur_g == "rgd5_2" then
+		g_display = "2x RGD-5"; g_qty_badge = "2x"
+	elseif cur_g == "f1_1" then
+		g_display = "1x F-1"; g_qty_badge = "1x"
+	elseif cur_g == "f1_2" then
+		g_display = "2x F-1"; g_qty_badge = "2x"
+	elseif cur_g == "smoke_1" then
+		g_display = "1x Smoke"; g_qty_badge = "1x"
+	else
+		g_display = gt("st_arena_grenades_auto") or "AUTO"
+		g_qty_badge = "1x"
+	end
+	if string.len(g_display) > 28 then g_display = string.sub(g_display, 1, 26) .. ".." end
+	if self.btn_loadout_grenades and self.btn_loadout_grenades:TextControl() then
+		local g_lbl = gt("st_arena_btn_grenades") or "GRENADES"
+		self.btn_loadout_grenades:TextControl():SetText(string.format("%s: %s", g_lbl, g_display))
+		self.btn_loadout_grenades:TextControl():SetTextColor((cur_g ~= "auto") and GetARGB(255, 120, 240, 255) or GetARGB(255, 200, 200, 200))
+	end
+	if self.btn_grenade_qty and self.btn_grenade_qty:TextControl() then
+		self.btn_grenade_qty:TextControl():SetText(g_qty_badge)
 	end
 
 	self:update_tourn_start_button()
@@ -2645,16 +3531,30 @@ function UIXcvbArena:on_click_tourn_start()
 		fee = 0
 	end
 	if (not is_practice) and fee > 0 then
-		local actor_money = db.actor and db.actor:money() or 0
-		if actor_money < fee then
-			local msg = string.format(gt("st_arena_err_insufficient_funds"), fee)
-			if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
-			return
-		end
-		if db.actor then
-			db.actor:give_money(-fee)
-			local fee_msg = string.format(gt("st_arena_fee_deducted_tip"), fee)
-			news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000)
+		if self:is_tokens_economy() then
+			local tokens = (xcvb_arena_main and xcvb_arena_main.get_arena_tokens and xcvb_arena_main.get_arena_tokens()) or 0
+			if tokens < fee then
+				local msg = string.format("No tienes suficientes Puntos de Arena (%d Pts necesarios).", fee)
+				if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
+				return
+			end
+			if xcvb_arena_main and xcvb_arena_main.spend_arena_tokens then
+				xcvb_arena_main.spend_arena_tokens(fee)
+				local fee_msg = string.format("Se han descontado %d Puntos de Arena por el alquiler de equipamiento.", fee)
+				if db.actor then news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000) end
+			end
+		else
+			local actor_money = db.actor and db.actor:money() or 0
+			if actor_money < fee then
+				local msg = string.format(gt("st_arena_err_insufficient_funds"), fee)
+				if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
+				return
+			end
+			if db.actor then
+				db.actor:give_money(-fee)
+				local fee_msg = string.format(gt("st_arena_fee_deducted_tip"), fee)
+				news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000)
+			end
 		end
 	end
 
@@ -2668,6 +3568,10 @@ function UIXcvbArena:on_click_tourn_start()
 	local chosen_mag = self.selected_loadout_mag
 	local chosen_mag_count = self.selected_mag_count
 	local chosen_ammo_count = self.selected_ammo_count
+	local chosen_outfit = self.selected_loadout_outfit
+	local chosen_helmet = self.selected_loadout_helmet
+	local chosen_meds = self.selected_loadout_meds
+	local chosen_grenades = self.selected_loadout_grenades
 
 	-- Reset loadout selection so it does not persist into future rounds
 	self:reset_loadout_selection()
@@ -2681,9 +3585,32 @@ function UIXcvbArena:on_click_tourn_start()
 	if forced_m then
 		xcvb_arena_main.selected_map = forced_m
 	end
-	local started = xcvb_arena_fight.start_tournament_fight(cat, self.selected_round_id, chosen_cls, chosen_tier, chosen_ammo, chosen_weapon, chosen_forced_ammo, chosen_3dssg_mode, chosen_3dssg_scope, chosen_mag, chosen_mag_count, chosen_ammo_count)
-	if started == false and not is_practice and fee > 0 and db.actor then
-		db.actor:give_money(fee)
+	local started = xcvb_arena_fight.start_tournament_fight(
+		cat,
+		self.selected_round_id,
+		chosen_cls,
+		chosen_tier,
+		chosen_ammo,
+		chosen_weapon,
+		chosen_forced_ammo,
+		chosen_3dssg_mode,
+		chosen_3dssg_scope,
+		chosen_mag,
+		chosen_mag_count,
+		chosen_ammo_count,
+		chosen_outfit,
+		chosen_helmet,
+		chosen_meds,
+		chosen_grenades
+	)
+	if started == false and not is_practice and fee > 0 then
+		if self:is_tokens_economy() then
+			if xcvb_arena_main and xcvb_arena_main.add_arena_tokens then
+				xcvb_arena_main.add_arena_tokens(fee)
+			end
+		elseif db.actor then
+			db.actor:give_money(fee)
+		end
 	end
 end
 
@@ -3524,12 +4451,14 @@ function UIXcvbArena:update_dssg_menu()
 				btn:Show(true)
 				local kit_flag = ini_sys:section_exist(entry) and ini_sys:r_bool_ex(entry, "weapon_kit", false)
 				local e_name = xcvb_arena_utils.get_item_short_name(entry) or entry
-				if string.len(e_name) > 28 then
-					e_name = string.sub(e_name, 1, 26) .. ".."
+				if string.len(e_name) > 55 then
+					e_name = string.sub(e_name, 1, 52) .. ".."
 				end
-				local prefix = (kit_flag == true) and "[KIT] " or ""
+				local prefix = string.rep(" ", 30) .. ((kit_flag == true) and "[KIT] " or "")
 				local mark = (cur_mode == "custom" and entry == cur_scope) and " [x]" or ""
 				btn:TextControl():SetText(prefix .. e_name .. mark)
+				-- text offset by prefix spaces
+				-- text size managed by xml
 				if cur_mode == "custom" and entry == cur_scope then
 					btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
 				elseif kit_flag == true then
@@ -3537,8 +4466,14 @@ function UIXcvbArena:update_dssg_menu()
 				else
 					btn:TextControl():SetTextColor(GetARGB(255, 200, 200, 200))
 				end
+				if self.arr_3dssg_icons and self.arr_3dssg_icons[i] then
+					paint_icon(self.arr_3dssg_icons[i], entry, 670, 109 + (i - 1) * 46, 72, 30)
+				end
 			else
 				btn:Show(false)
+				if self.arr_3dssg_icons and self.arr_3dssg_icons[i] then
+					self.arr_3dssg_icons[i]:Show(false)
+				end
 			end
 		end
 	end
@@ -3773,9 +4708,9 @@ function UIXcvbArena:update_mag_menu()
 				local m_name = xcvb_arena_utils.get_mag_name(entry)
 				local is_sel = (entry == cur_mag)
 				local mark = is_sel and " [x]" or ""
-				local text = string.format("%s (%sr)%s", m_name, tostring(cap), mark)
-				if string.len(text) > 34 then
-					text = string.sub(text, 1, 32) .. ".."
+				local text = string.format("%s%s  (%sr)%s", string.rep(" ", 30), m_name, tostring(cap), mark)
+				if string.len(text) > 55 then
+					text = string.sub(text, 1, 52) .. ".."
 				end
 				btn:TextControl():SetText(text)
 				if is_sel then
@@ -3800,10 +4735,10 @@ function UIXcvbArena:update_mag_menu()
 	-- Summary cost in modal
 	if self.mag_summary_cost then
 		local fee = self:get_current_loadout_rental_fee()
-		local actor_money = db.actor and db.actor:money() or 0
-		local cost_str = string.format("%s: %s RU", gt("st_arena_loadout_sum_cost") or "Rental Fee", tostring(fee))
+		local funds = self:get_player_arena_funds()
+		local cost_str = string.format("%s: %s", gt("st_arena_loadout_sum_cost") or "Rental Fee", self:format_rental_fee(fee))
 		self.mag_summary_cost:SetText(cost_str)
-		if actor_money >= fee then
+		if funds >= fee then
 			self.mag_summary_cost:SetTextColor(GetARGB(255, 255, 220, 100))
 		else
 			self.mag_summary_cost:SetTextColor(GetARGB(255, 255, 100, 100))
@@ -3943,16 +4878,30 @@ function UIXcvbArena:on_select_endless_difficulty(diff)
 	end
 
 	if (not is_practice) and fee > 0 then
-		local actor_money = db.actor and db.actor:money() or 0
-		if actor_money < fee then
-			local msg = string.format(gt("st_arena_err_insufficient_funds"), fee)
-			if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
-			return
-		end
-		if db.actor then
-			db.actor:give_money(-fee)
-			local fee_msg = string.format(gt("st_arena_fee_deducted_tip"), fee)
-			news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000)
+		if self:is_tokens_economy() then
+			local tokens = (xcvb_arena_main and xcvb_arena_main.get_arena_tokens and xcvb_arena_main.get_arena_tokens()) or 0
+			if tokens < fee then
+				local msg = string.format("No tienes suficientes Puntos de Arena (%d Pts necesarios).", fee)
+				if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
+				return
+			end
+			if xcvb_arena_main and xcvb_arena_main.spend_arena_tokens then
+				xcvb_arena_main.spend_arena_tokens(fee)
+				local fee_msg = string.format("Se han descontado %d Puntos de Arena por el alquiler de equipamiento.", fee)
+				if db.actor then news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000) end
+			end
+		else
+			local actor_money = db.actor and db.actor:money() or 0
+			if actor_money < fee then
+				local msg = string.format(gt("st_arena_err_insufficient_funds"), fee)
+				if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
+				return
+			end
+			if db.actor then
+				db.actor:give_money(-fee)
+				local fee_msg = string.format(gt("st_arena_fee_deducted_tip"), fee)
+				news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000)
+			end
 		end
 	end
 
@@ -4136,14 +5085,14 @@ function UIXcvbArena:update_endless_summary()
 				self.diff_sum_cost:SetText(string.format("%s: %s", cost_label, gt("st_arena_cost_free") or "FREE"))
 				self.diff_sum_cost:SetTextColor(GetARGB(255, 120, 240, 120))
 			else
-				local actor_money = db.actor and db.actor:money() or 0
+				local funds = self:get_player_arena_funds()
 				local has_voucher = xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher()
-				local fee_txt = tostring(fee) .. " RU"
+				local fee_txt = self:format_rental_fee(fee)
 				if has_voucher then
 					fee_txt = fee_txt .. " [" .. (gt("st_arena_voucher_tag") or "VOUCHER") .. "]"
 				end
 				self.diff_sum_cost:SetText(string.format("%s: %s", cost_label, fee_txt))
-				if has_voucher or actor_money >= fee then
+				if has_voucher or funds >= fee then
 					self.diff_sum_cost:SetTextColor(GetARGB(255, 255, 220, 100))
 				else
 					self.diff_sum_cost:SetTextColor(GetARGB(255, 255, 100, 100))
@@ -4155,14 +5104,15 @@ function UIXcvbArena:update_endless_summary()
 	-- Update enter button text and state
 	if self.btn_diff_enter and self.btn_diff_enter:TextControl() then
 		local fee = is_custom and self:get_current_endless_rental_fee(diff) or 0
-		local actor_money = db.actor and db.actor:money() or 0
+		local funds = self:get_player_arena_funds()
 		local has_voucher = xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher()
-		if is_custom and fee > 0 and (not has_voucher) and actor_money < fee then
-			self.btn_diff_enter:TextControl():SetText(gt("st_arena_btn_insufficient_funds") or "FONDOS INSUFICIENTES")
+		if is_custom and fee > 0 and (not has_voucher) and funds < fee then
+			local no_funds_txt = self:is_tokens_economy() and (gt("st_arena_btn_insufficient_tokens") or "INSUFFICIENT TOKENS") or (gt("st_arena_btn_insufficient_funds") or "INSUFFICIENT FUNDS")
+			self.btn_diff_enter:TextControl():SetText(no_funds_txt)
 			self.btn_diff_enter:TextControl():SetTextColor(GetARGB(255, 255, 100, 100))
 			self.btn_diff_enter:Enable(false)
 		else
-			local extra = (is_custom and fee > 0 and not has_voucher) and (string.format(" (%d RU)", fee)) or ""
+			local extra = (is_custom and fee > 0 and not has_voucher) and (" (" .. self:format_rental_fee(fee) .. ")") or ""
 			self.btn_diff_enter:TextControl():SetText((gt("st_arena_btn_enter") or "ENTRAR A LA ARENA") .. extra)
 			self.btn_diff_enter:TextControl():SetTextColor(GetARGB(255, 240, 220, 130))
 			self.btn_diff_enter:Enable(true)
@@ -4206,6 +5156,72 @@ function UIXcvbArena:update_endless_summary()
 	if self.diff_sum_note then
 		self.diff_sum_note:SetText(self.endless_variant == "plus" and xcvb_arena_plus.text("menu_desc") or note_str)
 	end
+
+	-- Update Endless Entering Gear Icons Preview
+	if self.endless_diff_slots then
+		local cl = xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout()
+		local tier = 1
+		local t_data = (xcvb_arena_utils.tournament_loadouts_t and xcvb_arena_utils.tournament_loadouts_t[tier])
+			or (xcvb_arena_utils.tournament_loadouts_t and xcvb_arena_utils.tournament_loadouts_t[1])
+			or {}
+		local outfit_sec, helm_sec = xcvb_arena_utils.get_tier_preview_gear(tier)
+
+		local e_wpn, e_scope, e_ammo, e_mag, e_knife, e_meds
+		local ammo_badge, mag_badge, med_badge = "", "", ""
+
+		if is_custom and cl and cl.weapon_sec and ini_sys:section_exist(cl.weapon_sec) then
+			e_wpn = cl.weapon_sec
+			if cl.scope_sec and cl.scope_sec ~= "off" then
+				if cl.scope_sec == "random" then
+					local sl = xcvb_arena_utils.get_weapon_scopes(e_wpn)
+					e_scope = sl and sl[1] or nil
+				else
+					e_scope = cl.scope_sec
+				end
+			end
+			local c_ammo_type = cl.ammo_type or "auto"
+			if c_ammo_type == "special" and cl.special_ammo_sec and ini_sys:section_exist(cl.special_ammo_sec) then
+				e_ammo = cl.special_ammo_sec
+			else
+				e_ammo = xcvb_arena_utils.get_weapon_ammo(e_wpn, c_ammo_type)
+			end
+			local box_c = cl.ammo_count or 4
+			ammo_badge = tostring(box_c) .. "x"
+
+			e_mag = cl.mag_sec or xcvb_arena_utils.get_weapon_basic_mag(e_wpn)
+			local mag_c = cl.mag_count or 4
+			mag_badge = tostring(mag_c) .. "x"
+		else
+			-- Standard random loadout
+			if w_cls ~= "all" and w_cls ~= "none" then
+				local w_list = xcvb_arena_utils.get_available_weapons(tier, w_cls)
+				e_wpn = w_list and w_list[1] or "wpn_ak74u"
+			else
+				e_wpn = "wpn_ak74u"
+			end
+			if is_3dssg and e_wpn then
+				local sl = xcvb_arena_utils.get_weapon_scopes(e_wpn)
+				e_scope = sl and sl[1] or nil
+			end
+			e_ammo = e_wpn and xcvb_arena_utils.get_weapon_basic_ammo(e_wpn)
+			ammo_badge = "4x"
+			e_mag = e_wpn and xcvb_arena_utils.get_weapon_basic_mag(e_wpn)
+			mag_badge = "4x"
+		end
+
+		e_knife = t_data.knife or "wpn_knife"
+		e_meds = (t_data.meds and t_data.meds[1]) or "medkit"
+		med_badge = (diff == "easy") and "3x" or "2x"
+
+		paint_slot_item(self.endless_diff_slots.weapon, e_wpn, nil, gt("st_arena_loadout_weapon_title"))
+		paint_slot_item(self.endless_diff_slots.scope, e_scope, nil, "3DSSG")
+		paint_slot_item(self.endless_diff_slots.outfit, outfit_sec, nil, gt("st_arena_loadout_sum_outfit"))
+		paint_slot_item(self.endless_diff_slots.helmet, helm_sec, nil, gt("st_arena_loadout_sum_helmet"))
+		paint_slot_item(self.endless_diff_slots.ammo, e_ammo, ammo_badge, gt("st_arena_loadout_ammo_title"))
+		paint_slot_item(self.endless_diff_slots.mag, e_mag, mag_badge, gt("st_arena_loadout_mag_title"))
+		paint_slot_item(self.endless_diff_slots.knife, e_knife, nil, gt("st_arena_knife_title") or "Cuchillo")
+		paint_slot_item(self.endless_diff_slots.meds, e_meds, med_badge, gt("st_arena_meds_title") or "Meds")
+	end
 end
 
 function UIXcvbArena:on_click_endless_start()
@@ -4235,16 +5251,30 @@ function UIXcvbArena:on_click_continue_endless()
 	end
 
 	if (not is_practice) and fee > 0 then
-		local actor_money = db.actor and db.actor:money() or 0
-		if actor_money < fee then
-			local msg = string.format(gt("st_arena_err_insufficient_funds"), fee)
-			if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
-			return
-		end
-		if db.actor then
-			db.actor:give_money(-fee)
-			local fee_msg = string.format(gt("st_arena_fee_deducted_tip"), fee)
-			news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000)
+		if self:is_tokens_economy() then
+			local tokens = (xcvb_arena_main and xcvb_arena_main.get_arena_tokens and xcvb_arena_main.get_arena_tokens()) or 0
+			if tokens < fee then
+				local msg = string.format("No tienes suficientes Puntos de Arena (%d Pts necesarios).", fee)
+				if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
+				return
+			end
+			if xcvb_arena_main and xcvb_arena_main.spend_arena_tokens then
+				xcvb_arena_main.spend_arena_tokens(fee)
+				local fee_msg = string.format("Se han descontado %d Puntos de Arena por el alquiler de equipamiento.", fee)
+				if db.actor then news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000) end
+			end
+		else
+			local actor_money = db.actor and db.actor:money() or 0
+			if actor_money < fee then
+				local msg = string.format(gt("st_arena_err_insufficient_funds"), fee)
+				if db.actor then news_manager.send_tip(db.actor, msg, 0, nil, 6000) end
+				return
+			end
+			if db.actor then
+				db.actor:give_money(-fee)
+				local fee_msg = string.format(gt("st_arena_fee_deducted_tip"), fee)
+				news_manager.send_tip(db.actor, fee_msg, 0, nil, 6000)
+			end
 		end
 	end
 
@@ -4384,10 +5414,10 @@ function UIXcvbArena:update_wpn_menu()
 				local w_name = page_names[i] or sec
 				if name_counts[w_name] and name_counts[w_name] > 1 then
 					local s_clean = string.gsub(sec, "^wpn_", "")
-					w_name = w_name .. " [" .. s_clean .. "]"
+					w_name = string.format("%s (%s)", w_name, s_clean:upper())
 				end
-				if string.len(w_name) > 28 then
-					w_name = string.sub(w_name, 1, 26) .. ".."
+				if string.len(w_name) > 55 then
+					w_name = string.sub(w_name, 1, 52) .. ".."
 				end
 				local w_fee = 0
 				if sec and ini_sys and ini_sys:section_exist(sec) then
@@ -4400,20 +5430,35 @@ function UIXcvbArena:update_wpn_menu()
 					local class_base = { pistol = 400, shotgun = 700, smg = 800, rifle = 1200, sniper = 1600 }
 					w_fee = (class_base[cls] or 600) * t
 				end
+				local fee_str = ""
+				if self:is_tokens_economy() then
+					local token_fee = math.max(1, math.floor((w_fee / 100) + 0.5))
+					fee_str = tostring(token_fee) .. " Pts"
+				else
+					fee_str = tostring(w_fee) .. " RU"
+				end
 				local cur_active_sel = (self.wpn_menu_target_mode == "endless" and xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout().weapon_sec) or self.selected_weapon_sec
 				local is_sel = (cur_active_sel == sec)
-				local row_text = string.format("[T%d] %s (%d RU)%s", t, w_name, w_fee, is_sel and " [SELECCIONADA]" or "")
+				local row_text = string.format("%s[T%d] %s  (%s)%s", string.rep(" ", 34), t, w_name, fee_str, is_sel and ("  " .. (gt("st_arena_loadout_selected") or "[SELECTED]")) or "")
 				if btn:TextControl() then
 					btn:TextControl():SetText(row_text)
+					-- text offset by prefix spaces
+					-- text size managed by xml
 					if is_sel then
 						btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
 					else
 						btn:TextControl():SetTextColor(GetARGB(255, 220, 220, 220))
 					end
 				end
+				if self.arr_wpn_icons and self.arr_wpn_icons[i] then
+					paint_icon(self.arr_wpn_icons[i], sec, 670, 111 + (i - 1) * 46, 76, 30)
+				end
 			else
 				btn:Show(false)
 				btn:Enable(false)
+				if self.arr_wpn_icons and self.arr_wpn_icons[i] then
+					self.arr_wpn_icons[i]:Show(false)
+				end
 			end
 		end
 	end
@@ -4431,17 +5476,24 @@ function UIXcvbArena:on_click_wpn_row(row_idx)
 	local entry = entries[actual_idx]
 	if not entry then return end
 
+	local w_cls = entry.cls or (xcvb_arena_utils and xcvb_arena_utils.get_weapon_class and xcvb_arena_utils.get_weapon_class(entry.sec)) or self.selected_loadout_class or "rifle"
+	if w_cls == "random" then
+		w_cls = (xcvb_arena_utils and xcvb_arena_utils.get_weapon_class and xcvb_arena_utils.get_weapon_class(entry.sec)) or "rifle"
+	end
+
 	if self.wpn_menu_target_mode == "endless" then
 		if xcvb_arena_endless then
-			xcvb_arena_endless.set_custom_weapon(entry.sec, self.selected_loadout_class, entry.tier or 1)
+			xcvb_arena_endless.set_custom_weapon(entry.sec, w_cls, entry.tier or 1)
 		end
 		self:show_wpn_menu(false)
 		self:show_endless_custom_menu(true)
+		self:update_endless_custom_menu()
 		return
 	end
 
+	self.selected_loadout_class = w_cls
 	self.selected_weapon_sec = entry.sec
-	self.selected_loadout_tier = entry.tier or 1
+	self.selected_loadout_tier = entry.tier or (xcvb_arena_utils and xcvb_arena_utils.get_weapon_tier and xcvb_arena_utils.get_weapon_tier(entry.sec)) or 1
 	self.selected_special_ammo_sec = nil
 
 	self:show_wpn_menu(false)
@@ -4454,16 +5506,22 @@ function UIXcvbArena:on_click_wpn_random()
 	if #entries == 0 then return end
 	local rnd_entry = entries[math.random(#entries)]
 	if rnd_entry then
+		local w_cls = rnd_entry.cls or (xcvb_arena_utils and xcvb_arena_utils.get_weapon_class and xcvb_arena_utils.get_weapon_class(rnd_entry.sec)) or self.selected_loadout_class or "rifle"
+		if w_cls == "random" then
+			w_cls = (xcvb_arena_utils and xcvb_arena_utils.get_weapon_class and xcvb_arena_utils.get_weapon_class(rnd_entry.sec)) or "rifle"
+		end
 		if self.wpn_menu_target_mode == "endless" then
 			if xcvb_arena_endless then
-				xcvb_arena_endless.set_custom_weapon(rnd_entry.sec, self.selected_loadout_class, rnd_entry.tier or 1)
+				xcvb_arena_endless.set_custom_weapon(rnd_entry.sec, w_cls, rnd_entry.tier or 1)
 			end
 			self:show_wpn_menu(false)
 			self:show_endless_custom_menu(true)
+			self:update_endless_custom_menu()
 			return
 		end
+		self.selected_loadout_class = w_cls
 		self.selected_weapon_sec = rnd_entry.sec
-		self.selected_loadout_tier = rnd_entry.tier or 1
+		self.selected_loadout_tier = rnd_entry.tier or (xcvb_arena_utils and xcvb_arena_utils.get_weapon_tier and xcvb_arena_utils.get_weapon_tier(rnd_entry.sec)) or 1
 		self.selected_special_ammo_sec = nil
 	end
 	self:show_wpn_menu(false)
@@ -4480,6 +5538,630 @@ function UIXcvbArena:on_click_wpn_page(dir)
 	if target > total_pages then target = 1 end
 	self.wpn_menu_page = target
 	self:update_wpn_menu()
+end
+
+--------------------------------------------------------------------------------
+-- TOURNAMENT LOADOUT: OUTFIT, HELMET, MEDS & GRENADE SELECTION
+--------------------------------------------------------------------------------
+
+local outfit_menu_options = {
+	{ sec = "auto", tier = 0, cost_ru = 0 },
+	{ sec = "novice_outfit", tier = 1, cost_ru = 500 },
+	{ sec = "stalker_outfit", tier = 2, cost_ru = 1500 },
+	{ sec = "specops_outfit", tier = 3, cost_ru = 3000 },
+	{ sec = "military_outfit", tier = 4, cost_ru = 5000 },
+	{ sec = "exo_outfit", tier = 5, cost_ru = 8000 },
+}
+
+function UIXcvbArena:show_outfit_menu(is_shown, target_mode)
+	if target_mode then self.outfit_menu_target_mode = target_mode end
+	self:set_modal_active("outfit", is_shown == true)
+	if is_shown then
+		self:update_outfit_menu()
+	else
+		if self.outfit_menu_target_mode == "endless" and not (self.endless_custom_menu and self.endless_custom_menu:IsShown()) then
+			self:show_endless_custom_menu(true)
+		end
+	end
+end
+
+function UIXcvbArena:update_outfit_menu()
+	if not self.outfit_menu or not self.outfit_menu:IsShown() then return end
+	local is_endless = (self.outfit_menu_target_mode == "endless")
+	local eff_tier = 1
+	if is_endless then
+		local cl = xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout()
+		eff_tier = cl and cl.tier or 1
+	else
+		eff_tier = self.selected_loadout_tier or 1
+		if eff_tier == 0 then eff_tier = math.min(5, math.floor((self.selected_round_id - 1) / 3) + 1) end
+	end
+	local auto_outfit, _ = xcvb_arena_utils.get_tier_preview_gear(eff_tier)
+	local cur_sel = is_endless and (xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout().outfit_sec or "auto") or (self.selected_loadout_outfit or "auto")
+
+	for i = 1, 6 do
+		local btn = self.arr_outfit_rows and self.arr_outfit_rows[i]
+		local opt = outfit_menu_options[i]
+		if btn and opt then
+			btn:Show(true)
+			btn:Enable(true)
+			local sec = (opt.sec == "auto") and auto_outfit or opt.sec
+			local is_sel = (cur_sel == opt.sec)
+
+			local item_name = ""
+			if opt.sec == "auto" then
+				local auto_name = auto_outfit and xcvb_arena_utils.get_item_name(auto_outfit) or (gt("st_arena_loadout_auto_armor") or "Round Armor")
+				item_name = "[" .. (gt("st_arena_ammo_auto") or "AUTO") .. "] " .. auto_name
+			else
+				local raw_name = (ini_sys:section_exist(sec) and ini_sys:r_string_ex(sec, "inv_name") and gt(ini_sys:r_string_ex(sec, "inv_name"))) or xcvb_arena_utils.get_item_name(sec) or sec
+				item_name = string.format("[T%d] %s", opt.tier, raw_name)
+			end
+			if string.len(item_name) > 55 then
+				item_name = string.sub(item_name, 1, 52) .. ".."
+			end
+
+			local fee_str = ""
+			if opt.cost_ru == 0 then
+				fee_str = gt("st_arena_cost_free") or "FREE"
+			elseif self:is_tokens_economy() then
+				local pts = math.max(1, math.floor(opt.cost_ru / 100 + 0.5))
+				fee_str = tostring(pts) .. " Pts"
+			else
+				fee_str = tostring(opt.cost_ru) .. " RU"
+			end
+
+			local sel_tag = is_sel and ("  " .. (gt("st_arena_loadout_selected") or "[SELECTED]")) or ""
+			local row_text = string.format("%s%s  (%s)%s", string.rep(" ", 30), item_name, fee_str, sel_tag)
+			if btn:TextControl() then
+				btn:TextControl():SetText(row_text)
+				if is_sel then
+					btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+				else
+					btn:TextControl():SetTextColor(GetARGB(255, 220, 220, 220))
+				end
+			end
+
+			if self.arr_outfit_icons and self.arr_outfit_icons[i] then
+				paint_icon(self.arr_outfit_icons[i], sec, 670, 86 + (i - 1) * 56, 66, 36)
+			end
+		end
+	end
+end
+
+function UIXcvbArena:on_click_outfit_row(idx)
+	local opt = outfit_menu_options[idx]
+	if not opt then return end
+	if self.outfit_menu_target_mode == "endless" then
+		if xcvb_arena_endless and xcvb_arena_endless.set_custom_outfit then
+			xcvb_arena_endless.set_custom_outfit(opt.sec)
+		end
+		self:show_outfit_menu(false)
+		self:show_endless_custom_menu(true)
+		self:update_endless_custom_menu()
+	else
+		self.selected_loadout_outfit = opt.sec
+		self:show_outfit_menu(false)
+		self:update_loadout_buttons()
+		self:update_modifier_buttons()
+	end
+end
+
+local helmet_menu_options = {
+	{ sec = "auto", tier = 0, cost_ru = 0 },
+	{ sec = "none", tier = 0, cost_ru = 0 },
+	{ sec = "helm_respirator", tier = 1, cost_ru = 300 },
+	{ sec = "helm_ach7", tier = 2, cost_ru = 1000 },
+	{ sec = "helm_protective", tier = 3, cost_ru = 1800 },
+	{ sec = "helm_battle", tier = 4, cost_ru = 2800 },
+	{ sec = "helm_exo", tier = 5, cost_ru = 4000 },
+}
+
+function UIXcvbArena:show_helmet_menu(is_shown, target_mode)
+	if target_mode then self.helmet_menu_target_mode = target_mode end
+	self:set_modal_active("helmet", is_shown == true)
+	if is_shown then
+		self:update_helmet_menu()
+	else
+		if self.helmet_menu_target_mode == "endless" and not (self.endless_custom_menu and self.endless_custom_menu:IsShown()) then
+			self:show_endless_custom_menu(true)
+		end
+	end
+end
+
+function UIXcvbArena:update_helmet_menu()
+	if not self.helmet_menu or not self.helmet_menu:IsShown() then return end
+	local is_endless = (self.helmet_menu_target_mode == "endless")
+	local eff_tier = 1
+	if is_endless then
+		local cl = xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout()
+		eff_tier = cl and cl.tier or 1
+	else
+		eff_tier = self.selected_loadout_tier or 1
+		if eff_tier == 0 then eff_tier = math.min(5, math.floor((self.selected_round_id - 1) / 3) + 1) end
+	end
+	local _, auto_helmet = xcvb_arena_utils.get_tier_preview_gear(eff_tier)
+	local cur_sel = is_endless and (xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout().helmet_sec or "auto") or (self.selected_loadout_helmet or "auto")
+
+	for i = 1, 7 do
+		local btn = self.arr_helmet_rows and self.arr_helmet_rows[i]
+		local opt = helmet_menu_options[i]
+		if btn and opt then
+			btn:Show(true)
+			btn:Enable(true)
+			local sec = (opt.sec == "auto") and auto_helmet or ((opt.sec == "none") and nil or opt.sec)
+			local is_sel = (cur_sel == opt.sec)
+
+			local item_name = ""
+			if opt.sec == "auto" then
+				local auto_name = auto_helmet and xcvb_arena_utils.get_item_name(auto_helmet) or (gt("st_arena_loadout_auto_helmet") or "Round Helmet")
+				item_name = "[" .. (gt("st_arena_ammo_auto") or "AUTO") .. "] " .. auto_name
+			elseif opt.sec == "none" then
+				item_name = gt("st_arena_loadout_no_helmet") or "[---] No Helmet"
+			else
+				local raw_name = (ini_sys:section_exist(sec) and ini_sys:r_string_ex(sec, "inv_name") and gt(ini_sys:r_string_ex(sec, "inv_name"))) or xcvb_arena_utils.get_item_name(sec) or sec
+				item_name = string.format("[T%d] %s", opt.tier, raw_name)
+			end
+			if string.len(item_name) > 55 then
+				item_name = string.sub(item_name, 1, 52) .. ".."
+			end
+
+			local fee_str = ""
+			if opt.cost_ru == 0 then
+				fee_str = gt("st_arena_cost_free") or "FREE"
+			elseif self:is_tokens_economy() then
+				local pts = math.max(1, math.floor(opt.cost_ru / 100 + 0.5))
+				fee_str = tostring(pts) .. " Pts"
+			else
+				fee_str = tostring(opt.cost_ru) .. " RU"
+			end
+
+			local sel_tag = is_sel and ("  " .. (gt("st_arena_loadout_selected") or "[SELECTED]")) or ""
+			local row_text = string.format("%s%s  (%s)%s", string.rep(" ", 30), item_name, fee_str, sel_tag)
+			if btn:TextControl() then
+				btn:TextControl():SetText(row_text)
+				if is_sel then
+					btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+				else
+					btn:TextControl():SetTextColor(GetARGB(255, 220, 220, 220))
+				end
+			end
+
+			if self.arr_helmet_icons and self.arr_helmet_icons[i] then
+				if sec then
+					paint_icon(self.arr_helmet_icons[i], sec, 670, 81 + (i - 1) * 52, 66, 34)
+				else
+					self.arr_helmet_icons[i]:Show(false)
+				end
+			end
+		end
+	end
+end
+
+function UIXcvbArena:on_click_helmet_row(idx)
+	local opt = helmet_menu_options[idx]
+	if not opt then return end
+	if self.helmet_menu_target_mode == "endless" then
+		if xcvb_arena_endless and xcvb_arena_endless.set_custom_helmet then
+			xcvb_arena_endless.set_custom_helmet(opt.sec)
+		end
+		self:show_helmet_menu(false)
+		self:show_endless_custom_menu(true)
+		self:update_endless_custom_menu()
+	else
+		self.selected_loadout_helmet = opt.sec
+		self:show_helmet_menu(false)
+		self:update_loadout_buttons()
+		self:update_modifier_buttons()
+	end
+end
+
+local meds_menu_options = {
+	{ id = "standard", preview_sec = "medkit", cost_ru = 0, name_id = "st_arena_meds_pack_standard", desc_id = "st_arena_meds_pack_standard_desc" },
+	{ id = "combat", preview_sec = "medkit_army", cost_ru = 1000, name_id = "st_arena_meds_pack_combat", desc_id = "st_arena_meds_pack_combat_desc" },
+	{ id = "elite", preview_sec = "medkit_scientic", cost_ru = 2200, name_id = "st_arena_meds_pack_elite", desc_id = "st_arena_meds_pack_elite_desc" },
+	{ id = "survival", preview_sec = "medkit_army", cost_ru = 3500, name_id = "st_arena_meds_pack_survival", desc_id = "st_arena_meds_pack_survival_desc" },
+}
+
+function UIXcvbArena:show_meds_menu(is_shown, target_mode)
+	if target_mode then self.meds_menu_target_mode = target_mode end
+	self:set_modal_active("meds", is_shown == true)
+	if is_shown then
+		local cur = (self.meds_menu_target_mode == "endless")
+			and (xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout().meds_pack or "standard")
+			or (self.selected_loadout_meds or "standard")
+		if string.find(cur, "^custom:") then
+			local m_sec, m_cnt, b_cnt, s_cnt = string.match(cur, "^custom:([^:]*):(%d+):(%d+):(%d+)$")
+			self.custom_med_type = (m_sec and m_sec ~= "") and m_sec or "none"
+			self.custom_med_cnt = tonumber(m_cnt) or 0
+			self.custom_band_cnt = tonumber(b_cnt) or 0
+			self.custom_stim_cnt = tonumber(s_cnt) or 0
+			self.meds_temp_choice = "custom"
+		else
+			self.meds_temp_choice = cur
+			if cur == "combat" then
+				self.custom_med_type = "medkit_army"; self.custom_med_cnt = 2; self.custom_band_cnt = 3; self.custom_stim_cnt = 1
+			elseif cur == "elite" then
+				self.custom_med_type = "medkit_scientic"; self.custom_med_cnt = 2; self.custom_band_cnt = 4; self.custom_stim_cnt = 0
+			elseif cur == "survival" then
+				self.custom_med_type = "medkit_army"; self.custom_med_cnt = 3; self.custom_band_cnt = 5; self.custom_stim_cnt = 2
+			else
+				self.custom_med_type = "medkit"; self.custom_med_cnt = 1; self.custom_band_cnt = 2; self.custom_stim_cnt = 0
+			end
+		end
+		self:update_meds_menu()
+	else
+		if self.meds_menu_target_mode == "endless" and not (self.endless_custom_menu and self.endless_custom_menu:IsShown()) then
+			self:show_endless_custom_menu(true)
+		end
+	end
+end
+
+function UIXcvbArena:update_meds_menu()
+	if not self.meds_menu or not self.meds_menu:IsShown() then return end
+	local cur_sel = self.meds_temp_choice or "standard"
+
+	for i = 1, 4 do
+		local btn = self.arr_meds_rows and self.arr_meds_rows[i]
+		local opt = meds_menu_options[i]
+		if btn and opt then
+			btn:Show(true)
+			btn:Enable(true)
+			local is_sel = (cur_sel == opt.id)
+
+			local fee_str = ""
+			if opt.cost_ru == 0 then
+				fee_str = gt("st_arena_cost_free") or "FREE"
+			elseif self:is_tokens_economy() then
+				local pts = math.max(1, math.floor(opt.cost_ru / 100 + 0.5))
+				fee_str = tostring(pts) .. " Pts"
+			else
+				fee_str = tostring(opt.cost_ru) .. " RU"
+			end
+
+			local pack_name = (opt.name_id and gt(opt.name_id)) or opt.id
+			local pack_desc = (opt.desc_id and gt(opt.desc_id)) or ""
+			local sel_tag = is_sel and ("  " .. (gt("st_arena_loadout_selected") or "[SELECTED]")) or ""
+			local row_text = string.format("%s%s  (%s)  —  %s%s", string.rep(" ", 22), pack_name, fee_str, pack_desc, sel_tag)
+			if btn:TextControl() then
+				btn:TextControl():SetText(row_text)
+				if is_sel then
+					btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+				else
+					btn:TextControl():SetTextColor(GetARGB(255, 220, 220, 220))
+				end
+			end
+
+			if self.arr_meds_icons and self.arr_meds_icons[i] then
+				paint_icon(self.arr_meds_icons[i], opt.preview_sec, 670, 68 + (i - 1) * 44, 66, 30)
+			end
+		end
+	end
+
+	local types = {
+		{ btn = self.btn_med_type_basic, val = "medkit" },
+		{ btn = self.btn_med_type_army,  val = "medkit_army" },
+		{ btn = self.btn_med_type_sci,   val = "medkit_scientic" },
+		{ btn = self.btn_med_type_none,  val = "none" },
+	}
+	for _, entry in ipairs(types) do
+		if entry.btn and entry.btn:TextControl() then
+			local active = (cur_sel == "custom" and self.custom_med_type == entry.val)
+			entry.btn:TextControl():SetTextColor(active and GetARGB(255, 100, 255, 100) or GetARGB(255, 200, 200, 200))
+		end
+	end
+
+	if self.btn_med_cnt_val and self.btn_med_cnt_val:TextControl() then
+		local med_label = (self.custom_med_type ~= "none" and xcvb_arena_utils.get_item_short_name(self.custom_med_type)) or (gt("st_arena_preset_none") or "None")
+		self.btn_med_cnt_val:TextControl():SetText(string.format("%s: %d", med_label, self.custom_med_cnt or 0))
+	end
+	if self.btn_band_cnt_val and self.btn_band_cnt_val:TextControl() then
+		self.btn_band_cnt_val:TextControl():SetText(string.format("Bandages: %d", self.custom_band_cnt or 0))
+	end
+	if self.btn_stim_cnt_val and self.btn_stim_cnt_val:TextControl() then
+		self.btn_stim_cnt_val:TextControl():SetText(string.format("Stimpacks: %d", self.custom_stim_cnt or 0))
+	end
+
+	local fee_ru = 0
+	if cur_sel == "custom" then
+		local med_price = 300
+		if self.custom_med_type == "medkit_army" then med_price = 500
+		elseif self.custom_med_type == "medkit_scientic" then med_price = 800
+		elseif self.custom_med_type == "none" then med_price = 0 end
+		local total_med_cost = ((self.custom_med_cnt or 0) * med_price) + ((self.custom_band_cnt or 0) * 100) + ((self.custom_stim_cnt or 0) * 400)
+		fee_ru = math.max(0, total_med_cost - 500)
+	else
+		local opt_lookup = { combat = 1000, elite = 2200, survival = 3500 }
+		fee_ru = opt_lookup[cur_sel] or 0
+	end
+
+	if self.meds_cost_label then
+		local fee_str = ""
+		if fee_ru == 0 then
+			fee_str = gt("st_arena_cost_free") or "FREE"
+		elseif self:is_tokens_economy() then
+			local pts = math.max(1, math.floor(fee_ru / 100 + 0.5))
+			fee_str = tostring(pts) .. " Pts"
+		else
+			fee_str = tostring(fee_ru) .. " RU"
+		end
+		self.meds_cost_label:SetText(string.format("%s: %s", gt("st_arena_loadout_cost_label") or "Fee", fee_str))
+		self.meds_cost_label:SetTextColor((fee_ru > 0) and GetARGB(255, 255, 220, 100) or GetARGB(255, 120, 240, 120))
+	end
+end
+
+function UIXcvbArena:on_click_meds_row(idx)
+	local opt = meds_menu_options[idx]
+	if not opt then return end
+	self.meds_temp_choice = opt.id
+	if opt.id == "combat" then
+		self.custom_med_type = "medkit_army"; self.custom_med_cnt = 2; self.custom_band_cnt = 3; self.custom_stim_cnt = 1
+	elseif opt.id == "elite" then
+		self.custom_med_type = "medkit_scientic"; self.custom_med_cnt = 2; self.custom_band_cnt = 4; self.custom_stim_cnt = 0
+	elseif opt.id == "survival" then
+		self.custom_med_type = "medkit_army"; self.custom_med_cnt = 3; self.custom_band_cnt = 5; self.custom_stim_cnt = 2
+	else
+		self.custom_med_type = "medkit"; self.custom_med_cnt = 1; self.custom_band_cnt = 2; self.custom_stim_cnt = 0
+	end
+	self:update_meds_menu()
+end
+
+function UIXcvbArena:on_click_meds_type(med_sec)
+	self.meds_temp_choice = "custom"
+	self.custom_med_type = med_sec
+	if med_sec == "none" then
+		self.custom_med_cnt = 0
+	elseif (self.custom_med_cnt or 0) == 0 then
+		self.custom_med_cnt = 1
+	end
+	self:update_meds_menu()
+end
+
+function UIXcvbArena:on_click_meds_custom_qty(field, delta)
+	self.meds_temp_choice = "custom"
+	if field == "med" then
+		self.custom_med_cnt = math.max(0, math.min(10, (self.custom_med_cnt or 0) + delta))
+		if self.custom_med_cnt == 0 then self.custom_med_type = "none"
+		elseif self.custom_med_type == "none" then self.custom_med_type = "medkit" end
+	elseif field == "band" then
+		self.custom_band_cnt = math.max(0, math.min(15, (self.custom_band_cnt or 0) + delta))
+	elseif field == "stim" then
+		self.custom_stim_cnt = math.max(0, math.min(10, (self.custom_stim_cnt or 0) + delta))
+	end
+	self:update_meds_menu()
+end
+
+function UIXcvbArena:on_click_meds_confirm()
+	local result = "standard"
+	if self.meds_temp_choice == "custom" then
+		result = string.format("custom:%s:%d:%d:%d", self.custom_med_type or "none", self.custom_med_cnt or 0, self.custom_band_cnt or 0, self.custom_stim_cnt or 0)
+	else
+		result = self.meds_temp_choice or "standard"
+	end
+
+	if self.meds_menu_target_mode == "endless" then
+		if xcvb_arena_endless and xcvb_arena_endless.set_custom_meds then
+			xcvb_arena_endless.set_custom_meds(result)
+		end
+		self:show_meds_menu(false)
+		self:show_endless_custom_menu(true)
+		self:update_endless_custom_menu()
+	else
+		self.selected_loadout_meds = result
+		self:show_meds_menu(false)
+		self:update_loadout_buttons()
+		self:update_modifier_buttons()
+	end
+end
+
+function UIXcvbArena:on_click_meds_stepper(delta)
+	local order = { "standard", "combat", "elite", "survival" }
+	local cur = self.selected_loadout_meds or "standard"
+	local cur_idx = 1
+	for i, v in ipairs(order) do
+		if v == cur then cur_idx = i; break end
+	end
+	local next_idx = cur_idx + delta
+	if next_idx < 1 then next_idx = #order
+	elseif next_idx > #order then next_idx = 1 end
+	self.selected_loadout_meds = order[next_idx]
+	self:update_loadout_buttons()
+	self:update_modifier_buttons()
+end
+
+local grenade_menu_options = {
+	{ id = "none",  sec = "none",         unit_price = 0,    name_id = "st_arena_grenades_none", desc_id = "st_arena_grenades_none_desc" },
+	{ id = "rgd5",  sec = "grenade_rgd5",  unit_price = 500,  name_id = "st_arena_grenade_rgd5",  desc_id = "st_arena_grenade_rgd5_desc" },
+	{ id = "f1",    sec = "grenade_f1",    unit_price = 1000, name_id = "st_arena_grenade_f1",    desc_id = "st_arena_grenade_f1_desc" },
+	{ id = "smoke", sec = "grenade_gd-05", unit_price = 400,  name_id = "st_arena_grenade_smoke", desc_id = "st_arena_grenade_smoke_desc" },
+	{ id = "auto",  sec = "auto",         unit_price = 0,    name_id = "st_arena_grenades_auto", desc_id = "st_arena_grenades_auto_desc" },
+}
+
+function UIXcvbArena:show_grenade_menu(is_shown, target_mode)
+	if target_mode then self.grenade_menu_target_mode = target_mode end
+	self:set_modal_active("grenade", is_shown == true)
+	if is_shown then
+		local cur = (self.grenade_menu_target_mode == "endless")
+			and (xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout().grenades_type or "auto")
+			or (self.selected_loadout_grenades or "auto")
+		if cur == "none" or cur == "auto" then
+			self.grenade_temp_choice = cur
+			self.grenade_temp_cnt = 1
+		elseif string.find(cur, "^([^:]+):(%d+)$") then
+			local g_sec, g_cnt = string.match(cur, "^([^:]+):(%d+)$")
+			self.grenade_temp_choice = g_sec
+			self.grenade_temp_cnt = tonumber(g_cnt) or 1
+		elseif cur == "rgd5_1" then self.grenade_temp_choice = "grenade_rgd5"; self.grenade_temp_cnt = 1
+		elseif cur == "rgd5_2" then self.grenade_temp_choice = "grenade_rgd5"; self.grenade_temp_cnt = 2
+		elseif cur == "f1_1" then self.grenade_temp_choice = "grenade_f1"; self.grenade_temp_cnt = 1
+		elseif cur == "f1_2" then self.grenade_temp_choice = "grenade_f1"; self.grenade_temp_cnt = 2
+		elseif cur == "smoke_1" then self.grenade_temp_choice = "grenade_gd-05"; self.grenade_temp_cnt = 1
+		else
+			self.grenade_temp_choice = "auto"
+			self.grenade_temp_cnt = 1
+		end
+		self:update_grenade_menu()
+	else
+		if self.grenade_menu_target_mode == "endless" and not (self.endless_custom_menu and self.endless_custom_menu:IsShown()) then
+			self:show_endless_custom_menu(true)
+		end
+	end
+end
+
+function UIXcvbArena:update_grenade_menu()
+	if not self.grenade_menu or not self.grenade_menu:IsShown() then return end
+	local cur_sel = self.grenade_temp_choice or "auto"
+	local cur_cnt = self.grenade_temp_cnt or 1
+
+	for i = 1, 5 do
+		local btn = self.arr_grenade_rows and self.arr_grenade_rows[i]
+		local opt = grenade_menu_options[i]
+		if btn and opt then
+			btn:Show(true)
+			btn:Enable(true)
+			local is_sel = (cur_sel == opt.id or cur_sel == opt.sec)
+
+			local fee_str = ""
+			if opt.unit_price == 0 then
+				fee_str = gt("st_arena_cost_free") or "FREE"
+			elseif self:is_tokens_economy() then
+				local pts = math.max(1, math.floor(opt.unit_price / 100 + 0.5))
+				fee_str = tostring(pts) .. " Pts / u"
+			else
+				fee_str = tostring(opt.unit_price) .. " RU / u"
+			end
+
+			local g_name = (opt.name_id and gt(opt.name_id)) or opt.id
+			local sel_tag = is_sel and ("  " .. (gt("st_arena_loadout_selected") or "[SELECTED]")) or ""
+			local row_text = string.format("%s%s  (%s)%s", string.rep(" ", 30), g_name, fee_str, sel_tag)
+			if btn:TextControl() then
+				btn:TextControl():SetText(row_text)
+				if is_sel then
+					btn:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+				else
+					btn:TextControl():SetTextColor(GetARGB(255, 220, 220, 220))
+				end
+			end
+
+			if self.arr_grenade_icons and self.arr_grenade_icons[i] then
+				if opt.sec ~= "none" and opt.sec ~= "auto" then
+					paint_icon(self.arr_grenade_icons[i], opt.sec, 670, 76 + (i - 1) * 52, 66, 32)
+				else
+					self.arr_grenade_icons[i]:Show(false)
+				end
+			end
+		end
+	end
+
+	local allows_qty = (cur_sel ~= "none" and cur_sel ~= "auto")
+	if self.btn_gr_cnt_prev then self.btn_gr_cnt_prev:Enable(allows_qty) end
+	if self.btn_gr_cnt_next then self.btn_gr_cnt_next:Enable(allows_qty) end
+	if self.btn_gr_cnt_val and self.btn_gr_cnt_val:TextControl() then
+		local qty_text = allows_qty and (string.format("Quantity: %d", cur_cnt)) or "Quantity: N/A"
+		self.btn_gr_cnt_val:TextControl():SetText(qty_text)
+	end
+
+	local unit_p = 0
+	for _, opt in ipairs(grenade_menu_options) do
+		if cur_sel == opt.id or cur_sel == opt.sec then
+			unit_p = opt.unit_price
+			break
+		end
+	end
+	local total_fee_ru = allows_qty and (unit_p * cur_cnt) or 0
+	if self.gr_cost_label then
+		local fee_str = ""
+		if total_fee_ru == 0 then
+			fee_str = gt("st_arena_cost_free") or "FREE"
+		elseif self:is_tokens_economy() then
+			local pts = math.max(1, math.floor(total_fee_ru / 100 + 0.5))
+			fee_str = tostring(pts) .. " Pts"
+		else
+			fee_str = tostring(total_fee_ru) .. " RU"
+		end
+		self.gr_cost_label:SetText(string.format("%s: %s", gt("st_arena_loadout_cost_label") or "Fee", fee_str))
+		self.gr_cost_label:SetTextColor((total_fee_ru > 0) and GetARGB(255, 255, 220, 100) or GetARGB(255, 120, 240, 120))
+	end
+end
+
+function UIXcvbArena:on_click_grenade_row(idx)
+	local opt = grenade_menu_options[idx]
+	if not opt then return end
+	self.grenade_temp_choice = opt.sec
+	if opt.sec == "none" or opt.sec == "auto" then
+		self.grenade_temp_cnt = 1
+	end
+	self:update_grenade_menu()
+end
+
+function UIXcvbArena:on_click_grenade_menu_qty(delta)
+	self.grenade_temp_cnt = math.max(1, math.min(5, (self.grenade_temp_cnt or 1) + delta))
+	self:update_grenade_menu()
+end
+
+function UIXcvbArena:on_click_grenade_confirm()
+	local choice = self.grenade_temp_choice or "auto"
+	local cnt = self.grenade_temp_cnt or 1
+	local result = "auto"
+	if choice == "none" or choice == "auto" then
+		result = choice
+	else
+		result = choice .. ":" .. tostring(cnt)
+	end
+
+	if self.grenade_menu_target_mode == "endless" then
+		if xcvb_arena_endless and xcvb_arena_endless.set_custom_grenades then
+			xcvb_arena_endless.set_custom_grenades(result)
+		end
+		self:show_grenade_menu(false)
+		self:show_endless_custom_menu(true)
+		self:update_endless_custom_menu()
+	else
+		self.selected_loadout_grenades = result
+		self:show_grenade_menu(false)
+		self:update_loadout_buttons()
+		self:update_modifier_buttons()
+	end
+end
+
+function UIXcvbArena:on_click_grenade_stepper(delta)
+	local cur = self.selected_loadout_grenades or "auto"
+	if cur == "auto" or cur == "none" then
+		self.selected_loadout_grenades = "grenade_rgd5:1"
+	else
+		local g_sec, g_cnt = string.match(cur, "^([^:]+):(%d+)$")
+		if not g_sec then
+			g_sec = "grenade_rgd5"
+			g_cnt = 1
+		else
+			g_cnt = tonumber(g_cnt) or 1
+		end
+		local next_cnt = g_cnt + delta
+		if next_cnt > 5 then
+			self.selected_loadout_grenades = "none"
+		elseif next_cnt < 1 then
+			self.selected_loadout_grenades = "auto"
+		else
+			self.selected_loadout_grenades = g_sec .. ":" .. tostring(next_cnt)
+		end
+	end
+	self:update_loadout_buttons()
+	self:update_modifier_buttons()
+end
+
+function UIXcvbArena:on_cycle_loadout_ammo()
+	local ammo_order = { "auto", "fmj", "ap", "hp", "special" }
+	local cur = self.selected_loadout_ammo or "auto"
+	local cur_idx = 1
+	for idx, val in ipairs(ammo_order) do
+		if val == cur then
+			cur_idx = idx
+			break
+		end
+	end
+	local next_idx = (cur_idx % #ammo_order) + 1
+	self.selected_loadout_ammo = ammo_order[next_idx]
+	self:update_loadout_buttons()
+	self:update_modifier_buttons()
 end
 
 --------------------------------------------------------------------------------
@@ -4611,6 +6293,58 @@ function UIXcvbArena:update_endless_custom_menu()
 		end
 	end
 
+	if self.btn_ec_armor and self.btn_ec_armor:TextControl() then
+		local a_lbl = gt("st_arena_btn_armor") or "ARMOR"
+		local c_arm = cl.outfit_sec or "auto"
+		local val_str = (c_arm == "auto") and (gt("st_arena_loadout_auto_armor") or "AUTO") or (xcvb_arena_utils.get_item_name(c_arm) or c_arm)
+		if string.len(val_str) > 16 then val_str = string.sub(val_str, 1, 14) .. ".." end
+		self.btn_ec_armor:TextControl():SetText(string.format("%s: %s", a_lbl, val_str))
+		self.btn_ec_armor:TextControl():SetTextColor((c_arm ~= "auto") and GetARGB(255, 120, 240, 255) or GetARGB(255, 200, 200, 200))
+	end
+
+	if self.btn_ec_helmet and self.btn_ec_helmet:TextControl() then
+		local h_lbl = gt("st_arena_btn_helmet") or "HELMET"
+		local c_helm = cl.helmet_sec or "auto"
+		local val_str = ""
+		if c_helm == "auto" then val_str = gt("st_arena_loadout_auto_helmet") or "AUTO"
+		elseif c_helm == "none" then val_str = gt("st_arena_loadout_no_helmet") or "NONE"
+		else val_str = xcvb_arena_utils.get_item_name(c_helm) or c_helm end
+		if string.len(val_str) > 16 then val_str = string.sub(val_str, 1, 14) .. ".." end
+		self.btn_ec_helmet:TextControl():SetText(string.format("%s: %s", h_lbl, val_str))
+		self.btn_ec_helmet:TextControl():SetTextColor((c_helm ~= "auto") and GetARGB(255, 120, 240, 255) or GetARGB(255, 200, 200, 200))
+	end
+
+	if self.btn_ec_meds and self.btn_ec_meds:TextControl() then
+		local m_lbl = gt("st_arena_btn_meds") or "MEDS"
+		local c_med = cl.meds_pack or "standard"
+		local val_str = ""
+		if string.find(c_med, "^custom:") then
+			val_str = gt("st_arena_preset_custom") or "Custom"
+		else
+			val_str = gt("st_arena_meds_pack_" .. c_med) or c_med:upper()
+		end
+		if string.len(val_str) > 16 then val_str = string.sub(val_str, 1, 14) .. ".." end
+		self.btn_ec_meds:TextControl():SetText(string.format("%s: %s", m_lbl, val_str))
+		self.btn_ec_meds:TextControl():SetTextColor((c_med ~= "standard") and GetARGB(255, 120, 240, 255) or GetARGB(255, 200, 200, 200))
+	end
+
+	if self.btn_ec_grenades and self.btn_ec_grenades:TextControl() then
+		local g_lbl = gt("st_arena_btn_grenades") or "GRENADES"
+		local c_gr = cl.grenades_type or "auto"
+		local val_str = ""
+		if c_gr == "none" then val_str = gt("st_arena_grenades_none") or "NONE"
+		elseif c_gr == "auto" then val_str = gt("st_arena_grenades_auto") or "AUTO"
+		elseif string.find(c_gr, "^([^:]+):(%d+)$") then
+			local gs, gc = string.match(c_gr, "^([^:]+):(%d+)$")
+			val_str = tostring(gc) .. "x " .. (xcvb_arena_utils.get_item_short_name(gs) or gs)
+		else
+			val_str = c_gr
+		end
+		if string.len(val_str) > 16 then val_str = string.sub(val_str, 1, 14) .. ".." end
+		self.btn_ec_grenades:TextControl():SetText(string.format("%s: %s", g_lbl, val_str))
+		self.btn_ec_grenades:TextControl():SetTextColor((c_gr ~= "auto") and GetARGB(255, 120, 240, 255) or GetARGB(255, 200, 200, 200))
+	end
+
 	-- 5. Magazine and Ammo box labels
 	local mag_c = cl.mag_count or 4
 	if self.btn_ec_mag_label and self.btn_ec_mag_label:TextControl() then
@@ -4674,14 +6408,14 @@ function UIXcvbArena:update_endless_custom_menu()
 				self.ec_sum_cost:SetText(cost_label .. ": " .. (gt("st_arena_cost_free") or "FREE"))
 				self.ec_sum_cost:SetTextColor(GetARGB(255, 120, 240, 120))
 			else
-				local actor_money = db.actor and db.actor:money() or 0
+				local funds = self:get_player_arena_funds()
 				local has_voucher = xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher()
-				local fee_txt = tostring(fee) .. " RU"
+				local fee_txt = self:format_rental_fee(fee)
 				if has_voucher then
 					fee_txt = fee_txt .. " [" .. (gt("st_arena_voucher_tag") or "VOUCHER") .. "]"
 				end
 				self.ec_sum_cost:SetText(cost_label .. ": " .. fee_txt)
-				if has_voucher or actor_money >= fee then
+				if has_voucher or funds >= fee then
 					self.ec_sum_cost:SetTextColor(GetARGB(255, 255, 220, 100))
 				else
 					self.ec_sum_cost:SetTextColor(GetARGB(255, 255, 100, 100))
@@ -4692,17 +6426,168 @@ function UIXcvbArena:update_endless_custom_menu()
 
 	if self.btn_ec_confirm and self.btn_ec_confirm:TextControl() then
 		local fee = is_on and self:get_current_endless_rental_fee() or 0
-		local actor_money = db.actor and db.actor:money() or 0
+		local funds = self:get_player_arena_funds()
 		local has_voucher = xcvb_arena_main and xcvb_arena_main.has_free_rental_voucher and xcvb_arena_main.has_free_rental_voucher()
-		local extra = (is_on and fee > 0 and not has_voucher) and (string.format(" (%d RU)", fee)) or ""
-		if is_on and fee > 0 and (not has_voucher) and actor_money < fee then
-			self.btn_ec_confirm:TextControl():SetText(gt("st_arena_btn_insufficient_funds") or "FONDOS INSUFICIENTES")
+		local extra = (is_on and fee > 0 and not has_voucher) and (" (" .. self:format_rental_fee(fee) .. ")") or ""
+		if is_on and fee > 0 and (not has_voucher) and funds < fee then
+			local no_funds_txt = self:is_tokens_economy() and (gt("st_arena_btn_insufficient_tokens") or "INSUFFICIENT TOKENS") or (gt("st_arena_btn_insufficient_funds") or "INSUFFICIENT FUNDS")
+			self.btn_ec_confirm:TextControl():SetText(no_funds_txt)
 			self.btn_ec_confirm:TextControl():SetTextColor(GetARGB(255, 255, 100, 100))
 		else
 			self.btn_ec_confirm:TextControl():SetText((gt("st_arena_endless_custom_confirm") or "CONFIRMAR Y GUARDAR EQUIPAMIENTO") .. extra)
 			self.btn_ec_confirm:TextControl():SetTextColor(GetARGB(255, 240, 240, 240))
 		end
 	end
+
+	-- Update Custom Loadout Icons Preview
+	if self.endless_custom_slots then
+		local eff_tier = cl.tier or 1
+		local auto_outfit, auto_helm = xcvb_arena_utils.get_tier_preview_gear(eff_tier)
+		local outfit_sec = (cl.outfit_sec and cl.outfit_sec ~= "auto") and cl.outfit_sec or auto_outfit
+		local helm_sec = nil
+		if cl.helmet_sec == "none" then
+			helm_sec = nil
+		elseif cl.helmet_sec and cl.helmet_sec ~= "auto" then
+			helm_sec = cl.helmet_sec
+		else
+			helm_sec = auto_helm
+		end
+
+		local t_data = (xcvb_arena_utils.tournament_loadouts_t and xcvb_arena_utils.tournament_loadouts_t[eff_tier])
+			or (xcvb_arena_utils.tournament_loadouts_t and xcvb_arena_utils.tournament_loadouts_t[1])
+			or {}
+
+		local eff_scope = nil
+		if cur_scope and cur_scope ~= "off" then
+			if cur_scope == "random" and cur_sec then
+				local sl = xcvb_arena_utils.get_weapon_scopes(cur_sec)
+				eff_scope = sl and sl[1] or nil
+			else
+				eff_scope = cur_scope
+			end
+		end
+
+		local eff_ammo = nil
+		local c_ammo_type = cl.ammo_type or "auto"
+		if c_ammo_type == "special" and cl.special_ammo_sec and ini_sys:section_exist(cl.special_ammo_sec) then
+			eff_ammo = cl.special_ammo_sec
+		elseif cur_sec then
+			eff_ammo = xcvb_arena_utils.get_weapon_ammo(cur_sec, c_ammo_type)
+		end
+
+		local eff_mag = cl.mag_sec or (cur_sec and xcvb_arena_utils.get_weapon_basic_mag(cur_sec))
+		local ammo_badge = tostring(box_c) .. "x"
+		local mag_badge = tostring(mag_c) .. "x"
+		local knife_sec = t_data.knife or "wpn_knife"
+
+		local chosen_med = cl.meds_pack or "standard"
+		local med_sec = (t_data.meds and t_data.meds[1]) or "medkit"
+		local med_badge = "1x"
+		if string.find(chosen_med, "^custom:") then
+			local m_sec, m_cnt, b_cnt, s_cnt = string.match(chosen_med, "^custom:([^:]*):(%d+):(%d+):(%d+)$")
+			m_cnt = tonumber(m_cnt) or 0
+			b_cnt = tonumber(b_cnt) or 0
+			s_cnt = tonumber(s_cnt) or 0
+			med_sec = (m_sec and m_sec ~= "" and m_sec ~= "none" and ini_sys:section_exist(m_sec)) and m_sec or ((b_cnt > 0) and "bandage" or "medkit")
+			local total_c = m_cnt + b_cnt + s_cnt
+			med_badge = (total_c > 0) and (tostring(total_c) .. "x") or ""
+		elseif chosen_med == "combat" then
+			med_sec = "medkit_army"
+			med_badge = "6x"
+		elseif chosen_med == "elite" then
+			med_sec = "medkit_scientic"
+			med_badge = "8x"
+		elseif chosen_med == "survival" then
+			med_sec = "medkit_army"
+			med_badge = "11x"
+		end
+
+		local chosen_gr = cl.grenades_type or "auto"
+		local gr_sec = (t_data.grenades and t_data.grenades[1]) or nil
+		local gr_badge = t_data.grenades and (#t_data.grenades > 0 and (tostring(#t_data.grenades) .. "x")) or ""
+		if chosen_gr == "none" then
+			gr_sec = nil
+			gr_badge = ""
+		elseif string.find(chosen_gr, "^([^:]+):(%d+)$") then
+			local gs, gc = string.match(chosen_gr, "^([^:]+):(%d+)$")
+			gr_sec = (gs ~= "none" and ini_sys:section_exist(gs)) and gs or nil
+			local c = tonumber(gc) or 1
+			gr_badge = (gr_sec and c > 0) and (tostring(c) .. "x") or ""
+		elseif chosen_gr == "rgd5_1" then
+			gr_sec = "grenade_rgd5"
+			gr_badge = "1x"
+		elseif chosen_gr == "rgd5_2" then
+			gr_sec = "grenade_rgd5"
+			gr_badge = "2x"
+		elseif chosen_gr == "f1_1" then
+			gr_sec = "grenade_f1"
+			gr_badge = "1x"
+		elseif chosen_gr == "f1_2" then
+			gr_sec = "grenade_f1"
+			gr_badge = "2x"
+		elseif chosen_gr == "smoke_1" then
+			gr_sec = (ini_sys and ini_sys:section_exist("grenade_gd-05")) and "grenade_gd-05" or "grenade_rgd5"
+			gr_badge = "1x"
+		end
+
+		paint_slot_item(self.endless_custom_slots.weapon, cur_sec, nil, gt("st_arena_loadout_weapon_title"))
+		paint_slot_item(self.endless_custom_slots.scope, eff_scope, nil, "3DSSG")
+		paint_slot_item(self.endless_custom_slots.ammo, eff_ammo, ammo_badge, gt("st_arena_loadout_ammo_title"))
+		paint_slot_item(self.endless_custom_slots.mag, eff_mag, mag_badge, gt("st_arena_loadout_mag_title"))
+		paint_slot_item(self.endless_custom_slots.outfit, outfit_sec, nil, gt("st_arena_loadout_sum_outfit"))
+		paint_slot_item(self.endless_custom_slots.helmet, helm_sec, nil, gt("st_arena_loadout_sum_helmet"))
+		paint_slot_item(self.endless_custom_slots.knife, knife_sec, nil, gt("st_arena_knife_title") or "Knife")
+		paint_slot_item(self.endless_custom_slots.meds, med_sec, med_badge, gt("st_arena_meds_title") or "Meds")
+		paint_slot_item(self.endless_custom_slots.grenade, gr_sec, gr_badge, gt("st_arena_grenades_title") or "Grenades")
+	end
+end
+
+function UIXcvbArena:on_click_ec_outfit()
+	self:show_endless_custom_menu(false)
+	self:show_outfit_menu(true, "endless")
+end
+
+function UIXcvbArena:on_click_ec_helmet()
+	self:show_endless_custom_menu(false)
+	self:show_helmet_menu(true, "endless")
+end
+
+function UIXcvbArena:on_click_ec_meds()
+	self:show_endless_custom_menu(false)
+	self:show_meds_menu(true, "endless")
+end
+
+function UIXcvbArena:on_cycle_endless_ammo()
+	if not (xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout) then return end
+	local ammo_order = { "auto", "fmj", "ap", "hp", "spec" }
+	local cl = xcvb_arena_endless.get_custom_loadout()
+	local cur = cl.ammo_type or "auto"
+	if cur == "special" then cur = "spec" end
+	local cur_idx = 1
+	for idx, val in ipairs(ammo_order) do
+		if val == cur then
+			cur_idx = idx
+			break
+		end
+	end
+	local next_idx = (cur_idx % #ammo_order) + 1
+	self:on_click_ec_ammo(ammo_order[next_idx])
+end
+
+function UIXcvbArena:on_cycle_endless_grenades()
+	if not (xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout) then return end
+	local cl = xcvb_arena_endless.get_custom_loadout()
+	local cur = cl.grenades_type or "auto"
+	local cur_idx = 1
+	for idx, val in ipairs(grenade_cycle_options) do
+		if val == cur then
+			cur_idx = idx
+			break
+		end
+	end
+	local next_idx = (cur_idx % #grenade_cycle_options) + 1
+	xcvb_arena_endless.set_custom_grenades(grenade_cycle_options[next_idx])
+	self:update_endless_custom_menu()
 end
 
 function UIXcvbArena:on_click_ec_toggle()

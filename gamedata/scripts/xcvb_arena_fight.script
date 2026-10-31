@@ -528,7 +528,7 @@ end
 --------------------------------------------------------------------------------
 -- TOURNAMENT COMBAT MODE (Player in the Arena)
 --------------------------------------------------------------------------------
-function start_tournament_fight(category, round_id, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec, forced_mag_count, forced_ammo_count, inventory_ready)
+function start_tournament_fight(category, round_id, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec, forced_mag_count, forced_ammo_count, inventory_ready, forced_outfit_sec, forced_helm_sec, forced_meds_pack, forced_grenades_type)
     local round_data = xcvb_arena_main.get_round_data(category or "stalker", round_id)
     if not round_data or not db.actor then return false end
     local entry_map = factory_available() and (round_data.forced_map or round_data.map or xcvb_arena_main.selected_map) or "arena"
@@ -545,7 +545,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
             xcvb_arena_utils.wait_for_inventory_storage(function()
                 start_tournament_fight(category, round_id, loadout_class, loadout_tier, loadout_ammo,
                     forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec,
-                    forced_mag_count, forced_ammo_count, true)
+                    forced_mag_count, forced_ammo_count, true, forced_outfit_sec, forced_helm_sec, forced_meds_pack, forced_grenades_type)
             end)
             return true
         end
@@ -624,7 +624,9 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
         local tier = round_data.tier or math.ceil(round_id / 3)
         CreateTimeEvent("arena_spawn_loadout_e", "arena_spawn_loadout_a", 0.3, function()
             if tournament_fight_closed then return true end
-            xcvb_arena_utils.equip_tournament_random_loadout(tier, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec, forced_mag_count, forced_ammo_count)
+            xcvb_arena_utils.equip_tournament_random_loadout(tier, loadout_class, loadout_tier, loadout_ammo,
+                forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec,
+                forced_mag_count, forced_ammo_count, forced_outfit_sec, forced_helm_sec, forced_meds_pack, forced_grenades_type)
             return true
         end)
     end
