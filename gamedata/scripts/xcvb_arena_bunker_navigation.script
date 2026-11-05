@@ -1,0 +1,94 @@
+-- Keep native Duty bunker animpoints on their own floor above Backrooms.
+-- No global vertex override, fixed vertex IDs, faction changes or corpse edits.
+local original_calculate, next_check = nil, 0
+local cache = {}
+local function bar()
+    if xcvb_arena_installation and xcvb_arena_installation.factory_enabled == false then return false end
+    return level and level.name and level.name()=="l05_bar"
+end
+local function native_cover(ap)
+    local name=ap and ap.st and ap.st.cover_name
+    if type(name)~="string" or not name:find("^bar_dolg_general_animpoint_kamp%d+$") then return nil end
+    local cover=se_smart_cover and se_smart_cover.registered_smartcovers[name]
+    local p=cover and cover.position
+    if p and p.x>=198 and p.x<=258 and p.z>=76 and p.z<=140 and p.y> -12 then return p end
+end
+function resolve(p)
+    local key=string.format("%.4f/%.4f/%.4f",p.x,p.y,p.z)
+    if cache[key] then return cache[key].id,cache[key].pos end
+    local best,bestp,score
+    -- Small vertical bias avoids selecting the basement merely because the
+    -- original animation marker lies a few centimetres below its floor plane.
+    for _,dx in ipairs({0,-0.7,0.7,-1.4,1.4}) do
+        for _,dz in ipairs({0,-0.7,0.7,-1.4,1.4}) do
+            local probe=vector():set(p.x+dx,p.y+0.75,p.z+dz)
+            local ok,id=pcall(level.vertex_id,probe)
+            if ok and type(id)=="number" and id>=0 and id<4294967295 then
+                local good,q=pcall(level.vertex_position,id)
+                if good and q and math.abs(q.y-p.y)<=1.25 then
+                    local distance=(q.x-p.x)^2+(q.z-p.z)^2
+                    local rank=distance+4*(q.y-p.y)^2
+                    if distance<=6.25 and (not score or rank<score) then best,bestp,score=id,q,rank end
+                end
+            end
+        end
+    end
+    if best then cache[key]={id=best,pos=bestp} end
+    return best,bestp
+end
+function correct(ap)
+    if not bar() then return false end
+    local p=native_cover(ap)
+    if not p then return false end
+    local npc=ap.npc_id and level.object_by_id(ap.npc_id)
+    if npc then
+        if xcvb_arena_utils and xcvb_arena_utils.arena_spawned_combatant_ids[ap.npc_id] then return false end
+        if xcvb_arena_companions and xcvb_arena_companions.is_companion(ap.npc_id) then return false end
+    end
+    local old=ap.vertex_position
+    -- Resolve after loading too: serialized native schemes can retain old targets.
+    local id,q=resolve(p)
+    if not id then return false end
+    ap.position_vertex=id
+    ap.vertex_position=q
+    if ap.look_position and old then
+        ap.look_position=vector():set(ap.look_position.x+q.x-old.x,q.y,ap.look_position.z+q.z-old.z)
+    end
+    -- Recover only a live NPC assigned to this exact native bunker job.
+    -- A corpse or a legitimate arena combatant is never moved or revived.
+    if npc and npc:alive() then
+        local at=npc:position()
+        if at.y< -14 and at.x>=198 and at.x<=258 and at.z>=76 and at.z<=140 then
+            npc:set_npc_position(vector():set(q.x,q.y+0.05,q.z))
+            npc:set_dest_level_vertex_id(id)
+        end
+    end
+    return true
+end
+function install()
+    if original_calculate or not (xr_animpoint and xr_animpoint.animpoint and xr_animpoint.animpoint.calculate_position) then return end
+    original_calculate=xr_animpoint.animpoint.calculate_position
+    xr_animpoint.animpoint.calculate_position=function(self,...)
+        original_calculate(self,...)
+        correct(self)
+    end
+end
+function actor_on_update()
+    local now=time_global()
+    if now<next_check then return end
+    next_check=now+1000
+    install()
+    if not bar() then return end
+    for _,st in pairs(db.storage or {}) do
+        if type(st)=="table" then
+            local state=st.animpoint
+            if state and state.animpoint then correct(state.animpoint) end
+        end
+    end
+end
+function actor_on_first_update() cache={};next_check=0;install();actor_on_update() end
+function on_game_start()
+    install()
+    RegisterScriptCallback("actor_on_first_update",actor_on_first_update)
+    RegisterScriptCallback("actor_on_update",actor_on_update)
+end
