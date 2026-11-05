@@ -224,6 +224,7 @@ function UIXcvbArena:__init() super()
 	self:auto_select_current_round()
 	self:update_view_mode()
 	self:update_modifier_buttons()
+    xcvb_arena_credits.attach(self)
 end
 
 function UIXcvbArena:__finalize()
@@ -268,7 +269,7 @@ function UIXcvbArena:InitControls()
 	self.btn_night_device = xml:Init3tButton("btn_night_device", self.bg)
 	if self.btn_night_device then
 		self:Register(self.btn_night_device, "btn_night_device")
-		self.btn_night_device:Show(xcvb_arena_main.night_mode_active == true)
+		self.btn_night_device:Show(xcvb_arena_main.night_mode_active == true or xcvb_arena_main.selected_map=="backrooms")
 	end
 
 	-- ==============================================
@@ -638,7 +639,7 @@ function UIXcvbArena:InitControls()
 
 	-- Endless Mode Difficulty Selection Modal Window
 	self.endless_diff_menu = xml:InitStatic("endless_diff_menu", self.bg)
-	self.endless_diff_menu:Show(false)
+	self:set_modal_active("endless_diff",false)
 
 	self.diff_menu_title = xml:InitTextWnd("endless_diff_menu:title", self.endless_diff_menu)
 	self.diff_menu_desc = xml:InitTextWnd("endless_diff_menu:desc", self.endless_diff_menu)
@@ -663,9 +664,81 @@ function UIXcvbArena:InitControls()
 
 	self.btn_diff_custom = xml:Init3tButton("endless_diff_menu:btn_diff_custom", self.endless_diff_menu)
 	self:Register(self.btn_diff_custom, "btn_diff_custom")
-	self.endless_variant = xcvb_arena_main.endless_selected_variant == "plus" and "plus" or "classic"
+	self.endless_variant = xcvb_arena_main.endless_selected_variant or "classic"
+    self.btn_diff_area = xml:Init3tButton("endless_diff_menu:btn_diff_area", self.endless_diff_menu)
+    self:Register(self.btn_diff_area, "btn_diff_area")
 	self.btn_diff_variant = xml:Init3tButton("endless_diff_menu:btn_diff_variant", self.endless_diff_menu)
 	self:Register(self.btn_diff_variant, "btn_diff_variant")
+	self.btn_diff_team_config = xml:Init3tButton("endless_diff_menu:btn_diff_team_config", self.endless_diff_menu)
+	if self.btn_diff_team_config then
+		self:Register(self.btn_diff_team_config, "btn_diff_team_config")
+	end
+    self.mode_menu = xml:InitStatic("mode_menu", self.bg)
+    self.mode_menu:Show(false)
+    xml:InitTextWnd("mode_menu:title", self.mode_menu)
+    xml:InitTextWnd("mode_menu:desc", self.mode_menu)
+    for _, name in ipairs({"classic_desc", "plus_desc", "team_desc", "factions_desc"}) do
+        pcall(function() xml:InitTextWnd("mode_menu:" .. name, self.mode_menu) end)
+    end
+    self.mode_buttons = {}
+    for _, name in ipairs({"classic", "plus", "team", "factions"}) do
+        local choice = name
+        local button = xml:Init3tButton("mode_menu:" .. name, self.mode_menu)
+        self.mode_buttons[name] = button
+        self:Register(button, "mode_" .. name)
+        self:AddCallback("mode_" .. name, ui_events.BUTTON_CLICKED, function()
+            self:on_select_endless_variant(choice)
+        end, self)
+    end
+    local btn_mode_back = xml:Init3tButton("mode_menu:back", self.mode_menu)
+    if btn_mode_back then
+        self:Register(btn_mode_back, "mode_back")
+        self:AddCallback("mode_back", ui_events.BUTTON_CLICKED, function()
+            self.mode_menu:Show(false)
+            self:set_modal_active("endless_diff",true)
+            self:update_endless_menu_all()
+        end, self)
+    end
+    self.team_menu = xml:InitStatic("team_menu", self.bg)
+    self.team_menu:Show(false)
+    for _, name in ipairs({"settings_panel", "equipment_panel", "preview_panel"}) do
+        xml:InitStatic("team_menu:" .. name, self.team_menu)
+    end
+    self.team_hint = xml:InitTextWnd("team_menu:squad_hint", self.team_menu)
+    self.team_title = xml:InitTextWnd("team_menu:title", self.team_menu)
+    xml:InitTextWnd("team_menu:squad_header", self.team_menu)
+    xml:InitTextWnd("team_menu:loadout_header", self.team_menu)
+    self.team_selected_label = xml:InitTextWnd("team_menu:selected_label", self.team_menu)
+    xml:InitTextWnd("team_menu:desc", self.team_menu)
+    self.team_summary = xml:InitTextWnd("team_menu:summary", self.team_menu)
+    self.team_weapon = xml:InitTextWnd("team_menu:weapon_label", self.team_menu)
+    self.team_scope_label = xml:InitTextWnd("team_menu:scope_label", self.team_menu)
+    self.team_weapon_icon = xml:InitStatic("team_menu:weapon_icon", self.team_menu)
+    self.team_scope_icon = xml:InitStatic("team_menu:scope_icon", self.team_menu)
+    self.team_weapon_icon:Enable(false); self.team_scope_icon:Enable(false)
+    self.team_buttons = {}
+    for _, name in ipairs({"count", "count_minus", "count_plus", "replenish", "heal", "resupply", "slot1", "slot2", "slot3", "slot4",
+        "rank", "class", "weapon", "scope", "ammo", "boxes", "reset", "modes", "back"}) do
+        local option = name
+        local button = xml:Init3tButton("team_menu:" .. name, self.team_menu)
+        self.team_buttons[name] = button
+        self:Register(button, "team_" .. name)
+        self:AddCallback("team_" .. name, ui_events.BUTTON_CLICKED, function() self:on_team_option(option) end, self)
+    end
+
+    self.factions_menu = xml:InitStatic("factions_menu", self.bg)
+    self.factions_menu:Show(false)
+    xml:InitTextWnd("factions_menu:title", self.factions_menu)
+    xml:InitTextWnd("factions_menu:desc", self.factions_menu)
+    self.faction_buttons, self.faction_labels = {}, {}
+    for _, name in ipairs({"count", "loadouts", "modes", "back", "faction1", "size1", "rank1", "faction2", "size2", "rank2", "faction3", "size3", "rank3", "faction4", "size4", "rank4"}) do
+        local option = name
+        local btn = xml:Init3tButton("factions_menu:" .. name, self.factions_menu)
+        self.faction_buttons[name] = btn
+        self:Register(btn, "factions_" .. name)
+        self:AddCallback("factions_" .. name, ui_events.BUTTON_CLICKED, function() self:on_faction_option(option) end, self)
+    end
+    for i=1,4 do self.faction_labels[i] = xml:InitTextWnd("factions_menu:team" .. i, self.factions_menu) end
 
 	self.diff_summary_frame = xml:InitStatic("endless_diff_menu:diff_summary_frame", self.endless_diff_menu)
 	if self.diff_summary_frame then
@@ -884,6 +957,8 @@ function UIXcvbArena:InitControls()
 	self.night_device_menu = xml:InitStatic("night_device_menu", self.bg)
 	if self.night_device_menu then
 		self.night_device_menu:Show(false)
+        self.night_device_title=xml:InitTextWnd("night_device_menu:title",self.night_device_menu)
+        self.night_device_subtitle=xml:InitTextWnd("night_device_menu:subtitle",self.night_device_menu)
 		self.btn_dev_torch = xml:Init3tButton("night_device_menu:btn_device_torch", self.night_device_menu)
 		self:Register(self.btn_dev_torch, "btn_dev_torch")
 
@@ -1174,6 +1249,14 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		if self.btn_diff_spawn_type then self.btn_diff_spawn_type:Show(is_shown); self.btn_diff_spawn_type:Enable(is_shown) end
 		if self.btn_diff_custom then self.btn_diff_custom:Show(is_shown); self.btn_diff_custom:Enable(is_shown) end
 		if self.btn_diff_variant then self.btn_diff_variant:Show(is_shown); self.btn_diff_variant:Enable(is_shown) end
+        if self.btn_diff_area then
+            self.btn_diff_area:Show(is_shown)
+            self.btn_diff_area:Enable(is_shown and (not xcvb_arena_installation or xcvb_arena_installation.factory_enabled~=false))
+        end
+        if self.btn_diff_team_config then
+            self.btn_diff_team_config:Show(is_shown)
+            self.btn_diff_team_config:Enable(is_shown and (self.endless_variant=="team" or self.endless_variant=="factions"))
+        end
 		if self.btn_diff_easy then self.btn_diff_easy:Show(is_shown); self.btn_diff_easy:Enable(is_shown) end
 		if self.btn_diff_medium then self.btn_diff_medium:Show(is_shown); self.btn_diff_medium:Enable(is_shown) end
 		if self.btn_diff_hard then self.btn_diff_hard:Show(is_shown); self.btn_diff_hard:Enable(is_shown) end
@@ -1271,7 +1354,7 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		if self.btn_dev_nvg1 then self.btn_dev_nvg1:Show(is_shown); self.btn_dev_nvg1:Enable(is_shown) end
 		if self.btn_dev_nvg2 then self.btn_dev_nvg2:Show(is_shown); self.btn_dev_nvg2:Enable(is_shown) end
 		if self.btn_dev_nvg3 then self.btn_dev_nvg3:Show(is_shown); self.btn_dev_nvg3:Enable(is_shown) end
-		if self.btn_dev_none then self.btn_dev_none:Show(is_shown); self.btn_dev_none:Enable(is_shown) end
+		if self.btn_dev_none then self.btn_dev_none:Show(is_shown and not self.backrooms_device_context); self.btn_dev_none:Enable(is_shown and not self.backrooms_device_context) end
 		if self.btn_dev_close then self.btn_dev_close:Show(is_shown); self.btn_dev_close:Enable(is_shown) end
 	elseif modal_name == "outfit" then
 		if self.outfit_menu then
@@ -1447,16 +1530,20 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_diff_easy", ui_events.BUTTON_CLICKED, function() self:on_click_diff_btn("easy") end, self)
 	self:AddCallback("btn_diff_medium", ui_events.BUTTON_CLICKED, function() self:on_click_diff_btn("medium") end, self)
 	self:AddCallback("btn_diff_hard", ui_events.BUTTON_CLICKED, function() self:on_click_diff_btn("hard") end, self)
+    self:AddCallback("btn_diff_area", ui_events.BUTTON_CLICKED, self.on_click_endless_area, self)
 	self:AddCallback("btn_diff_enter", ui_events.BUTTON_CLICKED, self.on_confirm_endless_start, self)
 	self:AddCallback("btn_diff_escalation", ui_events.BUTTON_CLICKED, self.on_click_endless_escalation, self)
 	self:AddCallback("btn_diff_spawn_type", ui_events.BUTTON_CLICKED, self.on_click_endless_spawn_type, self)
 	self:AddCallback("btn_diff_3dssg", ui_events.BUTTON_CLICKED, self.on_click_endless_3dssg, self)
 	self:AddCallback("btn_diff_custom", ui_events.BUTTON_CLICKED, self.on_click_diff_custom, self)
-	self:AddCallback("btn_diff_variant", ui_events.BUTTON_CLICKED, function()
-		self.endless_variant = self.endless_variant == "plus" and "classic" or "plus"
-		xcvb_arena_main.endless_selected_variant = self.endless_variant
-		self:update_endless_menu_all()
-	end, self)
+    self:AddCallback("btn_diff_variant", ui_events.BUTTON_CLICKED, function()
+        self:set_modal_active("endless_diff",false)
+        self.mode_menu:Show(true)
+        self:update_mode_menu_selection()
+    end, self)
+    if self.btn_diff_team_config then
+        self:AddCallback("btn_diff_team_config", ui_events.BUTTON_CLICKED, self.on_click_endless_configuration, self)
+    end
 	self:AddCallback("btn_diff_cancel", ui_events.BUTTON_CLICKED, function() self:show_endless_difficulty_menu(false) end, self)
 	self:AddCallback("btn_diff_reset_stats", ui_events.BUTTON_CLICKED, self.on_click_endless_reset_stats, self)
 	self:AddCallback("btn_endless_custom_eq_main", ui_events.BUTTON_CLICKED, self.on_click_endless_custom_eq, self)
@@ -1473,7 +1560,7 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_dev_nvg2", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_nv_2") end, self)
 	self:AddCallback("btn_dev_nvg3", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("device_torch_nv_3") end, self)
 	self:AddCallback("btn_dev_none", ui_events.BUTTON_CLICKED, function() self:on_select_night_device("none") end, self)
-	self:AddCallback("btn_dev_close", ui_events.BUTTON_CLICKED, function() self:set_modal_active("night_device", false) end, self)
+	self:AddCallback("btn_dev_close", ui_events.BUTTON_CLICKED, self.close_night_device_menu, self)
 
 	-- Beta Testing Battle Royale callbacks
 	self:AddCallback("bc_btn_3teams", ui_events.BUTTON_CLICKED, function() self:on_click_bc_teams_count(3) end, self)
@@ -1899,7 +1986,7 @@ function UIXcvbArena:is_secondary_map()
 end
 
 function UIXcvbArena:map_matches(forced_map)
-    return not forced_map or forced_map == xcvb_arena_main.selected_map
+    return xcvb_arena_main.selected_map == "backrooms" or not forced_map or forced_map == xcvb_arena_main.selected_map
 end
 
 function UIXcvbArena:update_map_button()
@@ -1909,7 +1996,8 @@ function UIXcvbArena:update_map_button()
 	local is_factory = xcvb_arena_main.selected_map == "factory"
 	if self.btn_map and self.btn_map:TextControl() then
 		self.btn_map:TextControl():SetFont(GetFontLetterica16Russian())
-		local btn_txt = is_factory and "Area: Factory (NEW)" or "Area: Arena (default)"
+		local btn_txt = xcvb_arena_main.selected_map == "backrooms" and "Area: Backrooms (NEW)"
+            or (is_factory and "Area: Factory (NEW)" or "Area: Arena (default)")
 		self.btn_map:TextControl():SetText(btn_txt)
 		self.btn_map:TextControl():SetTextColor(is_factory and GetARGB(255,100,210,255)
             or GetARGB(255,255,220,140))
@@ -1922,13 +2010,13 @@ function UIXcvbArena:update_map_button()
 	end
 end
 
-function UIXcvbArena:on_click_map()
+function UIXcvbArena:on_click_map(skip_backrooms_prompt)
 	if xcvb_arena_installation and xcvb_arena_installation.factory_enabled == false then
 		xcvb_arena_main.selected_map = "arena"
 		self:update_map_button()
 		return
 	end
-	local next_map = {arena="factory",factory="arena"}
+	local next_map = {arena="factory",factory="backrooms",backrooms="arena"}
 	xcvb_arena_main.selected_map = next_map[xcvb_arena_main.selected_map] or "arena"
 
 	if self:is_secondary_map() then
@@ -1979,6 +2067,9 @@ function UIXcvbArena:on_click_map()
 	if self.endless_diff_menu and self.endless_diff_menu:IsShown() then
 		self:update_endless_summary()
 	end
+    if xcvb_arena_main.selected_map=="backrooms" and skip_backrooms_prompt~=true then
+        self:open_backrooms_device_menu("main")
+    end
 end
 
 function UIXcvbArena:on_click_mode()
@@ -2046,6 +2137,10 @@ function UIXcvbArena:on_click_night_mode()
 end
 
 function UIXcvbArena:on_click_night_device()
+    if xcvb_arena_main.selected_map=="backrooms" then
+        self:open_backrooms_device_menu(self.endless_diff_menu and self.endless_diff_menu:IsShown() and "endless" or "main")
+        return
+    end
 	if self.night_device_menu then
 		local show = not self.night_device_menu:IsShown()
 		self:set_modal_active("night_device", show)
@@ -2056,19 +2151,26 @@ function UIXcvbArena:on_click_night_device()
 end
 
 function UIXcvbArena:on_select_night_device(sec)
-	xcvb_arena_main.night_mode_device = sec
-	self:set_modal_active("night_device", false)
-	self:set_modal_active("wpn", false)
-	self:update_night_device_btn()
+    if self.backrooms_device_context then
+        local valid={device_torch_dummy=true,device_torch_nv_1=true,device_torch_nv_2=true,device_torch_nv_3=true}
+        if not valid[sec] or not ini_sys:section_exist(sec) then return end
+        xcvb_arena_main.backrooms_device=sec
+        self:close_night_device_menu()
+        return
+    end
+    xcvb_arena_main.night_mode_device=sec
+    self:set_modal_active("night_device",false)
+    self:set_modal_active("wpn",false)
+    self:update_night_device_btn()
 end
 
 function UIXcvbArena:update_night_device_btn()
 	if not self.btn_night_device then return end
-	local is_night = (xcvb_arena_main.night_mode_active == true)
+	local is_night = (xcvb_arena_main.night_mode_active == true or xcvb_arena_main.selected_map=="backrooms")
 	self.btn_night_device:Show(is_night)
 	if not is_night then return end
 
-	local dev = xcvb_arena_main.night_mode_device or "device_torch_dummy"
+	local dev = xcvb_arena_main.selected_map=="backrooms" and (xcvb_arena_main.backrooms_device or "device_torch_dummy") or (xcvb_arena_main.night_mode_device or "device_torch_dummy")
 	local text = gt("st_arena_dev_btn_torch")
 
 	if dev == "device_torch_nv_1" then
@@ -2096,7 +2198,17 @@ end
 
 function UIXcvbArena:update_night_device_menu()
 	if not self.night_device_menu then return end
-	local dev = xcvb_arena_main.night_mode_device or "device_torch_dummy"
+	local is_backrooms=self.backrooms_device_context~=nil
+    local dev=is_backrooms and (xcvb_arena_main.backrooms_device or "device_torch_dummy") or (xcvb_arena_main.night_mode_device or "device_torch_dummy")
+    if self.night_device_title then self.night_device_title:SetText(gt(is_backrooms and "st_arena_backrooms_device_title" or "st_arena_night_menu_title")) end
+    if self.night_device_subtitle then self.night_device_subtitle:SetText(gt(is_backrooms and "st_arena_backrooms_device_desc" or "st_arena_night_menu_desc")) end
+    if self.btn_dev_none then self.btn_dev_none:Show(not is_backrooms);self.btn_dev_none:Enable(not is_backrooms)end
+    if self.btn_dev_close then self.btn_dev_close:SetWndPos(vector2():set(262,is_backrooms and 324 or 390))end
+    if is_backrooms then
+        for _,pair in ipairs({{self.btn_dev_torch,"device_torch_dummy"},{self.btn_dev_nvg1,"device_torch_nv_1"},{self.btn_dev_nvg2,"device_torch_nv_2"},{self.btn_dev_nvg3,"device_torch_nv_3"}})do
+            if pair[1]then pair[1]:Enable(ini_sys:section_exist(pair[2]))end
+        end
+    end
 
 	local function highlight(btn, is_sel, normal_clr)
 		if not (btn and btn:TextControl()) then return end
@@ -3582,7 +3694,7 @@ function UIXcvbArena:on_click_tourn_start()
 	self:Close()
 	local sel_rd = xcvb_arena_main.get_round_data(cat, self.selected_round_id)
 	local forced_m = sel_rd and (sel_rd.forced_map or sel_rd.map)
-	if forced_m then
+	if forced_m and xcvb_arena_main.selected_map ~= "backrooms" then
 		xcvb_arena_main.selected_map = forced_m
 	end
 	local started = xcvb_arena_fight.start_tournament_fight(
@@ -4337,7 +4449,9 @@ end
 function UIXcvbArena:open_dssg_menu(target_mode)
 	self.dssg_menu_target_mode = target_mode or "tournament"
 	local wpn_sec = nil
-	if self.dssg_menu_target_mode == "endless" then
+	if self.dssg_menu_target_mode == "team" then
+        wpn_sec = self:team_picker_ally().weapon
+    elseif self.dssg_menu_target_mode == "endless" then
 		local cl = xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout()
 		wpn_sec = cl and cl.weapon_sec
 	else
@@ -4362,6 +4476,11 @@ function UIXcvbArena:open_dssg_menu(target_mode)
 end
 
 function UIXcvbArena:show_dssg_menu(show)
+    if not show and self.dssg_menu_target_mode == "team" then
+        self:set_modal_active("dssg", false)
+        self:update_team_options(); self.team_menu:Show(true)
+        return
+    end
 	self:set_modal_active("dssg", show == true)
 	if show == true then
 		self:update_dssg_menu()
@@ -4381,7 +4500,7 @@ function UIXcvbArena:update_dssg_menu()
 	if (not self.arr_3dssg_page) or self.arr_3dssg_page > total_pages then self.arr_3dssg_page = 1 end
 	if self.arr_3dssg_page < 1 then self.arr_3dssg_page = 1 end
 
-	local w_sec = (self.dssg_menu_target_mode == "endless")
+	local w_sec = self.dssg_menu_target_mode == "team" and self:team_picker_ally().weapon or (self.dssg_menu_target_mode == "endless")
 		and (xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout() and xcvb_arena_endless.get_custom_loadout().weapon_sec)
 		or self.selected_weapon_sec
 
@@ -4404,7 +4523,11 @@ function UIXcvbArena:update_dssg_menu()
 
 	-- Mode buttons
 	local cur_mode, cur_scope
-	if self.dssg_menu_target_mode == "endless" then
+    if self.dssg_menu_target_mode == "team" then
+        local scope = self:team_picker_ally().scope or "off"
+        cur_mode = scope == "off" and "off" or scope == "random" and "random" or "custom"
+        cur_scope = cur_mode == "custom" and scope or nil
+    elseif self.dssg_menu_target_mode == "endless" then
 		local cl = xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout()
 		local s_sec = cl and cl.scope_sec
 		if not s_sec or s_sec == "off" then
@@ -4491,6 +4614,7 @@ function UIXcvbArena:on_click_dssg_row(row_idx)
 	local actual_idx = (self.arr_3dssg_page - 1) * 7 + row_idx
 	local entry = entries[actual_idx]
 	if not entry then return end
+	if self.dssg_menu_target_mode == "team" then self:select_team_scope(entry); return end
 	if self.dssg_menu_target_mode == "endless" then
 		if xcvb_arena_endless and xcvb_arena_endless.set_custom_scope then
 			xcvb_arena_endless.set_custom_scope(entry)
@@ -4506,6 +4630,7 @@ function UIXcvbArena:on_click_dssg_row(row_idx)
 end
 
 function UIXcvbArena:on_click_3dssg_menu_off()
+	if self.dssg_menu_target_mode == "team" then self:select_team_scope("off"); return end
 	if self.dssg_menu_target_mode == "endless" then
 		if xcvb_arena_endless and xcvb_arena_endless.set_custom_scope then
 			xcvb_arena_endless.set_custom_scope("off")
@@ -4521,6 +4646,7 @@ function UIXcvbArena:on_click_3dssg_menu_off()
 end
 
 function UIXcvbArena:on_click_3dssg_menu_random()
+	if self.dssg_menu_target_mode == "team" then self:select_team_scope("random"); return end
 	if self.dssg_menu_target_mode == "endless" then
 		if xcvb_arena_endless and xcvb_arena_endless.set_custom_scope then
 			xcvb_arena_endless.set_custom_scope("random")
@@ -4774,12 +4900,189 @@ function UIXcvbArena:show_endless_difficulty_menu(show)
 	end
 end
 
+function UIXcvbArena:on_faction_option(option)
+    local o = xcvb_arena_factions.options()
+    if option == "back" or option == "modes" or option == "loadouts" then
+        self.factions_menu:Show(false)
+        if option == "loadouts" then
+            self.team_selected_slot = 1; self:update_team_options(); self.team_menu:Show(true)
+        elseif option == "modes" then self.mode_menu:Show(true); self:update_mode_menu_selection()
+        else self:set_modal_active("endless_diff",true); self:update_endless_menu_all() end
+        return
+    elseif option == "count" then o.count = o.count % 4 + 1; if o.count < 2 then o.count = 2 end
+    else
+        local index = tonumber(option:sub(-1)); local t = o.teams[index]
+        if option:sub(1,7) == "faction" then xcvb_arena_factions.cycle_faction(index)
+        elseif option:sub(1,4) == "size" then
+            t.size = t.size + 1
+            if t.size > (index == 1 and 5 or 8) then t.size = index == 1 and 2 or 1 end
+        elseif option:sub(1,4) == "rank" then t.rank = t.rank % 5 + 1 end
+    end
+    self:update_faction_options()
+end
+
+function UIXcvbArena:update_faction_options()
+    local o = xcvb_arena_factions.options()
+    self.faction_buttons.count:TextControl():SetText("Teams: " .. o.count)
+    for i=1,4 do
+        local visible = i<=o.count; local t=o.teams[i]
+        self.faction_labels[i]:Show(visible)
+        for _, name in ipairs({"faction", "size", "rank"}) do self.faction_buttons[name..i]:Show(visible);self.faction_buttons[name..i]:Enable(visible and not (name == "faction" and i == 1)) end
+        local labels={stalker="Loners",dolg="Duty",army="Military",killer="Mercenaries",csky="Clear Sky"}
+        self.faction_buttons["faction"..i]:TextControl():SetText(labels[t.faction] or t.faction:upper())
+        self.faction_buttons["size"..i]:TextControl():SetText(i == 1 and ("You + "..(t.size-1).." allies") or ("Members: "..t.size))
+        self.faction_buttons["rank"..i]:TextControl():SetText("Rank: "..t.rank.." / 5")
+    end
+end
+
+function UIXcvbArena:team_picker_ally()
+    local o = xcvb_arena_team.options()
+    return o.allies[math.max(1, math.min(self.team_picker_slot or self.team_selected_slot or 1, xcvb_arena_team.effective_count(o)))]
+end
+
+function UIXcvbArena:select_team_weapon(sec, cls)
+    local ally = self:team_picker_ally()
+    ally.weapon, ally.class, ally.scope = sec, cls, "off"
+    self:show_wpn_menu(false)
+end
+
+function UIXcvbArena:select_team_scope(sec)
+    self:team_picker_ally().scope = sec
+    self:show_dssg_menu(false)
+end
+
+function UIXcvbArena:on_team_option(option)
+    local o = xcvb_arena_team.options()
+    local slot = math.max(1, math.min(self.team_selected_slot or 1, xcvb_arena_team.effective_count(o)))
+    local ally = o.allies[slot]
+    if option == "back" or option == "modes" then
+        self.team_menu:Show(false)
+        if option == "modes" then self.mode_menu:Show(true); self:update_mode_menu_selection()
+        elseif self.endless_variant == "factions" then self:update_faction_options(); self.factions_menu:Show(true)
+        else self:set_modal_active("endless_diff",true); self:update_endless_menu_all() end
+        return
+    elseif option == "count" then o.count = o.count % 4 + 1
+    elseif option == "count_minus" then o.count = math.max(1, o.count - 1)
+    elseif option == "count_plus" then o.count = math.min(4, o.count + 1)
+    elseif option == "replenish" or option == "heal" or option == "resupply" then o[option] = not o[option]
+    elseif option == "rank" then ally.rank = ally.rank % 5 + 1
+    elseif option == "class" then
+        ally.class = xcvb_arena_team.next_class(ally.class)
+        ally.weapon, ally.scope = nil, "off"
+        xcvb_arena_team.cycle_weapon(ally, 1)
+    elseif option == "weapon" then
+        self.team_menu:Show(false)
+        self.team_picker_slot = slot
+        self:open_wpn_menu(ally.class == "default" and "rifle" or ally.class, "team")
+        return
+    elseif option == "scope" then
+        self.team_picker_slot = slot
+        self:open_dssg_menu("team")
+        if self.dssg_menu:IsShown() then self.team_menu:Show(false) end
+        return
+    elseif option == "ammo" then ally.ammo = ally.ammo == "fmj" and "ap" or ally.ammo == "ap" and "hp" or "fmj"
+    elseif option == "boxes" then ally.boxes = ally.boxes == 2 and 4 or ally.boxes == 4 and 8 or 2
+    elseif option == "reset" then xcvb_arena_main.endless_team_options = xcvb_arena_team.normalize(nil)
+    elseif option:sub(1, 4) == "slot" then self.team_selected_slot = tonumber(option:sub(5)) end
+    self:update_team_options()
+end
+
+function UIXcvbArena:update_mode_menu_selection()
+    if not self.mode_buttons then return end
+    local var = self.endless_variant or "classic"
+    for name, btn in pairs(self.mode_buttons) do
+        local active = (name == var)
+        local key = "st_arena_mode_" .. name .. "_name"
+        local title = game.translate_string(key)
+        if active then
+            btn:TextControl():SetText("[X] " .. title)
+            btn:TextControl():SetTextColor(GetARGB(255, 120, 240, 120))
+        else
+            btn:TextControl():SetText(title)
+            btn:TextControl():SetTextColor(GetARGB(255, 230, 230, 230))
+        end
+    end
+end
+
+function UIXcvbArena:update_team_options()
+    local o = xcvb_arena_team.options()
+    local faction_match = self.endless_variant == "factions"
+    local count = xcvb_arena_team.effective_count(o)
+    for _, name in ipairs({"count", "count_minus", "count_plus", "rank", "replenish", "heal", "resupply"}) do
+        self.team_buttons[name]:Enable(not faction_match)
+    end
+    self.team_selected_slot = math.min(self.team_selected_slot or 1, count)
+    local ally = o.allies[self.team_selected_slot]
+    local function label(name, text) self.team_buttons[name]:TextControl():SetText(text) end
+
+    local ally_plural = count == 1 and game.translate_string("st_arena_team_ally_singular") or game.translate_string("st_arena_team_ally_plural")
+    label("count", string.format(game.translate_string("st_arena_team_ally_count"), count, ally_plural))
+    self.team_buttons.count_minus:Enable(not faction_match and count > 1)
+    self.team_buttons.count_plus:Enable(not faction_match and count < 4)
+    self.team_title:SetText(faction_match and game.translate_string("st_arena_team_title_faction") or game.translate_string("st_arena_team_title"))
+    self.team_selected_label:SetText(string.format(game.translate_string("st_arena_team_editing_slot"), self.team_selected_slot, count))
+
+    local on_str = game.translate_string("st_arena_state_on")
+    local off_str = game.translate_string("st_arena_state_off")
+    for _, name in ipairs({"replenish", "heal", "resupply"}) do
+        local state = (not faction_match and o[name])
+        local state_text = state and ("[" .. on_str .. "]") or ("[" .. off_str .. "]")
+        label(name, string.format(game.translate_string("st_arena_team_" .. name), state_text))
+        self.team_buttons[name]:TextControl():SetTextColor(state and GetARGB(255, 120, 240, 120) or GetARGB(255, 180, 180, 180))
+    end
+
+    for i = 1, 4 do
+        local button = self.team_buttons["slot" .. i]
+        button:Show(i <= count)
+        button:Enable(i <= count)
+        label("slot" .. i, (i==self.team_selected_slot and "[ " or "") .. string.format(game.translate_string("st_arena_team_slot_fmt"), i) .. (i==self.team_selected_slot and " ]" or ""))
+        if i == self.team_selected_slot then
+            button:TextControl():SetTextColor(GetARGB(255, 255, 220, 120))
+        else
+            button:TextControl():SetTextColor(GetARGB(255, 170, 180, 195))
+        end
+    end
+
+    local rank_val = faction_match and xcvb_arena_factions.options().teams[1].rank or ally.rank
+    local rank_name = game.translate_string("st_arena_rank_" .. rank_val)
+    label("rank", string.format(game.translate_string("st_arena_team_rank_fmt"), rank_name, rank_val))
+    label("class", string.format(game.translate_string("st_arena_team_class_fmt"), string.upper(ally.class)))
+    label("ammo", string.format(game.translate_string("st_arena_team_ammo_fmt"), string.upper(ally.ammo)))
+    label("boxes", string.format(game.translate_string("st_arena_team_boxes_fmt"), ally.boxes))
+    self.team_weapon:SetText(xcvb_arena_team.weapon_label(ally))
+
+    local custom = ally.class ~= "default" and #xcvb_arena_team.weapons(ally) > 0
+    self.team_buttons.scope:Enable(custom and #xcvb_arena_utils.get_weapon_scopes(ally.weapon) > 0)
+    local scope = ally.scope ~= "off" and ally.scope ~= "random" and ally.scope or nil
+    local scope_name = scope and xcvb_arena_utils.get_item_short_name(scope) or string.upper(ally.scope or "off")
+    self.team_scope_label:SetText(string.format(game.translate_string("st_arena_team_scope_fmt"), scope_name))
+
+    paint_icon(self.team_weapon_icon, ally.weapon, 370, 326, 300, 58)
+    paint_icon(self.team_scope_icon, scope, 698, 326, 150, 58)
+
+    if self.team_hint then self.team_hint:SetText(gt(faction_match and "st_arena_team_summary_faction" or "st_arena_team_rules_hint")) end
+    self.team_summary:SetText(faction_match
+        and game.translate_string("st_arena_team_summary_faction")
+        or game.translate_string("st_arena_team_summary_team"))
+end
+
 function UIXcvbArena:update_endless_menu_all()
 	local plus = self.endless_variant == "plus"
-	self.btn_diff_variant:TextControl():SetText(plus and "MODE: Endless - [Endless+]" or "MODE: [Endless] - Endless+")
-	self.btn_diff_variant:TextControl():SetTextColor(plus and GetARGB(255, 245, 210, 120) or GetARGB(255, 120, 240, 120))
-	self.diff_menu_title:SetText(plus and "Endless+" or gt("st_arena_endless_menu_title"))
-	self.diff_menu_desc:SetText(plus and xcvb_arena_plus.text("menu_desc") or gt("st_arena_endless_menu_desc"))
+    local names={classic="st_arena_endless_variant_classic",team="st_arena_mode_team_name",factions="st_arena_endless_variant_factions"}
+    self.btn_diff_variant:TextControl():SetText(plus and "Endless+" or gt(names[self.endless_variant] or names.classic))
+    self.btn_diff_variant:TextControl():SetTextColor(self.endless_variant=="team" and GetARGB(255,120,220,255) or GetARGB(255,255,220,130))
+    self:update_endless_area_button()
+	self.diff_menu_title:SetText(self.endless_variant == "factions" and game.translate_string("st_arena_mode_factions_name") or self.endless_variant == "team" and game.translate_string("st_arena_mode_team_name") or plus and "Endless+" or gt("st_arena_endless_menu_title"))
+	self.diff_menu_desc:SetText(self.endless_variant == "factions" and game.translate_string("st_arena_mode_factions_desc") or self.endless_variant == "team" and game.translate_string("st_arena_mode_team_desc") or plus and xcvb_arena_plus.text("menu_desc") or gt("st_arena_endless_menu_desc"))
+
+    local configurable=self.endless_variant=="team" or self.endless_variant=="factions"
+    if self.btn_diff_team_config then
+        self.btn_diff_team_config:Show(true)
+        self.btn_diff_team_config:Enable(configurable)
+        self.btn_diff_team_config:TextControl():SetText(gt("st_arena_endless_configuration"))
+        self.btn_diff_team_config:TextControl():SetTextColor(configurable and GetARGB(255,255,220,130) or GetARGB(255,140,140,140))
+    end
+
 	self:update_endless_wpn_class_buttons()
 	self:update_endless_diff_buttons()
 	self:update_endless_3dssg_button()
@@ -4787,6 +5090,9 @@ function UIXcvbArena:update_endless_menu_all()
 	self:update_endless_spawn_type_button()
 	self:update_endless_custom_btn()
 	self:update_endless_summary()
+    local faction_match = self.endless_variant == "factions"
+    self.btn_diff_escalation:Enable(not faction_match)
+    self.btn_diff_spawn_type:Enable(not faction_match)
 end
 
 function UIXcvbArena:on_select_endless_wpn_class(cls)
@@ -4867,6 +5173,11 @@ function UIXcvbArena:on_confirm_endless_start()
 end
 
 function UIXcvbArena:on_select_endless_difficulty(diff)
+    if self.endless_variant == "factions" then
+        if xcvb_arena_factory and not xcvb_arena_factory.allow_entry() then return end
+        local ok, err = xcvb_arena_factions.prepare()
+        if not ok then news_manager.send_tip(db.actor, err, 0, nil, 7000); return end
+    end
 	local is_custom = (xcvb_arena_endless and xcvb_arena_endless.is_custom_loadout_enabled())
 	local fee = is_custom and self:get_current_endless_rental_fee(diff) or 0
 	local is_practice = (xcvb_arena_main and xcvb_arena_main.practice_mode_active == true)
@@ -4909,11 +5220,11 @@ function UIXcvbArena:on_select_endless_difficulty(diff)
 	local e_type = self.endless_target_enemy_type or "stalkers"
 	local start_wave = 1
 	local variant = self.endless_variant or "classic"
-	if variant == "plus" then start_wave = 1
+	if variant == "plus" or variant == "factions" then start_wave = 1
 	elseif diff == "medium" then start_wave = 6
 	elseif diff == "hard" then start_wave = 11
 	end
-	if xcvb_arena_main and variant ~= "plus" then
+	if xcvb_arena_main and variant ~= "plus" and variant ~= "factions" then
 		xcvb_arena_main.endless_difficulty = diff
 		xcvb_arena_main.endless_checkpoint_wave = start_wave
 		xcvb_arena_main.endless_checkpoint_type = e_type
@@ -5281,7 +5592,8 @@ function UIXcvbArena:on_click_continue_endless()
 	self:Close()
 	xcvb_arena_utils.arena_fade_in_out(1)
 	CreateTimeEvent("xcvb_start_endless_fight_e", "xcvb_start_endless_fight_a", 2, function()
-		xcvb_arena_fight.start_endless_fight(e_type, cp_wave, diff, xcvb_arena_main.endless_3dssg == true)
+		xcvb_arena_fight.start_endless_fight(e_type, cp_wave, diff, xcvb_arena_main.endless_3dssg == true,
+            xcvb_arena_main.endless_selected_variant == "team" and "team" or "classic")
 		return true
 	end)
 end
@@ -5317,12 +5629,20 @@ end
 
 function UIXcvbArena:open_wpn_menu(cls, target_mode)
 	self.wpn_menu_target_mode = target_mode or self.wpn_menu_target_mode or "tournament"
-	self.selected_loadout_class = cls or self.selected_loadout_class or "rifle"
+	if self.wpn_menu_target_mode == "team" then
+        self.team_weapon_menu_class = cls or "rifle"
+        self.selected_weapon_menu_tier = 0
+    else self.selected_loadout_class = cls or self.selected_loadout_class or "rifle" end
 	self.wpn_menu_page = 1
 	self:show_wpn_menu(true)
 end
 
 function UIXcvbArena:show_wpn_menu(is_shown)
+    if not is_shown and self.wpn_menu_target_mode == "team" then
+        self:set_modal_active("wpn", false)
+        self:update_team_options(); self.team_menu:Show(true)
+        return
+    end
 	self:set_modal_active("wpn", is_shown == true)
 	if is_shown then
 		self:update_wpn_menu()
@@ -5342,7 +5662,7 @@ end
 function UIXcvbArena:update_wpn_menu()
 	if not self.wpn_menu or not self.wpn_menu:IsShown() then return end
 
-	local cls = self.selected_loadout_class or "rifle"
+	local cls = self.wpn_menu_target_mode == "team" and self.team_weapon_menu_class or self.selected_loadout_class or "rifle"
 	local class_titles = {
 		pistol = "st_arena_class_pistol",
 		shotgun = "st_arena_class_shotgun",
@@ -5437,7 +5757,8 @@ function UIXcvbArena:update_wpn_menu()
 				else
 					fee_str = tostring(w_fee) .. " RU"
 				end
-				local cur_active_sel = (self.wpn_menu_target_mode == "endless" and xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout().weapon_sec) or self.selected_weapon_sec
+				if self.wpn_menu_target_mode == "team" then fee_str = "FREE" end
+				local cur_active_sel = self.wpn_menu_target_mode == "team" and self:team_picker_ally().weapon or (self.wpn_menu_target_mode == "endless" and xcvb_arena_endless and xcvb_arena_endless.get_custom_loadout().weapon_sec) or self.selected_weapon_sec
 				local is_sel = (cur_active_sel == sec)
 				local row_text = string.format("%s[T%d] %s  (%s)%s", string.rep(" ", 34), t, w_name, fee_str, is_sel and ("  " .. (gt("st_arena_loadout_selected") or "[SELECTED]")) or "")
 				if btn:TextControl() then
@@ -5481,6 +5802,7 @@ function UIXcvbArena:on_click_wpn_row(row_idx)
 		w_cls = (xcvb_arena_utils and xcvb_arena_utils.get_weapon_class and xcvb_arena_utils.get_weapon_class(entry.sec)) or "rifle"
 	end
 
+	if self.wpn_menu_target_mode == "team" then self:select_team_weapon(entry.sec, w_cls); return end
 	if self.wpn_menu_target_mode == "endless" then
 		if xcvb_arena_endless then
 			xcvb_arena_endless.set_custom_weapon(entry.sec, w_cls, entry.tier or 1)
@@ -5510,6 +5832,7 @@ function UIXcvbArena:on_click_wpn_random()
 		if w_cls == "random" then
 			w_cls = (xcvb_arena_utils and xcvb_arena_utils.get_weapon_class and xcvb_arena_utils.get_weapon_class(rnd_entry.sec)) or "rifle"
 		end
+		if self.wpn_menu_target_mode == "team" then self:select_team_weapon(rnd_entry.sec, w_cls); return end
 		if self.wpn_menu_target_mode == "endless" then
 			if xcvb_arena_endless then
 				xcvb_arena_endless.set_custom_weapon(rnd_entry.sec, w_cls, rnd_entry.tier or 1)
@@ -5821,7 +6144,7 @@ function UIXcvbArena:update_meds_menu()
 			local pack_name = (opt.name_id and gt(opt.name_id)) or opt.id
 			local pack_desc = (opt.desc_id and gt(opt.desc_id)) or ""
 			local sel_tag = is_sel and ("  " .. (gt("st_arena_loadout_selected") or "[SELECTED]")) or ""
-			local row_text = string.format("%s%s  (%s)  —  %s%s", string.rep(" ", 22), pack_name, fee_str, pack_desc, sel_tag)
+			local row_text = string.format("%s%s  (%s)  â€”  %s%s", string.rep(" ", 22), pack_name, fee_str, pack_desc, sel_tag)
 			if btn:TextControl() then
 				btn:TextControl():SetText(row_text)
 				if is_sel then
@@ -6708,12 +7031,27 @@ function UIXcvbArena:OnKeyboard(dik, keyboard_action)
 				self:show_endless_custom_menu(false)
 				return true
 			end
+            if self.factions_menu and self.factions_menu:IsShown() then
+                self.factions_menu:Show(false); self:set_modal_active("endless_diff",true); self:update_endless_menu_all()
+                return true
+            end
+            if self.mode_menu and self.mode_menu:IsShown() then
+                self.mode_menu:Show(false)
+                self:set_modal_active("endless_diff",true)
+                return true
+            end
+            if self.team_menu and self.team_menu:IsShown() then
+                self.team_menu:Show(false)
+                if self.endless_variant == "factions" then self:update_faction_options(); self.factions_menu:Show(true)
+                else self:set_modal_active("endless_diff",true); self:update_endless_menu_all() end
+                return true
+            end
 			if self.endless_diff_menu and self.endless_diff_menu:IsShown() then
 				self:show_endless_difficulty_menu(false)
 				return true
 			end
 			if self.night_device_menu and self.night_device_menu:IsShown() then
-				self:set_modal_active("night_device", false)
+				self:close_night_device_menu()
 				return true
 			end
 			self:Close()
@@ -6723,6 +7061,12 @@ function UIXcvbArena:OnKeyboard(dik, keyboard_action)
 end
 
 function UIXcvbArena:Close()
+    self.backrooms_device_context=nil
+    if self.factions_menu then self.factions_menu:Show(false) end
+    if self.wpn_menu_target_mode == "team" then self.wpn_menu_target_mode = "tournament" end
+    if self.dssg_menu_target_mode == "team" then self.dssg_menu_target_mode = "tournament" end
+    if self.mode_menu then self.mode_menu:Show(false) end
+    if self.team_menu then self.team_menu:Show(false) end
 	if self.mag_menu and self.mag_menu:IsShown() then
 		self:show_mag_menu(false)
 	end
@@ -6746,4 +7090,65 @@ function UIXcvbArena:Close()
 		Unregister_UI("UIXcvbArena")
 	end
 	GUI = nil
+end
+
+-- Endless navigation keeps the selected difficulty and individual ally loadouts.
+function UIXcvbArena:update_endless_area_button()
+    if not self.btn_diff_area then return end
+    local available=not xcvb_arena_installation or xcvb_arena_installation.factory_enabled~=false
+    if not available then xcvb_arena_main.selected_map="arena" end
+    local map=xcvb_arena_main.selected_map or "arena"
+    local name=map=="factory" and "Factory" or map=="backrooms" and "Backrooms (NEW)" or "Arena"
+    self.btn_diff_area:Enable(available)
+    self.btn_diff_area:TextControl():SetText(string.format(gt("st_arena_endless_area_fmt"),name))
+    self.btn_diff_area:TextControl():SetTextColor(available and GetARGB(255,255,220,130) or GetARGB(255,140,140,140))
+end
+function UIXcvbArena:on_click_endless_area()
+    if xcvb_arena_installation and xcvb_arena_installation.factory_enabled==false then
+        self:update_endless_area_button();return
+    end
+    local difficulty=self.selected_endless_diff
+    self:on_click_map(true)
+    self.selected_endless_diff=difficulty
+    self:set_modal_active("endless_diff",true)
+    self:update_endless_menu_all()
+    if xcvb_arena_main.selected_map=="backrooms" then self:open_backrooms_device_menu("endless") end
+end
+function UIXcvbArena:on_select_endless_variant(choice)
+    if choice~="classic" and choice~="team" and choice~="plus" and choice~="factions" then return end
+    self.endless_variant=choice
+    xcvb_arena_main.endless_selected_variant=choice
+    self.mode_menu:Show(false)
+    self:set_modal_active("endless_diff",true)
+    self:update_endless_menu_all()
+end
+function UIXcvbArena:on_click_endless_configuration()
+    if self.endless_variant=="team" then
+        self:set_modal_active("endless_diff",false)
+        self.team_selected_slot=1
+        self:update_team_options()
+        self.team_menu:Show(true)
+    elseif self.endless_variant=="factions" then
+        self:set_modal_active("endless_diff",false)
+        self:update_faction_options()
+        self.factions_menu:Show(true)
+    end
+end
+
+function UIXcvbArena:open_backrooms_device_menu(context)
+    if not self.night_device_menu then return end
+    self.backrooms_device_context=context or "main"
+    if self.backrooms_device_context=="endless" then self:set_modal_active("endless_diff",false)end
+    self:set_modal_active("night_device",true)
+    self:update_night_device_menu()
+end
+function UIXcvbArena:close_night_device_menu()
+    local context=self.backrooms_device_context
+    self.backrooms_device_context=nil
+    self:set_modal_active("night_device",false)
+    self:update_night_device_btn()
+    if context=="endless" then
+        self:set_modal_active("endless_diff",true)
+        self:update_endless_menu_all()
+    end
 end

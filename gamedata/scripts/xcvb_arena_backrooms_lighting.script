@@ -1,0 +1,124 @@
+-- Fixed ceiling sources; keep references alive and limit shadowed lights near the actor.
+local sources={
+ {x=254.000000,y=-16.399235,z=110.500000},
+ {x=239.000000,y=-16.399235,z=110.473961},
+ {x=230.500000,y=-16.399235,z=93.494331},
+ {x=231.002457,y=-16.399236,z=130.022430},
+ {x=239.000000,y=-16.399235,z=121.427612},
+ {x=253.500000,y=-16.399235,z=80.500000},
+ {x=200.500000,y=-16.399235,z=99.500000},
+ {x=230.000000,y=-16.399235,z=107.475662},
+ {x=200.500000,y=-16.399235,z=80.500000},
+ {x=214.536316,y=-16.399235,z=98.489403},
+ {x=219.045471,y=-16.399235,z=110.629051},
+ {x=203.915329,y=-16.399235,z=114.500000},
+ {x=206.449661,y=-16.399235,z=98.524414},
+ {x=230.500000,y=-16.399235,z=86.453430},
+ {x=203.628616,y=-16.399235,z=88.513489},
+ {x=220.453476,y=-16.399235,z=81.551117},
+ {x=239.000000,y=-16.399235,z=101.243736},
+ {x=211.000000,y=-16.399236,z=114.177956},
+ {x=206.500351,y=-16.399235,z=124.452728},
+ {x=255.000000,y=-16.399235,z=132.500000},
+ {x=253.055847,y=-16.399236,z=88.500000},
+ {x=201.500000,y=-16.399235,z=132.508530},
+ {x=226.005676,y=-16.399236,z=119.451172},
+ {x=252.032654,y=-16.399236,z=98.500000},
+ {x=243.000000,y=-16.399235,z=87.500000},
+ {x=220.448074,y=-16.399235,z=86.405327},
+ {x=209.003067,y=-16.399235,z=103.500000},
+ {x=220.500000,y=-16.399236,z=91.394440},
+ {x=226.185867,y=-16.399235,z=115.500000},
+ {x=210.476273,y=-16.399235,z=88.513489},
+ {x=239.000000,y=-16.399235,z=130.130859},
+ {x=207.500000,y=-16.399235,z=132.455460},
+}
+-- Retain lights for the entire visit. Toggle beyond visible range with hysteresis.
+local lights={}
+local next_tick=0
+local failed=false
+local saved_render=nil
+local render_settings={
+ {'r2_sun_lumscale',0},
+ {'r2_sun_lumscale_amb',0},
+ {'r2_sun_lumscale_hemi',0},
+ {'ssfx_is_underground',1},
+}
+local function console_value(con,key)
+ for _,method in ipairs({'get_string','get_float','get_integer','get_bool'}) do
+  local ok,value=pcall(function()return con[method](con,key)end)
+  if ok and value~=nil then
+   if type(value)=='boolean' then return value and 1 or 0 end
+   local number=tonumber(value)
+   if number then return number end
+  end
+ end
+end
+local function apply_render()
+ if saved_render or not get_console then return end
+ local con=get_console();if not con then return end
+ saved_render={}
+ for _,setting in ipairs(render_settings) do
+  local key,target=setting[1],setting[2]
+  local old=console_value(con,key)
+  if old~=nil then
+   local ok=pcall(function()con:execute(key..' '..tostring(target))end)
+   if ok then saved_render[key]={before=old,applied=target} end
+  end
+ end
+end
+local function restore_render()
+ if not saved_render then return end
+ local con=get_console and get_console()
+ if con then
+  for key,state in pairs(saved_render) do
+   local current=console_value(con,key)
+   if current and math.abs(current-state.applied)<.000001 then
+    pcall(function()con:execute(key..' '..tostring(state.before))end)
+   end
+  end
+ end
+ saved_render=nil
+end
+function clear()
+ restore_render()
+ for _,light in pairs(lights) do pcall(function()light.enabled=false;light:update()end)end
+ lights={};next_tick=0
+end
+function actor_on_update()
+ if failed then return end
+ if (xcvb_arena_installation and xcvb_arena_installation.factory_enabled==false) or not (db and db.actor and level.name()=='l05_bar' and xcvb_arena_backrooms_data.contains(db.actor:position())) then
+  if next(lights) or saved_render then clear() end
+  return
+ end
+ apply_render()
+ local now=time_global();if now<next_tick then return end
+ next_tick=now+250
+ -- Every fixture remains lit for the whole visit; the renderer handles visibility.
+ for i,p in ipairs(sources) do
+  local light=lights[i]
+  local active=true
+  if not light and active then
+   local ok,result=pcall(function()
+    local source=script_light()
+    source.type=1;source.range=9.0;source.hud_mode=false
+    source.shadow=true;source.volumetric=false
+    source.color=fcolor():set(.42,.43,.39,1)
+    source:set_position(vector():set(p.x,p.y,p.z))
+    source.enabled=true;source:update()
+    return source
+   end)
+   if not ok then
+    if printf then printf('[Arena Backrooms] light creation failed: %s',tostring(result))end
+    clear();failed=true;return
+   end
+   lights[i]=result
+  elseif light and light.enabled~=active then
+   light.enabled=active;light:update()
+  end
+ end
+end
+function on_game_start()
+ RegisterScriptCallback('actor_on_update',actor_on_update)
+ RegisterScriptCallback('actor_on_net_destroy',clear)
+end

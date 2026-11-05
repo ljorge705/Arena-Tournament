@@ -1,0 +1,63 @@
+-- Register arena recruits with the installed Anomaly/GAMMA companion system.
+-- Movement, combat tactics and player orders belong to axr_companions/xr_companion.
+local ready, follow = {}, {}
+function clear()
+    for id in pairs(follow) do restore_follow(id) end
+    ready = {}
+end
+function release(id) restore_follow(id); ready[id] = nil end
+function initialize(npc, refresh)
+    if not (npc and axr_companions and axr_companions.setup_companion_logic) then return false end
+    local id = npc:id()
+    local st = db and db.storage and db.storage[id]
+    if not st then ready[id] = nil; return false end
+    local saved = ready[id]
+    if not refresh and saved and rawequal(saved.npc,npc) and rawequal(saved.beh,st.beh)
+        and st.beh and npc:has_info("npcx_is_companion")
+        and (not st.active_scheme or st.active_scheme == "beh") then return true end
+    restore_follow(id)
+    local ok = pcall(axr_companions.setup_companion_logic,npc,st,false,true)
+    st = db and db.storage and db.storage[id]
+    -- A protected call can succeed without installing the scheme (e.g. missing ini).
+    if not (ok and st and st.beh and npc:has_info("npcx_is_companion")) then ready[id] = nil; return false end
+    ready[id] = {npc=npc,beh=st.beh}
+    return true
+end
+
+-- Keep native follow destinations and orders; only tighten the formation across floors.
+function restore_follow(id)
+    local saved=follow[id]
+    if not saved then return end
+    local st=db and db.storage and db.storage[id]
+    if st and rawequal(st.beh,saved.beh) then
+        st.beh.near_desired_dist=saved.near
+        st.beh.far_desired_dist=saved.far
+        st.beh.desired_distance=saved.distance
+        st.beh.assist_point=nil
+    end
+    follow[id]=nil
+end
+function update_follow(npc)
+    local id=npc:id()
+    local factory=xcvb_arena_main and xcvb_arena_main.selected_map=="factory"
+        and xcvb_arena_factory and xcvb_arena_factory.active()
+    local st=db and db.storage and db.storage[id]
+    if not (factory and db.actor and st and st.beh and st.ini) then restore_follow(id);return end
+    local ok,paused=pcall(function()
+        return npc:has_info("npcx_beh_wait") or npc:has_info("npcx_beh_hide_in_cover")
+            or npc:has_info("npcx_beh_patrol_mode")
+    end)
+    if not ok or paused then restore_follow(id);return end
+    local height=math.abs(npc:position().y-db.actor:position().y)
+    if height<1.5 then restore_follow(id);return end
+    if follow[id] and rawequal(follow[id].beh,st.beh) then return end
+    restore_follow(id)
+    -- Use the installed scheme's own parser, available in Anomaly/GAMMA.
+    local parsed,value=pcall(function()
+        return st.ini:r_string_to_condlist("logic","arena_factory_follow_distance","1.5")
+    end)
+    if not parsed or not value then return end
+    follow[id]={beh=st.beh,near=st.beh.near_desired_dist,far=st.beh.far_desired_dist,distance=st.beh.desired_distance}
+    st.beh.near_desired_dist=value;st.beh.far_desired_dist=value
+    st.beh.desired_distance=1.5;st.beh.assist_point=nil
+end

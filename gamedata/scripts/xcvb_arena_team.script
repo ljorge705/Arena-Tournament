@@ -1,0 +1,116 @@
+-- Team Deathmatch configuration and per-slot loadouts. English is the fallback UI.
+local classes = {"default", "pistol", "smg", "shotgun", "rifle", "sniper"}
+local function integer(value, fallback, lo, hi)
+    return math.max(lo, math.min(hi, math.floor(tonumber(value) or fallback)))
+end
+function normalize(source)
+    local o = type(source) == "table" and source or {}
+    local result = {count = integer(o.count, 2, 1, 4), replenish = o.replenish ~= false,
+        heal = o.heal == true, resupply = o.resupply ~= false, allies = {}}
+    for i = 1, 4 do
+        local a = type(o.allies) == "table" and o.allies[i] or nil
+        a = type(a) == "table" and a or {}
+        local class = "default"
+        for _, c in ipairs(classes) do if a.class == c then class = c end end
+        result.allies[i] = {rank = integer(a.rank, integer(o.rank, 3, 1, 5), 1, 5), class = class,
+            weapon = type(a.weapon) == "string" and a.weapon or nil,
+            scope = type(a.scope) == "string" and a.scope or "off",
+            ammo = (a.ammo == "ap" or a.ammo == "hp") and a.ammo or "fmj",
+            boxes = integer(a.boxes, 4, 2, 8)}
+    end
+    return result
+end
+function options()
+    xcvb_arena_main.endless_team_options = normalize(xcvb_arena_main.endless_team_options)
+    return xcvb_arena_main.endless_team_options
+end
+-- Use the same roster size for UI, pickers and spawning; never rewrite it
+-- while merely opening the equipment menu.
+function effective_count(o)
+    if xcvb_arena_main.endless_selected_variant == "factions" then
+        return xcvb_arena_factions.options().teams[1].size - 1
+    end
+    return (o or options()).count
+end
+
+function next_class(current)
+    for i, c in ipairs(classes) do if c == current then return classes[i % #classes + 1] end end
+    return "default"
+end
+function weapons(ally)
+    if ally.class == "default" then return {} end
+    local list, seen = {}, {}
+    for _, item in ipairs(xcvb_arena_utils.get_all_available_weapons_by_class(ally.class) or {}) do
+        local sec = item.sec
+        if sec and ini_sys:section_exist(sec) and not seen[sec] then
+            seen[sec] = true; list[#list + 1] = sec
+        end
+    end
+    table.sort(list)
+    return list
+end
+function cycle_weapon(ally, direction)
+    local list = weapons(ally)
+    if #list == 0 then ally.weapon = nil; return end
+    local index = direction < 0 and 1 or 0
+    for i, sec in ipairs(list) do if sec == ally.weapon then index = i; break end end
+    ally.weapon = list[(index - 1 + direction) % #list + 1]
+end
+function weapon_label(ally)
+    if ally.class == "default" then return "NPC default weapon" end
+    if not ally.weapon then return "No compatible weapons installed" end
+    local key = ini_sys:r_string_ex(ally.weapon, "inv_name") or ally.weapon
+    return game.translate_string(key)
+end
+-- Spawn the same scoped/kit weapon section used by the main attachment system.
+-- Do not call its actor-only attachment routine for an NPC inventory.
+function scoped_weapon(ally)
+    local sec, scope = ally.weapon, ally.scope
+    if not sec or not scope or scope == "off" then return sec end
+    local scopes = xcvb_arena_utils.get_weapon_scopes(sec) or {}
+    if #scopes == 0 then return sec end
+    if scope == "random" then scope = scopes[math.random(#scopes)] end
+    local valid = false
+    for _, candidate in ipairs(scopes) do if scope == candidate then valid = true; break end end
+    if not valid then return sec end
+    local parent = ini_sys:r_string_ex(sec, "parent_section") or sec
+    local child = parent .. "_" .. scope
+    return ini_sys:section_exist(child) and child or sec
+end
+
+function give_ammo(npc, ally, weapon)
+    local sec = weapon and xcvb_arena_utils.get_weapon_ammo(weapon, ally.ammo)
+    if sec and ini_sys:section_exist(sec) then
+        for i = 1, ally.boxes do
+            alife_create(sec, npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+        end
+    end
+end
+function equip(npc, entry)
+    if not entry.team_slot or entry.team_equipped then return end
+    local ally = options().allies[entry.team_slot]
+    local sec = ally and scoped_weapon(ally)
+    if ally and ally.class ~= "default" and sec and ini_sys:section_exist(sec) then
+        local old = {}
+        npc:iterate_inventory(function(_, item)
+            if item and IsWeapon and IsWeapon(nil, item:clsid()) then old[#old + 1] = item:id() end
+        end, npc)
+        local created = alife_create(sec, npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+        if not created then return end
+        for _, id in ipairs(old) do alife_release_id(id) end
+        give_ammo(npc, ally, sec)
+    elseif ally then
+        local weapon = npc:best_weapon()
+        give_ammo(npc, ally, weapon and weapon:section())
+    end
+    entry.team_equipped, entry.ammo_given = true, true
+end
+function service(npc, entry)
+    local o = options()
+    local ally = o.allies[entry.team_slot]
+    if o.heal then npc.health = 1 end
+    if o.resupply then
+        local weapon = npc:best_weapon()
+        give_ammo(npc, ally, weapon and weapon:section())
+    end
+end

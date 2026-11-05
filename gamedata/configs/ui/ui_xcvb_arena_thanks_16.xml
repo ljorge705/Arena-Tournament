@@ -1,0 +1,359 @@
+<w>
+  <background x="0" y="0" width="1024" height="768" stretch="1">
+    <texture>xcvb_arena_gui_bg</texture>
+  </background>
+  <panel x="64" y="62" width="896" height="650" stretch="1">
+    <texture>ui_inGame2_opt_dialog_window</texture>
+  </panel>
+  <title x="96" y="84" width="832" height="36">
+    <text font="graffiti32" r="245" g="210" b="120" align="c" vert_align="c">THANK YOU</text>
+  </title>
+  <intro x="96" y="130" width="832" height="24">
+    <text font="letterica18" r="205" g="210" b="218" align="c" vert_align="c">Thank you to everyone who has supported this project.</text>
+  </intro>
+  <subtitle x="96" y="157" width="832" height="26">
+    <text font="letterica16" r="205" g="210" b="218" align="c" vert_align="c">Your feedback, testing and encouragement help make Arena Tournament better.</text>
+  </subtitle>
+  <closing x="96" y="648" width="832" height="24">
+    <text font="letterica16" r="160" g="175" b="190" align="c" vert_align="c">Made possible by this community.</text>
+  </closing>
+  <back x="437" y="679" width="150" height="28" stretch="1">
+    <texture>ui_inGame2_button</texture>
+    <text font="letterica18" align="c" vert_align="c">BACK</text>
+  </back>
+  <thanks_button x="64" y="704" width="156" height="36" stretch="1">
+    <texture>ui_inGame2_button</texture>
+    <text font="graffiti22" align="c" vert_align="c" r="245" g="210" b="120">THANKS</text>
+    <text_color>
+      <e r="245" g="210" b="120" a="255" />
+      <t r="255" g="255" b="255" a="255" />
+      <h r="255" g="240" b="180" a="255" />
+      <d r="100" g="100" b="100" a="255" />
+    </text_color>
+  </thanks_button>
+  <manifesto_button x="234" y="704" width="190" height="36" stretch="1">
+    <texture>ui_inGame2_button</texture>
+    <text font="graffiti22" align="c" vert_align="c" r="115" g="215" b="235">MANIFESTO</text>
+    <text_color>
+      <e r="115" g="215" b="235" a="255" />
+      <t r="255" g="255" b="255" a="255" />
+      <h r="255" g="240" b="180" a="255" />
+      <d r="100" g="100" b="100" a="255" />
+    </text_color>
+  </manifesto_button>
+  <card_1 x="96" y="199" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_1>
+  <avatar_1 x="103" y="210" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_01</texture>
+  </avatar_1>
+  <name_1 x="140" y="217" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_01</texture>
+  </name_1>
+  <card_2 x="264" y="199" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_2>
+  <avatar_2 x="271" y="210" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_02</texture>
+  </avatar_2>
+  <name_2 x="308" y="217" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_02</texture>
+  </name_2>
+  <card_3 x="432" y="199" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_3>
+  <avatar_3 x="439" y="210" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_03</texture>
+  </avatar_3>
+  <name_3 x="476" y="217" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_03</texture>
+  </name_3>
+  <card_4 x="600" y="199" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_4>
+  <avatar_4 x="607" y="210" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_04</texture>
+  </avatar_4>
+  <name_4 x="644" y="217" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_04</texture>
+  </name_4>
+  <card_5 x="768" y="199" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_5>
+  <avatar_5 x="775" y="210" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_05</texture>
+  </avatar_5>
+  <name_5 x="812" y="217" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_05</texture>
+  </name_5>
+  <card_6 x="96" y="261" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_6>
+  <avatar_6 x="103" y="272" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_06</texture>
+  </avatar_6>
+  <name_6 x="140" y="279" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_06</texture>
+  </name_6>
+  <card_7 x="264" y="261" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_7>
+  <avatar_7 x="271" y="272" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_07</texture>
+  </avatar_7>
+  <name_7 x="308" y="279" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_07</texture>
+  </name_7>
+  <card_8 x="432" y="261" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_8>
+  <avatar_8 x="439" y="272" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_08</texture>
+  </avatar_8>
+  <name_8 x="476" y="279" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_08</texture>
+  </name_8>
+  <card_9 x="600" y="261" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_9>
+  <avatar_9 x="607" y="272" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_09</texture>
+  </avatar_9>
+  <name_9 x="644" y="279" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_09</texture>
+  </name_9>
+  <card_10 x="768" y="261" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_10>
+  <avatar_10 x="775" y="272" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_10</texture>
+  </avatar_10>
+  <name_10 x="812" y="279" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_10</texture>
+  </name_10>
+  <card_11 x="96" y="323" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_11>
+  <avatar_11 x="103" y="334" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_11</texture>
+  </avatar_11>
+  <name_11 x="140" y="341" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_11</texture>
+  </name_11>
+  <card_12 x="264" y="323" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_12>
+  <avatar_12 x="271" y="334" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_12</texture>
+  </avatar_12>
+  <name_12 x="308" y="341" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_12</texture>
+  </name_12>
+  <card_13 x="432" y="323" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_13>
+  <avatar_13 x="439" y="334" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_13</texture>
+  </avatar_13>
+  <name_13 x="476" y="341" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_13</texture>
+  </name_13>
+  <card_14 x="600" y="323" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_14>
+  <avatar_14 x="607" y="334" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_14</texture>
+  </avatar_14>
+  <name_14 x="644" y="341" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_14</texture>
+  </name_14>
+  <card_15 x="768" y="323" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_15>
+  <avatar_15 x="775" y="334" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_15</texture>
+  </avatar_15>
+  <name_15 x="812" y="341" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_15</texture>
+  </name_15>
+  <card_16 x="96" y="385" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_16>
+  <avatar_16 x="103" y="396" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_16</texture>
+  </avatar_16>
+  <name_16 x="140" y="403" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_16</texture>
+  </name_16>
+  <card_17 x="264" y="385" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_17>
+  <avatar_17 x="271" y="396" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_17</texture>
+  </avatar_17>
+  <name_17 x="308" y="403" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_17</texture>
+  </name_17>
+  <card_18 x="432" y="385" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_18>
+  <avatar_18 x="439" y="396" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_18</texture>
+  </avatar_18>
+  <name_18 x="476" y="403" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_18</texture>
+  </name_18>
+  <card_19 x="600" y="385" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_19>
+  <avatar_19 x="607" y="396" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_19</texture>
+  </avatar_19>
+  <name_19 x="644" y="403" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_19</texture>
+  </name_19>
+  <card_20 x="768" y="385" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_20>
+  <avatar_20 x="775" y="396" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_20</texture>
+  </avatar_20>
+  <name_20 x="812" y="403" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_20</texture>
+  </name_20>
+  <card_21 x="96" y="447" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_21>
+  <avatar_21 x="103" y="458" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_21</texture>
+  </avatar_21>
+  <name_21 x="140" y="465" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_21</texture>
+  </name_21>
+  <card_22 x="264" y="447" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_22>
+  <avatar_22 x="271" y="458" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_22</texture>
+  </avatar_22>
+  <name_22 x="308" y="465" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_22</texture>
+  </name_22>
+  <card_23 x="432" y="447" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_23>
+  <avatar_23 x="439" y="458" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_23</texture>
+  </avatar_23>
+  <name_23 x="476" y="465" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_23</texture>
+  </name_23>
+  <card_24 x="600" y="447" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_24>
+  <avatar_24 x="607" y="458" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_24</texture>
+  </avatar_24>
+  <name_24 x="644" y="465" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_24</texture>
+  </name_24>
+  <card_25 x="768" y="447" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_25>
+  <avatar_25 x="775" y="458" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_25</texture>
+  </avatar_25>
+  <name_25 x="812" y="465" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_25</texture>
+  </name_25>
+  <card_26 x="96" y="509" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_26>
+  <avatar_26 x="103" y="520" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_26</texture>
+  </avatar_26>
+  <name_26 x="140" y="527" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_26</texture>
+  </name_26>
+  <card_27 x="264" y="509" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_27>
+  <avatar_27 x="271" y="520" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_27</texture>
+  </avatar_27>
+  <name_27 x="308" y="527" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_27</texture>
+  </name_27>
+  <card_28 x="432" y="509" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_28>
+  <avatar_28 x="439" y="520" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_28</texture>
+  </avatar_28>
+  <name_28 x="476" y="527" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_28</texture>
+  </name_28>
+  <card_29 x="600" y="509" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_29>
+  <avatar_29 x="607" y="520" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_29</texture>
+  </avatar_29>
+  <name_29 x="644" y="527" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_29</texture>
+  </name_29>
+  <card_30 x="768" y="509" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_30>
+  <avatar_30 x="775" y="520" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_30</texture>
+  </avatar_30>
+  <name_30 x="812" y="527" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_30</texture>
+  </name_30>
+  <card_31 x="96" y="571" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_31>
+  <avatar_31 x="103" y="582" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_31</texture>
+  </avatar_31>
+  <name_31 x="140" y="589" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_31</texture>
+  </name_31>
+  <card_32 x="264" y="571" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_32>
+  <avatar_32 x="271" y="582" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_32</texture>
+  </avatar_32>
+  <name_32 x="308" y="589" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_32</texture>
+  </name_32>
+  <card_33 x="432" y="571" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_33>
+  <avatar_33 x="439" y="582" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_33</texture>
+  </avatar_33>
+  <name_33 x="476" y="589" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_33</texture>
+  </name_33>
+  <card_34 x="600" y="571" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_34>
+  <avatar_34 x="607" y="582" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_34</texture>
+  </avatar_34>
+  <name_34 x="644" y="589" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_34</texture>
+  </name_34>
+  <card_35 x="768" y="571" width="160" height="54" stretch="1">
+    <texture>xcvb_arena_gui_row_frame</texture>
+  </card_35>
+  <avatar_35 x="775" y="582" width="32" height="32" stretch="1">
+    <texture>xcvb_credits_avatar_35</texture>
+  </avatar_35>
+  <name_35 x="812" y="589" width="116" height="18" stretch="1">
+    <texture>xcvb_credits_name_35</texture>
+  </name_35>
+</w>

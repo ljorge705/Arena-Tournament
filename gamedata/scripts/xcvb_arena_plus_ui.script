@@ -111,6 +111,7 @@ function UIXcvbEndlessPlus:__init() super()
         end
     end
     self:refresh()
+    xcvb_arena_credits.attach(self)
 end
 function UIXcvbEndlessPlus:__finalize() end
 

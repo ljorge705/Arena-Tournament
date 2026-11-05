@@ -2,7 +2,7 @@
 
 <string_table>
 	<string id="st_arena_use">
-		<text>Tablon del Torneo ($$ACTION_USE$$)</text>
+		<text>Tabl&#243;n del Torneo ($$ACTION_USE$$)</text>
 	</string>
 	<string id="st_arena_title">
 		<text>TORNEO DE LA ARENA</text>
@@ -62,7 +62,7 @@
 		<text>Rango Actual:</text>
 	</string>
 	<string id="st_arena_record_label">
-		<text>Record: %s Victorias / %s Derrotas</text>
+		<text>R&#233;cord: %s Victorias / %s Derrotas</text>
 	</string>
 	<string id="st_arena_reward_label">
 		<text>Bolsa de Premio:</text>
@@ -74,19 +74,19 @@
 		<text>Dificultad:</text>
 	</string>
 	<string id="st_arena_diff_very_easy">
-		<text>Muy Facil (*)</text>
+		<text>Muy F&#225;cil (*)</text>
 	</string>
 	<string id="st_arena_diff_easy">
-		<text>Facil (**)</text>
+		<text>F&#225;cil (**)</text>
 	</string>
 	<string id="st_arena_diff_medium">
 		<text>Media (***)</text>
 	</string>
 	<string id="st_arena_diff_hard">
-		<text>Dificil (****)</text>
+		<text>Dif&#237;cil (****)</text>
 	</string>
 	<string id="st_arena_diff_very_hard">
-		<text>Muy Dificil (*****)</text>
+		<text>Muy Dif&#237;cil (*****)</text>
 	</string>
 	<string id="st_arena_diff_extreme">
 		<text>Extrema (******)</text>
@@ -101,34 +101,34 @@
 		<text>1x Bandido novato con pistola</text>
 	</string>
 	<string id="st_arena_s_round_1_desc">
-		<text>Un bandido novato buscando ganarse una reputacion en la arena. Su punteria y reflejos son pobres. Ideal para calentar.</text>
+		<text>Un bandido novato buscando ganarse una reputaci&#243;n en la arena. Su punteria y reflejos son pobres. Ideal para calentar.</text>
 	</string>
 	<string id="st_arena_s_round_1_reward">
-		<text>3,000 RU + Vendas y Botiquin basico</text>
+		<text>3,000 RU + Vendas y Botiqu&#237;n b&#225;sico</text>
 	</string>
 	<string id="st_arena_s_round_2_name">
-		<text>Ronda 2: Duo de Renegados</text>
+		<text>Ronda 2: D&#250;o de Renegados</text>
 	</string>
 	<string id="st_arena_s_round_2_enemies">
 		<text>2x Renegados con escopetas recortadas</text>
 	</string>
 	<string id="st_arena_s_round_2_desc">
-		<text>Dos renegados de las cienagas coordinados para emboscarte a corta distancia con fuego de perdigon.</text>
+		<text>Dos renegados de las ci&#233;nagas coordinados para emboscarte a corta distancia con fuego de perdigon.</text>
 	</string>
 	<string id="st_arena_s_round_2_reward">
 		<text>4,500 RU + Cartuchos de perdigon</text>
 	</string>
 	<string id="st_arena_s_round_3_name">
-		<text>Ronda 3: Trio Callejero</text>
+		<text>Ronda 3: Tr&#237;o Callejero</text>
 	</string>
 	<string id="st_arena_s_round_3_enemies">
 		<text>3x Bandidos con pistolas y recortadas</text>
 	</string>
 	<string id="st_arena_s_round_3_desc">
-		<text>Tres novatos agresivos que intentaran rodear tus coberturas. Manten la distancia y cubre tus espaldas.</text>
+		<text>Tres novatos agresivos que intentar&#225;n rodear tus coberturas. Manten la distancia y cubre tus espaldas.</text>
 	</string>
 	<string id="st_arena_s_round_3_reward">
-		<text>6,000 RU + Kit basico de limpieza de armas</text>
+		<text>6,000 RU + Kit b&#225;sico de limpieza de armas</text>
 	</string>
 	<string id="st_arena_s_round_4_name">
 		<text>Ronda 4: Emboscada en el Vertedero</text>
@@ -137,10 +137,10 @@
 		<text>3x Bandidos experimentados con subfusiles MP5</text>
 	</string>
 	<string id="st_arena_s_round_4_desc">
-		<text>Bandidos curtidos armados con armas automaticas ligeras. Utilizan rafagas cortas y se cubren tras las cajas.</text>
+		<text>Bandidos curtidos armados con armas autom&#225;ticas ligeras. Utilizan r&#225;fagas cortas y se cubren tras las cajas.</text>
 	</string>
 	<string id="st_arena_s_round_4_reward">
-		<text>8,500 RU + Municion 9x19 + Estimulante</text>
+		<text>8,500 RU + Munici&#243;n 9x19 + Estimulante</text>
 	</string>
 	<string id="st_arena_s_round_5_name">
 		<text>Ronda 5: Patrulla de Caza</text>
@@ -158,19 +158,19 @@
 		<text>Una cuadrilla de bandidos armada con escopetas de calibre 12. La Arena los enfrenta a ti como tus enemigos jurados.</text>
 	</string>
 	<string id="st_arena_s_round_5_reward">
-		<text>11,000 RU + Botiquin militar + Municion</text>
+		<text>11,000 RU + Botiqu&#237;n militar + Munici&#243;n</text>
 	</string>
 	<string id="st_arena_s_round_6_name">
-		<text>Ronda 6: Escuadron Mercenario Ligero</text>
+		<text>Ronda 6: Escuadr&#243;n Mercenario Ligero</text>
 	</string>
 	<string id="st_arena_s_round_6_enemies">
-		<text>3x Mercenarios con LR-300 y chalecos tacticos</text>
+		<text>3x Mercenarios con LR-300 y chalecos t&#225;cticos</text>
 	</string>
 	<string id="st_arena_s_round_6_desc">
 		<text>Contratistas militares privados con disciplina de combate, granadas de mano y fusiles de asalto OTAN.</text>
 	</string>
 	<string id="st_arena_s_round_6_reward">
-		<text>14,000 RU + Materiales de reparacion intermedios</text>
+		<text>14,000 RU + Materiales de reparaci&#243;n intermedios</text>
 	</string>
 	<string id="st_arena_s_round_7_name">
 		<text>Ronda 7: Choque con Deber</text>
@@ -179,10 +179,10 @@
 		<text>3x Soldados de asalto de Deber con AS Val y Groza</text>
 	</string>
 	<string id="st_arena_s_round_7_desc">
-		<text>Soldados de Deber endurecidos en combates contra mutantes. Pertrechados con armadura PSZ-9d y municion perforante 9x39.</text>
+		<text>Soldados de Deber endurecidos en combates contra mutantes. Pertrechados con armadura PSZ-9d y munici&#243;n perforante 9x39.</text>
 	</string>
 	<string id="st_arena_s_round_7_reward">
-		<text>18,000 RU + Municion perforante + Botiquines</text>
+		<text>18,000 RU + Munici&#243;n perforante + Botiquines</text>
 	</string>
 	<string id="st_arena_s_round_8_name">
 		<text>Ronda 8: Tiradores de Libertad</text>
@@ -191,19 +191,19 @@
 		<text>3x Combatientes de Libertad con G36 y francotiradores</text>
 	</string>
 	<string id="st_arena_s_round_8_desc">
-		<text>Tiradores de elite de Libertad con trajes Guardia y rifles de alta precision. Disparan certero desde el fondo de la fosa.</text>
+		<text>Tiradores de &#233;lite de Libertad con trajes Guardia y rifles de alta precisi&#243;n. Disparan certero desde el fondo de la fosa.</text>
 	</string>
 	<string id="st_arena_s_round_8_reward">
-		<text>23,000 RU + Kit de reparacion de trajes + Municion</text>
+		<text>23,000 RU + Kit de reparaci&#243;n de trajes + Munici&#243;n</text>
 	</string>
 	<string id="st_arena_s_round_9_name">
-		<text>Ronda 9: Comando Mercenario de Elite</text>
+		<text>Ronda 9: Comando Mercenario de &#201;lite</text>
 	</string>
 	<string id="st_arena_s_round_9_enemies">
-		<text>4x Mercenarios veteranos con trajes SEVA y rifles tacticos</text>
+		<text>4x Mercenarios veteranos con trajes SEVA y rifles t&#225;cticos</text>
 	</string>
 	<string id="st_arena_s_round_9_desc">
-		<text>Fuerza mercenaria de choque coordinada. Utilizan granadas y fuego cruzado continuo con municion perforante.</text>
+		<text>Fuerza mercenaria de choque coordinada. Utilizan granadas y fuego cruzado continuo con munici&#243;n perforante.</text>
 	</string>
 	<string id="st_arena_s_round_9_reward">
 		<text>28,000 RU + Kit de mantenimiento avanzado</text>
@@ -215,22 +215,22 @@
 		<text>4x Soldados Spetsnaz en blindaje Berill con PKM y Saiga</text>
 	</string>
 	<string id="st_arena_s_round_10_desc">
-		<text>Comandos de operaciones especiales del ejercito. Enorme resistencia a balas y fuego de supresion demoledor.</text>
+		<text>Comandos de operaciones especiales del ej&#233;rcito. Enorme resistencia a balas y fuego de supresi&#243;n demoledor.</text>
 	</string>
 	<string id="st_arena_s_round_10_reward">
-		<text>36,000 RU + Cajas de municion pesada + Estimulantes</text>
+		<text>36,000 RU + Cajas de munici&#243;n pesada + Estimulantes</text>
 	</string>
 	<string id="st_arena_s_round_11_name">
-		<text>Ronda 11: Escuadron de Choque Mercenario</text>
+		<text>Ronda 11: Escuadr&#243;n de Choque Mercenario</text>
 	</string>
 	<string id="st_arena_s_round_11_enemies">
 		<text>4x Mercenarios veteranos con blindaje pesado y Vintorez</text>
 	</string>
 	<string id="st_arena_s_round_11_desc">
-		<text>Mercenarios de elite contratados para un asalto pesado. Combaten con calculada precision.</text>
+		<text>Mercenarios de &#233;lite contratados para un asalto pesado. Combaten con calculada precisi&#243;n.</text>
 	</string>
 	<string id="st_arena_s_round_11_reward">
-		<text>45,000 RU + Municion de francotirador + Suministros</text>
+		<text>45,000 RU + Munici&#243;n de francotirador + Suministros</text>
 	</string>
 	<string id="st_arena_s_round_12_name">
 		<text>Ronda 12: La Muralla de Exoesqueleto</text>
@@ -245,16 +245,16 @@
 		<text>55,000 RU + Set de herramientas expertas</text>
 	</string>
 	<string id="st_arena_s_round_13_name">
-		<text>Ronda 13: Vanguardia Mercenaria de Elite</text>
+		<text>Ronda 13: Vanguardia Mercenaria de &#201;lite</text>
 	</string>
 	<string id="st_arena_s_round_13_enemies">
 		<text>4x Maestros Mercenarios con armas de asalto pesadas</text>
 	</string>
 	<string id="st_arena_s_round_13_desc">
-		<text>Los mercenarios mas experimentados de la Zona. Disparan sin descanso y con gran coordinacion tactica.</text>
+		<text>Los mercenarios m&#225;s experimentados de la Zona. Disparan sin descanso y con gran coordinaci&#243;n t&#225;ctica.</text>
 	</string>
 	<string id="st_arena_s_round_13_reward">
-		<text>70,000 RU + Suministros militares de elite</text>
+		<text>70,000 RU + Suministros militares de &#233;lite</text>
 	</string>
 	<string id="st_arena_s_round_14_name">
 		<text>Ronda 14: Guardia Mercenaria con Gauss</text>
@@ -263,22 +263,22 @@
 		<text>4x Mercenarios en Exoesqueleto con rifles Gauss y ametralladoras</text>
 	</string>
 	<string id="st_arena_s_round_14_desc">
-		<text>Mercenarios de primer nivel manteniendo la linea. Un solo disparo electromagnetico de Gauss atravesara cualquier cobertura.</text>
+		<text>Mercenarios de primer nivel manteniendo la l&#237;nea. Un solo disparo electromagn&#233;tico de Gauss atravesar&#225; cualquier cobertura.</text>
 	</string>
 	<string id="st_arena_s_round_14_reward">
-		<text>90,000 RU + Baterias Gauss + Artefacto de alta categoria</text>
+		<text>90,000 RU + Bater&#237;as Gauss + Artefacto de alta categor&#237;a</text>
 	</string>
 	<string id="st_arena_s_round_15_name">
-		<text>Ronda 15: El Gran Campeon: El Verdugo</text>
+		<text>Ronda 15: El Gran Campe&#243;n: El Verdugo</text>
 	</string>
 	<string id="st_arena_s_round_15_enemies">
-		<text>'El Verdugo' en Nosorog + 2 Escoltas de Elite en Exoesqueleto</text>
+		<text>'El Verdugo' en Nosorog + 2 Escoltas de &#201;lite en Exoesqueleto</text>
 	</string>
 	<string id="st_arena_s_round_15_desc">
 		<text>El combate definitivo de gladiadores. El Verdugo ostenta el trono invicto con su servoarmadura blindada Nosorog y su ametralladora pesada.</text>
 	</string>
 	<string id="st_arena_s_round_15_reward">
-		<text>130,000 RU + Titulo 'Gran Campeon' + Trofeo de la Arena</text>
+		<text>130,000 RU + T&#237;tulo 'Gran Campe&#243;n' + Trofeo de la Arena</text>
 	</string>
 	<string id="st_arena_m_round_1_name">
 		<text>Ronda 1: Plaga de Roedores</text>
@@ -287,40 +287,40 @@
 		<text>6x Roedores Tushkano veloces</text>
 	</string>
 	<string id="st_arena_m_round_1_desc">
-		<text>Una camada de roedores subterraneos hambrientos. Son pequenos, rapidos y atacan en enjambre.</text>
+		<text>Una camada de roedores subterr&#225;neos hambrientos. Son peque&#241;os, r&#225;pidos y atacan en enjambre.</text>
 	</string>
 	<string id="st_arena_m_round_1_reward">
 		<text>3,000 RU + Cartuchos de perdigon y vendas</text>
 	</string>
 	<string id="st_arena_m_round_2_name">
-		<text>Ronda 2: Jauria Callejera</text>
+		<text>Ronda 2: Jaur&#237;a Callejera</text>
 	</string>
 	<string id="st_arena_m_round_2_enemies">
 		<text>4x Perros Ciegos mutantes</text>
 	</string>
 	<string id="st_arena_m_round_2_desc">
-		<text>Perros mutados que cazan por el olfato y el sonido. Intentaran rodearte mientras esquivan tus disparos.</text>
+		<text>Perros mutados que cazan por el olfato y el sonido. Intentar&#225;n rodearte mientras esquivan tus disparos.</text>
 	</string>
 	<string id="st_arena_m_round_2_reward">
-		<text>4,500 RU + Municion de escopeta + Botiquin</text>
+		<text>4,500 RU + Munici&#243;n de escopeta + Botiqu&#237;n</text>
 	</string>
 	<string id="st_arena_m_round_3_name">
 		<text>Ronda 3: Ataque Furioso</text>
 	</string>
 	<string id="st_arena_m_round_3_enemies">
-		<text>2x Perros Ciegos + 2x Pseudoperros rapidos</text>
+		<text>2x Perros Ciegos + 2x Pseudoperros r&#225;pidos</text>
 	</string>
 	<string id="st_arena_m_round_3_desc">
-		<text>Una jauria mixta liderada por pseudoperros salvajes, mucho mas resistentes y agresivos que los perros comunes.</text>
+		<text>Una jaur&#237;a mixta liderada por pseudoperros salvajes, mucho m&#225;s resistentes y agresivos que los perros comunes.</text>
 	</string>
 	<string id="st_arena_m_round_3_reward">
-		<text>6,000 RU + Kit basico de mantenimiento</text>
+		<text>6,000 RU + Kit b&#225;sico de mantenimiento</text>
 	</string>
 	<string id="st_arena_m_round_4_name">
 		<text>Ronda 4: Estampida Porcina</text>
 	</string>
 	<string id="st_arena_m_round_4_enemies">
-		<text>2x Jabalies salvajes + 1x Carne</text>
+		<text>2x Jabal&#237;es salvajes + 1x Carne</text>
 	</string>
 	<string id="st_arena_m_round_4_desc">
 		<text>Bestias pesadas capaces de embestir a gran velocidad. Su piel gruesa absorbe perdigones menores.</text>
@@ -335,34 +335,34 @@
 		<text>4x Gatos salvajes mutantes</text>
 	</string>
 	<string id="st_arena_m_round_5_desc">
-		<text>Depredadores agiles que saltan a gran velocidad rasgando armaduras con sus garras afiladas.</text>
+		<text>Depredadores &#225;giles que saltan a gran velocidad rasgando armaduras con sus garras afiladas.</text>
 	</string>
 	<string id="st_arena_m_round_5_reward">
-		<text>11,000 RU + Botiquin militar + Estimulantes</text>
+		<text>11,000 RU + Botiqu&#237;n militar + Estimulantes</text>
 	</string>
 	<string id="st_arena_m_round_6_name">
 		<text>Ronda 6: Peste de Snorks</text>
 	</string>
 	<string id="st_arena_m_round_6_enemies">
-		<text>3x Snorks acrobaticos saltadores</text>
+		<text>3x Snorks acrob&#225;ticos saltadores</text>
 	</string>
 	<string id="st_arena_m_round_6_desc">
-		<text>Criaturas mutadas con mascaras de gas que realizan saltos mortales de decenas de metros.</text>
+		<text>Criaturas mutadas con m&#225;scaras de gas que realizan saltos mortales de decenas de metros.</text>
 	</string>
 	<string id="st_arena_m_round_6_reward">
-		<text>14,000 RU + Materiales de reparacion de nivel medio</text>
+		<text>14,000 RU + Materiales de reparaci&#243;n de nivel medio</text>
 	</string>
 	<string id="st_arena_m_round_7_name">
 		<text>Ronda 7: Acechadores Nocturnos</text>
 	</string>
 	<string id="st_arena_m_round_7_enemies">
-		<text>3x Lurkers rapidos del subsuelo</text>
+		<text>3x Lurkers r&#225;pidos del subsuelo</text>
 	</string>
 	<string id="st_arena_m_round_7_desc">
-		<text>Monstruos subterraneos con piel blindada y zarpazos veloces que desorientan al cazador.</text>
+		<text>Monstruos subterr&#225;neos con piel blindada y zarpazos veloces que desorientan al cazador.</text>
 	</string>
 	<string id="st_arena_m_round_7_reward">
-		<text>18,000 RU + Inyectores coagulantes + Municion</text>
+		<text>18,000 RU + Inyectores coagulantes + Munici&#243;n</text>
 	</string>
 	<string id="st_arena_m_round_8_name">
 		<text>Ronda 8: Depredadores Mentales</text>
@@ -371,43 +371,43 @@
 		<text>3x Psicovampiros (Psysuckers)</text>
 	</string>
 	<string id="st_arena_m_round_8_desc">
-		<text>Mutantes telepaticos que nublaran tu vision para emboscarte. Manten la distancia y dispara rapido.</text>
+		<text>Mutantes telep&#225;ticos que nublar&#225;n tu visi&#243;n para emboscarte. Manten la distancia y dispara r&#225;pido.</text>
 	</string>
 	<string id="st_arena_m_round_8_reward">
-		<text>23,000 RU + Kit de reparacion + Estimulantes</text>
+		<text>23,000 RU + Kit de reparaci&#243;n + Estimulantes</text>
 	</string>
 	<string id="st_arena_m_round_9_name">
-		<text>Ronda 9: Grito Psiquico</text>
+		<text>Ronda 9: Grito Ps&#237;quico</text>
 	</string>
 	<string id="st_arena_m_round_9_enemies">
 		<text>2x Psicovampiros + 2x Fracturas gigantes</text>
 	</string>
 	<string id="st_arena_m_round_9_desc">
-		<text>Una combinacion peligrosa: los Psicovampiros aturden tus sentidos mientras las Fracturas asestan golpes demoledores.</text>
+		<text>Una combinaci&#243;n peligrosa: los Psicovampiros aturden tus sentidos mientras las Fracturas asestan golpes demoledores.</text>
 	</string>
 	<string id="st_arena_m_round_9_reward">
-		<text>28,000 RU + Bloqueadores psiquicos + Kit de mantenimiento</text>
+		<text>28,000 RU + Bloqueadores ps&#237;quicos + Kit de mantenimiento</text>
 	</string>
 	<string id="st_arena_m_round_10_name">
 		<text>Ronda 10: Danza Fantasma</text>
 	</string>
 	<string id="st_arena_m_round_10_enemies">
-		<text>2x Perros Psiquicos (con clones fantasma) + 1x Pseudoperro gigante</text>
+		<text>2x Perros Ps&#237;quicos (con clones fantasma) + 1x Pseudoperro gigante</text>
 	</string>
 	<string id="st_arena_m_round_10_desc">
-		<text>Dos perros psiquicos generaran decenas de clones fantasmales para confundirte. Encuentra a los lideres originales rapidamente.</text>
+		<text>Dos perros ps&#237;quicos generar&#225;n decenas de clones fantasmales para confundirte. Encuentra a los l&#237;deres originales r&#225;pidamente.</text>
 	</string>
 	<string id="st_arena_m_round_10_reward">
-		<text>36,000 RU + Drogas psiquicas + Estimulantes de elite</text>
+		<text>36,000 RU + Drogas ps&#237;quicas + Estimulantes de &#233;lite</text>
 	</string>
 	<string id="st_arena_m_round_11_name">
-		<text>Ronda 11: Escudo Telequinetico</text>
+		<text>Ronda 11: Escudo Telequin&#233;tico</text>
 	</string>
 	<string id="st_arena_m_round_11_enemies">
-		<text>2x Burers telequineticos con barreras de energia</text>
+		<text>2x Burers telequin&#233;ticos con barreras de energ&#237;a</text>
 	</string>
 	<string id="st_arena_m_round_11_desc">
-		<text>Enanos telequineticos capaces de arrancar tu arma de las manos y desviar proyectiles con campos de fuerza.</text>
+		<text>Enanos telequin&#233;ticos capaces de arrancar tu arma de las manos y desviar proyectiles con campos de fuerza.</text>
 	</string>
 	<string id="st_arena_m_round_11_reward">
 		<text>45,000 RU + Kit de herramientas pesadas</text>
@@ -419,7 +419,7 @@
 		<text>1x Pseudogigante enfurecido</text>
 	</string>
 	<string id="st_arena_m_round_12_desc">
-		<text>Una mole titanica de musculo que sacude el suelo derribando al combatiente con cada pisoton. Absorbe cientos de balas.</text>
+		<text>Una mole tit&#225;nica de m&#250;sculo que sacude el suelo derribando al combatiente con cada pisot&#243;n. Absorbe cientos de balas.</text>
 	</string>
 	<string id="st_arena_m_round_12_reward">
 		<text>55,000 RU + Set de herramientas expertas</text>
@@ -437,40 +437,40 @@
 		<text>70,000 RU + Partes raras de mutante + Estimulantes</text>
 	</string>
 	<string id="st_arena_m_round_14_name">
-		<text>Ronda 14: El Tirano Psiquico</text>
+		<text>Ronda 14: El Tirano Ps&#237;quico</text>
 	</string>
 	<string id="st_arena_m_round_14_enemies">
 		<text>1x Controlador cerebral + 3x Zombis armados</text>
 	</string>
 	<string id="st_arena_m_round_14_desc">
-		<text>Un Controlador que golpeara tu mente a distancia con ondas cerebrales mientras sus subditos zombis te disparan.</text>
+		<text>Un Controlador que golpear&#225; tu mente a distancia con ondas cerebrales mientras sus s&#250;bditos zombis te disparan.</text>
 	</string>
 	<string id="st_arena_m_round_14_reward">
-		<text>90,000 RU + Artefacto de alta categoria + Botiquines cientificos</text>
+		<text>90,000 RU + Artefacto de alta categor&#237;a + Botiquines cient&#237;ficos</text>
 	</string>
 	<string id="st_arena_m_round_15_name">
-		<text>Ronda 15: El Duo del Apocalipsis</text>
+		<text>Ronda 15: El D&#250;o del Apocalipsis</text>
 	</string>
 	<string id="st_arena_m_round_15_enemies">
-		<text>2x Quimeras Negras + 1x Pseudogigante Titanico</text>
+		<text>2x Quimeras Negras + 1x Pseudogigante Tit&#225;nico</text>
 	</string>
 	<string id="st_arena_m_round_15_desc">
-		<text>La prueba final de supervivencia: las bestias mas poderosas y temidas de la Zona soltadas juntas en la arena.</text>
+		<text>La prueba final de supervivencia: las bestias m&#225;s poderosas y temidas de la Zona soltadas juntas en la arena.</text>
 	</string>
 	<string id="st_arena_m_round_15_reward">
-		<text>130,000 RU + Titulo 'Maestro Cazador' + Trofeo Supremo</text>
+		<text>130,000 RU + T&#237;tulo 'Maestro Cazador' + Trofeo Supremo</text>
 	</string>
 	<string id="st_arena_fight_started">
-		<text>Comienza el combate! Mata o muere!</text>
+		<text>&#161;Comienza el combate! Mata o muere!</text>
 	</string>
 	<string id="st_arena_enemies_remaining">
-		<text>Atencion! Quedan %s enemigos en pie en la arena.</text>
+		<text>Atenci&#243;n! Quedan %s enemigos en pie en la arena.</text>
 	</string>
 	<string id="st_arena_enemy_one_remaining">
-		<text>Ultimo enemigo restante! Terminalo para reclamar la victoria!</text>
+		<text>&#161;&#218;ltimo enemigo restante! Terminalo para reclamar la victoria!</text>
 	</string>
 	<string id="st_arena_fight_won">
-		<text>VICTORIA! El publico ruge de emocion ante tu triunfo!</text>
+		<text>&#161;VICTORIA! El p&#250;blico ruge de emoci&#243;n ante tu triunfo!</text>
 	</string>
 	<string id="st_arena_reward_money">
 		<text>Has recibido tu premio de %s RU.</text>
@@ -479,13 +479,13 @@
 		<text>Se han transferido suministros y botiquines a tu mochila.</text>
 	</string>
 	<string id="st_arena_tier_unlocked">
-		<text>Ascenso de Rango en la Arena! Has desbloqueado una nueva categoria: %s.</text>
+		<text>Ascenso de Rango en la Arena! Has desbloqueado una nueva categor&#237;a: %s.</text>
 	</string>
 	<string id="st_arena_champion_crowned">
-		<text>ATENCION A TODA LA ZONA! Tenemos un nuevo Gran Campeon de la Arena!</text>
+		<text>&#161;ATENCI&#211;N A TODA LA ZONA! Tenemos un nuevo Gran Campe&#243;n de la Arena!</text>
 	</string>
 	<string id="st_arena_medic_rescue">
-		<text>Rescate Medico! Fuiste noqueado y evacuado de urgencia. El tratamiento de los cirujanos te costo %s RU.</text>
+		<text>Rescate M&#233;dico! Fuiste noqueado y evacuado de urgencia. El tratamiento de los cirujanos te costo %s RU.</text>
 	</string>
 	<string id="st_arena_gear_restored">
 		<text>Tu equipamiento original ha sido devuelto a tu inventario.</text>
@@ -509,10 +509,10 @@
 		<text>Fuiste expulsado por disparar a los combatientes y perdiste tu apuesta.</text>
 	</string>
 	<string id="st_arena_team_1_won">
-		<text>El Equipo 1 ha ganado el combate!</text>
+		<text>&#161;El Equipo 1 ha ganado el combate!</text>
 	</string>
 	<string id="st_arena_team_2_won">
-		<text>El Equipo 2 ha ganado el combate!</text>
+		<text>&#161;El Equipo 2 ha ganado el combate!</text>
 	</string>
 	<string id="st_arena_your_reward">
 		<text>Has ganado %s RU en tu apuesta.</text>
@@ -527,7 +527,7 @@
 		<text>Equipamiento aleatorio en la Arena</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_random_equipment_desc">
-		<text>Guarda tu equipamiento en un baul seguro y te entrega armas, armadura y municion aleatoria segun la categoria del combate.</text>
+		<text>Guarda tu equipamiento en un ba&#250;l seguro y te entrega armas, armadura y munici&#243;n aleatoria seg&#250;n la categor&#237;a del combate.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_reward_mult">
 		<text>Multiplicador de dinero del premio</text>
@@ -536,16 +536,16 @@
 		<text>Multiplica el dinero en RU recibido por cada victoria en el torneo.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_give_items">
-		<text>Entregar suministros medicos y kits de reparacion</text>
+		<text>Entregar suministros m&#233;dicos y kits de reparaci&#243;n</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_give_items_desc">
-		<text>Si esta activado, ganaras items utiles para GAMMA (botiquines, municion, kits de mantenimiento de armas).</text>
+		<text>Si est&#225; activado, ganar&#225;s &#237;tems &#250;tiles para GAMMA (botiquines, munici&#243;n, kits de mantenimiento de armas).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_medic_rescue">
-		<text>Rescate medico de Arnie al caer en combate</text>
+		<text>Rescate m&#233;dico de Arnie al caer en combate</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_medic_rescue_desc">
-		<text>Si caes en combate mortal dentro de la arena, los medicos te rescatan con vida a cambio de una tasa medica, evitando la muerte definitiva o recargar partida.</text>
+		<text>Si caes en combate mortal dentro de la arena, los m&#233;dicos te rescatan con vida a cambio de una tasa m&#233;dica, evitando la muerte definitiva o recargar partida.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay">
 		<text>Permitir repetir combates ya ganados</text>
@@ -584,7 +584,7 @@
 		<text>Escopeta</text>
 	</string>
 	<string id="st_arena_class_rifle">
-		<text>Rifle Asalto</text>
+		<text>Fusil de asalto</text>
 	</string>
 	<string id="st_arena_class_smg">
 		<text>Subfusil</text>
@@ -653,7 +653,7 @@
 		<text>Comenzar</text>
 	</string>
 	<string id="st_arena_no_bet_selected">
-		<text>Debes seleccionar una apuesta en algun combate antes de comenzar.</text>
+		<text>Debes seleccionar una apuesta en alg&#250;n combate antes de comenzar.</text>
 	</string>
 	<string id="st_arena_spectator_press_f">
 		<text>Presiona F para salir de la arena</text>
@@ -674,7 +674,7 @@
 		<text>Grupo de expertos</text>
 	</string>
 	<string id="st_arena_group_weak">
-		<text>Grupo de debiles</text>
+		<text>Grupo de d&#233;biles</text>
 	</string>
 	<string id="st_arena_group_normal">
 		<text>Grupo normal</text>
@@ -701,13 +701,13 @@
 		<text>Equipo</text>
 	</string>
 	<string id="st_arena_night_menu_title">
-		<text>EQUIPAMIENTO PARA NIGHT MODE</text>
+		<text>EQUIPAMIENTO PARA EL MODO NOCTURNO</text>
 	</string>
 	<string id="st_arena_night_menu_desc">
 		<text>Selecciona la linterna o visor nocturno para el combate</text>
 	</string>
 	<string id="st_arena_dev_torch">
-		<text>Linterna Frontal (Estandar)</text>
+		<text>Linterna Frontal (Est&#225;ndar)</text>
 	</string>
 	<string id="st_arena_dev_nvg1">
 		<text>Visor Nocturno Gen 1 (PNV-57E)</text>
@@ -761,7 +761,7 @@
 		<text>Barajar Facciones</text>
 	</string>
 	<string id="st_arena_bc_desc">
-		<text>Combate simultaneo de facciones en la Arena. Guerra total de todos contra todos.</text>
+		<text>Combate simult&#225;neo de facciones en la Arena. Guerra total de todos contra todos.</text>
 	</string>
 	<string id="st_arena_bc_team1_header">
 		<text>Equipo 1 (Noroeste)</text>
@@ -812,10 +812,10 @@
 		<text>Equipo 3 (Sureste)</text>
 	</string>
 	<string id="st_arena_bc_no_winner">
-		<text>Todos los combatientes han caido. No hay vencedor.</text>
+		<text>Todos los combatientes han ca&#237;do. No hay vencedor.</text>
 	</string>
 	<string id="st_arena_bc_invalid_factions">
-		<text>Las facciones seleccionadas no son enemigas segun el lore. Cambia la composicion o baraja de nuevo.</text>
+		<text>Las facciones seleccionadas no son enemigas seg&#250;n el lore. Cambia la composici&#243;n o baraja de nuevo.</text>
 	</string>
 	<string id="st_arena_bc_team_eliminated">
 		<text>%s ha sido eliminado. Quedan %s equipos en pie.</text>
@@ -863,7 +863,7 @@
 		<text>Monstruo vs Monstruo</text>
 	</string>
 	<string id="st_arena_mvm_desc">
-		<text>Combate simultaneo de mutantes en la Arena. Guerra total de bestias de la Zona.</text>
+		<text>Combate simult&#225;neo de mutantes en la Arena. Guerra total de bestias de la Zona.</text>
 	</string>
 	<string id="st_arena_mvm_3teams">
 		<text>3 Especies</text>
@@ -875,16 +875,16 @@
 		<text>Barajar Mutantes</text>
 	</string>
 	<string id="st_arena_mvm_start_btn">
-		<text>Comenzar Monster vs Monster</text>
+		<text>Comenzar combate de mutantes</text>
 	</string>
 	<string id="st_arena_mvm_started_tip">
-		<text>Monster vs Monster iniciado: %s especies de mutantes combaten a muerte.</text>
+		<text>Combate de mutantes iniciado: %s especies combaten a muerte.</text>
 	</string>
 	<string id="st_arena_mvm_winner_tip">
-		<text>Monster vs Monster finalizado. Especie vencedora: %s</text>
+		<text>Combate de mutantes finalizado. Especie vencedora: %s</text>
 	</string>
 	<string id="st_arena_mvm_reward_tip">
-		<text>Acertaste tu apuesta en Monster vs Monster. Cobras: %s RU</text>
+		<text>Acertaste tu apuesta en el combate de mutantes. Cobras: %s RU</text>
 	</string>
 	<string id="st_arena_mut_chimera">
 		<text>Quimera</text>
@@ -902,7 +902,7 @@
 		<text>Psysucker</text>
 	</string>
 	<string id="st_arena_mut_psy_dog">
-		<text>Perro Psiquico</text>
+		<text>Perro Ps&#237;quico</text>
 	</string>
 	<string id="st_arena_mut_snork">
 		<text>Snork</text>
@@ -914,7 +914,7 @@
 		<text>Pseudoperro</text>
 	</string>
 	<string id="st_arena_mut_boar">
-		<text>Jabali</text>
+		<text>Jabal&#237;</text>
 	</string>
 	<string id="st_arena_mut_cat">
 		<text>Gato de la Zona</text>
@@ -935,7 +935,7 @@
 		<text>Roedores</text>
 	</string>
 	<string id="st_arena_loadout_ammo_title">
-		<text>TIPO DE MUNICION:</text>
+		<text>TIPO DE MUNICI&#211;N:</text>
 	</string>
 	<string id="st_arena_ammo_auto">
 		<text>Auto</text>
@@ -974,13 +974,13 @@
 		<text>Configura los modificadores y elige dificultad</text>
 	</string>
 	<string id="st_arena_endless_diff_easy">
-		<text>Facil</text>
+		<text>F&#225;cil</text>
 	</string>
 	<string id="st_arena_endless_diff_medium">
 		<text>Intermedio</text>
 	</string>
 	<string id="st_arena_endless_diff_hard">
-		<text>Dificil</text>
+		<text>Dif&#237;cil</text>
 	</string>
 	<string id="st_arena_endless_diff_cancel">
 		<text>Cancelar</text>
@@ -1049,16 +1049,16 @@
 		<text>MODO INFINITO (SUPERVIVENCIA)</text>
 	</string>
 	<string id="st_arena_endless_desc">
-		<text>Supera oleadas continuas que aumentan de dificultad (1v1, 1v2, 1v3...). Tras cada victoria tu arma, equipamiento y municion cambiaran al azar. Presiona F para retirarte con tu botin.</text>
+		<text>Supera oleadas continuas que aumentan de dificultad (1v1, 1v2, 1v3...). Tras cada victoria tu arma, equipamiento y munici&#243;n cambiar&#225;n al azar. Presiona F para retirarte con tu bot&#237;n.</text>
 	</string>
 	<string id="st_arena_endless_stats_record">
-		<text>Mejor Record: Oleada %s</text>
+		<text>Mejor marca: oleada %s</text>
 	</string>
 	<string id="st_arena_endless_stats_reward">
-		<text>Recompensa base segun dificultad: Facil (800 RU), Media (1,400 RU), Dificil (2,000 RU) + bono por oleada</text>
+		<text>Recompensa base seg&#250;n dificultad: F&#225;cil (800 RU), Media (1,400 RU), Dif&#237;cil (2,000 RU) + bono por oleada</text>
 	</string>
 	<string id="st_arena_endless_stats_reward_tokens">
-		<text>Recompensa base segun dificultad: Facil (8 Fichas), Media (14 Fichas), Dificil (20 Fichas) + bono por oleada</text>
+		<text>Recompensa base seg&#250;n dificultad: F&#225;cil (8 Fichas), Media (14 Fichas), Dif&#237;cil (20 Fichas) + bono por oleada</text>
 	</string>
 	<string id="st_arena_endless_type_title">
 		<text>TIPO DE ENEMIGOS:</text>
@@ -1076,10 +1076,10 @@
 		<text>Comenzar Modo Infinito</text>
 	</string>
 	<string id="st_arena_endless_enemies_spawning_3s">
-		<text>Los enemigos apareceran en 3 seg</text>
+		<text>Los enemigos aparecer&#225;n en 3 seg</text>
 	</string>
 	<string id="st_arena_endless_wave_started">
-		<text>OLEADA %s: 1v%s - Sobrevive! (Presiona %s para salir con tu botin)</text>
+		<text>OLEADA %s: 1v%s - Sobrevive! (Presiona %s para salir con tu bot&#237;n)</text>
 	</string>
 	<string id="st_arena_endless_wave_cleared">
 		<text>OLEADA %s SUPERADA! Recompensa acumulada: %s RU. Preparando siguiente oleada...</text>
@@ -1103,10 +1103,10 @@
 		<text>REGISTRO DE SUPERVIVENCIA Y RECOMPENSAS</text>
 	</string>
 	<string id="st_arena_endless_quick_rule1">
-		<text>- Cada victoria otorga nuevo equipo y municion al azar.</text>
+		<text>- Cada victoria otorga nuevo equipo y munici&#243;n al azar.</text>
 	</string>
 	<string id="st_arena_endless_quick_rule2">
-		<text>- Pulsa [F] en la arena para cobrar el botin y retirarte.</text>
+		<text>- Pulsa [F] en la arena para cobrar el bot&#237;n y retirarte.</text>
 	</string>
 	<string id="st_arena_endless_rules_frame_title">
 		<text>NORMAS DE LA ARENA &amp; CONDICIONES DE COMBATE</text>
@@ -1115,28 +1115,28 @@
 		<text>- Escalado de Amenaza: 1v1 en Oleada 1, aumentando progresivamente hasta 1v6 enemigos.</text>
 	</string>
 	<string id="st_arena_endless_rule_line2">
-		<text>- Retirada Tactica [F]: Sal de la arena en cualquier momento cobrando el 100% de la recompensa acumulada.</text>
+		<text>- Retirada T&#225;ctica [F]: Sal de la arena en cualquier momento cobrando el 100% de la recompensa acumulada.</text>
 	</string>
 	<string id="st_arena_endless_rule_line3">
-		<text>- Rescate Medico: Si caes abatido en combate, el medico te salvara en el Bar cobrando Tokens de la Arena (5 Tokens en modo Facil).</text>
+		<text>- Rescate M&#233;dico: Si caes abatido en combate, el m&#233;dico te salvar&#225; en el Bar cobrando Tokens de la Arena (5 Tokens en modo F&#225;cil).</text>
 	</string>
 	<string id="st_arena_endless_desc_stalkers">
-		<text>Enemigos humanos armados (Bandidos, Mercenarios, Militares, etc.). Usan armas de fuego, tacticas de flanqueo y cobertura. Al vencerlos, tu armamento cambiara al azar.</text>
+		<text>Enemigos humanos armados (Bandidos, Mercenarios, Militares, etc.). Usan armas de fuego, t&#225;cticas de flanqueo y cobertura. Al vencerlos, tu armamento cambiar&#225; al azar.</text>
 	</string>
 	<string id="st_arena_endless_desc_mutants">
-		<text>Fauna mutante hostil de la Zona (perros ciegos, snorks, chupasangres, burers, quimeras, gigantes). Ataques cuerpo a cuerpo feroces y habilidades anomalas.</text>
+		<text>Fauna mutante hostil de la Zona (perros ciegos, snorks, chupasangres, burers, quimeras, gigantes). Ataques cuerpo a cuerpo feroces y habilidades an&#243;malas.</text>
 	</string>
 	<string id="st_arena_endless_desc_chaos">
-		<text>Enfrentamiento caotico e impredecible. Cada oleada puede lanzar tanto escuadrones de stalkers armados como peligrosas manadas de mutantes.</text>
+		<text>Enfrentamiento ca&#243;tico e impredecible. Cada oleada puede lanzar tanto escuadrones de stalkers armados como peligrosas manadas de mutantes.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_special_ammo_support">
-		<text>Soporte de municion especial (ArtiGrok Ballistics)</text>
+		<text>Soporte de munici&#243;n especial (ArtiGrok Ballistics)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_special_ammo_support_desc">
-		<text>Permite equipar municion especial / sobrecargada si el mod ArtiGrok Ballistics esta instalado.</text>
+		<text>Permite equipar munici&#243;n especial / sobrecargada si el mod ArtiGrok Ballistics est&#225; instalado.</text>
 	</string>
 	<string id="st_arena_loadout_summary_title">
-		<text>PRESTAMO DE ARMAMENTO</text>
+		<text>PR&#201;STAMO DE ARMAMENTO</text>
 	</string>
 	<string id="st_arena_loadout_sum_round">
 		<text>Ronda</text>
@@ -1145,7 +1145,7 @@
 		<text>Arma</text>
 	</string>
 	<string id="st_arena_loadout_sum_ammo">
-		<text>Municion</text>
+		<text>Munici&#243;n</text>
 	</string>
 	<string id="st_arena_loadout_sum_outfit">
 		<text>Traje</text>
@@ -1154,13 +1154,13 @@
 		<text>Casco</text>
 	</string>
 	<string id="st_arena_spec_ammo_title">
-		<text>MUNICION ESPECIAL (ARTIGROK):</text>
+		<text>MUNICI&#211;N ESPECIAL (ARTIGROK):</text>
 	</string>
 	<string id="st_arena_spec_ammo_none">
-		<text>Sin municion especial</text>
+		<text>Sin munici&#243;n especial</text>
 	</string>
 	<string id="st_arena_fight_won_looting">
-		<text>VICTORIA! Tienes 12s para saquear a los caidos. Presiona [F] para salir de inmediato.</text>
+		<text>VICTORIA! Tienes 12s para saquear a los ca&#237;dos. Presiona [F] para salir de inmediato.</text>
 	</string>
 	<string id="st_arena_status_locked_rank">
 		<text>[BLOQUEADO: RANGO]</text>
@@ -1181,85 +1181,85 @@
 		<text>REPETIR (SIN PREMIO)</text>
 	</string>
 	<string id="st_arena_fight_won_practice">
-		<text>VICTORIA! Combate de practica completado (sin premio). Premio completo disponible en %s.</text>
+		<text>VICTORIA! Combate de pr&#225;ctica completado (sin premio). Premio completo disponible en %s.</text>
 	</string>
 	<string id="st_arena_btn_practice">
-		<text>Modo Practica</text>
+		<text>Modo Pr&#225;ctica</text>
 	</string>
 	<string id="st_arena_btn_practice_on">
-		<text>[PRACTICA: ON]</text>
+		<text>[PR&#193;CTICA: ON]</text>
 	</string>
 	<string id="st_arena_btn_practice_action">
-		<text>[PRACTICA]</text>
+		<text>[PR&#193;CTICA]</text>
 	</string>
 	<string id="st_arena_practice_mode_active_desc">
-		<text>MODO PRACTICA ACTIVO: Requisitos de rango desactivados. No se otorgaran recompensas de dinero ni objetos en este modo.</text>
+		<text>MODO PR&#193;CTICA ACTIVO: Requisitos de rango desactivados. No se otorgar&#225;n recompensas de dinero ni objetos en este modo.</text>
 	</string>
 	<string id="st_arena_fight_won_practice_simple">
-		<text>VICTORIA! Combate de practica completado (sin premio).</text>
+		<text>VICTORIA! Combate de pr&#225;ctica completado (sin premio).</text>
 	</string>
 	<string id="st_arena_endless_wave_cleared_practice">
-		<text>Oleada %d superada! [Modo Practica]</text>
+		<text>Oleada %d superada! [Modo Pr&#225;ctica]</text>
 	</string>
 	<string id="st_arena_endless_exit_tip_practice">
-		<text>[MODO PRACTICA] Modo Infinito finalizado! Oleadas superadas: %d. No se otorga recompensa monetaria.</text>
+		<text>[MODO PR&#193;CTICA] Modo Infinito finalizado! Oleadas superadas: %d. No se otorga recompensa monetaria.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_replay_7d">
-		<text>7 Dias (Predeterminado)</text>
+		<text>7 D&#237;as (Predeterminado)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_replay_3d">
-		<text>3 Dias</text>
+		<text>3 D&#237;as</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_replay_1d">
 		<text>1 Dia</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_replay_instant">
-		<text>Instantaneo (Siempre permitido)</text>
+		<text>Instant&#225;neo (Siempre permitido)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_replay_disabled">
 		<text>Desactivado (Solo una vez)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay_lst_7d">
-		<text>7 Dias (Predeterminado)</text>
+		<text>7 D&#237;as (Predeterminado)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay_lst_3d">
-		<text>3 Dias</text>
+		<text>3 D&#237;as</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay_lst_1d">
 		<text>1 Dia</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay_lst_instant">
-		<text>Instantaneo (Siempre permitido)</text>
+		<text>Instant&#225;neo (Siempre permitido)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay_lst_disabled">
 		<text>Desactivado (Solo una vez)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_7d">
-		<text>7 Dias (Predeterminado)</text>
+		<text>7 D&#237;as (Predeterminado)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_3d">
-		<text>3 Dias</text>
+		<text>3 D&#237;as</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_1d">
 		<text>1 Dia</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_instant">
-		<text>Instantaneo (Siempre permitido)</text>
+		<text>Instant&#225;neo (Siempre permitido)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay_lst_ui_mcm_xcvb_arena_replay_disabled">
 		<text>Desactivado (Solo una vez)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_panic_key">
-		<text>Tecla de Panico (Modo Infinito)</text>
+		<text>Tecla de P&#225;nico (Modo Infinito)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_panic_key_desc">
 		<text>Presiona esta tecla durante el Modo Infinito o Modo Espectador para salir de inmediato.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_medic_rescue_fee">
-		<text>Costo de Rescate Medico (RU)</text>
+		<text>Costo de Rescate M&#233;dico (RU)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_medic_rescue_fee_desc">
-		<text>Cantidad de rublos cobrados cuando el medico de la arena te rescata de un dano fatal.</text>
+		<text>Cantidad de rublos cobrados cuando el m&#233;dico de la arena te rescata de un da&#241;o fatal.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_reward_mult">
 		<text>Multiplicador de Recompensas (Modo Infinito)</text>
@@ -1271,10 +1271,10 @@
 		<text>Multiplicador Recompensas: Clase Restringida</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_restricted_reward_mult_desc">
-		<text>Multiplicador de recompensas al jugar en Modo Infinito con armas restringidas o equipamiento personalizado (Por defecto: 0.8 = 80% de puntos). Ponlo en 1.0 para desactivar la penalizacion.</text>
+		<text>Multiplicador de recompensas al jugar en Modo Infinito con armas restringidas o equipamiento personalizado (Por defecto: 0.8 = 80% de puntos). Ponlo en 1.0 para desactivar la penalizaci&#243;n.</text>
 	</string>
 	<string id="st_arena_loadout_cost_label">
-		<text>Coste de prestamo</text>
+		<text>Coste de pr&#233;stamo</text>
 	</string>
 	<string id="st_arena_cost_free">
 		<text>GRATIS</text>
@@ -1289,43 +1289,43 @@
 		<text>FONDOS INSUFICIENTES</text>
 	</string>
 	<string id="st_arena_err_insufficient_funds">
-		<text>Fondos insuficientes: Necesitas %s RU para el prestamo de armamento.</text>
+		<text>Fondos insuficientes: Necesitas %s RU para el pr&#233;stamo de armamento.</text>
 	</string>
 	<string id="st_arena_fee_deducted_tip">
-		<text>Prestamo de armamento: Se han descontado %s RU.</text>
+		<text>Pr&#233;stamo de armamento: Se han descontado %s RU.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_rental_fee_mult">
-		<text>Multiplicador de coste de prestamo</text>
+		<text>Multiplicador de coste de pr&#233;stamo</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_rental_fee_mult_desc">
-		<text>Ajusta el coste al elegir armas, niveles o municiones especificas (0 = Gratis, 1.0 = Predeterminado).</text>
+		<text>Ajusta el coste al elegir armas, niveles o municiones espec&#237;ficas (0 = Gratis, 1.0 = Predeterminado).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_auto_reopen_gui">
-		<text>Reabrir menu tras combate</text>
+		<text>Reabrir men&#250; tras combate</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_auto_reopen_gui_desc">
-		<text>Abre automaticamente el panel de la Arena al finalizar un combate del torneo o modo infinito.</text>
+		<text>Abre autom&#225;ticamente el panel de la Arena al finalizar un combate del torneo o modo infinito.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_base_dist">
-		<text>Distancia de Vision Nocturna Base (Facil)</text>
+		<text>Distancia de Visi&#243;n Nocturna Base (F&#225;cil)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_base_dist_desc">
-		<text>Distancia en metros a la que los enemigos novatos o en dificultad facil te ven de pie en la oscuridad (predeterminado: 24m).</text>
+		<text>Distancia en metros a la que los enemigos novatos o en dificultad f&#225;cil te ven de pie en la oscuridad (predeterminado: 24m).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_mult">
-		<text>Multiplicador General de Vision Nocturna</text>
+		<text>Multiplicador General de Visi&#243;n Nocturna</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_vision_mult_desc">
-		<text>Ajusta globalmente el alcance de vision de todos los enemigos y mutantes en Modo Noche (0.5x a 2.0x).</text>
+		<text>Ajusta globalmente el alcance de visi&#243;n de todos los enemigos y mutantes en Modo Noche (0.5x a 2.0x).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_elite_nvg">
-		<text>NVG en Enemigos de Elite</text>
+		<text>NVG en Enemigos de &#201;lite</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_night_elite_nvg_desc">
-		<text>Los enemigos de elite (Maestros, Leyendas, Monolith y veteranos) equipan visores nocturnos y NO encienden linternas para mantener el sigilo.</text>
+		<text>Los enemigos de &#233;lite (Maestros, Leyendas, Monolith y veteranos) equipan visores nocturnos y NO encienden linternas para mantener el sigilo.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_arena_light_mult">
-		<text>Iluminacion - Hangar de la Arena</text>
+		<text>Iluminaci&#243;n - Hangar de la Arena</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_arena_light_mult_desc">
 		<text>Multiplicador de luz ambiental en el hangar de la arena normal (predeterminado: 2.8). Aumenta para mayor claridad o reduce si tu shader o reshade es muy brillante.</text>
@@ -1337,7 +1337,7 @@
 		<text>Sin Cargador</text>
 	</string>
 	<string id="st_arena_loadout_ammo_qty_title">
-		<text>MUNICION</text>
+		<text>MUNICI&#211;N</text>
 	</string>
 	<string id="st_arena_loadout_box_singular">
 		<text>1 caja (%s balas)</text>
@@ -1349,7 +1349,7 @@
 		<text>1-3 cajas (Auto)</text>
 	</string>
 	<string id="st_arena_loadout_mags_auto">
-		<text>1-3 cargadores (Basico)</text>
+		<text>1-3 cargadores (B&#225;sico)</text>
 	</string>
 	<string id="st_arena_mag_basic_tag">
 		<text>Bas. (1-3x)</text>
@@ -1361,7 +1361,7 @@
 		<text>%s cargadores</text>
 	</string>
 	<string id="st_arena_mag_menu_title">
-		<text>CARGADORES Y MUNICION</text>
+		<text>CARGADORES Y MUNICI&#211;N</text>
 	</string>
 	<string id="st_arena_mag_menu_capacity">
 		<text>Capacidad: %s balas</text>
@@ -1372,33 +1372,33 @@
 	<string id="st_arena_mag_menu_ammo">
 		<text>Cajas: %s</text>
 	</string>
-    <string id="st_arena_bosses"><text>BOSSES</text></string>
+    <string id="st_arena_bosses"><text>JEFES</text></string>
     <string id="st_arena_boss_hunter_name"><text>El Cazador</text></string>
     <string id="st_arena_boss_hunter_desc"><text>Duelo contra un veterano con escopeta SPAS-12. Usa las coberturas para controlar la distancia.</text></string>
     <string id="st_arena_boss_hunter_enemies"><text>1x Veterano / SPAS-12</text></string>
-    <string id="st_arena_boss_hunter_reward"><text>35000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_hunter_reward"><text>35000 RU + Botiqu&#237;n cient&#237;fico</text></string>
     <string id="st_arena_boss_ghost_name"><text>El Fantasma</text></string>
     <string id="st_arena_boss_ghost_desc"><text>Duelo contra un tirador con SVD. Evita cruzar la arena por el centro descubierto.</text></string>
     <string id="st_arena_boss_ghost_enemies"><text>1x Tirador / SVD</text></string>
-    <string id="st_arena_boss_ghost_reward"><text>45000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_ghost_reward"><text>45000 RU + Botiqu&#237;n cient&#237;fico</text></string>
     <string id="st_arena_boss_executioner_name"><text>El Verdugo: duelo final</text></string>
-    <string id="st_arena_boss_executioner_desc"><text>El campeon regresa en un duelo con PKM. Aprovecha sus recargas para cambiar de cobertura.</text></string>
-    <string id="st_arena_boss_executioner_enemies"><text>1x Campeon / PKM</text></string>
-    <string id="st_arena_boss_executioner_reward"><text>65000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_executioner_desc"><text>El campe&#243;n regresa en un duelo con PKM. Aprovecha sus recargas para cambiar de cobertura.</text></string>
+    <string id="st_arena_boss_executioner_enemies"><text>1x Campe&#243;n / PKM</text></string>
+    <string id="st_arena_boss_executioner_reward"><text>65000 RU + Botiqu&#237;n cient&#237;fico</text></string>
     <string id="st_arena_boss_matriarch_name"><text>La Matriarca</text></string>
     <string id="st_arena_boss_matriarch_desc"><text>Una quimera fuerte y dos pseudoperros. Separa la manada antes de enfrentar a la Matriarca.</text></string>
     <string id="st_arena_boss_matriarch_enemies"><text>1x Quimera + 2x Pseudoperros</text></string>
-    <string id="st_arena_boss_matriarch_reward"><text>35000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_matriarch_reward"><text>35000 RU + Botiqu&#237;n cient&#237;fico</text></string>
     <string id="st_arena_boss_whisper_name"><text>El Susurro</text></string>
     <string id="st_arena_boss_whisper_desc"><text>Un controlador protegido por dos zombis. Los escoltas complican tu acercamiento al jefe.</text></string>
     <string id="st_arena_boss_whisper_enemies"><text>1x Controlador + 2x Zombis</text></string>
-    <string id="st_arena_boss_whisper_reward"><text>45000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_whisper_reward"><text>45000 RU + Botiqu&#237;n cient&#237;fico</text></string>
     <string id="st_arena_boss_colossus_name"><text>El Coloso</text></string>
-    <string id="st_arena_boss_colossus_desc"><text>Un pseudogigante fuerte con dos snorks. Mantente en movimiento y elimina primero a los mas rapidos.</text></string>
+    <string id="st_arena_boss_colossus_desc"><text>Un pseudogigante fuerte con dos snorks. Mantente en movimiento y elimina primero a los m&#225;s r&#225;pidos.</text></string>
     <string id="st_arena_boss_colossus_enemies"><text>1x Pseudogigante + 2x Snorks</text></string>
-    <string id="st_arena_boss_colossus_reward"><text>65000 RU + Botiquin cientifico</text></string>
+    <string id="st_arena_boss_colossus_reward"><text>65000 RU + Botiqu&#237;n cient&#237;fico</text></string>
 	<string id="st_arena_companion_use">
-		<text>Tablero de Contratacion ($ACTION_USE$)</text>
+		<text>Tablero de Contrataci&#243;n ($ACTION_USE$)</text>
 	</string>
 	<string id="st_arena_companion_title">
 		<text>CONTRATAR ALIADOS</text>
@@ -1413,7 +1413,7 @@
 		<text>Costo: %d RU</text>
 	</string>
 	<string id="st_arena_companion_active_title">
-		<text>[ TUS COMPANEROS ]</text>
+		<text>[ TUS COMPA&#209;EROS ]</text>
 	</string>
 	<string id="st_arena_companion_btn_hire">
 		<text>CONTRATAR</text>
@@ -1425,58 +1425,58 @@
 		<text>CERRAR</text>
 	</string>
 	<string id="st_arena_companion_slot_empty">
-		<text>-- Slot vacio --</text>
+		<text>-- Slot vac&#237;o --</text>
 	</string>
 	<string id="st_arena_companion_alive">
 		<text>Activo</text>
 	</string>
 	<string id="st_arena_companion_dead">
-		<text>Caido</text>
+		<text>Ca&#237;do</text>
 	</string>
 	<string id="st_arena_companion_rank0_name">
-		<text>Stalker Novato</text>
+		<text>Aliado recluta</text>
 	</string>
 	<string id="st_arena_companion_rank0_desc">
-		<text>Un stalker basico. Mejor que nada.</text>
+		<text>Combatiente de tu facci&#243;n. Rango 1/5.</text>
 	</string>
 	<string id="st_arena_companion_rank1_name">
-		<text>Stalker Experimentado</text>
+		<text>Aliado experimentado</text>
 	</string>
 	<string id="st_arena_companion_rank1_desc">
-		<text>Decente en combate. Confiable.</text>
+		<text>Combatiente de tu facci&#243;n. Rango 2/5.</text>
 	</string>
 	<string id="st_arena_companion_rank2_name">
-		<text>Mercenario Veterano</text>
+		<text>Aliado veterano</text>
 	</string>
 	<string id="st_arena_companion_rank2_desc">
-		<text>Operativo Killer. Habil y agresivo.</text>
+		<text>Combatiente de tu facci&#243;n. Rango 3/5.</text>
 	</string>
 	<string id="st_arena_companion_rank3_name">
-		<text>Mercenario Experto</text>
+		<text>Aliado experto</text>
 	</string>
 	<string id="st_arena_companion_rank3_desc">
-		<text>Killer de elite. Maneja situaciones dificiles.</text>
+		<text>Combatiente de tu facci&#243;n. Rango 4/5.</text>
 	</string>
 	<string id="st_arena_companion_rank4_name">
-		<text>Elite Militar</text>
+		<text>Aliado legendario</text>
 	</string>
 	<string id="st_arena_companion_rank4_desc">
-		<text>Fuerzas especiales. Lo mejor que el dinero puede comprar.</text>
+		<text>Combatiente de tu facci&#243;n. Rango 5/5.</text>
 	</string>
 	<string id="st_arena_companion_hired">
-		<text>%s contratado y listo para combatir!</text>
+		<text>&#161;%s contratado y listo para combatir!</text>
 	</string>
 	<string id="st_arena_companion_fired">
 		<text>Aliado despedido.</text>
 	</string>
 	<string id="st_arena_companion_err_invalid">
-		<text>Tipo de aliado invalido.</text>
+		<text>Tipo de aliado inv&#225;lido.</text>
 	</string>
 	<string id="st_arena_companion_err_not_endless">
 		<text>Solo puedes contratar aliados en el Modo Infinito.</text>
 	</string>
 	<string id="st_arena_companion_err_max">
-		<text>Maximo de aliados alcanzado (%d). Despide uno primero.</text>
+		<text>M&#225;ximo de aliados alcanzado (%d). Despide uno primero.</text>
 	</string>
 	<string id="st_arena_companion_err_money">
 		<text>No tienes suficiente dinero. Necesitas %d RU.</text>
@@ -1487,9 +1487,7 @@
 	<string id="st_arena_companion_err_generic">
 		<text>No puedes contratar aliados ahora mismo.</text>
 	</string>
-	<string id="st_arena_companion_arena_money">
-		<text>Dinero Arena: %d CLP</text>
-	</string>
+	
 	<string id="st_arena_companion_normal_money">
 		<text>Dinero: %d RU</text>
 	</string>
@@ -1500,7 +1498,7 @@
 		<text>+%d CLP [%s] (Total: %d CLP)</text>
 	</string>
 	<string id="st_arena_wpn_menu_title">
-		<text>SELECCION DE ARMA</text>
+		<text>SELECCI&#211;N DE ARMA</text>
 	</string>
 	<string id="st_arena_tier_all">
 		<text>TODOS</text>
@@ -1515,19 +1513,19 @@
 		<text>EQUIPAMIENTO PERSONALIZADO (MODO ENDLESS)</text>
 	</string>
 	<string id="st_arena_endless_custom_desc">
-		<text>Elige tu clase, arma del catalogo, municion y cargadores para el combate</text>
+		<text>Elige tu clase, arma del cat&#225;logo, munici&#243;n y cargadores para el combate</text>
 	</string>
 	<string id="st_arena_endless_custom_toggle">
 		<text>ESTADO: [PERSONALIZADO ACTIVADO]</text>
 	</string>
 	<string id="st_arena_endless_custom_choose_wpn">
-		<text>Elegir Arma del Catalogo</text>
+		<text>Elegir Arma del Cat&#225;logo</text>
 	</string>
 	<string id="st_arena_endless_custom_confirm">
 		<text>CONFIRMAR Y GUARDAR EQUIPAMIENTO</text>
 	</string>
 	<string id="st_arena_endless_custom_note">
-		<text>Nota: Con el equipamiento personalizado activo, mantendras esta misma arma elegida durante todas las rondas de Endless.</text>
+		<text>Nota: Con el equipamiento personalizado activo, mantendr&#225;s esta misma arma elegida durante todas las rondas de Endless.</text>
 	</string>
 	<string id="st_arena_endless_custom_on">
 		<text>ACTIVO</text>
@@ -1542,7 +1540,7 @@
 		<text>Cargadores</text>
 	</string>
 	<string id="st_arena_mag_ammo_box_label">
-		<text>Cajas de Municion</text>
+		<text>Cajas de Munici&#243;n</text>
 	</string>
 	<string id="st_arena_btn_close">
 		<text>CERRAR</text>
@@ -1554,7 +1552,7 @@
 		<text>EQUIPAMIENTO PERSONALIZADO ACTIVADO</text>
 	</string>
 	<string id="st_arena_ec_sum_status_off">
-		<text>ALEATORIO ESTANDAR (DESACTIVADO)</text>
+		<text>ALEATORIO EST&#193;NDAR (DESACTIVADO)</text>
 	</string>
 	<string id="st_arena_ec_sum_wpn_lbl">
 		<text>Arma:</text>
@@ -1566,13 +1564,13 @@
 		<text>Tier:</text>
 	</string>
 	<string id="st_arena_ec_sum_ammo_lbl">
-		<text>Municion:</text>
+		<text>Munici&#243;n:</text>
 	</string>
 	<string id="st_arena_ec_sum_mags_lbl">
 		<text>Cargadores:</text>
 	</string>
 	<string id="st_arena_ec_sum_boxes_lbl">
-		<text>Cajas de municion:</text>
+		<text>Cajas de munici&#243;n:</text>
 	</string>
 	<string id="st_arena_wpn_menu_count">
 		<text>%d armas disponibles</text>
@@ -1597,19 +1595,19 @@
 		<text>%d Fichas de Arena</text>
 	</string>
 	<string id="st_arena_endless_exit_tip_tokens">
-		<text>Modo Infinito finalizado (%d Oleadas). Has ganado %d Fichas de Arena!</text>
+		<text>&#161;Modo Infinito finalizado (%d Oleadas). Has ganado %d Fichas de Arena!</text>
 	</string>
 	<string id="st_arena_voucher_rental_used">
 		<text>Vale de Alquiler de Equipo aplicado! (0 RU cobrados)</text>
 	</string>
 	<string id="st_arena_voucher_medic_used">
-		<text>Vale de Rescate Medico aplicado! No se cobro tasa medica de rescate.</text>
+		<text>Vale de Rescate M&#233;dico aplicado! No se cobro tasa m&#233;dica de rescate.</text>
 	</string>
 	<string id="st_arena_medic_rescue_voucher">
-		<text>El medico de la arena te atendio usando tu Vale de Rescate Medico (0 RU de coste).</text>
+		<text>El m&#233;dico de la arena te atendi&#243; usando tu Vale de Rescate M&#233;dico (0 RU de coste).</text>
 	</string>
 	<string id="st_arena_companion_err_tokens">
-		<text>No tienes suficientes Fichas de Arena para contratar a este companero (Requiere %d Fichas).</text>
+		<text>No tienes suficientes Fichas de Arena para contratar a este compa&#241;ero (Requiere %d Fichas).</text>
 	</string>
 	<string id="st_arena_companion_cost_tokens_fmt">
 		<text>%d Fichas</text>
@@ -1638,7 +1636,7 @@
 		<text>Medicina</text>
 	</string>
 	<string id="st_arena_shop_tab_ammo">
-		<text>Municion</text>
+		<text>Munici&#243;n</text>
 	</string>
 	<string id="st_arena_shop_tab_services">
 		<text>Servicios</text>
@@ -1650,13 +1648,13 @@
 		<text>Sin Fichas</text>
 	</string>
 	<string id="st_arena_shop_btn_limit_reached">
-		<text>Limite Diario</text>
+		<text>L&#237;mite Diario</text>
 	</string>
 	<string id="st_arena_shop_btn_rank_locked">
 		<text>Rango: %s</text>
 	</string>
 	<string id="st_arena_shop_err_rank">
-		<text>Rango insuficiente: Debes alcanzar el rango de %s para comprar esta municion.</text>
+		<text>Rango insuficiente: Debes alcanzar el rango de %s para comprar esta munici&#243;n.</text>
 	</string>
 	<string id="st_arena_shop_btn_companions">
 		<text>GLADIADORES</text>
@@ -1668,16 +1666,16 @@
 		<text>Cambio realizado: Has recibido %d RU a cambio de %d Fichas de la Arena.</text>
 	</string>
 	<string id="st_arena_shop_err_limit">
-		<text>Arnie no tiene mas fondos para cambiar por hoy. Vuelve manana.</text>
+		<text>Arnie no tiene m&#225;s fondos para cambiar por hoy. Vuelve ma&#241;ana.</text>
 	</string>
 	<string id="st_arena_shop_item_bought">
 		<text>Canjeado: %s (%d Fichas).</text>
 	</string>
 	<string id="st_arena_shop_voucher_rental_bought">
-		<text>Adquirido: Vale de Alquiler de Equipo Gratis (se aplicara en tu proximo combate).</text>
+		<text>Adquirido: Vale de Alquiler de Equipo Gratis (se aplicar&#225; en tu pr&#243;ximo combate).</text>
 	</string>
 	<string id="st_arena_shop_voucher_medic_bought">
-		<text>Adquirido: Vale de Rescate Medico (cubre 1 rescate de emergencia en la arena).</text>
+		<text>Adquirido: Vale de Rescate M&#233;dico (cubre 1 rescate de emergencia en la arena).</text>
 	</string>
 
 	<!-- Shop Item Descriptions (Espanol) -->
@@ -1688,7 +1686,7 @@
 		<text>Cambia 50 Fichas de la Arena por 750 rublos en efectivo.</text>
 	</string>
 	<string id="st_arena_shop_cash_150_name">
-		<text>Paga pequena (2.250 RU)</text>
+		<text>Paga peque&#241;a (2.250 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_150_desc">
 		<text>Cambia 150 Fichas de la Arena por 2.250 rublos en efectivo.</text>
@@ -1706,7 +1704,7 @@
 		<text>Cambia 600 Fichas de la Arena por 9.000 rublos en efectivo.</text>
 	</string>
 	<string id="st_arena_shop_cash_1000_name">
-		<text>Premio de Campeon (15.000 RU)</text>
+		<text>Premio de Campe&#243;n (15.000 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_1000_desc">
 		<text>Cambia 1.000 Fichas de la Arena por 15.000 rublos en efectivo.</text>
@@ -1716,62 +1714,62 @@
 		<text>Pack de Vendajes (x3)</text>
 	</string>
 	<string id="st_arena_shop_med_bandage_desc">
-		<text>Tres vendajes militares esterilizados de compresion para detener hemorragias.</text>
+		<text>Tres vendajes militares esterilizados de compresi&#243;n para detener hemorragias.</text>
 	</string>
 	<string id="st_arena_shop_med_army_name">
-		<text>Botiquin Militar</text>
+		<text>Botiqu&#237;n Militar</text>
 	</string>
 	<string id="st_arena_shop_med_army_desc">
-		<text>Botiquin de campana del ejercito con analgesicos y coagulantes potentes.</text>
+		<text>Botiqu&#237;n de campa&#241;a del ej&#233;rcito con analg&#233;sicos y coagulantes potentes.</text>
 	</string>
 	<string id="st_arena_shop_med_sci_name">
-		<text>Botiquin Cientifico</text>
+		<text>Botiqu&#237;n Cient&#237;fico</text>
 	</string>
 	<string id="st_arena_shop_med_sci_desc">
-		<text>Equipo medico ecologista avanzado con radioprotectores y antitoxinas.</text>
+		<text>Equipo m&#233;dico ecologista avanzado con radioprotectores y antitoxinas.</text>
 	</string>
 	<string id="st_arena_shop_med_stim_name">
 		<text>Estimulante de Combate</text>
 	</string>
 	<string id="st_arena_shop_med_stim_desc">
-		<text>Inyector de adrenalina y analgesico rapido para traumas graves de combate.</text>
+		<text>Inyector de adrenalina y analg&#233;sico r&#225;pido para traumas graves de combate.</text>
 	</string>
 	<string id="st_arena_shop_med_coag_name">
 		<text>Inyector Coagulante</text>
 	</string>
 	<string id="st_arena_shop_med_coag_desc">
-		<text>Farmaco hemostatico de accion inmediata que frena hemorragias criticas.</text>
+		<text>F&#225;rmaco hemost&#225;tico de acci&#243;n inmediata que frena hemorragias cr&#237;ticas.</text>
 	</string>
 
 	<string id="st_arena_shop_ammo_buck_name">
 		<text>Caja 12x70 Perdigones</text>
 	</string>
 	<string id="st_arena_shop_ammo_buck_desc">
-		<text>Cartuchos estandar de perdigones pesados para defensa cercana contra mutantes.</text>
+		<text>Cartuchos est&#225;ndar de perdigones pesados para defensa cercana contra mutantes.</text>
 	</string>
 	<string id="st_arena_shop_ammo_zhekan_name">
 		<text>Caja 12x76 Bala Zhekan</text>
 	</string>
 	<string id="st_arena_shop_ammo_zhekan_desc">
-		<text>Proyectiles solidos de plomo pesado capaces de fracturar caparazones y blindajes.</text>
+		<text>Proyectiles s&#243;lidos de plomo pesado capaces de fracturar caparazones y blindajes.</text>
 	</string>
 	<string id="st_arena_shop_ammo_545_name">
 		<text>5.45x39 mm 7N10 (AP)</text>
 	</string>
 	<string id="st_arena_shop_ammo_545_desc">
-		<text>Municion perforante con nucleo de acero reforzado contra chalecos y cascos.</text>
+		<text>Munici&#243;n perforante con n&#250;cleo de acero reforzado contra chalecos y cascos.</text>
 	</string>
 	<string id="st_arena_shop_ammo_556_name">
 		<text>5.56x45 mm M855A1 (AP)</text>
 	</string>
 	<string id="st_arena_shop_ammo_556_desc">
-		<text>Proyectiles perforantes de alta velocidad OTAN con excelente balistica.</text>
+		<text>Proyectiles perforantes de alta velocidad OTAN con excelente bal&#237;stica.</text>
 	</string>
 	<string id="st_arena_shop_ammo_939_name">
 		<text>9x39 mm SP-6 (AP)</text>
 	</string>
 	<string id="st_arena_shop_ammo_939_desc">
-		<text>Municion pesada subsonica perforante para fusiles VSS Vintorez y AS Val.</text>
+		<text>Munici&#243;n pesada subs&#243;nica perforante para fusiles VSS Vintorez y AS Val.</text>
 	</string>
 
 	<string id="st_arena_shop_srv_clean_name">
@@ -1784,30 +1782,30 @@
 		<text>Grasa Lubricante de Armas</text>
 	</string>
 	<string id="st_arena_shop_srv_oil_desc">
-		<text>Grasa sintetica pesada para reducir la friccion y prevenir encasquillamientos.</text>
+		<text>Grasa sint&#233;tica pesada para reducir la fricci&#243;n y prevenir encasquillamientos.</text>
 	</string>
 	<string id="st_arena_shop_srv_sew_name">
 		<text>Kit de Costura Textil</text>
 	</string>
 	<string id="st_arena_shop_srv_sew_desc">
-		<text>Hilo reforzado y parches de Kevlar para remendar trajes stalker danados.</text>
+		<text>Hilo reforzado y parches de Kevlar para remendar trajes stalker da&#241;ados.</text>
 	</string>
 	<string id="st_arena_shop_srv_rental_name">
 		<text>Vale de Alquiler de Equipo Gratis</text>
 	</string>
 	<string id="st_arena_shop_srv_rental_desc">
-		<text>Vale especial que cubre el coste total de alquiler de armas para tu proximo combate.</text>
+		<text>Vale especial que cubre el coste total de alquiler de armas para tu pr&#243;ximo combate.</text>
 	</string>
 	<string id="st_arena_shop_srv_medic_name">
-		<text>Vale de Rescate Medico</text>
+		<text>Vale de Rescate M&#233;dico</text>
 	</string>
 	<string id="st_arena_shop_srv_medic_desc">
-		<text>Garantiza extraccion medica gratuita si caes abatido dentro de la arena.</text>
+		<text>Garantiza extracci&#243;n m&#233;dica gratuita si caes abatido dentro de la arena.</text>
 	</string>
 
 	<!-- MCM Settings Localization (Espanol) -->
 	<string id="ui_mcm_xcvb_arena_economy_mode">
-		<text>Modo de Economia</text>
+		<text>Modo de Econom&#237;a</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_economy_mode_desc">
 		<text>Elige entre Fichas y Tienda de Arena (balanceado e inmersivo, ideal GAMMA) o Rublos Directos (clasico).</text>
@@ -1831,10 +1829,10 @@
 		<text>Ajusta el costo en fichas de los objetos en la Tienda de la Arena (aumenta para mayor rigor GAMMA o reduce para facilitar).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_daily_cashout_limit">
-		<text>Limite Diario de Cambio a Rublos (RU)</text>
+		<text>L&#237;mite Diario de Cambio a Rublos (RU)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_daily_cashout_limit_desc">
-		<text>Cantidad maxima de rublos que Arnie puede cambiar por dia (previene inflacion desmedida).</text>
+		<text>Cantidad m&#225;xima de rublos que Arnie puede cambiar por dia (previene inflaci&#243;n desmedida).</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_rank_gating">
 		<text>Bloqueo por Rango Stalker (Rank Gating)</text>
@@ -1843,13 +1841,13 @@
 		<text>Exige alcanzar el rango correspondiente (Novato, Veterano, Leyenda) para desbloquear tiers altos.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval">
-		<text>Rotacion de Mapa en Endless (Oleadas)</text>
+		<text>Rotaci&#243;n de Mapa en Endless (Oleadas)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval_desc">
-		<text>Cambia de mapa entre Arena y Fabrica cada X oleadas superadas (0 = desactivado).</text>
+		<text>Cambia de mapa entre Arena y F&#225;brica cada X oleadas superadas (0 = desactivado).</text>
 	</string>
 	<string id="st_arena_endless_swap_to_factory">
-		<text>OLEADA %s - CAMBIO DE SECTOR: FABRICA!</text>
+		<text>&#161;OLEADA %s - CAMBIO DE SECTOR: F&#193;BRICA!</text>
 	</string>
 	<string id="st_arena_endless_swap_to_arena">
 		<text>OLEADA %s - CAMBIO DE SECTOR: ARENA! Regresando al foso de combate cerrado.</text>
@@ -1861,7 +1859,7 @@
 		<text>CAMBIAR MAPA PARA COMBATIR</text>
 	</string>
 	<string id="st_arena_map_mismatch_tip">
-		<text>Ubicacion de combate no coincide: este combate se disputa en %s. Usa el boton de AREA superior para cambiar de mapa.</text>
+		<text>La selecci&#243;n del mapa no coincide. Sincronizando la ubicaci&#243;n de la arena.</text>
 	</string>
 	<string id="st_arena_map_arena_name">
 		<text>Arena del Bar</text>
@@ -1875,13 +1873,13 @@
 		<text>MODO ENDLESS</text>
 	</string>
 	<string id="st_arena_endless_menu_desc">
-		<text>Configura reglas de combate, restriccion de armas y dificultad inicial</text>
+		<text>Configura reglas de combate, restricci&#243;n de armas y dificultad inicial</text>
 	</string>
 	<string id="st_arena_endless_wpn_section_title">
-		<text>RESTRICCION DE ARMAS:</text>
+		<text>RESTRICCI&#211;N DE ARMAS:</text>
 	</string>
 	<string id="st_arena_endless_mods_section_title">
-		<text>MODIFICADORES TACTICOS Y EQUIPO:</text>
+		<text>MODIFICADORES T&#193;CTICOS Y EQUIPO:</text>
 	</string>
 	<string id="st_arena_endless_summary_title">
 		<text>RESUMEN DE SUPERVIVENCIA</text>
@@ -1899,7 +1897,7 @@
 		<text>Todas las armas (100% Recompensas)</text>
 	</string>
 	<string id="st_arena_endless_sum_wpn_restr">
-		<text>%s unicamente (-%d%% Puntos)</text>
+		<text>%s &#250;nicamente (-%d%% Puntos)</text>
 	</string>
 	<string id="st_arena_endless_sum_3dssg">
 		<text>Miras 3DSSG: %s</text>
@@ -1917,13 +1915,13 @@
 		<text>+1 enemigo por ronda (Inicia en 1)</text>
 	</string>
 	<string id="st_arena_endless_sum_esc_off">
-		<text>Escuadron estandar</text>
+		<text>Escuadr&#243;n est&#225;ndar</text>
 	</string>
 	<string id="st_arena_endless_sum_spawn">
-		<text>Formacion: %s</text>
+		<text>Formaci&#243;n: %s</text>
 	</string>
 	<string id="st_arena_endless_sum_spawn_tog">
-		<text>Agrupados (Escuadron en grupo)</text>
+		<text>Agrupados (Escuadr&#243;n en grupo)</text>
 	</string>
 	<string id="st_arena_endless_sum_spawn_rnd">
 		<text>Dispersos (Portones aleatorios)</text>
@@ -1932,28 +1930,28 @@
 		<text>Equipamiento: %s</text>
 	</string>
 	<string id="st_arena_endless_sum_load_std">
-		<text>Estandar de la Arena</text>
+		<text>Est&#225;ndar de la Arena</text>
 	</string>
 	<string id="st_arena_endless_sum_load_cust">
 		<text>Personalizado [ACTIVO]</text>
 	</string>
 	<string id="st_arena_endless_note_all">
-		<text>Nota de combate: Reglas estandar. Arsenal aleatorio (100% Puntos).</text>
+		<text>Nota de combate: Reglas est&#225;ndar. Arsenal aleatorio (100% Puntos).</text>
 	</string>
 	<string id="st_arena_endless_note_restricted">
-		<text>Nota de combate: CLASE RESTRINGIDA. Solo %s (Jugador y Enemigos). Otorga solo el %d%% de puntos (-%d%% penalizacion).</text>
+		<text>Nota de combate: CLASE RESTRINGIDA. Solo %s (Jugador y Enemigos). Otorga solo el %d%% de puntos (-%d%% penalizaci&#243;n).</text>
 	</string>
 	<string id="st_arena_endless_restr_penalty_tag">
-		<text>Penalizacion clase restringida</text>
+		<text>Penalizaci&#243;n clase restringida</text>
 	</string>
 	<string id="st_arena_endless_note_escalation">
-		<text>Escalada de horda anadira +1 enemigo por oleada.</text>
+		<text>Escalada de horda a&#241;adir&#225; +1 enemigo por oleada.</text>
 	</string>
 	<string id="st_arena_endless_stats_title">
-		<text>--- ESTADISTICAS DE SUPERVIVENCIA ---</text>
+		<text>--- ESTAD&#205;STICAS DE SUPERVIVENCIA ---</text>
 	</string>
 	<string id="st_arena_endless_stat_max_wave">
-		<text>Oleada Maxima: Oleada %s</text>
+		<text>Oleada M&#225;xima: Oleada %s</text>
 	</string>
 	<string id="st_arena_endless_stat_kills">
 		<text>Enemigos Eliminados: %s</text>
@@ -1965,10 +1963,10 @@
 		<text>Oleadas Superadas: %s</text>
 	</string>
 	<string id="st_arena_endless_reset_stats_btn">
-		<text>REINICIAR ESTADISTICAS</text>
+		<text>REINICIAR ESTAD&#205;STICAS</text>
 	</string>
 	<string id="st_arena_endless_stats_reset_tip">
-		<text>Las estadisticas de Supervivencia Endless han sido reiniciadas.</text>
+		<text>Las estad&#237;sticas de Supervivencia Endless han sido reiniciadas.</text>
 	</string>
 	<string id="st_arena_voucher_tag">
 		<text>VALE</text>
@@ -2000,7 +1998,7 @@
 		<text>SUPERADO</text>
 	</string>
 	<string id="st_arena_hud_last_enemy">
-		<text>ULTIMO ENEMIGO!</text>
+		<text>&#161;&#218;LTIMO ENEMIGO!</text>
 	</string>
 	<string id="st_arena_hud_retreat">
 		<text>Retirarse</text>
@@ -2009,19 +2007,19 @@
 		<text>HUD de Combate Limpio</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_combat_hud_desc">
-		<text>Muestra un overlay tactico con oleada, recompensa y cronometro en tiempo real.</text>
+		<text>Muestra un overlay t&#225;ctico con oleada, recompensa y cron&#243;metro en tiempo real.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_immersion">
-		<text>Inmersion Sonora de Supervivencia</text>
+		<text>Inmersi&#243;n Sonora de Supervivencia</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_immersion_desc">
-		<text>Habilita cuenta regresiva y anuncios tacticos.</text>
+		<text>Habilita cuenta regresiva y anuncios t&#225;cticos.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_crowd_cheers">
-		<text>Reacciones del publico</text>
+		<text>Reacciones del p&#250;blico</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_crowd_cheers_desc">
-		<text>Reproduce vitoreos distantes del publico al superar oleadas.</text>
+		<text>Reproduce vitoreos distantes del p&#250;blico al superar oleadas.</text>
 	</string>
 	<string id="st_arena_hud_banner_wave">
 		<text>OLEADA %d</text>
@@ -2036,52 +2034,52 @@
 		<text>Enemigos en 1...</text>
 	</string>
 	<string id="st_arena_hud_banner_elite_3">
-		<text>ALERTA: COMBATE DE ELITE EN 3 SEG!</text>
+		<text>&#161;ALERTA: COMBATE DE &#201;LITE EN 3 SEG!</text>
 	</string>
 	<string id="st_arena_hud_banner_elite_2">
-		<text>ALERTA: COMBATE DE ELITE EN 2 SEG!</text>
+		<text>&#161;ALERTA: COMBATE DE &#201;LITE EN 2 SEG!</text>
 	</string>
 	<string id="st_arena_hud_banner_elite_1">
-		<text>ALERTA: PREPARATE!</text>
+		<text>&#161;ALERTA: PREPARATE!</text>
 	</string>
 	<string id="st_arena_hud_banner_start">
 		<text>OLEADA %d: COMIENZA</text>
 	</string>
 	<string id="st_arena_hud_banner_start_sub">
-		<text>A luchar por tu vida!</text>
+		<text>&#161;A luchar por tu vida!</text>
 	</string>
 	<string id="st_arena_hud_banner_elite_start">
-		<text>OLEADA %d: [ELITE]</text>
+		<text>OLEADA %d: [&#201;LITE]</text>
 	</string>
 	<string id="st_arena_hud_banner_elite_sub">
-		<text>Elimina a los campeones de la arena!</text>
+		<text>&#161;Elimina a los campeones de la arena!</text>
 	</string>
 	<string id="st_arena_hud_banner_last_enemy_title">
-		<text>ULTIMO ENEMIGO!</text>
+		<text>&#161;&#218;LTIMO ENEMIGO!</text>
 	</string>
 	<string id="st_arena_hud_banner_last_enemy_sub">
-		<text>Terminalo para ganar la oleada!</text>
+		<text>&#161;Terminalo para ganar la oleada!</text>
 	</string>
 	<string id="st_arena_hud_banner_cleared">
-		<text>OLEADA %d SUPERADA!</text>
+		<text>&#161;OLEADA %d SUPERADA!</text>
 	</string>
 	<string id="st_arena_hud_banner_elite_cleared">
-		<text>OLEADA %d DE ELITE SUPERADA!</text>
+		<text>&#161;OLEADA %d DE &#201;LITE SUPERADA!</text>
 	</string>
 	<string id="st_arena_hud_banner_reward_sub">
 		<text>Recompensa acumulada: %s</text>
 	</string>
 	<string id="st_arena_hud_banner_pb_title">
-		<text>NUEVO RECORD PB: %s!</text>
+		<text>&#161;NUEVO R&#201;CORD PB: %s!</text>
 	</string>
 	<string id="st_arena_hud_banner_pb_sub">
-		<text>Oleada %d superada en tiempo record</text>
+		<text>Oleada %d superada en tiempo r&#233;cord</text>
 	</string>
 	<string id="st_arena_medic_rescue_tokens">
-		<text>Rescate Medico de Emergencia! Fuiste evacuado inconsciente. El tratamiento costo %s Tokens.</text>
+		<text>Rescate M&#233;dico de Emergencia! Fuiste evacuado inconsciente. El tratamiento costo %s Tokens.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_combat_hud_title">
-		<text>Mostrar titulo del modo</text>
+		<text>Mostrar t&#237;tulo del modo</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_combat_hud_wave">
 		<text>Mostrar oleada / ronda</text>
@@ -2093,7 +2091,7 @@
 		<text>Mostrar recompensa acumulada</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_combat_hud_timer">
-		<text>Mostrar cronometro de speedrun</text>
+		<text>Mostrar cron&#243;metro de speedrun</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_combat_hud_pb">
 		<text>Mostrar mejor marca (PB) y partida anterior</text>
@@ -2102,94 +2100,94 @@
 		<text>Mostrar tecla de retirada</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_arena_intro_camera">
-		<text>Camara inicial panoramica (Arena estandar)</text>
+		<text>C&#225;mara inicial panor&#225;mica (Arena est&#225;ndar)</text>
 	</string>
 	<string id="st_arena_hud_banner_tourn_win_title">
-		<text>VICTORIA EN LA ARENA!</text>
+		<text>&#161;VICTORIA EN LA ARENA!</text>
 	</string>
 	<string id="st_arena_hud_banner_tourn_win_sub">
 		<text>Has derrotado a todos los oponentes</text>
 	</string>
 	<string id="st_arena_endless_no_heal_bonus_tag">
-		<text>Bonus Sin Curacion</text>
+		<text>Bonus Sin Curaci&#243;n</text>
 	</string>
 	<string id="st_arena_endless_note_no_heal">
-		<text>Curacion tras ronda DESACTIVADA: Sin regeneracion entre oleadas (+15% de bonus).</text>
+		<text>Curaci&#243;n tras ronda DESACTIVADA: Sin regeneraci&#243;n entre oleadas (+15% de bonus).</text>
 	</string>
 	<string id="st_arena_endless_note_spoils_instant">
-		<text>Botin de Guerra INSTANTANEO: Cambias de arma inmediatamente al matar.</text>
+		<text>Bot&#237;n de Guerra INSTANT&#193;NEO: Cambias de arma inmediatamente al matar.</text>
 	</string>
 	<string id="st_arena_endless_note_spoils_round">
-		<text>Botin de Guerra activo: Heredas el arma de tu ultima baja en cada ronda.</text>
+		<text>Bot&#237;n de Guerra activo: Heredas el arma de tu &#250;ltima baja en cada ronda.</text>
 	</string>
 	<string id="st_arena_endless_spoils_claimed_tip">
-		<text>BOTIN DE GUERRA: Tomaste %s del enemigo caido!</text>
+		<text>&#161;BOT&#205;N DE GUERRA: Tomaste %s del enemigo ca&#237;do!</text>
 	</string>
 	<string id="st_arena_endless_spoils_round_tip">
-		<text>BOTIN DE GUERRA: Equipado con %s de la ronda anterior!</text>
+		<text>&#161;BOT&#205;N DE GUERRA: Equipado con %s de la ronda anterior!</text>
 	</string>
 	<string id="st_arena_endless_sum_heal">
-		<text>Curacion Total: %s</text>
+		<text>Curaci&#243;n Total: %s</text>
 	</string>
 	<string id="st_arena_endless_sum_heal_off">
 		<text>Desactivada (+15% Bonus de Puntos)</text>
 	</string>
 	<string id="st_arena_endless_sum_heal_on">
-		<text>Activada (Estandar)</text>
+		<text>Activada (Est&#225;ndar)</text>
 	</string>
 	<string id="st_arena_endless_sum_spoils">
-		<text>Botin de Guerra: %s</text>
+		<text>Bot&#237;n de Guerra: %s</text>
 	</string>
 	<string id="st_arena_endless_sum_spoils_instant">
-		<text>Cambio Instantaneo (Al matar enemigo)</text>
+		<text>Cambio Instant&#225;neo (Al matar enemigo)</text>
 	</string>
 	<string id="st_arena_endless_sum_spoils_off">
 		<text>Desactivado</text>
 	</string>
 	<string id="st_arena_endless_sum_spoils_round">
-		<text>Cambio por Ronda (Siguiente oleada usa arma de ultima baja)</text>
+		<text>Cambio por Ronda (Siguiente oleada usa arma de &#250;ltima baja)</text>
 	</string>
 	<string id="st_arena_outfit_menu_title">
-		<text>SELECCION DE ARMADURA</text>
+		<text>SELECCI&#211;N DE ARMADURA</text>
 	</string>
 	<string id="st_arena_outfit_menu_subtitle">
 		<text>Elige la armadura para el combate (Pts de Arena)</text>
 	</string>
 	<string id="st_arena_helmet_menu_title">
-		<text>SELECCION DE CASCO</text>
+		<text>SELECCI&#211;N DE CASCO</text>
 	</string>
 	<string id="st_arena_helmet_menu_subtitle">
 		<text>Elige el casco para el combate (Pts de Arena)</text>
 	</string>
 	<string id="st_arena_meds_menu_title">
-		<text>PAQUETES MEDICOS</text>
+		<text>PAQUETES M&#201;DICOS</text>
 	</string>
 	<string id="st_arena_meds_menu_subtitle">
-		<text>Elige el paquete medico de suministros (Pts de Arena)</text>
+		<text>Elige el paquete m&#233;dico de suministros (Pts de Arena)</text>
 	</string>
 	<string id="st_arena_meds_pack_standard">
-		<text>Paquete Basico</text>
+		<text>Paquete B&#225;sico</text>
 	</string>
 	<string id="st_arena_meds_pack_standard_desc">
-		<text>1x Botiquin Basico, 2x Vendas</text>
+		<text>1x Botiqu&#237;n B&#225;sico, 2x Vendas</text>
 	</string>
 	<string id="st_arena_meds_pack_combat">
 		<text>Paquete de Combate</text>
 	</string>
 	<string id="st_arena_meds_pack_combat_desc">
-		<text>2x Botiquin Militar, 3x Vendas, 1x Estimulante</text>
+		<text>2x Botiqu&#237;n Militar, 3x Vendas, 1x Estimulante</text>
 	</string>
 	<string id="st_arena_meds_pack_elite">
-		<text>Paquete Elite</text>
+		<text>Paquete &#201;lite</text>
 	</string>
 	<string id="st_arena_meds_pack_elite_desc">
-		<text>2x Botiquin Cientifico, 4x Vendas, 1x Morfina</text>
+		<text>2x Botiqu&#237;n Cient&#237;fico, 4x Vendas, 1x Morfina</text>
 	</string>
 	<string id="st_arena_meds_pack_survival">
 		<text>Paquete de Supervivencia</text>
 	</string>
 	<string id="st_arena_meds_pack_survival_desc">
-		<text>3x Botiquin Militar, 5x Vendas, 2x Estimulante</text>
+		<text>3x Botiqu&#237;n Militar, 5x Vendas, 2x Estimulante</text>
 	</string>
 	<string id="st_arena_loadout_auto_armor">
 		<text>[AUTO] Armadura de Ronda</text>
@@ -2225,10 +2223,10 @@
 		<text>PUNTOS INSUFICIENTES</text>
 	</string>
 	<string id="st_arena_title_gear">
-		<text>TRAJE TACTICO Y CASCO DE COMBATE</text>
+		<text>TRAJE T&#193;CTICO Y CASCO DE COMBATE</text>
 	</string>
 	<string id="st_arena_title_supplies">
-		<text>SUMINISTROS MEDICOS Y GRANADAS</text>
+		<text>SUMINISTROS M&#201;DICOS Y GRANADAS</text>
 	</string>
 	<string id="st_arena_grenades_menu_title">
 		<text>GRANADAS DE MANO</text>
@@ -2272,4 +2270,145 @@
 	<string id="st_arena_qty_format">
 		<text>Cant: %d</text>
 	</string>
+	<!-- Modo Infinito / Seleccion de Modo -->
+	<string id="st_arena_mode_select_title">
+		<text>SELECCI&#211;N DE MODO</text>
+	</string>
+	<string id="st_arena_mode_select_desc">
+		<text>Selecciona tu experiencia en la Arena. Elige tu modo de combate y personaliza tus reglas o escuadr&#243;n.</text>
+	</string>
+	<string id="st_arena_mode_classic_name">
+		<text>MODO CLASICO (Supervivencia por Oleadas)</text>
+	</string>
+	<string id="st_arena_mode_classic_desc">
+		<text>Combate en solitario contra oleadas continuas. Puedes contratar aliados en el tablero de la arena si requieres apoyo.</text>
+	</string>
+	<string id="st_arena_mode_plus_name">
+		<text>ENDLESS+ (Mejoras y Arsenal)</text>
+	</string>
+	<string id="st_arena_mode_plus_desc">
+		<text>Variante avanzada con selecci&#243;n de equipo por categor&#237;as, tienda de mejoras y recompensas especiales entre rondas.</text>
+	</string>
+	<string id="st_arena_mode_team_name">
+		<text>Escuadr&#243;n</text>
+	</string>
+	<string id="st_arena_mode_team_desc">
+		<text>Endless con tu escuadr&#243;n. Los aliados iniciales son gratis. Usa Configuraci&#243;n para personalizar a cada aliado.</text>
+	</string>
+	<string id="st_arena_mode_factions_name">
+		<text>BATALLA DE FACCIONES</text>
+	</string>
+	<string id="st_arena_mode_factions_desc">
+		<text>Guerra abierta entre facciones de la Zona en sectores independientes. Lidera al Equipo 1 junto a tus aliados.</text>
+	</string>
+	<string id="st_arena_mode_btn_back">
+		<text>Volver</text>
+	</string>
+	<!-- Gestion de Escuadron / Pantalla de Aliados -->
+	<string id="st_arena_team_title">
+		<text>CONFIGURACI&#211;N DEL ESCUADR&#211;N</text>
+	</string>
+	<string id="st_arena_team_title_faction">
+		<text>EQUIPAMIENTO DE ALIADOS DE FACCI&#211;N</text>
+	</string>
+	<string id="st_arena_team_desc">
+		<text>Elige los aliados y el apoyo entre oleadas. Cada aliado tiene su propio equipamiento.</text>
+	</string>
+	<string id="st_arena_team_header_squad">
+		<text>AJUSTES DEL ESCUADR&#211;N</text>
+	</string>
+	<string id="st_arena_team_header_loadout">
+		<text>EQUIPAMIENTO INDIVIDUAL</text>
+	</string>
+	<string id="st_arena_team_ally_count">
+		<text>%d %s</text>
+	</string>
+	<string id="st_arena_team_ally_singular">
+		<text>ALIADO</text>
+	</string>
+	<string id="st_arena_team_ally_plural">
+		<text>ALIADOS</text>
+	</string>
+	<string id="st_arena_team_replenish">
+		<text>Reemplazar bajas: %s</text>
+	</string>
+	<string id="st_arena_team_heal">
+		<text>Curar supervivientes: %s</text>
+	</string>
+	<string id="st_arena_team_resupply">
+		<text>Reabastecer aliados: %s</text>
+	</string>
+	<string id="st_arena_team_reset">
+		<text>Restablecer los ajustes del escuadr&#243;n</text>
+	</string>
+	<string id="st_arena_team_slot_fmt">
+		<text>ALIADO %d</text>
+	</string>
+	<string id="st_arena_team_editing_slot">
+		<text>CONFIGURANDO: ALIADO %d DE %d</text>
+	</string>
+	<string id="st_arena_team_rank_fmt">
+		<text>Rango: %s (%d/5)</text>
+	</string>
+	<string id="st_arena_rank_1">
+		<text>Novato</text>
+	</string>
+	<string id="st_arena_rank_2">
+		<text>Experimentado</text>
+	</string>
+	<string id="st_arena_rank_3">
+		<text>Veterano</text>
+	</string>
+	<string id="st_arena_rank_4">
+		<text>Experto</text>
+	</string>
+	<string id="st_arena_rank_5">
+		<text>&#201;lite / Maestro</text>
+	</string>
+	<string id="st_arena_team_class_fmt">
+		<text>Clase de arma: %s</text>
+	</string>
+	<string id="st_arena_team_ammo_fmt">
+		<text>Preferencia de munici&#243;n: %s</text>
+	</string>
+	<string id="st_arena_team_boxes_fmt">
+		<text>Cajas de munici&#243;n: %d</text>
+	</string>
+	<string id="st_arena_team_btn_weapon">
+		<text>Elegir Arma</text>
+	</string>
+	<string id="st_arena_team_btn_scope">
+		<text>Elegir Mira</text>
+	</string>
+	<string id="st_arena_team_scope_fmt">
+		<text>Mira: %s</text>
+	</string>
+	<string id="st_arena_team_btn_modes">
+		<text>Cambiar modo</text>
+	</string>
+	<string id="st_arena_team_btn_save">
+		<text>Guardar y Volver</text>
+	</string>
+	<string id="st_arena_team_btn_configure">
+		<text>Configuraci&#243;n</text>
+	</string>
+	<string id="st_arena_team_summary_team">
+		<text>Selecciona un aliado para editar su equipo. Los ajustes se guardan al volver.</text>
+	</string>
+	<string id="st_arena_team_summary_faction">
+		<text>El tama&#241;o y rango del equipo se ajustan en Batalla de Facciones. Los equipamientos se configuran aqu&#237; individualmente.</text>
+	</string>
+	<string id="st_arena_state_on">
+		<text>ACTIVADO</text>
+	</string>
+	<string id="st_arena_state_off">
+		<text>DESACTIVADO</text>
+	</string>
+	<string id="st_arena_endless_configuration"><text>Configuraci&#243;n</text></string>
+	<string id="st_arena_endless_area_fmt"><text>Area: %s</text></string>
+	<string id="st_arena_endless_variant_classic"><text>Clasico</text></string>
+	<string id="st_arena_endless_variant_factions"><text>Batalla de facciones</text></string>
+	<string id="st_arena_team_rules_hint"><text>El apoyo se aplica entre oleadas. Elige un aliado a la derecha para configurar rango, arma, mira y munici&#243;n.</text></string>
+<string id="st_arena_backrooms_device_title"><text>EQUIPO PARA BACKROOMS</text></string>
+<string id="st_arena_backrooms_device_desc"><text>Elige linterna o visor nocturno de nivel 1, 2 o 3. Act&#237;valo manualmente despu&#233;s de entrar.</text></string>
 </string_table>

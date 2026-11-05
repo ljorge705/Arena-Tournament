@@ -263,7 +263,7 @@
 		<text>4x Exoskeleton Mercenaries with Gauss Rifles and MGs</text>
 	</string>
 	<string id="st_arena_s_round_14_desc">
-		<text>Top tier mercenaries holding the line. A single electromagnetic Gauss slug pierces any cover.</text>
+		<text>Top-tier mercenaries holding the line. A single electromagnetic Gauss slug pierces any cover.</text>
 	</string>
 	<string id="st_arena_s_round_14_reward">
 		<text>90,000 RU + Gauss Batteries + High-Tier Artefact</text>
@@ -1409,34 +1409,34 @@
 		<text>KIA</text>
 	</string>
 	<string id="st_arena_companion_rank0_name">
-		<text>Rookie Stalker</text>
+		<text>Rookie Ally</text>
 	</string>
 	<string id="st_arena_companion_rank0_desc">
-		<text>A basic stalker. Better than nothing.</text>
+		<text>A fighter from your faction. Rank 1/5.</text>
 	</string>
 	<string id="st_arena_companion_rank1_name">
-		<text>Seasoned Stalker</text>
+		<text>Experienced Ally</text>
 	</string>
 	<string id="st_arena_companion_rank1_desc">
-		<text>Decent combat experience. Reliable.</text>
+		<text>A fighter from your faction. Rank 2/5.</text>
 	</string>
 	<string id="st_arena_companion_rank2_name">
-		<text>Veteran Merc</text>
+		<text>Veteran Ally</text>
 	</string>
 	<string id="st_arena_companion_rank2_desc">
-		<text>A Killer operative. Skilled and aggressive.</text>
+		<text>A fighter from your faction. Rank 3/5.</text>
 	</string>
 	<string id="st_arena_companion_rank3_name">
-		<text>Expert Merc</text>
+		<text>Expert Ally</text>
 	</string>
 	<string id="st_arena_companion_rank3_desc">
-		<text>Elite Killer. Handles heavy situations.</text>
+		<text>A fighter from your faction. Rank 4/5.</text>
 	</string>
 	<string id="st_arena_companion_rank4_name">
-		<text>Military Elite</text>
+		<text>Legendary Ally</text>
 	</string>
 	<string id="st_arena_companion_rank4_desc">
-		<text>Special forces. The best money can buy.</text>
+		<text>A fighter from your faction. Rank 5/5.</text>
 	</string>
 	<string id="st_arena_companion_hired">
 		<text>%s hired and ready to fight!</text>
@@ -1580,7 +1580,7 @@
 		<text>The Executioner: final duel</text>
 	</string>
 	<string id="st_arena_boss_executioner_desc">
-		<text>The champion returns for a duel with a PKM. Use his reloads to move between cover.</text>
+		<text>The champion returns for a duel with a PKM. Use his reloads to move between cover positions.</text>
 	</string>
 	<string id="st_arena_boss_executioner_enemies">
 		<text>1x Champion / PKM</text>
@@ -1625,10 +1625,10 @@
 		<text>65,000 RU + Scientific medkit</text>
 	</string>
 	<string id="st_arena_night_mode_tip_on">
-		<text>NIGHT MODE activated (02:30) — Arena lights off.</text>
+		<text>NIGHT MODE activated (02:30) - Arena lights off.</text>
 	</string>
 	<string id="st_arena_night_mode_tip_off">
-		<text>Normal mode restored — Arena lights on.</text>
+		<text>Normal mode restored - Arena lights on.</text>
 	</string>
 	<!-- Arena Tokens & Store System -->
 	<string id="st_arena_btn_shop">
@@ -1732,31 +1732,31 @@
 		<text>Pocket Money (750 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_50_desc">
-		<text>Exchange 50 Arena Tokens for 750 Roubles in cash.</text>
+		<text>Exchange 50 Arena Tokens for 750 Rubles in cash.</text>
 	</string>
 	<string id="st_arena_shop_cash_150_name">
 		<text>Small Payout (2,250 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_150_desc">
-		<text>Exchange 150 Arena Tokens for 2,250 Roubles in cash.</text>
+		<text>Exchange 150 Arena Tokens for 2,250 Rubles in cash.</text>
 	</string>
 	<string id="st_arena_shop_cash_300_name">
 		<text>Gladiator Paycheck (4,500 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_300_desc">
-		<text>Exchange 300 Arena Tokens for 4,500 Roubles in cash.</text>
+		<text>Exchange 300 Arena Tokens for 4,500 Rubles in cash.</text>
 	</string>
 	<string id="st_arena_shop_cash_600_name">
 		<text>Major Purse (9,000 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_600_desc">
-		<text>Exchange 600 Arena Tokens for 9,000 Roubles in cash.</text>
+		<text>Exchange 600 Arena Tokens for 9,000 Rubles in cash.</text>
 	</string>
 	<string id="st_arena_shop_cash_1000_name">
 		<text>Champion's Bounty (15,000 RU)</text>
 	</string>
 	<string id="st_arena_shop_cash_1000_desc">
-		<text>Exchange 1,000 Arena Tokens for 15,000 Roubles in cash.</text>
+		<text>Exchange 1,000 Arena Tokens for 15,000 Rubles in cash.</text>
 	</string>
 
 	<string id="st_arena_shop_med_bandage_name">
@@ -2150,7 +2150,7 @@
 		<text>Show Wave / Round</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_combat_hud_enemies">
-		<text>Show Enemies Counter</text>
+		<text>Show Enemy Counter</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_combat_hud_reward">
 		<text>Show Accumulated Reward</text>
@@ -2317,4 +2317,145 @@
 	<string id="st_arena_qty_format">
 		<text>Qty: %d</text>
 	</string>
+	<!-- Endless Mode / Mode Selection -->
+	<string id="st_arena_mode_select_title">
+		<text>MODE SELECTION</text>
+	</string>
+	<string id="st_arena_mode_select_desc">
+		<text>Choose your Endless experience. Select your combat mode and customize rules or squad.</text>
+	</string>
+	<string id="st_arena_mode_classic_name">
+		<text>CLASSIC ENDLESS (Wave Survival)</text>
+	</string>
+	<string id="st_arena_mode_classic_desc">
+		<text>Progressive solo survival against continuous waves. Hire allies at the arena board if you need backup.</text>
+	</string>
+	<string id="st_arena_mode_plus_name">
+		<text>ENDLESS+ (Upgrades &amp; Arsenal)</text>
+	</string>
+	<string id="st_arena_mode_plus_desc">
+		<text>Advanced variant with class-based loadouts, tactical upgrade shop, and wave rewards.</text>
+	</string>
+	<string id="st_arena_mode_team_name">
+		<text>Squad</text>
+	</string>
+	<string id="st_arena_mode_team_desc">
+		<text>Endless with your own squad. Starting allies are free. Use Configuration to customize each ally.</text>
+	</string>
+	<string id="st_arena_mode_factions_name">
+		<text>FACTION BATTLE</text>
+	</string>
+	<string id="st_arena_mode_factions_desc">
+		<text>All-out faction warfare in distinct zones. Lead Team 1 alongside your allies.</text>
+	</string>
+	<string id="st_arena_mode_btn_back">
+		<text>Back</text>
+	</string>
+	<!-- Squad Management / Ally Screen -->
+	<string id="st_arena_team_title">
+		<text>SQUAD CONFIGURATION</text>
+	</string>
+	<string id="st_arena_team_title_faction">
+		<text>FACTION ALLY EQUIPMENT</text>
+	</string>
+	<string id="st_arena_team_desc">
+		<text>Choose your squad size and wave support. Each ally has an independent loadout.</text>
+	</string>
+	<string id="st_arena_team_header_squad">
+		<text>SQUAD SETTINGS</text>
+	</string>
+	<string id="st_arena_team_header_loadout">
+		<text>INDIVIDUAL LOADOUT</text>
+	</string>
+	<string id="st_arena_team_ally_count">
+		<text>%d %s</text>
+	</string>
+	<string id="st_arena_team_ally_singular">
+		<text>ALLY</text>
+	</string>
+	<string id="st_arena_team_ally_plural">
+		<text>ALLIES</text>
+	</string>
+	<string id="st_arena_team_replenish">
+		<text>Replace fallen allies: %s</text>
+	</string>
+	<string id="st_arena_team_heal">
+		<text>Heal survivors: %s</text>
+	</string>
+	<string id="st_arena_team_resupply">
+		<text>Resupply survivors: %s</text>
+	</string>
+	<string id="st_arena_team_reset">
+		<text>Reset squad to defaults</text>
+	</string>
+	<string id="st_arena_team_slot_fmt">
+		<text>ALLY %d</text>
+	</string>
+	<string id="st_arena_team_editing_slot">
+		<text>CONFIGURING: ALLY %d OF %d</text>
+	</string>
+	<string id="st_arena_team_rank_fmt">
+		<text>Rank: %s (%d/5)</text>
+	</string>
+	<string id="st_arena_rank_1">
+		<text>Rookie</text>
+	</string>
+	<string id="st_arena_rank_2">
+		<text>Experienced</text>
+	</string>
+	<string id="st_arena_rank_3">
+		<text>Veteran</text>
+	</string>
+	<string id="st_arena_rank_4">
+		<text>Expert</text>
+	</string>
+	<string id="st_arena_rank_5">
+		<text>Elite / Master</text>
+	</string>
+	<string id="st_arena_team_class_fmt">
+		<text>Weapon class: %s</text>
+	</string>
+	<string id="st_arena_team_ammo_fmt">
+		<text>Ammo preference: %s</text>
+	</string>
+	<string id="st_arena_team_boxes_fmt">
+		<text>Ammo boxes: %d</text>
+	</string>
+	<string id="st_arena_team_btn_weapon">
+		<text>Choose Weapon</text>
+	</string>
+	<string id="st_arena_team_btn_scope">
+		<text>Choose Scope</text>
+	</string>
+	<string id="st_arena_team_scope_fmt">
+		<text>Scope: %s</text>
+	</string>
+	<string id="st_arena_team_btn_modes">
+		<text>Change selection</text>
+	</string>
+	<string id="st_arena_team_btn_save">
+		<text>Save and Return</text>
+	</string>
+	<string id="st_arena_team_btn_configure">
+		<text>Configuration</text>
+	</string>
+	<string id="st_arena_team_summary_team">
+		<text>Select an ally tab to edit their equipment. Settings are saved when you return.</text>
+	</string>
+	<string id="st_arena_team_summary_faction">
+		<text>Team size and rank are set in Faction Battle settings. Loadouts are saved individually here.</text>
+	</string>
+	<string id="st_arena_state_on">
+		<text>ON</text>
+	</string>
+	<string id="st_arena_state_off">
+		<text>OFF</text>
+	</string>
+	<string id="st_arena_endless_configuration"><text>Configuration</text></string>
+	<string id="st_arena_endless_area_fmt"><text>Area: %s</text></string>
+	<string id="st_arena_endless_variant_classic"><text>Classic</text></string>
+	<string id="st_arena_endless_variant_factions"><text>Faction Battle</text></string>
+	<string id="st_arena_team_rules_hint"><text>Wave support applies between rounds. Select an ally on the right to set their rank, weapon, scope and ammunition.</text></string>
+<string id="st_arena_backrooms_device_title"><text>BACKROOMS EQUIPMENT</text></string>
+<string id="st_arena_backrooms_device_desc"><text>Choose a flashlight or NVG level 1, 2 or 3. Activate it manually after entering.</text></string>
 </string_table>

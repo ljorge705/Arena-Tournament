@@ -587,7 +587,7 @@
 		<text>Штурмовая винтовка</text>
 	</string>
 	<string id="st_arena_class_smg">
-		<text>Пистолет-пулемет</text>
+		<text>Пистолет-пулемёт</text>
 	</string>
 	<string id="st_arena_class_sniper">
 		<text>Снайперская винтовка</text>
@@ -845,7 +845,7 @@
 		<text>Чистое Небо</text>
 	</string>
 	<string id="st_arena_bc_fac_ecolog">
-		<text>Ученые</text>
+		<text>Учёные</text>
 	</string>
 	<string id="st_arena_bc_fac_renegade">
 		<text>Ренегаты</text>
@@ -965,7 +965,7 @@
 		<text>Бесконечный режим</text>
 	</string>
 	<string id="st_arena_quick_endless_btn">
-		<text>[Тест] Бесконечный режим</text>
+		<text>Бесконечный режим</text>
 	</string>
 	<string id="st_arena_endless_diff_title">
 		<text>БЕСКОНЕЧНОЕ ВЫЖИВАНИЕ</text>
@@ -1147,12 +1147,8 @@
 	<string id="st_arena_loadout_sum_ammo">
 		<text>Патроны</text>
 	</string>
-	<string id="st_arena_loadout_sum_outfit">
-		<text>Броня</text>
-	</string>
-	<string id="st_arena_loadout_sum_helmet">
-		<text>Шлем</text>
-	</string>
+	
+	
 	<string id="st_arena_spec_ammo_title">
 		<text>СПЕЦБОЕПРИПАСЫ (ARTIGROK):</text>
 	</string>
@@ -1484,34 +1480,34 @@
 		<text>Погиб</text>
 	</string>
 	<string id="st_arena_companion_rank0_name">
-		<text>Сталкер-новичок</text>
+		<text>Союзник-новичок</text>
 	</string>
 	<string id="st_arena_companion_rank0_desc">
-		<text>Обычный сталкер. Лучше, чем ничего.</text>
+		<text>Боец вашей группировки. Ранг 1/5.</text>
 	</string>
 	<string id="st_arena_companion_rank1_name">
-		<text>Опытный сталкер</text>
+		<text>Опытный союзник</text>
 	</string>
 	<string id="st_arena_companion_rank1_desc">
-		<text>Приличный боевой опыт. Надежный боец.</text>
+		<text>Боец вашей группировки. Ранг 2/5.</text>
 	</string>
 	<string id="st_arena_companion_rank2_name">
-		<text>Ветеран-наемник</text>
+		<text>Союзник-ветеран</text>
 	</string>
 	<string id="st_arena_companion_rank2_desc">
-		<text>Боец синдиката. Умелый и агрессивный.</text>
+		<text>Боец вашей группировки. Ранг 3/5.</text>
 	</string>
 	<string id="st_arena_companion_rank3_name">
-		<text>Эксперт-наемник</text>
+		<text>Союзник-эксперт</text>
 	</string>
 	<string id="st_arena_companion_rank3_desc">
-		<text>Элитный наемник. Справляется с тяжелыми ситуациями.</text>
+		<text>Боец вашей группировки. Ранг 4/5.</text>
 	</string>
 	<string id="st_arena_companion_rank4_name">
-		<text>Боец спецназа</text>
+		<text>Легендарный союзник</text>
 	</string>
 	<string id="st_arena_companion_rank4_desc">
-		<text>Элита спецподразделений. Лучшие бойцы, которых можно купить.</text>
+		<text>Боец вашей группировки. Ранг 5/5.</text>
 	</string>
 	<string id="st_arena_companion_hired">
 		<text>%s нанят и готов к бою!</text>
@@ -1537,9 +1533,7 @@
 	<string id="st_arena_companion_err_generic">
 		<text>Сейчас нельзя нанять напарника.</text>
 	</string>
-	<string id="st_arena_companion_arena_money">
-		<text>Очки Арены: %d CLP</text>
-	</string>
+	
 	<string id="st_arena_companion_normal_money">
 		<text>Деньги: %d RU</text>
 	</string>
@@ -1914,7 +1908,7 @@
 		<text>СМЕНИТЕ КАРТУ ДЛЯ БОЯ</text>
 	</string>
 	<string id="st_arena_map_mismatch_tip">
-		<text>Несоответствие арены: этот бой проходит на локации %s. Используйте верхнюю кнопку ЗОНА для смены карты.</text>
+		<text>Выбранная локация не совпадает с текущей. Синхронизация места боя.</text>
 	</string>
 	<string id="st_arena_map_arena_name">
 		<text>Арена Бара</text>
@@ -2177,7 +2171,7 @@
 		<text>ТРОФЕИ ВОЙНЫ: Получено %s с поверженного врага!</text>
 	</string>
 	<string id="st_arena_endless_spoils_round_tip">
-		<text>ТРОФЕИ ВОЙНЫ: Вооружен %s из прошлого раунда!</text>
+		<text>ТРОФЕИ ВОЙНЫ: Получено оружие %s из прошлого раунда!</text>
 	</string>
 	<string id="st_arena_endless_sum_heal">
 		<text>Полное лечение: %s</text>
@@ -2228,25 +2222,25 @@
 		<text>Базовый набор</text>
 	</string>
 	<string id="st_arena_meds_pack_standard_desc">
-		<text>1x Аптечка, 2x Бинт</text>
+		<text>1x Обычная аптечка, 2x Бинты</text>
 	</string>
 	<string id="st_arena_meds_pack_combat">
 		<text>Боевой набор</text>
 	</string>
 	<string id="st_arena_meds_pack_combat_desc">
-		<text>2x Армейские аптечки, 3x Бинт, 1x Стимулятор</text>
+		<text>2x Армейские аптечки, 3x Бинты, 1x Стимулятор</text>
 	</string>
 	<string id="st_arena_meds_pack_elite">
 		<text>Элитный набор</text>
 	</string>
 	<string id="st_arena_meds_pack_elite_desc">
-		<text>2x Научные аптечки, 4x Бинт, 1x Морфин</text>
+		<text>2x Научные аптечки, 4x Бинты, 1x Морфин</text>
 	</string>
 	<string id="st_arena_meds_pack_survival">
 		<text>Набор выживания</text>
 	</string>
 	<string id="st_arena_meds_pack_survival_desc">
-		<text>3x Армейские аптечки, 5x Бинт, 2x Стимулятор</text>
+		<text>3x Армейские аптечки, 5x Бинты, 2x Стимуляторы</text>
 	</string>
 	<string id="st_arena_loadout_auto_armor">
 		<text>[AUTO] Броня раунда</text>
@@ -2329,4 +2323,145 @@
 	<string id="st_arena_qty_format">
 		<text>Кол-во: %d</text>
 	</string>
+	<!-- Endless Mode / Mode Selection -->
+	<string id="st_arena_mode_select_title">
+		<text>ВЫБОР РЕЖИМА</text>
+	</string>
+	<string id="st_arena_mode_select_desc">
+		<text>Выберите вариант испытания на Арене. Настройте правила или состав отряда союзников.</text>
+	</string>
+	<string id="st_arena_mode_classic_name">
+		<text>КЛАССИЧЕСКИЙ РЕЖИМ (Волны)</text>
+	</string>
+	<string id="st_arena_mode_classic_desc">
+		<text>Одиночное выживание против нарастающих волн. Союзников можно нанять на доске внутри арены.</text>
+	</string>
+	<string id="st_arena_mode_plus_name">
+		<text>ENDLESS+ (Улучшения и Арсенал)</text>
+	</string>
+	<string id="st_arena_mode_plus_desc">
+		<text>Продвинутый режим с выбором классов, магазином улучшений и наградами между раундами.</text>
+	</string>
+	<string id="st_arena_mode_team_name">
+		<text>Отряд</text>
+	</string>
+	<string id="st_arena_mode_team_desc">
+		<text>Бесконечные волны с вашим отрядом. Начальные союзники бесплатны. Снаряжение — в настройках.</text>
+	</string>
+	<string id="st_arena_mode_factions_name">
+		<text>БИТВА ГРУППИРОВОК</text>
+	</string>
+	<string id="st_arena_mode_factions_desc">
+		<text>Масштабная война группировок Зоны на секторах арены. Возглавьте Команду 1.</text>
+	</string>
+	<string id="st_arena_mode_btn_back">
+		<text>Назад</text>
+	</string>
+	<!-- Squad Management / Ally Screen -->
+	<string id="st_arena_team_title">
+		<text>НАСТРОЙКА ОТРЯДА</text>
+	</string>
+	<string id="st_arena_team_title_faction">
+		<text>СНАРЯЖЕНИЕ СОЮЗНИКОВ ГРУППИРОВКИ</text>
+	</string>
+	<string id="st_arena_team_desc">
+		<text>Выберите размер отряда и поддержку между волнами. У каждого бойца своё снаряжение.</text>
+	</string>
+	<string id="st_arena_team_header_squad">
+		<text>НАСТРОЙКИ ОТРЯДА</text>
+	</string>
+	<string id="st_arena_team_header_loadout">
+		<text>ИНДИВИДУАЛЬНОЕ СНАРЯЖЕНИЕ</text>
+	</string>
+	<string id="st_arena_team_ally_count">
+		<text>%d %s</text>
+	</string>
+	<string id="st_arena_team_ally_singular">
+		<text>СОЮЗНИК</text>
+	</string>
+	<string id="st_arena_team_ally_plural">
+		<text>СОЮЗНИКА</text>
+	</string>
+	<string id="st_arena_team_replenish">
+		<text>Заменять погибших: %s</text>
+	</string>
+	<string id="st_arena_team_heal">
+		<text>Лечить выживших: %s</text>
+	</string>
+	<string id="st_arena_team_resupply">
+		<text>Пополнять боезапас: %s</text>
+	</string>
+	<string id="st_arena_team_reset">
+		<text>Сбросить настройки отряда</text>
+	</string>
+	<string id="st_arena_team_slot_fmt">
+		<text>БОЕЦ %d</text>
+	</string>
+	<string id="st_arena_team_editing_slot">
+		<text>НАСТРОЙКА: БОЕЦ %d ИЗ %d</text>
+	</string>
+	<string id="st_arena_team_rank_fmt">
+		<text>Ранг: %s (%d/5)</text>
+	</string>
+	<string id="st_arena_rank_1">
+		<text>Новичок</text>
+	</string>
+	<string id="st_arena_rank_2">
+		<text>Опытный</text>
+	</string>
+	<string id="st_arena_rank_3">
+		<text>Ветеран</text>
+	</string>
+	<string id="st_arena_rank_4">
+		<text>Эксперт</text>
+	</string>
+	<string id="st_arena_rank_5">
+		<text>Мастер / Элита</text>
+	</string>
+	<string id="st_arena_team_class_fmt">
+		<text>Класс оружия: %s</text>
+	</string>
+	<string id="st_arena_team_ammo_fmt">
+		<text>Тип патронов: %s</text>
+	</string>
+	<string id="st_arena_team_boxes_fmt">
+		<text>Коробок патронов: %d</text>
+	</string>
+	<string id="st_arena_team_btn_weapon">
+		<text>Выбрать оружие</text>
+	</string>
+	<string id="st_arena_team_btn_scope">
+		<text>Выбрать прицел</text>
+	</string>
+	<string id="st_arena_team_scope_fmt">
+		<text>Прицел: %s</text>
+	</string>
+	<string id="st_arena_team_btn_modes">
+		<text>Изменить выбор</text>
+	</string>
+	<string id="st_arena_team_btn_save">
+		<text>Сохранить и выйти</text>
+	</string>
+	<string id="st_arena_team_btn_configure">
+		<text>Настройка</text>
+	</string>
+	<string id="st_arena_team_summary_team">
+		<text>Выберите бойца для изменения снаряжения. Настройки сохраняются при возврате.</text>
+	</string>
+	<string id="st_arena_team_summary_faction">
+		<text>Численность и ранг настраиваются в Битве группировок. Снаряжение задаётся здесь индивидуально.</text>
+	</string>
+	<string id="st_arena_state_on">
+		<text>ВКЛ</text>
+	</string>
+	<string id="st_arena_state_off">
+		<text>ВЫКЛ</text>
+	</string>
+	<string id="st_arena_endless_configuration"><text>Настройка</text></string>
+	<string id="st_arena_endless_area_fmt"><text>Локация: %s</text></string>
+	<string id="st_arena_endless_variant_classic"><text>Классика</text></string>
+	<string id="st_arena_endless_variant_factions"><text>Битва группировок</text></string>
+	<string id="st_arena_team_rules_hint"><text>Поддержка действует между волнами. Выберите бойца справа и настройте ранг, оружие, прицел и боеприпасы.</text></string>
+<string id="st_arena_backrooms_device_title"><text>СНАРЯЖЕНИЕ ДЛЯ BACKROOMS</text></string>
+<string id="st_arena_backrooms_device_desc"><text>Выберите фонарь или ПНВ уровня 1, 2 или 3. Включите его вручную после входа.</text></string>
 </string_table>

@@ -82,8 +82,8 @@
 <string id="st_arena_plus_start_supply_cost_plain"><text>Coste: arma al %d%% de condición.</text></string>
 <string id="st_arena_plus_supply_ammo_name"><text>Munición</text></string>
 <string id="st_arena_plus_supply_mag_name"><text>Cargadores</text></string>
-<string id="st_arena_plus_supply_ammo_desc"><text>Recibes %d cartuchos sueltos compatibles. Sustituye la elección de perk.</text></string>
-<string id="st_arena_plus_supply_mag_desc"><text>Recibes un cargador compatible vacío. Sustituye la elección de perk.</text></string>
+<string id="st_arena_plus_supply_ammo_desc"><text>Recibes %d cartuchos sueltos compatibles. Sustituye la elección de mejora.</text></string>
+<string id="st_arena_plus_supply_mag_desc"><text>Recibes un cargador compatible vacío. Sustituye la elección de mejora.</text></string>
 <string id="st_arena_plus_supply_extra_cost"><text>Coste: %d enemigos extra en la próxima ronda.</text></string>
 <string id="st_arena_plus_supply_reward_cost"><text>Coste: 10% menos de recompensa en la próxima ronda.</text></string>
 <string id="st_arena_plus_supply_ammo_cost"><text>Coste: %d cartuchos sueltos compatibles. Conservas al menos un cartucho de reserva.</text></string>

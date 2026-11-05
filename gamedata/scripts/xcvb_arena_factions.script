@@ -1,0 +1,308 @@
+-- Player-led faction skirmish: isolated relations, grouped valid-node spawns.
+factions = {"stalker", "dolg", "freedom", "killer", "army", "bandit", "csky", "ecolog", "renegade", "monolith", "zombied", "greh", "isg"}
+local plan, ids = nil, {}
+local prepared, relations, targets = {}, {}, {}
+local generation = 0
+local function clamp(v, default, lo, hi) return math.max(lo, math.min(hi, math.floor(tonumber(v) or default))) end
+function actor_faction()
+    -- main initializes its data before Actor()/ALife save state are ready.
+    if not (db and db.actor) then return "stalker" end
+    local comm
+    if gameplay_disguise and gameplay_disguise.get_default_comm then
+        local ok, value = pcall(gameplay_disguise.get_default_comm)
+        if ok and type(value) == "string" and value ~= "" then comm = value end
+    end
+    if not comm and character_community then
+        local ok, value = pcall(character_community, db.actor)
+        if ok and type(value) == "string" and value ~= "" then comm = value end
+    end
+    comm = (comm or "stalker"):gsub("^actor_", "")
+    local aliases = {duty="dolg", military="army", mercenary="killer", loner="stalker"}
+    return aliases[comm] or comm
+end
+
+function normalize(value)
+    local o = type(value) == "table" and value or {}
+    local result = {count = clamp(o.count, 2, 2, 4), teams = {}}
+    local defaults = {"stalker", "bandit", "army", "monolith"}
+    local used = {}
+    for i = 1, 4 do
+        local t = type(o.teams) == "table" and o.teams[i] or nil
+        t = type(t) == "table" and t or {}
+        local faction = nil
+        for _, f in ipairs(factions) do if t.faction == f and not used[f] then faction = f end end
+        if not faction then
+            if not used[defaults[i]] then faction = defaults[i]
+            else for _, f in ipairs(factions) do if not used[f] then faction = f; break end end end
+        end
+        used[faction] = true
+        result.teams[i] = {faction = faction, size = clamp(t.size, 3, i == 1 and 2 or 1, i == 1 and 5 or 8), rank = clamp(t.rank, 3, 1, 5)}
+    end
+    return result
+end
+function options()
+    local value = normalize(xcvb_arena_main.faction_battle_options)
+    if db and db.actor then
+        value.teams[1].faction = actor_faction()
+        value = normalize(value)
+        if xcvb_arena_utils and xcvb_arena_utils.is_enemy_to_actor then
+        local enemies = {}
+        for _, faction in ipairs(factions) do
+            if xcvb_arena_utils.is_enemy_to_actor(faction,value.teams[1].faction) then enemies[#enemies+1]=faction end
+        end
+        for i=2,4 do
+            if not xcvb_arena_utils.is_enemy_to_actor(value.teams[i].faction,value.teams[1].faction) then
+                if #enemies > 0 then value.teams[i].faction = enemies[((i-2)%#enemies)+1] end
+            end
+        end
+
+    end
+        end
+    xcvb_arena_main.faction_battle_options = value
+    return xcvb_arena_main.faction_battle_options
+end
+function active()
+    return xcvb_arena_main and xcvb_arena_main.endless_selected_variant == "factions"
+        and xcvb_arena_fight and xcvb_arena_fight.is_endless_active()
+end
+function cycle_faction(index)
+    if index == 1 then return end
+    local o = options(); local t = o.teams[index]; local current = 1
+    for i, f in ipairs(factions) do if f == t.faction then current = i end end
+    for step = 1, #factions do
+        local candidate = factions[(current + step - 1) % #factions + 1]
+        local used = false
+        for i, other in ipairs(o.teams) do if i ~= index and other.faction == candidate then used = true end end
+        if not used and xcvb_arena_utils.is_enemy_to_actor(candidate,actor_faction()) then t.faction = candidate; return end
+    end
+end
+function section(faction, rank)
+    local aliases = {dolg = "duty", army = "military"}
+    local base = "sim_default_" .. (aliases[faction] or faction) .. "_"
+    for delta = 0, 4 do
+        for _, r in ipairs({rank - 1 - delta, rank - 1 + delta}) do
+            if r >= 0 and r <= 4 and ini_sys:section_exist(base .. r) then return base .. r end
+        end
+    end
+end
+local function distance(a, b) return (a.x-b.x)^2 + (a.z-b.z)^2 + 16*(a.y-b.y)^2 end
+local function spatial(a,b) return (a.x-b.x)^2+(a.z-b.z)^2+(a.y-b.y)^2 end
+local function point(pos, lv, gv) return {pos=pos, lvid=lv, gvid=gv} end
+local function resolved(p)
+    local ok, pos = pcall(level.vertex_position, p.lvid)
+    if ok and pos and distance(pos,p) < 0.04 then return point(vector():set(pos.x,pos.y,pos.z),p.lvid,p.gvid) end
+end
+function prepare()
+    local o = options(); plan, ids = {}, {}
+    generation = generation + 1
+    prepared, relations, targets = {}, {}, {}
+    for i = 1, o.count do
+        if i > 1 and not xcvb_arena_utils.is_enemy_to_actor(o.teams[i].faction,actor_faction()) then return false,"No hostile faction is available for this team." end
+        if not section(o.teams[i].faction,o.teams[i].rank) then return false,"Faction NPCs are missing: " .. o.teams[i].faction end
+    end
+    local secondary = xcvb_arena_factory and xcvb_arena_factory.active()
+    local pool = {}
+    local max_distance = xcvb_arena_main.selected_map == "backrooms" and 38 or 60
+    local ap,lv,gv = xcvb_arena_utils.get_actor_tournament_pos(1)
+    if not ap then return false,"No valid player spawn on this map." end
+    if secondary then
+        local data = xcvb_arena_main.selected_map == "backrooms" and xcvb_arena_backrooms_data or xcvb_arena_navigation_data
+        local seen = {}
+        local function add(p)
+            if p and not seen[p.lvid] and p.y <= (data.top_floor_y or 1000) and spatial(p,ap)<=max_distance^2 then
+                local r=resolved(p)
+                if r then pool[#pool+1]=r;seen[p.lvid]=true end
+            end
+        end
+        for _, p in ipairs(data.factory_pool or {}) do add(p) end
+        -- The general pool is deliberately sparse; formation sites contain
+        -- additional verified nodes for larger squads.
+        for _, site in ipairs(data.factory_sites or {}) do
+            add(site.actor);add(site.enemy)
+            for _,p in ipairs(site.slots or {}) do add(p) end
+        end
+    else
+        -- Include both gate approaches, not only the inner combat rectangle.
+        local seen={}
+        for x=143,161 do for z=81,129 do
+            local pos=vector():set(x,ap.y,z)
+            local v=xcvb_arena_utils.get_safe_arena_lvid(pos,lv)
+            local ok, actual=pcall(level.vertex_position,v)
+            if ok and actual and not seen[v] and math.abs(actual.y-ap.y)<1.75
+                and (actual.x-pos.x)^2+(actual.z-pos.z)^2<2.25 and actual.x>=142 and actual.x<=162
+                and actual.z>=80 and actual.z<=130 then
+                pool[#pool+1]=point(actual,v,gv);seen[v]=true
+            end
+        end end
+    end
+    local used = {}
+    local function capacity(anchor)
+        local n=0
+        for _,candidate in ipairs(pool) do if distance(candidate.pos,anchor.pos)<=5^2 then n=n+1 end end
+        return n
+    end
+    local first=point(ap,lv,gv)
+    do
+        local nearest=math.huge
+        for _,candidate in ipairs(pool) do
+            local d=distance(candidate.pos,ap)
+            if d<nearest and capacity(candidate)>=o.teams[1].size then first,nearest=candidate,d end
+        end
+        if nearest==math.huge then return false,"No grouped player-team spawn on this map." end
+    end
+    local anchors={first}
+    for i=2,o.count do
+        local best, score=nil,-1
+        for _, candidate in ipairs(pool) do
+            local nearest=math.huge
+            for _, anchor in ipairs(anchors) do nearest=math.min(nearest,distance(candidate.pos,anchor.pos)) end
+            if nearest>score and spatial(candidate.pos,first.pos)<=max_distance^2 and capacity(candidate)>=o.teams[i].size then best,score=candidate,nearest end
+        end
+        if not best or score<8^2 then return false,"Not enough separated team spawns on this map." end
+        anchors[i]=best
+    end
+    for i, anchor in ipairs(anchors) do
+        local sorted={}; for _, candidate in ipairs(pool) do sorted[#sorted+1]=candidate end
+        table.sort(sorted,function(a,b) return distance(a.pos,anchor.pos)<distance(b.pos,anchor.pos) end)
+        local slots={}
+        if i==1 then slots[1]=anchor; used[anchor.lvid]=true end
+        for _, candidate in ipairs(sorted) do
+            if not used[candidate.lvid] and distance(candidate.pos,anchor.pos)<=5^2 then
+                slots[#slots+1]=candidate; used[candidate.lvid]=true
+                if #slots>=o.teams[i].size then break end
+            end
+        end
+        if #slots<o.teams[i].size then return false,"Not enough grouped spawn nodes for team "..i end
+        plan[i]=slots
+    end
+    return true
+end
+function spawn_point(team, member)
+    local p=plan and plan[team] and plan[team][member]
+    if p then return p.pos,p.lvid,p.gvid end
+end
+function spawn_enemies()
+    local o=options(); local squads={}
+    local function fail()
+        for _,s in ipairs(squads) do xcvb_arena_utils.clean_tournament_squad(s.id) end
+        return nil
+    end
+    for i=2,o.count do
+        local pos,lv,gv=spawn_point(i,1)
+        if not pos then return fail() end
+        local s=alife_create("arena_stalker_team_"..i,pos,lv,gv)
+        if not s then return fail() end
+        squads[#squads+1]=s
+        local sec=section(o.teams[i].faction,o.teams[i].rank)
+        for member=1,o.teams[i].size do
+            local p,l,g=spawn_point(i,member)
+            local ok=pcall(function() s:add_squad_member(sec,p,l,g) end)
+            if not ok then return fail() end
+        end
+        s:set_squad_relation();s:refresh()
+        if s:npc_count()~=o.teams[i].size then return fail() end
+        xcvb_arena_utils.arena_spawned_combatant_ids[s.id]=true
+        local member=0
+        for m in s:squad_members() do
+            member=member+1; ids[m.id]=i
+            xcvb_arena_utils.arena_spawned_combatant_ids[m.id]=true
+            pcall(function() alife():set_switch_online(m.id,true);alife():set_switch_offline(m.id,false) end)
+            if xcvb_arena_factory.active() then
+                local p,l,g=spawn_point(i,member);xcvb_arena_factory.register_spawn(m.id,p,l,g)
+            end
+        end
+    end
+    return squads
+end
+function team_id(id)
+    if id==0 or (xcvb_arena_companions and xcvb_arena_companions.is_companion(id)) then return 1 end
+    return ids[id]
+end
+function enemy_eval(npc, enemy, flags)
+    local a,b=team_id(npc:id()),team_id(enemy:id())
+    if a or b then flags.override=true;flags.result=a~=nil and b~=nil and a~=b;return true end
+end
+function setup(squad_ids)
+    local members, total, online={},0,0
+    for index,id in ipairs(squad_ids or {}) do
+        local squad=alife_object(id)
+        if squad then
+            for m in squad:squad_members() do
+                ids[m.id]=index+1;total=total+1
+                local npc=level.object_by_id(m.id)
+                if npc and npc:alive() then members[#members+1]={npc=npc,team=index+1,squad=squad};online=online+1 end
+            end
+        end
+    end
+    if db.actor then members[#members+1]={npc=db.actor,team=1} end
+    for _, entry in ipairs(xcvb_arena_companions.get_active_companions()) do
+        local npc=level.object_by_id(entry.npc_id)
+        if npc and npc:alive() then members[#members+1]={npc=npc,team=1} end
+    end
+    local queued = 0
+    for _, a in ipairs(members) do
+        if a.squad then
+            local id = a.npc:id()
+            local state = prepared[id]
+            if not state or not rawequal(state.npc, a.npc) or state.team ~= a.team then
+                state = {npc=a.npc, team=a.team}
+                prepared[id] = state
+                queued = queued + 1
+                local epoch, npc, token = generation, a.npc, state
+                -- Inventory creation belongs to initialization, spread across ticks.
+                CreateTimeEvent("arena_faction_kit_e", "npc_"..id, queued*0.06, function()
+                    if epoch ~= generation or not active() or prepared[id] ~= token then return true end
+                    if not npc:alive() then return true end
+                    if xcvb_arena_factory.active() then xcvb_arena_factory.prepare_npc(npc)
+                    else pcall(function() npc:add_restrictions("bar_arena_restrictor", "") end) end
+                    xcvb_arena_utils.ensure_npc_combat_loadout(npc)
+                    return true
+                end)
+            end
+            local row = relations[id]
+            if not row or not rawequal(row.npc, a.npc) or row.team ~= a.team then
+                row = {npc=a.npc,team=a.team,pairs={}}
+                relations[id] = row
+                targets[id] = nil
+            end
+            for _, b in ipairs(members) do
+                local other = b.npc:id()
+                if id ~= other then
+                    local old = row.pairs[other]
+                    if not old or not rawequal(old.npc, b.npc) or old.team ~= b.team then
+                        local hostile = a.team ~= b.team
+                        local ok = pcall(function()
+                            a.npc:set_relation(hostile and game_object.enemy or game_object.friend,b.npc)
+                            a.npc:force_set_goodwill(hostile and -5000 or 5000,b.npc)
+                        end)
+                        if ok then row.pairs[other] = {npc=b.npc,team=b.team} end
+                    end
+                end
+            end
+            local target = targets[id]
+            local valid = false
+            if target then
+                for _, b in ipairs(members) do
+                    if rawequal(b.npc, target) and b.team ~= a.team then valid=true;break end
+                end
+            end
+            if not valid then
+                local nearest,best=math.huge,nil
+                for _, b in ipairs(members) do
+                    if a.team ~= b.team then
+                        local d=distance(a.npc:position(),b.npc:position())
+                        if d<nearest then nearest,best=d,b end
+                    end
+                end
+                if best then
+                    a.squad.scripted_target=best.squad and best.squad.id or "actor"
+                    a.squad.assigned_target_id=best.squad and best.squad.id or 0
+                    a.squad.rush_to_target=true
+                    targets[id]=best.npc
+                    -- Native perception decides when to engage; never reveal positions.
+                else targets[id]=nil end
+            end
+        end
+    end
+    return total>0 and online>=total
+end

@@ -64,6 +64,7 @@ function cancel_arena_night_device_events()
     night_device_epoch = night_device_epoch + 1
     for _, event in ipairs({
         {"arena_equip_torch_e", "arena_equip_torch_a"},
+        {"arena_backrooms_device_verify_e", "arena_backrooms_device_verify_a"},
         {"arena_activate_torch_sub_e", "arena_activate_torch_sub_a"},
         {"arena_activate_torch_found_e", "arena_activate_torch_found_a"},
         {"arena_nvg_torch_off_e", "arena_nvg_torch_off_a"},
@@ -567,6 +568,14 @@ ignore_small_objects
     return se_obj
 end
 
+local retired_arena_npcs = setmetatable({}, {__mode="k"})
+function cancel_arena_npc_restock(id)
+    if not id then return end
+    local npc = level and level.object_by_id and level.object_by_id(id)
+    if npc then retired_arena_npcs[npc] = true end
+    RemoveTimeEvent("custom_update" .. id, "custom_resupply" .. id)
+end
+
 local function iterate_alife(callback)
     local sim = alife()
     if not sim then return end
@@ -990,7 +999,7 @@ function get_team_rank_string(ar)
 end
 local function factory_arena_selected()
     if xcvb_arena_installation and xcvb_arena_installation.factory_enabled == false then return false end
-    return xcvb_arena_main and xcvb_arena_main.selected_map == "factory"
+    return xcvb_arena_main and (xcvb_arena_main.selected_map == "factory" or xcvb_arena_main.selected_map == "backrooms")
 end
 
 local function legacy_vertex(id)
@@ -1172,6 +1181,7 @@ local default_faction_enemies = {
 }
 
 function get_actor_faction()
+    if xcvb_arena_factions and xcvb_arena_factions.actor_faction then return xcvb_arena_factions.actor_faction() end
     local comm = (db.actor and character_community and character_community(db.actor)) or "stalker"
     if string.find(comm, "actor_") then
         comm = string.gsub(comm, "actor_", "")
@@ -1187,6 +1197,12 @@ function is_enemy_to_actor(fac, actor_fac)
     local f2 = (a_fac == "duty") and "dolg" or ((a_fac == "military") and "army" or a_fac)
     
     if f1 == f2 then return false end
+    -- Dynamic faction relations take precedence over the legacy fallback table.
+    if relation_registry and relation_registry.community_relation then
+        local ok, value = pcall(relation_registry.community_relation, f1, f2)
+        if ok and type(value) == "number" then return value <= -1000 end
+    end
+
     
     local friend_bloc = { stalker = true, csky = true, ecolog = true }
     if friend_bloc[f1] and friend_bloc[f2] then return false end
@@ -1215,19 +1231,24 @@ function get_safe_enemy_section(sec, actor_fac)
     
     for _, enemy_fac in ipairs(pool) do
         local cand_sec = "sim_default_" .. enemy_fac .. "_" .. rank
-        if ini_sys:section_exist(cand_sec) then return cand_sec end
-        if enemy_fac == "army" and ini_sys:section_exist("sim_default_military_" .. rank) then
+        if is_enemy_to_actor(enemy_fac,a_fac) and ini_sys:section_exist(cand_sec) then return cand_sec end
+        if is_enemy_to_actor(enemy_fac,a_fac) and enemy_fac == "army" and ini_sys:section_exist("sim_default_military_" .. rank) then
             return "sim_default_military_" .. rank
         end
-        if enemy_fac == "dolg" and ini_sys:section_exist("sim_default_duty_" .. rank) then
+        if is_enemy_to_actor(enemy_fac,a_fac) and enemy_fac == "dolg" and ini_sys:section_exist("sim_default_duty_" .. rank) then
             return "sim_default_duty_" .. rank
         end
     end
     
-    local fb = "sim_default_bandit_" .. rank
-    if ini_sys:section_exist(fb) then return fb end
-    
-    return sec
+    for _, candidate in ipairs({"stalker","bandit","dolg","freedom","csky","ecolog","killer","army","renegade","monolith","greh","isg","zombied"}) do
+        local alias = ({dolg="duty",army="military"})[candidate] or candidate
+        for _, name in ipairs({candidate,alias}) do
+            local replacement = "sim_default_" .. name .. "_" .. rank
+            if is_enemy_to_actor(candidate,a_fac) and ini_sys:section_exist(replacement) then return replacement end
+        end
+    end
+    -- Never substitute a neutral or friendly combatant when no enemy is available.
+    return nil
 end
 
 function spawn_tournament_squad(round_data)
@@ -1536,6 +1557,7 @@ function refresh_combat_ambient_lighting()
 end
 
 local cached_arena_lamp_ids = {}
+local arena_lamp_target=true
 
 local function set_cached_arena_lamps(turn_on)
     if not (level and level.name and level.name() == "l05_bar") then return 0 end
@@ -1569,12 +1591,14 @@ local function set_cached_arena_lamps(turn_on)
 end
 
 function toggle_arena_lights(turn_on)
+    if xcvb_arena_main and (xcvb_arena_main.selected_map=='factory' or xcvb_arena_main.selected_map=='backrooms') then return end
+    arena_lamp_target=turn_on
     if not (level and level.name and level.name() == "l05_bar") then return end
 
     -- Original arena lamps; Factory owns its separate lighting lifecycle.
-    local x_min, x_max = 125.5, 185
-    local z_min, z_max = 55, 155
-    local y_min, y_max = -35, 45
+    local x_min, x_max = 140, 164
+    local z_min, z_max = 78, 132
+    local y_min, y_max = -26, -5
 
     local count = 0
     local seen_ids = {}
@@ -1724,41 +1748,14 @@ function toggle_arena_lights(turn_on)
             end)
         end
 
-        -- 3b. ALife server objects in arena footprint
-        iterate_alife(function(se)
-            local ok, cls = pcall(function() return se:clsid() end)
-            if ok and cls and clsid and (cls == clsid.hanging_lamp or cls == clsid.hlamp_s or cls == clsid.projector) then
-                local pos = se.position
-                local in_box = pos and (pos.x >= x_min and pos.x <= x_max and pos.z >= z_min and pos.z <= z_max and pos.y >= y_min and pos.y <= y_max)
-                local name = se:name() or ""
-                local is_arena_named = string.find(name, "light_big_glass_")
-                    or string.find(name, "light_alarm_glass_")
-                    or string.find(name, "light_galogen_")
-                    or string.find(name, "arena_light_")
-                    or (string.find(name, "bar_lights_hanging_lamp_") and pos and pos.z >= z_min)
-
-                if in_box or is_arena_named then
-                    local o_id = se.id
-                    local obj = level.object_by_id(o_id)
-                    if obj then
-                        check_obj_lamp(obj)
-                    elseif not seen_ids[o_id] then
-                        seen_ids[o_id] = true
-                        cached_arena_lamp_ids[#cached_arena_lamp_ids + 1] = o_id
-                    end
-                end
-            end
-        end)
-
-        -- 3c. Fallback scan of online level objects (1..65534)
-        if #cached_arena_lamp_ids == 0 then
-            for id = 1, 65534 do
-                local obj = level.object_by_id(id)
-                if obj then
-                    check_obj_lamp(obj)
-                end
-            end
+        -- Empty caches no longer trigger a full ALife/65k-ID scan on this frame.
+        if #cached_arena_lamp_ids==0 and xcvb_arena_maintenance then
+            xcvb_arena_maintenance.request_lamp_scan(function(obj)
+                turn_on=arena_lamp_target
+                check_obj_lamp(obj)
+            end)
         end
+
     end
 
     -- 4. Also scan db.storage in case any scripted lights are present
@@ -1771,7 +1768,6 @@ function toggle_arena_lights(turn_on)
         end
     end
 
-    printf(string.format("[ARENA_LIGHTS] Toggled %d arena lamps to %s", count, turn_on and "ON" or "OFF"))
     pcall(function()
         local snd = sound_if_exists([[device\light_switch]]) or sound_if_exists([[interface\inv_torch]])
         if snd and db.actor then snd:play(db.actor, 0, sound_object.s2d) end
@@ -1779,7 +1775,7 @@ function toggle_arena_lights(turn_on)
 end
 
 function apply_night_mode_lighting(enable)
-    if enable and xcvb_arena_main.selected_map == "factory"
+    if enable and (xcvb_arena_main.selected_map == "factory" or xcvb_arena_main.selected_map == "backrooms")
         and xcvb_arena_navigation_data and xcvb_arena_navigation_data.outdoor then
         -- Open sky uses real weather and time, including natural dawn mid-run.
         -- Release any darkness override left by a preceding original-arena wave.
@@ -2118,6 +2114,7 @@ end
 
 local npc_night_gear = {}
 local night_mode_combat_running = false
+local backrooms_device_running = false
 local npc_light_check_at = {}
 
 function is_arena_night_combat_active()
@@ -2364,6 +2361,7 @@ end
 
 function is_stalker_in_arena(stalker)
     if not (stalker and stalker:alive()) then return false end
+    if not (xcvb_arena_runtime and xcvb_arena_runtime.contains(stalker:position())) then return false end
     local id = stalker:id()
 
     -- 1. Registered in active night gear table
@@ -2508,7 +2506,7 @@ function init_sr_light_hook()
     if sr_light and sr_light.check_light and not orig_sr_light_check_light then
         orig_sr_light_check_light = sr_light.check_light
         sr_light.check_light = function(stalker)
-            if (not xcvb_arena_runtime or xcvb_arena_runtime.allowed())
+            if (not xcvb_arena_runtime or xcvb_arena_runtime.combat_active())
                 and night_mode_combat_running and stalker and stalker:alive() and is_stalker_in_arena(stalker) then
                 local npc_id = stalker:id()
                 local tg = time_global()
@@ -2532,15 +2530,46 @@ function equip_and_enable_npc_torch(npc)
     handle_arena_stalker_light(npc)
 end
 
+function get_arena_device_section()
+    if xcvb_arena_main and xcvb_arena_main.selected_map=="backrooms" then
+        local valid={device_torch_dummy=true,device_torch_nv_1=true,device_torch_nv_2=true,device_torch_nv_3=true}
+        local sec=xcvb_arena_main.backrooms_device
+        return valid[sec] and sec or "device_torch_dummy"
+    end
+    return xcvb_arena_main.night_mode_device or "device_torch_dummy"
+end
+function preserve_backrooms_device(item)
+    return xcvb_arena_main and xcvb_arena_main.selected_map=="backrooms" and item
+        and item:section()==get_arena_device_section()
+        and (temporary_arena_item_ids[item:id()] or item:id()==night_personal_device_id) or false
+end
+function prepare_backrooms_device()
+    if not (db and db.actor and xcvb_arena_main and xcvb_arena_main.selected_map=="backrooms") then return end
+    if inventory_restore_pending then return end
+    if not backrooms_device_running then
+        turn_off_actor_nightvision()
+        turn_off_actor_torch()
+    end
+    backrooms_device_running=true
+    ensure_actor_torch_active()
+    local epoch=night_device_epoch
+    CreateTimeEvent("arena_backrooms_device_verify_e","arena_backrooms_device_verify_a",0.8,function()
+        if epoch==night_device_epoch and backrooms_device_running and xcvb_arena_main.selected_map=="backrooms" then
+            ensure_actor_torch_active()
+        end
+        return true
+    end)
+end
 function ensure_actor_torch_active()
-    if not db.actor or not night_mode_combat_running or inventory_restore_pending then return end
-    local target_sec = xcvb_arena_main.night_mode_device or "device_torch_dummy"
+    if not db.actor or not (night_mode_combat_running or backrooms_device_running) or inventory_restore_pending then return end
+    local target_sec = get_arena_device_section()
     local is_nvg = is_arena_nvg_section(target_sec)
     local current = db.actor:item_in_slot(10)
     -- With personal equipment enabled, ownership is intentionally retained.
     if not inventory_stored and current and not temporary_arena_item_ids[current:id()] then
         night_personal_device_id = night_personal_device_id or current:id()
         if current:section() == target_sec then
+            if xcvb_arena_main.selected_map=="backrooms" then return end
             if is_nvg then activate_actor_nightvision(target_sec)
             else turn_off_actor_nightvision(); activate_actor_torch() end
             return
@@ -2563,9 +2592,9 @@ function ensure_actor_torch_active()
     local attempts = 0
     RemoveTimeEvent("arena_equip_torch_e", "arena_equip_torch_a")
     CreateTimeEvent("arena_equip_torch_e", "arena_equip_torch_a", 0.2, function()
-        if epoch ~= night_device_epoch or not night_mode_combat_running
+        if epoch ~= night_device_epoch or not (night_mode_combat_running or backrooms_device_running)
             or inventory_restore_pending or not db.actor
-            or target_sec ~= xcvb_arena_main.night_mode_device then return true end
+            or target_sec ~= get_arena_device_section() then return true end
         attempts = attempts + 1
         if attempts > 50 then
             printe("! arena: night device transfer/equipment timed out")
@@ -2604,6 +2633,7 @@ function ensure_actor_torch_active()
             local obj = night_device_id and db.actor:object_id(night_device_id)
             local equipped = db.actor:item_in_slot(10)
             if obj and equipped and equipped:id() == night_device_id then
+                if xcvb_arena_main.selected_map=="backrooms" then return true end
                 if is_nvg then activate_actor_nightvision(target_sec)
                 else turn_off_actor_nightvision(); activate_actor_torch() end
                 return true
@@ -2776,6 +2806,11 @@ function enter_arena_night_mode()
 end
 
 function exit_arena_night_mode()
+    if backrooms_device_running then
+        backrooms_device_running=false
+        turn_off_actor_nightvision()
+        turn_off_actor_torch()
+    end
     cancel_arena_night_device_events()
     if not inventory_stored then
         if night_device_id and temporary_arena_item_ids[night_device_id] then
@@ -3208,6 +3243,7 @@ function setup_tournament_squad_aggro(squad_id)
 end
 
 function setup_endless_squads_aggro(squad_ids)
+    if xcvb_arena_factions.active() then return xcvb_arena_factions.setup(squad_ids) end
     if not squad_ids then return true end
     if type(squad_ids) == "number" then
         squad_ids = { squad_ids }
@@ -3352,7 +3388,7 @@ function clean_arena_corpses()
     endless_restricted_stalkers = {}
     local function safe_release_by_id(id)
         pcall(function()
-            RemoveTimeEvent("custom_update" .. id, "custom_resupply" .. id)
+            cancel_arena_npc_restock(id)
             RemoveTimeEvent("arena_aggro_" .. id, "aggro_" .. id)
             if safe_release_manager and safe_release_manager.release then
                 safe_release_manager.release({id = id})
@@ -3496,7 +3532,7 @@ function clean_tournament_squad(squad_id)
             end
             for _, id in ipairs(member_ids) do
                 arena_spawned_combatant_ids[id] = nil
-                RemoveTimeEvent("custom_update" .. id, "custom_resupply" .. id)
+                cancel_arena_npc_restock(id)
                 RemoveTimeEvent("arena_aggro_" .. id, "aggro_" .. id)
                 if safe_release_manager and safe_release_manager.release then
                     safe_release_manager.release({id = id})
@@ -4460,15 +4496,51 @@ local function fill_arena_magazine(mag_id, mag_sec, ammo_sec)
         if magazine_binder.is_carried_mag and not magazine_binder.is_carried_mag(mag_id) then
             if magazine_binder.toggle_carried_mag then pcall(magazine_binder.toggle_carried_mag, mag_id) end
         end
-        if magazine_binder.validate_loadout then pcall(magazine_binder.validate_loadout) end
+
     end
-    if magazines and magazines.inventory_refresh then pcall(magazines.inventory_refresh) end
-    if mag_hud and mag_hud.HUD and mag_hud.HUD.Update then pcall(function() mag_hud.HUD:Update(true) end) end
+    if xcvb_arena_maintenance then xcvb_arena_maintenance.request_mag_refresh() end
+end
+
+-- Match the initial magazine to the loose ammunition supplied by this loadout.
+-- Only newly issued actor-owned arena weapons are eligible; Mags owns its weapons.
+function initialize_arena_weapon_ammo(wpn_id, wpn_sec, ammo_sec)
+    if not wpn_id then return end
+    local tries = 0
+    CreateTimeEvent("arena_initial_ammo", "weapon_" .. wpn_id, 0.15, function()
+        if not temporary_arena_item_ids[wpn_id] or not alife_object(wpn_id) then return true end
+        tries = tries + 1
+        local weapon = db.actor and db.actor:object_id(wpn_id)
+        if not weapon then
+            if tries >= 10 then return true end
+            ResetTimeEvent("arena_initial_ammo", "weapon_" .. wpn_id, 0.15)
+            return false
+        end
+        if weapon:section() ~= wpn_sec or not weapon.set_ammo_type then return true end
+        local index
+        local cast = weapon.cast_Weapon and weapon:cast_Weapon()
+        if cast and cast.AmmoTypeForEach then
+            cast:AmmoTypeForEach(function(i,sec) if sec == ammo_sec then index = i end end)
+        else
+            for i,sec in ipairs(str_explode(ini_sys:r_string_ex(wpn_sec,"ammo_class") or "",",")) do
+                if trim(sec) == ammo_sec then index = i - 1; break end
+            end
+        end
+        if index ~= nil then
+            local rounds = weapon:get_ammo_in_magazine()
+            -- Rebuild the existing cartridges with the selected type, without
+            -- adding rounds, consuming reserve ammo, or triggering reload input.
+            weapon:set_ammo_elapsed(0)
+            weapon:set_ammo_type(index)
+            weapon:set_ammo_elapsed(rounds)
+        end
+        return true
+    end)
 end
 
 function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id, chosen_mag_sec)
     if not (wpn_sec and ammo_sec) then return ammo_sec end
     if not (magazine_binder and magazine_binder.is_supported_weapon and magazine_binder.is_supported_weapon(wpn_sec)) then
+        initialize_arena_weapon_ammo(wpn_id, wpn_sec, ammo_sec)
         return ammo_sec
     end
     
@@ -4546,7 +4618,7 @@ function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id, chosen_mag_sec)
             local m_id = se_mag.id
             local m_sec = mag_sec
             local a_sec = ammo_sec
-            CreateTimeEvent("arena_mags_e", "fill_mag_" .. m_id, 0.6, function()
+            CreateTimeEvent("arena_mags_e", "fill_mag_" .. m_id, 0.6 + (i-1)*0.035, function()
                 fill_arena_magazine(m_id, m_sec, a_sec)
                 return true
             end)
@@ -5681,9 +5753,11 @@ end
 
 local orig_get_script_target
 local function arena_get_script_target(self)
-    if not (xcvb_arena_runtime and xcvb_arena_runtime.allowed()) then
+    if not (xcvb_arena_runtime and xcvb_arena_runtime.combat_active()) then
         return orig_get_script_target and orig_get_script_target(self)
     end
+    local arena_sec = self:section_name()
+    if not (arena_sec and arena_sec:find("arena_", 1, true)) then return orig_get_script_target and orig_get_script_target(self) end
     if self.scripted_target then
         if self.scripted_target == "actor" or self.scripted_target == 0 then
             return 0
@@ -6428,6 +6502,8 @@ function get_random_endless_spawn_pos(prefer_idx)
 end
 
 function spawn_endless_squad(wave, enemy_type, difficulty, extra_enemies, enemy_mult)
+    local prefetched=xcvb_arena_backrooms_pressure.take_prefetched(wave)
+    if prefetched then return prefetched end
 
     local cur_wave = wave or 1
     local e_type = enemy_type or "stalkers"
@@ -6514,6 +6590,7 @@ function spawn_endless_squad(wave, enemy_type, difficulty, extra_enemies, enemy_
     end
     
     local spawn_points = get_safe_endless_spawn_positions(num_enemies)
+    if not spawn_points or #spawn_points==0 then return nil end
 
     local wave_fac = nil
     if e_type == "stalkers" then
@@ -6558,8 +6635,9 @@ function spawn_endless_squad(wave, enemy_type, difficulty, extra_enemies, enemy_
             if ini_sys:section_exist(cand_sec) then
                 sec = cand_sec
             else
-                sec = "sim_default_bandit_" .. rank
+                sec = nil
             end
+            sec = get_safe_enemy_section(sec or ("sim_default_bandit_" .. rank),a_fac)
         end
         
         if sec and ini_sys:section_exist(sec) then
@@ -6674,7 +6752,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
         pcall(function() db.actor:activate_slot(0) end)
         for s = 1, 15 do
             local slot_itm = db.actor:item_in_slot(s)
-            if slot_itm and not xcvb_arena_wearable.is_preserved(slot_itm) and db.actor.move_to_ruck then
+            if slot_itm and not xcvb_arena_wearable.is_preserved(slot_itm) and not preserve_backrooms_device(slot_itm) and db.actor.move_to_ruck then
                 pcall(function() db.actor:move_to_ruck(slot_itm) end)
             end
         end
@@ -6686,7 +6764,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
         local se_item = alife_object(item_id)
         if se_item then
             local sec = se_item:section_name()
-            if xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
+            if (xcvb_arena_main.night_mode_active or xcvb_arena_main.selected_map=="backrooms") and sec and string.find(sec, "^device_torch") then
                 kept_temp_items[item_id] = true
             else
                 release_actor_arena_item(item_id)
@@ -6705,7 +6783,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             if sec == "device_pda" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
                 return
             end
-            if xcvb_arena_main and xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
+            if xcvb_arena_main and (xcvb_arena_main.night_mode_active or xcvb_arena_main.selected_map=="backrooms") and sec and string.find(sec, "^device_torch") then
                 return
             end
             -- Never touch original actor items stored in the arena box
@@ -6926,7 +7004,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
                 if sec == "device_pda" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
                     return
                 end
-                if xcvb_arena_main and xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
+                if xcvb_arena_main and (xcvb_arena_main.night_mode_active or xcvb_arena_main.selected_map=="backrooms") and sec and string.find(sec, "^device_torch") then
                     return
                 end
                 if saved_actor_item_ids and saved_actor_item_ids[itm:id()] then
@@ -7033,6 +7111,7 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             return true
         end)
     end
+    prepare_backrooms_device()
 end
 
 --------------------------------------------------------------------------------
@@ -7295,7 +7374,9 @@ function install_trader_autoinject_safeguard()
         if trader_autoinject.timed_update and not trader_autoinject.__arena_safeguard_installed then
             local orig_timed_update = trader_autoinject.timed_update
             trader_autoinject.timed_update = function(npc)
-                if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return orig_timed_update(npc) end
+                if npc and retired_arena_npcs[npc] then return true end
+                if xcvb_arena_runtime and not xcvb_arena_runtime.combat_active() then return orig_timed_update(npc) end
+                if npc and not is_stalker_in_arena(npc) then return orig_timed_update(npc) end
                 if not npc then return true end
                 local ok, id = pcall(function() return npc:id() end)
                 if not ok or not id then return true end
@@ -7308,7 +7389,9 @@ function install_trader_autoinject_safeguard()
         if trader_autoinject.update and not trader_autoinject.__arena_update_safeguard_installed then
             local orig_update = trader_autoinject.update
             trader_autoinject.update = function(npc)
-                if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return orig_update(npc) end
+                if npc and retired_arena_npcs[npc] then return nil end
+                if xcvb_arena_runtime and not xcvb_arena_runtime.combat_active() then return orig_update(npc) end
+                if npc and not is_stalker_in_arena(npc) then return orig_update(npc) end
                 if not npc then return end
                 local ok, id = pcall(function() return npc:id() end)
                 if not ok or not id then return end
@@ -7321,7 +7404,9 @@ function install_trader_autoinject_safeguard()
         if trader_autoinject.get_trader_type and not trader_autoinject.__arena_type_safeguard_installed then
             local orig_get_trader_type = trader_autoinject.get_trader_type
             trader_autoinject.get_trader_type = function(npc)
-                if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return orig_get_trader_type(npc) end
+                if npc and retired_arena_npcs[npc] then return -1 end
+                if xcvb_arena_runtime and not xcvb_arena_runtime.combat_active() then return orig_get_trader_type(npc) end
+                if npc and not is_stalker_in_arena(npc) then return orig_get_trader_type(npc) end
                 if not npc then return -1 end
                 local ok, id = pcall(function() return npc:id() end)
                 if not ok or not id then return -1 end
@@ -7336,7 +7421,9 @@ function install_trader_autoinject_safeguard()
     if m1a1_autoinject and m1a1_autoinject.m1a1_trade_spawn and not m1a1_autoinject.__arena_safeguard_installed then
         local orig_m1a1 = m1a1_autoinject.m1a1_trade_spawn
         m1a1_autoinject.m1a1_trade_spawn = function(npc)
-            if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return orig_m1a1(npc) end
+                if npc and retired_arena_npcs[npc] then return nil end
+            if xcvb_arena_runtime and not xcvb_arena_runtime.combat_active() then return orig_m1a1(npc) end
+                if npc and not is_stalker_in_arena(npc) then return orig_m1a1(npc) end
             if not npc then return end
             local ok, sec = pcall(function() return npc:section() end)
             if not ok or not sec then return end
@@ -7407,6 +7494,7 @@ function get_actor_true_community()
 end
 
 function is_any_arena_fight_active()
+    if not (db and db.actor and xcvb_arena_runtime and xcvb_arena_runtime.contains(db.actor:position())) then return false end
     -- Fuera del nivel del Bar (donde radica la Arena), jamás hay combate de arena
     if not (level and level.name and level.name() == "l05_bar") then
         return false
@@ -7571,6 +7659,8 @@ function leave_level()
         if weather and weather.pause then pcall(weather.pause, false) end
     end
     night_mode_combat_running = false
+    backrooms_device_running = false
     npc_light_check_at, cached_arena_lamp_ids = {}, {}
+    if xcvb_arena_maintenance then xcvb_arena_maintenance.clear() end
 end
 

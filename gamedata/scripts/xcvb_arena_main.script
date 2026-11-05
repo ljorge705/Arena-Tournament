@@ -28,6 +28,8 @@ endless_checkpoint_wave = 1
 endless_checkpoint_type = "stalkers"
 endless_difficulty = "medium"
 endless_selected_variant = "classic"
+endless_team_options = xcvb_arena_team.normalize(nil)
+faction_battle_options = xcvb_arena_factions.normalize(nil)
 endless_artigrok_ammo = false
 endless_3dssg = false
 endless_weapon_class = "all"
@@ -39,6 +41,7 @@ night_mode_saved_time = nil
 night_mode_saved_needs = nil
 night_mode_saved_render = nil
 night_mode_device = "device_torch_dummy"
+backrooms_device = "device_torch_dummy"
 selected_map = "arena"
 
 function factory_available()
@@ -563,6 +566,7 @@ tournament_mutant_tiers_t = {
 
 function get_round_forced_map(category, round_id)
     if not factory_available() then return "arena" end
+    if selected_map == "backrooms" then return "backrooms" end
 	local r_data = get_round_data(category, round_id)
 	return r_data and (r_data.forced_map or r_data.map)
 end
@@ -974,6 +978,8 @@ function save_state(m_data)
 	m_data.xcvb_endless_checkpoint_type = endless_checkpoint_type
 	m_data.xcvb_endless_difficulty = endless_difficulty
 	m_data.xcvb_endless_selected_variant = endless_selected_variant
+	m_data.xcvb_endless_team_options = endless_team_options
+	m_data.xcvb_faction_battle_options = faction_battle_options
 	m_data.xcvb_endless_artigrok_ammo = endless_artigrok_ammo
 	m_data.xcvb_endless_3dssg = endless_3dssg
 	m_data.xcvb_endless_weapon_class = endless_weapon_class
@@ -985,6 +991,7 @@ function save_state(m_data)
 	m_data.xcvb_night_mode_saved_needs = night_mode_saved_needs
 	m_data.xcvb_night_mode_saved_render = night_mode_saved_render
 	m_data.xcvb_night_mode_device = night_mode_device
+    m_data.xcvb_backrooms_device = backrooms_device
 	m_data.xcvb_selected_map = selected_map
 	m_data.xcvb_arena_tokens = arena_tokens
 	m_data.xcvb_daily_cashout_done = daily_cashout_done
@@ -999,7 +1006,9 @@ end
 
 function load_state(m_data)
 	xcvb_arena_utils.reset_arena_object_cache()
-	if m_data.xcvb_endless_selected_variant == "plus" or m_data.xcvb_endless_selected_variant == "classic" then
+	endless_team_options = xcvb_arena_team.normalize(m_data.xcvb_endless_team_options)
+	faction_battle_options = xcvb_arena_factions.normalize(m_data.xcvb_faction_battle_options)
+	if m_data.xcvb_endless_selected_variant == "factions" or m_data.xcvb_endless_selected_variant == "team" or m_data.xcvb_endless_selected_variant == "plus" or m_data.xcvb_endless_selected_variant == "classic" then
 		endless_selected_variant = m_data.xcvb_endless_selected_variant
 	else
 		endless_selected_variant = m_data.xcvb_endless_plus and m_data.xcvb_endless_plus.active == true and "plus" or "classic"
@@ -1013,7 +1022,9 @@ function load_state(m_data)
 	night_mode_saved_needs = m_data.xcvb_night_mode_saved_needs
 	night_mode_saved_render = m_data.xcvb_night_mode_saved_render
 	night_mode_device = m_data.xcvb_night_mode_device or "device_torch_dummy"
-	selected_map = factory_available() and (m_data.xcvb_selected_map == "factory")
+    local devices={device_torch_dummy=true,device_torch_nv_1=true,device_torch_nv_2=true,device_torch_nv_3=true}
+    backrooms_device=devices[m_data.xcvb_backrooms_device] and m_data.xcvb_backrooms_device or "device_torch_dummy"
+	selected_map = factory_available() and (m_data.xcvb_selected_map == "factory" or m_data.xcvb_selected_map == "backrooms")
         and m_data.xcvb_selected_map or "arena"
 	arena_tokens = m_data.xcvb_arena_tokens or 0
 	daily_cashout_done = m_data.xcvb_daily_cashout_done or 0

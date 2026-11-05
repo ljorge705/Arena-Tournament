@@ -138,7 +138,7 @@ local DIK_NAMES = {
     [16] = "Q", [17] = "W", [18] = "E", [19] = "R", [20] = "T", [21] = "Y", [22] = "U", [23] = "I", [24] = "O", [25] = "P",
     [26] = "[", [27] = "]", [28] = "ENTER", [29] = "LEFT CTRL",
     [30] = "A", [31] = "S", [32] = "D", [33] = "F", [34] = "G", [35] = "H", [36] = "J", [37] = "K", [38] = "L",
-    [39] = "Ñ", [40] = "'", [41] = "~", [42] = "LEFT SHIFT", [43] = "\\",
+    [39] = "Ã‘", [40] = "'", [41] = "~", [42] = "LEFT SHIFT", [43] = "\\",
     [44] = "Z", [45] = "X", [46] = "C", [47] = "V", [48] = "B", [49] = "N", [50] = "M",
     [51] = ",", [52] = ".", [53] = "/", [54] = "RIGHT SHIFT", [55] = "NUMPAD *",
     [56] = "LEFT ALT", [57] = "SPACE", [58] = "CAPS LOCK",
@@ -165,7 +165,7 @@ local function get_panic_key_label()
     local num = tonumber(configured)
     if num then
         if num == 39 then
-            return "Ñ"
+            return "Ã‘"
         end
         if ui_mcm and ui_mcm.display_key then
             local ok, mcm_label = pcall(ui_mcm.display_key, num)
@@ -180,7 +180,7 @@ local function get_panic_key_label()
 
     if type(configured) == "string" and #configured > 0 then
         if configured == "DIK_SEMICOLON" or configured == "39" then
-            return "Ñ"
+            return "Ã‘"
         end
         return configured:gsub("^DIK_", "")
     end
@@ -226,6 +226,7 @@ local function cancel_player_combat_events(without_actor)
         {"arena_endless_wave_warn_e", "arena_endless_wave_warn_a"},
         {"arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a"},
         {"arena_endless_next_wave_e", "arena_endless_next_wave_a"},
+        {"arena_endless_prepare_loadout_e", "arena_endless_prepare_loadout_a"},
         {"allow_endless_aggro_wave_e", "allow_endless_aggro_wave_a"},
         {"arena_endless_torch_verify_e", "arena_endless_torch_verify_a"},
         {"arena_endless_lights_verify_e", "arena_endless_lights_verify_a"},
@@ -531,7 +532,8 @@ end
 function start_tournament_fight(category, round_id, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec, forced_mag_count, forced_ammo_count, inventory_ready, forced_outfit_sec, forced_helm_sec, forced_meds_pack, forced_grenades_type)
     local round_data = xcvb_arena_main.get_round_data(category or "stalker", round_id)
     if not round_data or not db.actor then return false end
-    local entry_map = factory_available() and (round_data.forced_map or round_data.map or xcvb_arena_main.selected_map) or "arena"
+    local entry_map = xcvb_arena_main.selected_map == "backrooms" and "backrooms"
+        or (factory_available() and (round_data.forced_map or round_data.map or xcvb_arena_main.selected_map) or "arena")
     if xcvb_arena_factory and not xcvb_arena_factory.allow_entry(entry_map) then return false end
     if xcvb_arena_utils.inventory_restore_pending then
         xcvb_arena_utils.restore_actor_equipped_slots()
@@ -582,7 +584,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     current_tournament_category = category or "stalker"
     current_tournament_round_id = round_id
 
-    local forced_m = round_data.forced_map or round_data.map
+    local forced_m = xcvb_arena_main.selected_map == "backrooms" and "backrooms" or (round_data.forced_map or round_data.map)
     local target_m = factory_available() and (forced_m or xcvb_arena_main.selected_map or "arena") or "arena"
     tourn_saved_selected_map = xcvb_arena_main.selected_map
     xcvb_arena_main.selected_map = target_m
@@ -620,6 +622,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
         end)
     end
 
+    xcvb_arena_utils.prepare_backrooms_device()
     if random_eq ~= false then
         local tier = round_data.tier or math.ceil(round_id / 3)
         CreateTimeEvent("arena_spawn_loadout_e", "arena_spawn_loadout_a", 0.3, function()
@@ -627,6 +630,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
             xcvb_arena_utils.equip_tournament_random_loadout(tier, loadout_class, loadout_tier, loadout_ammo,
                 forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec,
                 forced_mag_count, forced_ammo_count, forced_outfit_sec, forced_helm_sec, forced_meds_pack, forced_grenades_type)
+            xcvb_arena_utils.prepare_backrooms_device()
             return true
         end)
     end
@@ -1405,15 +1409,21 @@ function get_endless_enemy_squad_ids()
 end
 
 function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, variant, inventory_ready)
+    xcvb_arena_backrooms_pressure.clear()
     if xcvb_arena_factory and not xcvb_arena_factory.allow_entry() then return false end
     local entry_interval = xcvb_arena_mcm and xcvb_arena_mcm.get_config("endless_map_swap_interval") or 0
-    if variant ~= "plus" and factory_available() and entry_interval > 0 and (start_wave or 1) > 1
+    if variant ~= "factions" and variant ~= "plus" and factory_available() and entry_interval > 0 and (start_wave or 1) > 1
         and math.floor(((start_wave or 1)-1)/entry_interval)%2 == 1 then
-        local entry_map = xcvb_arena_main.selected_map == "factory" and "arena" or "factory"
+        local entry_map = xcvb_arena_main.selected_map == "backrooms" and "backrooms" or (xcvb_arena_main.selected_map == "factory" and "arena" or "factory")
         if xcvb_arena_factory and not xcvb_arena_factory.allow_entry(entry_map) then return false end
     end
     if not db.actor then return false end
     if not inventory_compatible() then return false end
+    if variant == "factions" then
+        start_wave = 1
+        local ok, err = xcvb_arena_factions.prepare()
+        if not ok then news_manager.send_tip(db.actor, err, 0, nil, 7000); return false end
+    end
     if not inventory_ready then
         if not xcvb_arena_utils.store_actor_inventory() then return false end
         if xcvb_arena_utils.inventory_store_pending then
@@ -1423,6 +1433,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
             return true
         end
     end
+    xcvb_arena_main.endless_selected_variant = variant or "classic"
     callback_epoch = callback_epoch + 1
     cancel_player_combat_events()
     RemoveTimeEvent("arena_corpse_clean_e", "arena_corpse_clean_a")
@@ -1439,10 +1450,10 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
     endless_reward = 0
     endless_initial_map = xcvb_arena_main.selected_map
     local swap_interval = xcvb_arena_mcm and xcvb_arena_mcm.get_config("endless_map_swap_interval") or 0
-    if factory_available() and swap_interval and swap_interval > 0 and endless_wave > 1 then
+    if variant ~= "factions" and factory_available() and swap_interval and swap_interval > 0 and endless_wave > 1 then
         local num_swaps = math.floor((endless_wave - 1) / swap_interval)
         if num_swaps % 2 == 1 then
-            xcvb_arena_main.selected_map = (endless_initial_map == "factory") and "arena" or "factory"
+            xcvb_arena_main.selected_map = endless_initial_map == "backrooms" and "backrooms" or ((endless_initial_map == "factory") and "arena" or "factory")
         else
             xcvb_arena_main.selected_map = endless_initial_map
         end
@@ -1466,7 +1477,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
     pcall(disable_info, "xcvb_battle_royale_started")
     give_info("xcvb_endless_started")
 
-    if xcvb_arena_main and variant ~= "plus" then
+    if xcvb_arena_main and variant ~= "plus" and variant ~= "factions" then
         xcvb_arena_main.endless_total_runs = (xcvb_arena_main.endless_total_runs or 0) + 1
         xcvb_arena_main.endless_difficulty = endless_difficulty
         xcvb_arena_main.endless_checkpoint_type = endless_enemy_type
@@ -1482,6 +1493,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
         pcall(xcvb_arena_utils.ensure_weapon_raised)
     end
     local ac_pos, ac_lvid, ac_gvid, ac_dir = xcvb_arena_utils.get_actor_tournament_pos(endless_wave)
+    if variant == "factions" then ac_pos, ac_lvid, ac_gvid = xcvb_arena_factions.spawn_point(1,1) end
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
     db.actor:set_actor_direction(ac_dir or 0)
 
@@ -1505,6 +1517,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
         end)
     end
 
+    xcvb_arena_utils.prepare_backrooms_device()
     CreateTimeEvent("arena_spawn_endless_loadout_e", "arena_spawn_endless_loadout_a", 0.3, function()
         if endless_ending or endless_fight_closed then return true end
         if xcvb_arena_endless and xcvb_arena_endless.equip_endless_loadout then
@@ -1519,6 +1532,9 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
     give_info("xcvb_endless_started")
 
     endless_enemy_squad_ids = {}
+    if (variant == "team" or variant == "factions") and xcvb_arena_companions then
+        xcvb_arena_companions.ensure_team_companions(true)
+    end
 
     local is_elite = xcvb_arena_immersion and xcvb_arena_immersion.is_wave_elite(endless_wave)
     local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
@@ -1558,7 +1574,9 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
             return true
         end
 
-        local squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
+        local squads
+        if variant == "factions" then squads = xcvb_arena_factions.spawn_enemies()
+        else squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty) end
         endless_enemy_squad_ids = {}
         if squads then
             if squads.id then
@@ -1615,6 +1633,11 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
 end
 
 function advance_endless_wave(resume_pending)
+    if xcvb_arena_factions.active() and not endless_fight_closed and not endless_ending then
+        news_manager.send_tip(db.actor, "FACTION BATTLE: Your team wins!", 0, nil, 7000)
+        end_endless_fight(true, false)
+        return
+    end
     if endless_transitioning or endless_fight_closed or endless_ending or is_medic_rescuing then return end
     if xcvb_arena_plus and xcvb_arena_plus.active() then
         if resume_pending then xcvb_arena_plus.resume(); return end
@@ -1629,9 +1652,10 @@ function advance_endless_wave(resume_pending)
         xcvb_arena_plus.open_ui()
         return
     end
+    local backrooms_overlap=xcvb_arena_backrooms_pressure.has_pending(endless_wave)
     pcall(sync_night_mode_device_from_actor)
     endless_transitioning = true
-    if db.actor then
+    if db.actor and not backrooms_overlap then
         pcall(function() db.actor:activate_slot(0) end)
     end
 
@@ -1707,7 +1731,7 @@ function advance_endless_wave(resume_pending)
             })
         end
 
-        heal_actor_completely()
+        if not backrooms_overlap then heal_actor_completely() end
 
         endless_wave = endless_wave + 1
         if xcvb_arena_main then
@@ -1719,9 +1743,28 @@ function advance_endless_wave(resume_pending)
     end -- On load the wave reward and checkpoint have already been recorded.
 
     local swap_interval = xcvb_arena_mcm and xcvb_arena_mcm.get_config("endless_map_swap_interval") or 0
-    local should_swap = (factory_available() and swap_interval and swap_interval > 0 and endless_wave > 1 and ((endless_wave - 1) % swap_interval == 0))
+    local should_swap = (xcvb_arena_main.selected_map ~= "backrooms" and factory_available() and swap_interval and swap_interval > 0 and endless_wave > 1 and ((endless_wave - 1) % swap_interval == 0))
     if should_swap and xcvb_arena_main.selected_map ~= "factory" and xcvb_arena_factory
         and not xcvb_arena_factory.night_available(true,"factory") then should_swap = false end
+
+    local prepared_wave=endless_wave
+    local loadout_prepared=backrooms_overlap
+    if not backrooms_overlap then
+        CreateTimeEvent("arena_endless_prepare_loadout_e","arena_endless_prepare_loadout_a",should_swap and 4.0 or 3.65,function()
+            if endless_ending or endless_fight_closed or endless_wave~=prepared_wave then return true end
+            local ok,err=pcall(function()
+                if xcvb_arena_endless and xcvb_arena_endless.equip_endless_loadout then
+                    xcvb_arena_endless.equip_endless_loadout(endless_wave,endless_difficulty,xcvb_arena_main.endless_3dssg==true)
+                else xcvb_arena_utils.equip_endless_random_loadout(endless_wave,endless_difficulty,xcvb_arena_main.endless_3dssg==true) end
+            end)
+            if not ok then
+                printe("! arena loadout preparation failed: %s",tostring(err))
+                end_endless_fight(false,true);return true
+            end
+            loadout_prepared=true
+            return true
+        end)
+    end
 
     if should_swap then
         xcvb_arena_utils.arena_fade_in_out(0.2)
@@ -1730,7 +1773,7 @@ function advance_endless_wave(resume_pending)
             if endless_ending or endless_fight_closed then return true end
 
             for _, id in ipairs(endless_enemy_squad_ids) do
-                xcvb_arena_utils.clean_tournament_squad(id)
+                if not xcvb_arena_backrooms_pressure.keep_squad(id) then xcvb_arena_utils.clean_tournament_squad(id) end
             end
             endless_enemy_squad_ids = {}
             xcvb_arena_utils.clean_arena_corpses()
@@ -1771,10 +1814,9 @@ function advance_endless_wave(resume_pending)
         CreateTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a", 5.2, function()
             if endless_ending or endless_fight_closed then return true end
 
-            if xcvb_arena_endless and xcvb_arena_endless.equip_endless_loadout then
-                xcvb_arena_endless.equip_endless_loadout(endless_wave, endless_difficulty, xcvb_arena_main.endless_3dssg == true)
-            else
-                xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, xcvb_arena_main.endless_3dssg == true)
+            if not loadout_prepared then
+                ResetTimeEvent("arena_endless_next_wave_e","arena_endless_next_wave_a",0.05)
+                return false
             end
             if xcvb_arena_main.night_mode_active then
                 pcall(xcvb_arena_utils.ensure_actor_torch_active)
@@ -1785,8 +1827,9 @@ function advance_endless_wave(resume_pending)
             else
                 pcall(xcvb_arena_utils.toggle_arena_lights, true)
             end
-            heal_actor_completely()
+            if not backrooms_overlap then heal_actor_completely() end
 
+            if xcvb_arena_companions then xcvb_arena_companions.ensure_team_companions(false) end
             local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
             endless_enemy_squad_ids = {}
             if next_squads then
@@ -1867,7 +1910,9 @@ function advance_endless_wave(resume_pending)
             return true
         end)
     else
-        if xcvb_arena_immersion then
+        if backrooms_overlap then
+            -- The next wave is already present; no countdown.
+        elseif xcvb_arena_immersion then
             xcvb_arena_immersion.announce_wave_countdown(endless_wave)
         else
             CreateTimeEvent("arena_endless_wave_warn_e", "arena_endless_wave_warn_a", 1.0, function()
@@ -1881,23 +1926,22 @@ function advance_endless_wave(resume_pending)
             end)
         end
 
-        CreateTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a", 3.5, function()
+        CreateTimeEvent("arena_endless_corpse_clean_e", "arena_endless_corpse_clean_a", backrooms_overlap and 0 or 3.5, function()
             if endless_ending or endless_fight_closed then return true end
             for _, id in ipairs(endless_enemy_squad_ids) do
-                xcvb_arena_utils.clean_tournament_squad(id)
+                if not xcvb_arena_backrooms_pressure.keep_squad(id) then xcvb_arena_utils.clean_tournament_squad(id) end
             end
             endless_enemy_squad_ids = {}
             xcvb_arena_utils.clean_arena_corpses()
             return true
         end)
 
-        CreateTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a", 4.0, function()
+        CreateTimeEvent("arena_endless_next_wave_e", "arena_endless_next_wave_a", backrooms_overlap and .1 or 4.0, function()
             if endless_ending or endless_fight_closed then return true end
 
-            if xcvb_arena_endless and xcvb_arena_endless.equip_endless_loadout then
-                xcvb_arena_endless.equip_endless_loadout(endless_wave, endless_difficulty, xcvb_arena_main.endless_3dssg == true)
-            else
-                xcvb_arena_utils.equip_endless_random_loadout(endless_wave, endless_difficulty, xcvb_arena_main.endless_3dssg == true)
+            if not loadout_prepared then
+                ResetTimeEvent("arena_endless_next_wave_e","arena_endless_next_wave_a",0.05)
+                return false
             end
             if xcvb_arena_main.night_mode_active then
                 pcall(xcvb_arena_utils.ensure_actor_torch_active)
@@ -1908,8 +1952,9 @@ function advance_endless_wave(resume_pending)
             else
                 pcall(xcvb_arena_utils.toggle_arena_lights, true)
             end
-            heal_actor_completely()
+            if not backrooms_overlap then heal_actor_completely() end
 
+            if xcvb_arena_companions then xcvb_arena_companions.ensure_team_companions(false) end
             local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
             endless_enemy_squad_ids = {}
             if next_squads then
@@ -1995,7 +2040,7 @@ function spawn_plus_wave(extra_enemies)
     local interval = xcvb_arena_mcm.get_config("endless_map_swap_interval") or 0
     local swap_allowed = not xcvb_arena_factory or xcvb_arena_main.selected_map == "factory"
         or xcvb_arena_factory.night_available(true,"factory")
-    if factory_available() and interval > 0 and endless_wave > 1 and (endless_wave - 1) % interval == 0 and swap_allowed then
+    if xcvb_arena_main.selected_map ~= "backrooms" and factory_available() and interval > 0 and endless_wave > 1 and (endless_wave - 1) % interval == 0 and swap_allowed then
         xcvb_arena_main.selected_map = xcvb_arena_main.selected_map == "factory" and "arena" or "factory"
         local pos, lv, gv, dir = xcvb_arena_utils.get_actor_tournament_pos(endless_wave)
         db.actor:set_actor_position(pos, lv, gv); db.actor:set_actor_direction(dir or 0)
@@ -2032,12 +2077,14 @@ function spawn_plus_wave(extra_enemies)
 end
 
 function end_endless_fight(is_victory, voluntary_leave)
+    xcvb_arena_backrooms_pressure.clear()
     if endless_fight_closed then return end
+    local was_factions = xcvb_arena_factions.active()
     endless_fight_closed = true
     callback_epoch = callback_epoch + 1
     local was_plus = xcvb_arena_plus and xcvb_arena_plus.active()
 
-    if xcvb_arena_main and xcvb_arena_main.record_endless_run_ended then
+    if not was_factions and xcvb_arena_main and xcvb_arena_main.record_endless_run_ended then
         local elapsed = xcvb_arena_combat_hud and xcvb_arena_combat_hud.get_elapsed_seconds and xcvb_arena_combat_hud.get_elapsed_seconds() or 0
         xcvb_arena_main.record_endless_run_ended(endless_wave, elapsed)
     end
@@ -2050,6 +2097,11 @@ function end_endless_fight(is_victory, voluntary_leave)
     pcall(xcvb_arena_utils.exit_arena_night_mode)
     if xcvb_arena_main then
         xcvb_arena_main.night_mode_active = false
+    end
+
+    -- Clean up all hired companions when endless mode ends
+    if xcvb_arena_companions and xcvb_arena_companions.cleanup_all_companions then
+        pcall(xcvb_arena_companions.cleanup_all_companions)
     end
 
     if db.actor then
@@ -2076,10 +2128,6 @@ function end_endless_fight(is_victory, voluntary_leave)
         endless_enemy_squad_ids = {}
     end
     xcvb_arena_utils.clean_arena_corpses()
-    -- Clean up all hired companions when endless mode ends
-    if xcvb_arena_companions and xcvb_arena_companions.cleanup_all_companions then
-        pcall(xcvb_arena_companions.cleanup_all_companions)
-    end
     if xcvb_arena_companions and xcvb_arena_companions.reset_arena_credits then
         xcvb_arena_companions.reset_arena_credits()
     end
@@ -2111,7 +2159,7 @@ function end_endless_fight(is_victory, voluntary_leave)
         end
     end
 
-    if xcvb_arena_main and not was_plus then
+    if xcvb_arena_main and not was_plus and not was_factions then
         if endless_wave and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
             xcvb_arena_main.endless_checkpoint_wave = endless_wave
         end
@@ -2319,13 +2367,16 @@ function actor_on_update()
     end
 
     if endless_active then
+        if not endless_transitioning and not endless_ending and not endless_fight_closed and not is_medic_rescuing then
+            xcvb_arena_backrooms_pressure.update(endless_enemy_squad_ids,endless_wave,endless_enemy_type,endless_difficulty)
+        end
         -- Reconcile after death callbacks have finished updating their squads.
         -- Some deaths/removals never reach squad_on_npc_death; an empty wave
         -- must still progress. A nonempty registry avoids advancing before the
         -- initial spawn or during the cleanup gap between waves.
         if not endless_transitioning and not endless_ending and not endless_fight_closed
             and not is_medic_rescuing and db.actor and db.actor:alive()
-            and #endless_enemy_squad_ids > 0 and get_endless_total_enemies_alive() == 0 then
+            and #endless_enemy_squad_ids > 0 and xcvb_arena_backrooms_pressure.wave_alive(endless_enemy_squad_ids,endless_wave,get_endless_total_enemies_alive()) == 0 then
             advance_endless_wave()
             return
         end
@@ -2341,6 +2392,9 @@ function actor_on_update()
         if tg > hit_timer then
             local is_night = (xcvb_arena_main.night_mode_active == true)
             hit_timer = tg + (is_night and NIGHT_VISION_INTERVAL_MS or 2000)
+            if xcvb_arena_factions.active() then
+                xcvb_arena_factions.setup(endless_enemy_squad_ids)
+            else
             local vision_ctx = is_night and xcvb_arena_utils.build_night_vision_context() or nil
             if endless_enemy_squad_ids then
                 for _, s_id in ipairs(endless_enemy_squad_ids) do
@@ -2373,6 +2427,7 @@ function actor_on_update()
                         end
                     end
                 end
+            end
             end
         end
     end
@@ -2574,6 +2629,7 @@ function on_enemy_eval(npc, enemy, flags)
         return
     end
 
+    if xcvb_arena_factions.active() and xcvb_arena_factions.enemy_eval(npc, enemy, flags) then return end
     local enemy_id = enemy:id()
     local npc_id = npc:id()
 
@@ -3107,6 +3163,7 @@ function squad_on_npc_death(squad, se_obj, killer)
 end
 
 function save_state(m_data)
+    xcvb_arena_backrooms_pressure.save_state(m_data)
     m_data.xcvb_arena_interrupted_level = interrupted_level
     if xcvb_arena_plus then xcvb_arena_plus.save_state(m_data) end
     m_data.xcvb_arena_state_version = 2
@@ -3155,8 +3212,9 @@ function save_state(m_data)
 end
 
 function load_state(m_data)
+    xcvb_arena_backrooms_pressure.load_state(m_data)
     local saved_map=m_data.xcvb_selected_map
-    local retired_layout=saved_map and saved_map~="arena" and (saved_map~="factory" or not factory_available())
+    local retired_layout=saved_map and saved_map~="arena" and ((saved_map~="factory" and saved_map~="backrooms") or not factory_available())
     interrupted_level = m_data.xcvb_arena_interrupted_level == true or retired_layout == true
     if xcvb_arena_plus then xcvb_arena_plus.load_state(m_data) end
     callback_epoch = callback_epoch + 1
@@ -3211,7 +3269,7 @@ function load_state(m_data)
     tournament_inventory_stored = m_data.xcvb_tournament_inventory_stored == true
         or (current_tournament_round_id ~= nil and xcvb_arena_utils.inventory_stored)
     is_endless_mode = m_data.xcvb_is_endless_mode or false
-    endless_initial_map = m_data.xcvb_endless_initial_map and (factory_available() and m_data.xcvb_endless_initial_map == "factory" and "factory" or "arena")
+    endless_initial_map = m_data.xcvb_endless_initial_map and (factory_available() and (m_data.xcvb_endless_initial_map == "factory" or m_data.xcvb_endless_initial_map == "backrooms") and m_data.xcvb_endless_initial_map or "arena")
     tourn_saved_selected_map = m_data.xcvb_tourn_saved_selected_map and (factory_available() and m_data.xcvb_tourn_saved_selected_map == "factory" and "factory" or "arena")
     endless_wave = m_data.xcvb_endless_wave or 1
     endless_reward = m_data.xcvb_endless_reward or 0
@@ -3296,6 +3354,10 @@ function actor_on_first_update()
         and (HI("xcvb_tournament_started") or is_endless_mode) then
         xcvb_arena_utils.enter_arena_night_mode()
     end
+    if xcvb_arena_main.selected_map=="backrooms" and not xcvb_arena_utils.inventory_restore_pending
+        and not xcvb_arena_utils.inventory_store_pending and (HI("xcvb_tournament_started") or is_endless_mode) then
+        xcvb_arena_utils.prepare_backrooms_device()
+    end
     if not HI("xcvb_tournament_started") and not HI("xcvb_endless_started") and not is_endless_mode then
         if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
         pcall(level.enable_input)
@@ -3325,7 +3387,26 @@ function suspend_level()
     if xcvb_arena_combat_hud then xcvb_arena_combat_hud.hide() end
 end
 
+-- Intercept only a cancelled arena death before other death callbacks start
+-- camera/menu animations. Normal deaths retain the original callback dispatcher.
+function install_arena_death_dispatch_guard()
+    if not (axr_main and axr_main.make_callback) or axr_main.xcvb_arena_death_guard then return end
+    local original = axr_main.make_callback
+    axr_main.make_callback = function(name,...)
+        if name == "actor_on_before_death" and
+            (is_medic_rescuing or HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode) and
+            xcvb_arena_mcm.get_config("medic_rescue") ~= false then
+            local who, flags = ...
+            actor_on_before_death(who,flags)
+            if is_medic_rescuing and flags and flags.ret_value == false then return end
+        end
+        return original(name,...)
+    end
+    axr_main.xcvb_arena_death_guard = true
+end
+
 function on_game_start()
+    install_arena_death_dispatch_guard()
     if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_fight) end
     RegisterScriptCallback("actor_on_update", actor_on_update)
     RegisterScriptCallback("actor_on_before_death", actor_on_before_death)
@@ -3338,4 +3419,12 @@ function on_game_start()
     RegisterScriptCallback("save_state", save_state)
     RegisterScriptCallback("load_state", load_state)
     RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
+end
+
+
+-- Normal tournament only: expose the current hostile squad without touching allies.
+function get_backrooms_tournament_enemy_squad_id()
+    if is_endless_mode or xcvb_arena_main.selected_map~="backrooms" or tournament_fight_closed or tourn_ending then return nil end
+    if not (HI("xcvb_tournament_started") or HI("xcvb_arena_started")) then return nil end
+    return tournament_enemy_squad_id
 end

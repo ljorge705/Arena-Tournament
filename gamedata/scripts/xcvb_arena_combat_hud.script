@@ -134,6 +134,8 @@ function UICombatHUD:refresh_fields()
         self.txt_wave:Show(true)
     end
 
+    if self.txt_wave and xcvb_arena_factions.active() then self.txt_wave:SetText("FACTION BATTLE - TEAM 1") end
+
     -- 2. Reward text
     if self.txt_reward then
         local rew = tonumber(current_data.reward) or 0

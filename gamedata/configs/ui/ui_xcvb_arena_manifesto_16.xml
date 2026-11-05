@@ -1,0 +1,25 @@
+<w>
+  <background x="0" y="0" width="1024" height="768" stretch="1">
+    <texture>xcvb_arena_gui_bg</texture>
+  </background>
+  <panel x="64" y="62" width="896" height="650" stretch="1">
+    <texture>ui_inGame2_opt_dialog_window</texture>
+  </panel>
+  <title x="96" y="80" width="832" height="36">
+    <text font="graffiti32" align="c" vert_align="c" r="205" g="210" b="218">MANIFESTO</text>
+  </title>
+  <back x="437" y="679" width="150" height="28" stretch="1">
+    <texture>ui_inGame2_button</texture>
+    <text font="letterica18" align="c" vert_align="c">BACK</text>
+  </back>
+  <hint x="96" y="124" width="832" height="24">
+    <text font="letterica16" align="c" r="160" g="175" b="190">Scroll to read</text>
+  </hint>
+  <scroll x="110" y="166" width="804" height="492" right_ident="0" left_ident="0" top_indent="0" bottom_indent="0" vert_interval="14" always_show_scroll="1" />
+  <paragraph x="0" y="0" width="756" height="1" complex_mode="1">
+    <text font="letterica18" align="l" vert_align="t" r="205" g="210" b="218" />
+  </paragraph>
+  <heading x="0" y="0" width="756" height="1" complex_mode="1">
+    <text font="graffiti22" align="l" vert_align="t" r="245" g="210" b="120" />
+  </heading>
+</w>

@@ -294,7 +294,7 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
         pcall(function() db.actor:activate_slot(0) end)
         for s = 1, 15 do
             local slot_itm = db.actor:item_in_slot(s)
-            if slot_itm and not xcvb_arena_wearable.is_preserved(slot_itm) and db.actor.move_to_ruck then
+            if slot_itm and not xcvb_arena_wearable.is_preserved(slot_itm) and not xcvb_arena_utils.preserve_backrooms_device(slot_itm) and db.actor.move_to_ruck then
                 pcall(function() db.actor:move_to_ruck(slot_itm) end)
             end
         end
@@ -306,7 +306,7 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
         local se_item = alife_object(item_id)
         if se_item then
             local sec = se_item:section_name()
-            if xcvb_arena_main and xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
+            if xcvb_arena_main and (xcvb_arena_main.night_mode_active or xcvb_arena_main.selected_map=="backrooms") and sec and string.find(sec, "^device_torch") then
                 kept_temp[item_id] = true
             else
                 xcvb_arena_utils.release_actor_arena_item(item_id)
@@ -324,7 +324,7 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
             if sec == "device_pda" or sec == "bolt" or (IsItem and IsItem("quest", sec)) then
                 return
             end
-            if xcvb_arena_main and xcvb_arena_main.night_mode_active and sec and string.find(sec, "^device_torch") then
+            if xcvb_arena_main and (xcvb_arena_main.night_mode_active or xcvb_arena_main.selected_map=="backrooms") and sec and string.find(sec, "^device_torch") then
                 return
             end
             if xcvb_arena_utils.saved_actor_item_ids and xcvb_arena_utils.saved_actor_item_ids[item:id()] then
@@ -864,6 +864,7 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
         end
         return true
     end)
+    xcvb_arena_utils.prepare_backrooms_device()
 end
 
 -- ─────────────────────────────────────────────────────────────────────────────

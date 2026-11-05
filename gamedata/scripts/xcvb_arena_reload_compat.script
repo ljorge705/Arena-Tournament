@@ -4,7 +4,7 @@
 -- mod's reload logic or clearing a jam/repairing a spring by force.
 
 function on_key_release(key)
-    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
+    if xcvb_arena_runtime and not xcvb_arena_runtime.combat_active() then return end
     if not key_bindings or not key_bindings.kWPN_RELOAD
         or dik_to_bind(key) ~= key_bindings.kWPN_RELOAD then return end
     if not (db and db.actor and db.actor:alive()) then return end

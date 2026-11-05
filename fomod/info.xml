@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <fomod>
-  <Name>Arena Tournament 1.3.2</Name>
+  <Name>Arena Tournament 1.3.3</Name>
   <Author>JonnySniper</Author>
-  <Version>1.3.2</Version>
+  <Version>1.3.3</Version>
   <Website>https://github.com/ljorge705/Arena-Tournament</Website>
-  <Description>Arena + Factory requires a NEW GAME. Arena only preserves native navigation and all.spawn, Choose your Bar map.</Description>
+  <Description>Arena + Factory + Backroom, or Arena Only for existing saves without a new game. Standard GAMMA / Anomaly and Rostok Expansion / Wormhole variants.</Description>
 </fomod>

@@ -124,22 +124,29 @@
 		<texture>ui_inGame2_button</texture>
 	</btn_fire_1>
 
-	<slot_2 x="260" y="474" width="400" height="22">
+	<slot_2 x="260" y="467" width="400" height="22">
 		<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
 	</slot_2>
-	<btn_fire_2 x="670" y="472" width="88" height="24" check_mode="0">
+	<btn_fire_2 x="670" y="465" width="88" height="24" check_mode="0">
 		<text font="letterica16">st_arena_companion_btn_fire</text>
 		<texture>ui_inGame2_button</texture>
 	</btn_fire_2>
 
-	<slot_3 x="260" y="502" width="400" height="22">
+	<slot_3 x="260" y="488" width="400" height="22">
 		<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
 	</slot_3>
-	<btn_fire_3 x="670" y="500" width="88" height="24" check_mode="0">
+	<btn_fire_3 x="670" y="486" width="88" height="24" check_mode="0">
 		<text font="letterica16">st_arena_companion_btn_fire</text>
 		<texture>ui_inGame2_button</texture>
 	</btn_fire_3>
 
+	<slot_4 x="260" y="509" width="400" height="22">
+		<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
+	</slot_4>
+<btn_fire_4 x="670" y="507" width="88" height="24" check_mode="0">
+		<text font="letterica16">st_arena_companion_btn_fire</text>
+		<texture>ui_inGame2_button</texture>
+	</btn_fire_4>
 	<!-- Separator 3 -->
 	<sep3 x="255" y="534" width="514" height="2" stretch="1">
 		<texture>ui_inGame2_line_dialog</texture>

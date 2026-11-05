@@ -1812,159 +1812,143 @@
 
 				<endless_diff_menu x="50" y="96" width="924" height="640" stretch="1">
 		<texture>ui_table_back</texture>
-
-		<!-- Title & Subtitle Header -->
-		<title x="20" y="12" width="884" height="24">
-			<text r="255" g="220" b="130" font="graffiti22" align="c" vert_align="c">st_arena_endless_menu_title</text>
+		<title x="260" y="12" width="642" height="28">
+				<text r="255" g="220" b="130" font="graffiti22" align="c" vert_align="c">st_arena_endless_menu_title</text>
 		</title>
-		<desc x="20" y="36" width="884" height="16">
-			<text r="190" g="190" b="190" font="letterica16" align="c" vert_align="c">st_arena_endless_menu_desc</text>
+		<desc x="22" y="48" width="880" height="24" complex_mode="1">
+				<text r="190" g="190" b="190" font="letterica16" align="c" vert_align="c">st_arena_endless_menu_desc</text>
 		</desc>
-
-		<!-- Section 1: Primary Weapon Restriction (Horizontal button row) -->
-		<title_wpn_class x="22" y="56" width="880" height="16">
-			<text r="255" g="220" b="130" font="letterica16" align="c" vert_align="c">st_arena_endless_wpn_section_title</text>
+		<title_wpn_class x="22" y="78" width="880" height="16">
+				<text r="255" g="220" b="130" font="letterica16" align="c" vert_align="c">st_arena_endless_wpn_section_title</text>
 		</title_wpn_class>
-		<btn_diff_wpn_all x="22" y="74" width="140" height="28" check_mode="0">
-			<text font="letterica16">st_arena_endless_wpn_all</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_diff_wpn_all>
-		<btn_diff_wpn_pistol x="170" y="74" width="140" height="28" check_mode="0">
-			<text font="letterica16">st_arena_endless_wpn_pistols</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_diff_wpn_pistol>
-		<btn_diff_wpn_shotgun x="318" y="74" width="140" height="28" check_mode="0">
-			<text font="letterica16">st_arena_endless_wpn_shotguns</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_diff_wpn_shotgun>
-		<btn_diff_wpn_rifle x="466" y="74" width="140" height="28" check_mode="0">
-			<text font="letterica16">st_arena_endless_wpn_rifles</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_diff_wpn_rifle>
-		<btn_diff_wpn_smg x="614" y="74" width="140" height="28" check_mode="0">
-			<text font="letterica16">st_arena_endless_wpn_smgs</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_diff_wpn_smg>
-		<btn_diff_wpn_sniper x="762" y="74" width="140" height="28" check_mode="0">
-			<text font="letterica16">st_arena_endless_wpn_snipers</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_diff_wpn_sniper>
-
-		<!-- Section 2: Tactical Modifiers & Gear -->
-		<title_mods x="22" y="106" width="880" height="16">
-			<text r="255" g="220" b="130" font="letterica16" align="c" vert_align="c">st_arena_endless_mods_section_title</text>
-		</title_mods>
-		<btn_diff_3dssg x="22" y="124" width="214" height="28" check_mode="0">
-			<text font="letterica16">3DSSG: [OFF]</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_diff_3dssg>
-		<btn_diff_escalation x="244" y="124" width="214" height="28" check_mode="0">
-			<text font="letterica16">ESCALATION: [OFF]</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_diff_escalation>
-		<btn_diff_spawn_type x="466" y="124" width="214" height="28" check_mode="0">
-			<text font="letterica16">SPAWN: [SCATTERED]</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_diff_spawn_type>
-		<btn_diff_custom x="688" y="124" width="214" height="28" check_mode="0">
-			<text font="letterica16">EQUIPMENT: [DISABLED]</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_diff_custom>
-
-		<!-- Section 3: Summary & Stats Frame (Left) & Difficulty / Launch (Right) -->
-		<!-- Survival Summary & Stats Frame (Left Side, styled with xcvb_arena_gui_row_frame) -->
-		<diff_summary_frame x="22" y="158" width="480" height="460" stretch="1">
-			<texture>xcvb_arena_gui_row_frame</texture>
-
-			<!-- Protocol Rules -->
-			<title x="15" y="8" width="450" height="18">
-				<text r="255" g="220" b="130" font="letterica18" align="l" vert_align="c">st_arena_endless_summary_title</text>
-			</title>
-			<sum_diff x="15" y="28" width="450" height="16">
-				<text r="130" g="240" b="130" font="letterica16" align="l" vert_align="c"></text>
-			</sum_diff>
-			<sum_wpn x="15" y="46" width="450" height="16">
-				<text r="240" g="220" b="140" font="letterica16" align="l" vert_align="c"></text>
-			</sum_wpn>
-			<sum_3dssg x="15" y="64" width="450" height="16">
-				<text r="150" g="210" b="230" font="letterica16" align="l" vert_align="c"></text>
-			</sum_3dssg>
-			<sum_escalation x="15" y="82" width="450" height="16">
-				<text r="220" g="190" b="140" font="letterica16" align="l" vert_align="c"></text>
-			</sum_escalation>
-			<sum_spawn x="15" y="100" width="450" height="16">
-				<text r="180" g="210" b="240" font="letterica16" align="l" vert_align="c"></text>
-			</sum_spawn>
-			<sum_loadout x="15" y="118" width="450" height="16">
-				<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
-			</sum_loadout>
-			<sum_cost x="15" y="136" width="450" height="16">
-				<text r="255" g="220" b="100" font="letterica16" align="l" vert_align="c"></text>
-			</sum_cost>
-
-			<!-- Career Statistics -->
-			<title_stats x="15" y="206" width="450" height="18">
-				<text r="255" g="220" b="130" font="letterica18" align="l" vert_align="c">st_arena_endless_stats_title</text>
-			</title_stats>
-			<stat_max_wave x="15" y="226" width="450" height="16">
-				<text r="255" g="220" b="90" font="letterica16" align="l" vert_align="c"></text>
-			</stat_max_wave>
-			<stat_kills x="15" y="244" width="450" height="16">
-				<text r="130" g="240" b="130" font="letterica16" align="l" vert_align="c"></text>
-			</stat_kills>
-			<stat_runs x="15" y="262" width="450" height="16">
-				<text r="150" g="210" b="230" font="letterica16" align="l" vert_align="c"></text>
-			</stat_runs>
-			<stat_waves_cleared x="15" y="280" width="450" height="16">
-				<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c"></text>
-			</stat_waves_cleared>
-
-			<!-- Brief Combat Note -->
-			<sum_note x="15" y="306" width="450" height="85" complex_mode="1">
-				<text r="165" g="165" b="165" font="letterica16" align="l" vert_align="t"></text>
-			</sum_note>
-
-			<!-- Reset Stats Button -->
-			<btn_diff_reset_stats x="20" y="410" width="440" height="34" check_mode="0">
-				<text font="letterica16">st_arena_endless_reset_stats_btn</text>
+		<btn_diff_wpn_all x="22" y="98" width="140" height="28" check_mode="0">
+				<text font="letterica16">st_arena_endless_wpn_all</text>
 				<texture>ui_inGame2_Mp_bigbuttone</texture>
-			</btn_diff_reset_stats>
+		</btn_diff_wpn_all>
+		<btn_diff_wpn_pistol x="170" y="98" width="140" height="28" check_mode="0">
+				<text font="letterica16">st_arena_endless_wpn_pistols</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_wpn_pistol>
+		<btn_diff_wpn_shotgun x="318" y="98" width="140" height="28" check_mode="0">
+				<text font="letterica16">st_arena_endless_wpn_shotguns</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_wpn_shotgun>
+		<btn_diff_wpn_rifle x="466" y="98" width="140" height="28" check_mode="0">
+				<text font="letterica16">st_arena_endless_wpn_rifles</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_wpn_rifle>
+		<btn_diff_wpn_smg x="614" y="98" width="140" height="28" check_mode="0">
+				<text font="letterica16">st_arena_endless_wpn_smgs</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_wpn_smg>
+		<btn_diff_wpn_sniper x="762" y="98" width="140" height="28" check_mode="0">
+				<text font="letterica16">st_arena_endless_wpn_snipers</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_wpn_sniper>
+		<title_mods x="22" y="130" width="880" height="16">
+				<text r="255" g="220" b="130" font="letterica16" align="c" vert_align="c">st_arena_endless_mods_section_title</text>
+		</title_mods>
+		<btn_diff_3dssg x="22" y="148" width="214" height="28" check_mode="0">
+				<text font="letterica16">3DSSG: [OFF]</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_3dssg>
+		<btn_diff_escalation x="244" y="148" width="214" height="28" check_mode="0">
+				<text font="letterica16">ESCALATION: [OFF]</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_escalation>
+		<btn_diff_spawn_type x="466" y="148" width="214" height="28" check_mode="0">
+				<text font="letterica16">SPAWN: [SCATTERED]</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_spawn_type>
+		<btn_diff_custom x="688" y="148" width="214" height="28" check_mode="0">
+				<text font="letterica16">EQUIPMENT: [DISABLED]</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_custom>
+		<diff_summary_frame x="22" y="182" width="480" height="436" stretch="1">
+				<texture>xcvb_arena_gui_row_frame</texture>
+				<title x="15" y="8" width="450" height="18">
+						<text r="255" g="220" b="130" font="letterica18" align="l" vert_align="c">st_arena_endless_summary_title</text>
+				</title>
+				<sum_diff x="15" y="28" width="450" height="16">
+						<text r="130" g="240" b="130" font="letterica16" align="l" vert_align="c" />
+				</sum_diff>
+				<sum_wpn x="15" y="46" width="450" height="16">
+						<text r="240" g="220" b="140" font="letterica16" align="l" vert_align="c" />
+				</sum_wpn>
+				<sum_3dssg x="15" y="64" width="450" height="16">
+						<text r="150" g="210" b="230" font="letterica16" align="l" vert_align="c" />
+				</sum_3dssg>
+				<sum_escalation x="15" y="82" width="450" height="16">
+						<text r="220" g="190" b="140" font="letterica16" align="l" vert_align="c" />
+				</sum_escalation>
+				<sum_spawn x="15" y="100" width="450" height="16">
+						<text r="180" g="210" b="240" font="letterica16" align="l" vert_align="c" />
+				</sum_spawn>
+				<sum_loadout x="15" y="118" width="450" height="16">
+						<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c" />
+				</sum_loadout>
+				<sum_cost x="15" y="136" width="450" height="16">
+						<text r="255" g="220" b="100" font="letterica16" align="l" vert_align="c" />
+				</sum_cost>
+				<title_stats x="15" y="206" width="450" height="18">
+						<text r="255" g="220" b="130" font="letterica18" align="l" vert_align="c">st_arena_endless_stats_title</text>
+				</title_stats>
+				<stat_max_wave x="15" y="226" width="450" height="16">
+						<text r="255" g="220" b="90" font="letterica16" align="l" vert_align="c" />
+				</stat_max_wave>
+				<stat_kills x="15" y="244" width="450" height="16">
+						<text r="130" g="240" b="130" font="letterica16" align="l" vert_align="c" />
+				</stat_kills>
+				<stat_runs x="15" y="262" width="450" height="16">
+						<text r="150" g="210" b="230" font="letterica16" align="l" vert_align="c" />
+				</stat_runs>
+				<stat_waves_cleared x="15" y="280" width="450" height="16">
+						<text r="200" g="200" b="200" font="letterica16" align="l" vert_align="c" />
+				</stat_waves_cleared>
+				<sum_note x="15" y="306" width="450" height="65" complex_mode="1">
+						<text r="165" g="165" b="165" font="letterica16" align="l" vert_align="t" />
+				</sum_note>
+				<btn_diff_reset_stats x="20" y="386" width="440" height="34" check_mode="0">
+						<text font="letterica16">st_arena_endless_reset_stats_btn</text>
+						<texture>ui_inGame2_Mp_bigbuttone</texture>
+				</btn_diff_reset_stats>
 		</diff_summary_frame>
-
-		<!-- Right Side: Difficulty Selection & Action Buttons -->
-		<title_start x="522" y="158" width="380" height="20">
-			<text r="255" g="220" b="130" font="letterica18" align="c" vert_align="c">st_arena_endless_start_title</text>
+		<title_start x="522" y="182" width="380" height="20">
+				<text r="255" g="220" b="130" font="letterica18" align="c" vert_align="c">st_arena_endless_start_title</text>
 		</title_start>
-		<btn_diff_easy x="522" y="188" width="380" height="46" check_mode="0">
-			<text font="letterica18">st_arena_endless_diff_easy</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<btn_diff_easy x="522" y="212" width="380" height="46" check_mode="0">
+				<text font="letterica18">st_arena_endless_diff_easy</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_easy>
-		<btn_diff_medium x="522" y="242" width="380" height="46" check_mode="0">
-			<text font="letterica18">st_arena_endless_diff_medium</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<btn_diff_medium x="522" y="266" width="380" height="46" check_mode="0">
+				<text font="letterica18">st_arena_endless_diff_medium</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_medium>
-		<btn_diff_hard x="522" y="296" width="380" height="46" check_mode="0">
-			<text font="letterica18">st_arena_endless_diff_hard</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<btn_diff_hard x="522" y="320" width="380" height="46" check_mode="0">
+				<text font="letterica18">st_arena_endless_diff_hard</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_hard>
-
-		<btn_diff_variant x="522" y="358" width="380" height="42" check_mode="0">
-			<text font="letterica16">Endless / Endless+</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<btn_diff_variant x="522" y="382" width="184" height="38" check_mode="0">
+				<text font="letterica16">st_arena_mode_select_title</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_variant>
-
-		<!-- Enter The Arena Main Action Button (Prominent, matching main menu) -->
-		<btn_diff_enter x="522" y="428" width="380" height="54" check_mode="0">
-			<text font="graffiti22">st_arena_btn_enter</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<btn_diff_team_config x="714" y="382" width="188" height="38" check_mode="0">
+				<text font="letterica16">st_arena_endless_configuration</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_team_config>
+		<btn_diff_enter x="522" y="438" width="380" height="52" check_mode="0">
+				<text font="graffiti22">st_arena_btn_enter</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_enter>
-
-		<!-- Cancel Button -->
-		<btn_diff_cancel x="522" y="498" width="380" height="46" check_mode="0">
-			<text font="letterica18">st_arena_endless_diff_cancel</text>
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<btn_diff_cancel x="522" y="500" width="380" height="42" check_mode="0">
+				<text font="letterica18">st_arena_endless_diff_cancel</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_cancel>
-	</endless_diff_menu>
+		<btn_diff_area x="22" y="12" width="220" height="32" check_mode="0">
+				<text font="letterica16">Area: Arena</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_area>
+</endless_diff_menu>
 
 	<!-- ============================================== -->
 
@@ -2711,5 +2695,200 @@
 
 
 
+
+<mode_menu x="142" y="60" width="740" height="640" stretch="1">
+	<texture>ui_inGame2_opt_dialog_window</texture>
+	<title x="30" y="16" width="680" height="32">
+		<text font="graffiti22" r="255" g="220" b="130" align="c" vert_align="c">st_arena_mode_select_title</text>
+	</title>
+	<desc x="40" y="50" width="660" height="38" complex_mode="1">
+		<text font="letterica16" r="190" g="190" b="190" align="c" vert_align="t">st_arena_mode_select_desc</text>
+	</desc>
+
+	<!-- Mode 1: Classic -->
+	<classic x="40" y="94" width="660" height="36" check_mode="0">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica18">st_arena_mode_classic_name</text>
+	</classic>
+	<classic_desc x="50" y="132" width="640" height="34" complex_mode="1">
+		<text font="letterica16" r="180" g="195" b="210" align="c" vert_align="t">st_arena_mode_classic_desc</text>
+	</classic_desc>
+
+	<!-- Mode 2: Endless+ -->
+	<plus x="40" y="172" width="660" height="36" check_mode="0">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica18">st_arena_mode_plus_name</text>
+	</plus>
+	<plus_desc x="50" y="210" width="640" height="34" complex_mode="1">
+		<text font="letterica16" r="180" g="195" b="210" align="c" vert_align="t">st_arena_mode_plus_desc</text>
+	</plus_desc>
+
+	<!-- Mode 3: Team Deathmatch -->
+	<team x="40" y="250" width="660" height="36" check_mode="0">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica18">st_arena_mode_team_name</text>
+	</team>
+	<team_desc x="50" y="288" width="640" height="34" complex_mode="1">
+		<text font="letterica16" r="180" g="195" b="210" align="c" vert_align="t">st_arena_mode_team_desc</text>
+	</team_desc>
+
+	<!-- Mode 4: Faction Battle -->
+	<factions x="40" y="328" width="660" height="36" check_mode="0">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica18">st_arena_mode_factions_name</text>
+	</factions>
+	<factions_desc x="50" y="366" width="640" height="34" complex_mode="1">
+		<text font="letterica16" r="180" g="195" b="210" align="c" vert_align="t">st_arena_mode_factions_desc</text>
+	</factions_desc>
+
+	<!-- Action / Back button -->
+	<back x="230" y="580" width="280" height="38" check_mode="0">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica18">st_arena_mode_btn_back</text>
+	</back>
+</mode_menu>
+<team_menu x="60" y="54" width="904" height="650" stretch="1">
+	<texture>ui_inGame2_opt_dialog_window</texture>
+	<title x="24" y="16" width="856" height="34" complex_mode="1">
+		<text font="graffiti22" r="255" g="220" b="130" align="c">st_arena_team_title</text>
+	</title>
+	<desc x="24" y="56" width="856" height="30" complex_mode="1">
+		<text font="letterica16" r="200" g="210" b="225" align="c">st_arena_team_desc</text>
+	</desc>
+	<squad_header x="40" y="112" width="268" height="28" complex_mode="1">
+		<text font="letterica18" r="255" g="220" b="130" align="c">st_arena_team_header_squad</text>
+	</squad_header>
+	<count_minus x="40" y="158" width="40" height="36">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica18">-</text>
+	</count_minus>
+	<count x="88" y="158" width="172" height="36">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16" />
+	</count>
+	<count_plus x="268" y="158" width="40" height="36">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica18">+</text>
+	</count_plus>
+	<replenish x="40" y="222" width="268" height="38">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16" />
+	</replenish>
+	<heal x="40" y="270" width="268" height="38">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16" />
+	</heal>
+	<resupply x="40" y="318" width="268" height="38">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16" />
+	</resupply>
+	<reset x="40" y="482" width="268" height="36">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16">st_arena_team_reset</text>
+	</reset>
+	<loadout_header x="360" y="112" width="504" height="28" complex_mode="1">
+		<text font="letterica18" r="255" g="220" b="130" align="c">st_arena_team_header_loadout</text>
+	</loadout_header>
+	<slot1 x="360" y="148" width="120" height="34">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16">st_arena_team_slot_fmt</text>
+	</slot1>
+	<slot2 x="488" y="148" width="120" height="34">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16">st_arena_team_slot_fmt</text>
+	</slot2>
+	<slot3 x="616" y="148" width="120" height="34">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16">st_arena_team_slot_fmt</text>
+	</slot3>
+	<slot4 x="744" y="148" width="120" height="34">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16">st_arena_team_slot_fmt</text>
+	</slot4>
+	<selected_label x="360" y="190" width="504" height="24" complex_mode="1">
+		<text font="letterica16" r="255" g="220" b="130" align="c" />
+	</selected_label>
+	<rank x="360" y="224" width="244" height="34">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16" />
+	</rank>
+	<class x="616" y="224" width="248" height="34">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16" />
+	</class>
+	<weapon x="360" y="270" width="244" height="34">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16">st_arena_team_btn_weapon</text>
+	</weapon>
+	<scope x="616" y="270" width="248" height="34">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16">st_arena_team_btn_scope</text>
+	</scope>
+	<weapon_icon x="370" y="326" width="300" height="58" />
+	<scope_icon x="698" y="326" width="150" height="58" />
+	<weapon_label x="370" y="390" width="484" height="22" complex_mode="1">
+		<text font="letterica16" r="210" g="220" b="235" align="c" />
+	</weapon_label>
+	<scope_label x="370" y="412" width="484" height="20" complex_mode="1">
+		<text font="letterica16" r="210" g="220" b="235" align="c" />
+	</scope_label>
+	<ammo x="360" y="456" width="244" height="36">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16" />
+	</ammo>
+	<boxes x="616" y="456" width="248" height="36">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica16" />
+	</boxes>
+	<summary x="40" y="552" width="824" height="32" complex_mode="1">
+		<text font="letterica16" r="210" g="220" b="235" align="c" />
+	</summary>
+	<modes x="40" y="600" width="260" height="38">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica18">st_arena_team_btn_modes</text>
+	</modes>
+	<back x="604" y="600" width="260" height="38">
+		<texture>ui_inGame2_Mp_bigbuttone</texture>
+		<text font="letterica18">st_arena_team_btn_save</text>
+	</back>
+	<settings_panel x="24" y="100" width="300" height="440" stretch="1">
+		<texture>xcvb_arena_gui_row_frame</texture>
+	</settings_panel>
+	<equipment_panel x="344" y="100" width="536" height="440" stretch="1">
+		<texture>xcvb_arena_gui_row_frame</texture>
+	</equipment_panel>
+	<preview_panel x="360" y="316" width="504" height="120" stretch="1">
+		<texture>xcvb_arena_gui_row_frame</texture>
+	</preview_panel>
+	<squad_hint x="40" y="374" width="268" height="78" complex_mode="1">
+		<text font="letterica16" r="170" g="185" b="205" align="l" vert_align="t">st_arena_team_rules_hint</text>
+	</squad_hint>
+</team_menu>
+
+
+<factions_menu x="110" y="62" width="800" height="560" stretch="1"><texture>ui_inGame2_opt_dialog_window</texture>
+<title x="30" y="18" width="740" height="38"><text font="graffiti32" align="c">FACTION BATTLE</text></title>
+<desc x="35" y="61" width="730" height="62" complex_mode="1"><text font="letterica16" align="c">You play on Team 1. Teams use different factions and spawn grouped in separate zones. Team 1 supports you + 1-4 allies. One round, no reinforcements. Choose your map with Area before entering.</text></desc>
+<count x="35" y="132" width="220" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></count>
+<team1 x="35" y="190" width="145" height="34"><text font="letterica16">TEAM 1 (YOU)</text></team1>
+<faction1 x="190" y="190" width="260" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></faction1>
+<size1 x="465" y="190" width="145" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></size1>
+<rank1 x="625" y="190" width="140" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></rank1>
+<team2 x="35" y="247" width="145" height="34"><text font="letterica16">TEAM 2</text></team2>
+<faction2 x="190" y="247" width="260" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></faction2>
+<size2 x="465" y="247" width="145" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></size2>
+<rank2 x="625" y="247" width="140" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></rank2>
+<team3 x="35" y="304" width="145" height="34"><text font="letterica16">TEAM 3</text></team3>
+<faction3 x="190" y="304" width="260" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></faction3>
+<size3 x="465" y="304" width="145" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></size3>
+<rank3 x="625" y="304" width="140" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></rank3>
+<team4 x="35" y="361" width="145" height="34"><text font="letterica16">TEAM 4</text></team4>
+<faction4 x="190" y="361" width="260" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></faction4>
+<size4 x="465" y="361" width="145" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></size4>
+<rank4 x="625" y="361" width="140" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16"></text></rank4>
+<loadouts x="35" y="435" width="340" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">Customize ally weapons / scopes</text></loadouts>
+<modes x="35" y="495" width="220" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">Choose mode</text></modes>
+<back x="475" y="495" width="290" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">Save and return</text></back>
+</factions_menu>
 </w>
 

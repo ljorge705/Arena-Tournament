@@ -39,7 +39,6 @@ local function detect_environment()
             is_vanilla = false,
             is_custom = false,
         }
-        printf("[Arena Tournament] Detected Environment: %s (id: %s)", env_cache.name, env_cache.id)
         return env_cache
     end
 
@@ -65,7 +64,6 @@ local function detect_environment()
             is_vanilla = false,
             is_custom = false,
         }
-        printf("[Arena Tournament] Detected Environment: %s (id: %s)", env_cache.name, env_cache.id)
         return env_cache
     end
 
@@ -87,7 +85,6 @@ local function detect_environment()
             is_vanilla = false,
             is_custom = false,
         }
-        printf("[Arena Tournament] Detected Environment: %s (id: %s)", env_cache.name, env_cache.id)
         return env_cache
     end
 
@@ -119,7 +116,6 @@ local function detect_environment()
         }
     end
 
-    printf("[Arena Tournament] Detected Environment: %s (id: %s)", env_cache.name, env_cache.id)
     return env_cache
 end
 

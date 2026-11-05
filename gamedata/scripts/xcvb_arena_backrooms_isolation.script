@@ -1,0 +1,191 @@
+-- Secondary arenas (Factory and Backrooms) are isolated from the normal Bar AI.
+local original_script_danger=nil
+local visit=nil
+local recent={}
+local pending_recovery=nil
+local function on_bar()
+ return level and level.name and level.name()=='l05_bar'
+end
+local function inside(pos)
+ if not on_bar() or not pos then return false end
+ if xcvb_arena_backrooms_data and xcvb_arena_backrooms_data.contains(pos) then return true end
+ -- Factory is a different combat space too, including its outdoor variant.
+ -- contains() uses the verified map bounds and does not depend on which menu
+ -- map is selected after returning to Rostok.
+ return xcvb_arena_factory and xcvb_arena_factory.contains(pos) or false
+end
+local function position(obj)
+ if not obj then return nil end
+ local ok,p=pcall(function()return obj:position()end)
+ return ok and p or nil
+end
+local function outside_listener(npc)
+ local p=position(npc)
+ return p and on_bar() and not inside(p)
+end
+function isolated_event(npc,pos)
+ local last = recent[#recent]
+ local scoped = visit or pending_recovery or (last and time_global() <= last.returned + 8000)
+ return scoped and outside_listener(npc) and inside(pos) or false
+end
+local function snapshot(npc)
+ if not (visit and npc and IsStalker and IsStalker(npc) and npc:alive() and outside_listener(npc) and db.actor) then return end
+ local id=npc:id();if visit.npcs[id] then return end
+ local ok,relation=pcall(function()return npc:relation(db.actor)end)
+ if not ok or relation>=2 then return end
+ local _,mental=pcall(function()return npc:mental_state()end)
+ local state=nil
+ if state_mgr and state_mgr.get_state then local good,value=pcall(state_mgr.get_state,npc);if good then state=value end end
+ visit.npcs[id]={relation=relation,mental=mental,state=state}
+end
+local function start_visit()
+ if visit then return end
+ visit={entered=time_global(),npcs={},sources={}}
+ visit.sources[db.actor:id()]=true
+ for _,st in pairs(db.storage or {}) do if type(st)=='table' then snapshot(st.object) end end
+end
+local function finish_visit()
+ if not visit then return end
+ visit.returned=time_global()
+ if visit.first_shot then
+  recent[#recent+1]=visit;if #recent>8 then table.remove(recent,1)end
+ end
+ if visit.first_shot then pending_recovery={entry=visit,next_tick=time_global(),until_time=time_global()+1500,done={}}end
+ visit=nil
+end
+local threat_states={threat_danger=true,assault=true,hide_na=true,threat=true,threat_na=true,threat_fire=true,assault_fire=true}
+local function recover_return()
+ local recovery=pending_recovery
+ if not recovery or time_global()<recovery.next_tick then return end
+ if time_global()>recovery.until_time then pending_recovery=nil;return end
+ recovery.next_tick=time_global()+500
+ for id,before in pairs(recovery.entry.npcs)do
+  local st=db.storage and db.storage[id];local npc=st and st.object
+  if npc and npc:alive() and not recovery.done[id] and not (IsWounded and IsWounded(npc)) then
+   local ok,enemy=pcall(function()return npc:best_enemy()end)
+   local good,danger=pcall(function()return npc:best_danger()end)
+   if ok and not enemy and good and not danger and not st.aoe_panic and not st.hitted_by then
+    local allowed,reason=false,'no REDone compatibility'
+    if xr_danger and xr_danger.reset_backrooms_danger then allowed,reason=xr_danger.reset_backrooms_danger(npc,recovery.entry)end
+    if allowed then
+     local state=nil
+     if state_mgr and state_mgr.get_state then local good,value=pcall(state_mgr.get_state,npc);if good then state=value end end
+     if st.danger_flag or (state and threat_states[state]) then
+      local target=before.state
+      if not target or threat_states[target]then target='idle'end
+      if st.danger then
+       local old_vid=st.danger.lvid
+       if old_vid and db.used_level_vertex_ids and db.used_level_vertex_ids[old_vid]==id then db.used_level_vertex_ids[old_vid]=nil end
+       st.danger.inertion=nil;st.danger.danger_time=nil;st.danger.lvid=nil
+       st.danger.stage=1;st.danger.__warning_shot_tmr=nil
+       st.danger.last_state=target;st.danger.__dtimer=nil
+      end
+      st.danger_flag=false;st.danger_flag_scripted=nil
+      if state_mgr and state_mgr.set_state then pcall(state_mgr.set_state,npc,target,nil,nil,nil,{fast_set=true})end
+      local mental=before.mental
+      if before.state and threat_states[before.state]then mental=anim and anim.free end
+      if type(mental)=='number' then pcall(function()npc:set_mental_state(mental)end)end
+      pcall(function()npc:inactualize_patrol_path()end)
+      pcall(function()npc:set_dest_level_vertex_id(npc:level_vertex_id())end)
+     end
+    end
+   end
+  end
+ end
+end
+
+function actor_on_update()
+ if not (db and db.actor and on_bar()) then visit=nil;recent={};return end
+ recover_return()
+ if inside(position(db.actor))then start_visit()else finish_visit()end
+end
+function actor_on_weapon_fired()
+ actor_on_update()
+ if visit then
+  visit.first_shot=visit.first_shot or time_global()
+ else
+  -- A new surface shot must receive the normal reaction immediately.
+  recent={};pending_recovery=nil
+ end
+end
+function npc_on_death_callback(npc,who)
+ if not (npc and who and db.actor and who:id()==db.actor:id() and inside(position(npc)))then return end
+ actor_on_update()
+ if visit then visit.sources[npc:id()]=true end
+end
+function npc_on_hit_callback(npc,amount,dir,who)
+ if who and db.actor and who:id()==db.actor:id() and outside_listener(npc) and not inside(position(db.actor)) then recent={};pending_recovery=nil end
+end
+function stale_arena_memory(npc,source_id,stamp)
+ if not (outside_listener(npc) and type(stamp)=='number')then return false end
+ if visit and db.actor and not inside(position(db.actor))then finish_visit()end
+ for _,entry in ipairs(recent)do
+  if entry.npcs[npc:id()] and entry.sources[source_id] and stamp>=entry.entered and stamp<=entry.returned then
+   return true
+  end
+ end
+ return false
+end
+function residual_arena_sound(npc,source_id,s_type,pos)
+ if isolated_event(npc,pos)then return true end
+ if not (outside_listener(npc) and (s_type=='WPN_shoot' or s_type=='WPN_hit'))then return false end
+ if visit and db.actor and not inside(position(db.actor))then finish_visit()end
+ local now=time_global()
+ for _,entry in ipairs(recent)do
+  if entry.npcs[npc:id()] and entry.sources[source_id] and now>=entry.returned and now<=entry.returned+8000 then
+   return true
+  end
+ end
+ return false
+end
+
+local function old_danger(npc,danger)
+ if not danger then return false end
+ local ok,stamp=pcall(function()return danger:time()end);if not ok then return false end
+ for _,method in ipairs({'object','dependent_object'})do
+  local good,obj=pcall(function()return danger[method](danger)end)
+  if good and obj and stale_arena_memory(npc,obj:id(),stamp)then return true end
+ end
+ return false
+end
+
+function npc_on_eval_danger(npc,flags)
+ if not (flags and outside_listener(npc)) then return end
+ local has,remembered=pcall(function()return npc:best_danger()end)
+ if has and old_danger(npc,remembered)then flags.ret_value=false;return end
+ local ok,enemy=pcall(function()return npc:best_enemy()end)
+ -- Surface combat remains fully active.
+ if ok and enemy and not inside(position(enemy)) then return end
+ local good,danger=pcall(function()return npc:best_danger()end)
+ if not (good and danger) then return end
+ local success,pos=pcall(function()return danger:position()end)
+ if success and inside(pos) then
+  flags.ret_value=false
+ end
+end
+function on_enemy_eval(npc,enemy,flags)
+ if not (npc and enemy and flags and on_bar()) then return end
+ local ok,stamp=pcall(function()return npc:memory_time(enemy)end)
+ if ok and stale_arena_memory(npc,enemy:id(),stamp)then flags.override=true;flags.result=false;return end
+ local p,q=position(npc),position(enemy)
+ if not (p and q) then return end
+ if (inside(p) and not inside(q)) or (inside(q) and not inside(p)) then
+  flags.override=true;flags.result=false
+ end
+end
+function filtered_script_danger(npc,duration,who_id,pos,...)
+ if isolated_event(npc,pos) then return end
+ return original_script_danger(npc,duration,who_id,pos,...)
+end
+function on_game_start()
+ if xr_danger and type(xr_danger.set_script_danger)=='function' and not original_script_danger then
+  original_script_danger=xr_danger.set_script_danger
+  xr_danger.set_script_danger=filtered_script_danger
+ end
+ RegisterScriptCallback('actor_on_update',actor_on_update)
+ RegisterScriptCallback('actor_on_weapon_fired',actor_on_weapon_fired)
+ RegisterScriptCallback('npc_on_death_callback',npc_on_death_callback)
+ RegisterScriptCallback('npc_on_hit_callback',npc_on_hit_callback)
+ RegisterScriptCallback('npc_on_eval_danger',npc_on_eval_danger)
+ RegisterScriptCallback('on_enemy_eval',on_enemy_eval)
+end

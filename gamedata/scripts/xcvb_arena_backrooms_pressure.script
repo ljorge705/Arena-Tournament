@@ -1,0 +1,10 @@
+-- Backrooms pressure disabled. Standard arena spawning and native AI are used.
+function active() return false end
+function clear() end
+function keep_squad(id) return false end
+function has_pending(wave) return false end
+function wave_alive(ids,wave,total) return total end
+function take_prefetched(wave) return nil end
+function update(ids,wave,enemy_type,difficulty) end
+function save_state(data) data.xcvb_backrooms_pressure=nil end
+function load_state(data) end

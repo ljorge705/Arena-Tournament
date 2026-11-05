@@ -249,26 +249,14 @@ local function is_lamp_se_object(se_obj)
 end
 
 local function turn_off_lamps()
-  local count = 0
-  if db and db.storage then
-    for id, _ in pairs(db.storage) do
-      local online = level and level.object_by_id and level.object_by_id(id)
-      if online and online.turn_off then
-        local ok_cls, cls = pcall(function() return online:clsid() end)
-        if ok_cls and clsid and (cls == clsid.hanging_lamp or cls == clsid.projector) then
-          pcall(online.turn_off, online)
-          count = count + 1
-        end
-      end
-    end
-  end
-  return count
+  return 0 -- Lamp state belongs to xcvb_arena_night, which tracks restoration.
 end
 
 -- ============================================================
 -- 5. Nerf a la vision de NPCs (ceguera nocturna simulada)
 -- ============================================================
 local function nerf_single_npc(npc)
+  if not (npc and xcvb_arena_runtime and xcvb_arena_runtime.combat_active() and xcvb_arena_runtime.contains(npc:position())) then return false end
   if npc == nil then
     return false
   end
@@ -291,8 +279,9 @@ local function nerf_single_npc(npc)
       saved_npc_vision[nid] = { range = r, fov = f }
     end
   end)
-  pcall(function() npc:set_range(NIGHT_RANGE) end)
-  pcall(function() npc:set_fov(NIGHT_FOV) end)
+  local saved = saved_npc_vision[npc:id()]
+  if saved and saved.range ~= nil then pcall(function() npc:set_range(NIGHT_RANGE) end) end
+  if saved and saved.fov ~= nil then pcall(function() npc:set_fov(NIGHT_FOV) end) end
   return true
 end
 
@@ -309,8 +298,7 @@ local function restore_single_npc(npc)
   else
     -- Sin valores originales conocidos, devolver a defaults razonables
     -- de Anomaly (no pisar si el build no soporta el setter).
-    pcall(function() npc:set_range(60.0) end)
-    pcall(function() npc:set_fov(100.0) end)
+    return -- Do not invent global AI defaults when the original value is unknown.
   end
 end
 
@@ -384,6 +372,7 @@ function night_mode_manager.is_active()
 end
 
 function night_mode_manager.enable(opts)
+  if not (xcvb_arena_runtime and xcvb_arena_runtime.combat_active()) then return false end
   opts = opts or {}
   local skip_time   = opts.skip_time
   local skip_lamps  = opts.skip_lamps
@@ -509,6 +498,10 @@ local function nm_load_state(m_data)
 end
 
 function on_game_start()
+  RegisterScriptCallback("actor_on_update", function()
+    if is_enabled and not (xcvb_arena_runtime and xcvb_arena_runtime.combat_active()) then night_mode_manager.disable() end
+  end)
+  RegisterScriptCallback("actor_on_net_destroy", night_mode_manager.disable)
   pcall(function()
     RegisterScriptCallback("save_state", nm_save_state)
     RegisterScriptCallback("load_state", nm_load_state)
@@ -519,6 +512,7 @@ function on_game_start()
   -- pendiente (ahi ya hay level + actor para proteger stats).
   pcall(function()
     RegisterScriptCallback("actor_on_first_update", function()
+      if is_enabled and not (xcvb_arena_runtime and xcvb_arena_runtime.combat_active()) then night_mode_manager.disable() end
       if is_enabled == true then
         pending_time_jump = false
         CreateTimeEvent("night_mode_vision_e", "night_mode_vision_a", 1.0, function()

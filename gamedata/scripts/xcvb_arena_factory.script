@@ -1,12 +1,18 @@
 -- Factory uses the native multi-floor AI-map; never substitute an original arena node.
-local function data() return xcvb_arena_navigation_data end
+local function data()
+    if xcvb_arena_main and xcvb_arena_main.selected_map == "backrooms" then
+        return xcvb_arena_backrooms_data
+    end
+    return xcvb_arena_navigation_data
+end
 local function spawn_clear(point)
-    local blocked=xcvb_arena_factory_lights_data and xcvb_arena_factory_lights_data.spawn_blocked
+    local blocked=data() == xcvb_arena_navigation_data and xcvb_arena_factory_lights_data and xcvb_arena_factory_lights_data.spawn_blocked
     local ceiling=data() and data().top_floor_y or -18.8
     return point and point.y<=ceiling and not (blocked and blocked[point.lvid])
 end
 local pending, checked = {}, {}
 local next_update = 0
+local hunt_next, hunt_dest = 0, {}
 local ambient_override
 
 local function ambient_api()
@@ -98,17 +104,18 @@ end
 function active()
     if xcvb_arena_installation and xcvb_arena_installation.factory_enabled == false then return false end
     if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return false end
-    return xcvb_arena_main and xcvb_arena_main.selected_map == "factory"
+    return xcvb_arena_main and (xcvb_arena_main.selected_map == "factory" or xcvb_arena_main.selected_map == "backrooms")
 end
 
 function legacy_vertex(id)
     if xcvb_arena_installation and xcvb_arena_installation.factory_enabled == false then return id end
-    local d = data()
+    local d = xcvb_arena_navigation_data
     return d and d.legacy_vertices and d.legacy_vertices[id] or id
 end
 
 function contains(pos)
-    local b=data() and data().factory_bounds
+    if xcvb_arena_backrooms_data and xcvb_arena_backrooms_data.contains(pos) then return true end
+    local b=xcvb_arena_navigation_data and xcvb_arena_navigation_data.factory_bounds
     if b then
         return pos and pos.x>=b.min_x and pos.x<=b.max_x and pos.z>=b.min_z and pos.z<=b.max_z
             and pos.y>=b.min_y and pos.y<=b.max_y
@@ -148,7 +155,10 @@ end
 
 function allow_entry(map)
     if not night_available(true,map) then return false end
-    if (map or (xcvb_arena_main and xcvb_arena_main.selected_map)) ~= "factory" or ready() then return true end
+    local target = map or (xcvb_arena_main and xcvb_arena_main.selected_map)
+    if target ~= "factory" and target ~= "backrooms" then return true end
+    if target == "backrooms" then return xcvb_arena_backrooms_data.ready() end
+    if ready() then return true end
     if news_manager and news_manager.send_tip then
         news_manager.send_tip(db.actor, game.translate_string("st_arena_factory_navigation_missing"), nil, nil, 10000)
     end
@@ -185,20 +195,39 @@ end
 function get_companion_spawn(index)
     local actor = db.actor and db.actor:position()
     if not actor then return nil end
-    local candidates={}
-    for _,point in ipairs(data().factory_pool) do
-        local distance = (point.x-actor.x)^2+(point.z-actor.z)^2
-        if spawn_clear(point) and math.abs(point.y-actor.y)<0.4 and distance>=2.25 and distance<=36 then
-            local cost = math.abs(distance-6.25)
-            candidates[#candidates+1]={point=point,cost=cost}
-        end
+    local candidates,seen={},{}
+    local function add(point)
+        if not point or seen[point.lvid] or not spawn_clear(point) then return end
+        seen[point.lvid]=true
+        local horizontal=(point.x-actor.x)^2+(point.z-actor.z)^2
+        local height=math.abs(point.y-actor.y)
+        -- Stay on this floor, including a player standing on a low step.
+        if height>2.5 or horizontal<2.25 or horizontal>400 then return end
+        if height>1.5 and horizontal>144 then return end
+        local pos,lvid,gvid=resolve(point)
+        if not pos then return end
+        local band=height>1.5 and 4 or (horizontal<=36 and height<0.6 and 1 or (horizontal<=144 and 2 or 3))
+        candidates[#candidates+1]={pos=pos,lvid=lvid,gvid=gvid,band=band,cost=math.abs(horizontal-6.25)+height*height*16}
     end
-    table.sort(candidates,function(a,b) return a.cost<b.cost end)
+    local d=data()
+    for _,p in ipairs(d.factory_pool or {}) do add(p) end
+    for _,site in ipairs(d.factory_sites or {}) do
+        add(site.actor);add(site.enemy)
+        for _,p in ipairs(site.slots or {}) do add(p) end
+    end
+    table.sort(candidates,function(a,b)
+        if a.band~=b.band then return a.band<b.band end
+        if a.cost~=b.cost then return a.cost<b.cost end
+        return a.lvid<b.lvid
+    end)
     local selected=candidates[((math.max(1,index or 1)-1)%math.max(1,#candidates))+1]
-    return resolve(selected and selected.point)
+    if selected then return selected.pos,selected.lvid,selected.gvid end
 end
 
 function get_endless_positions(count)
+    if xcvb_arena_main.selected_map == "backrooms" and xcvb_arena_backrooms_pressure.active() then
+        return xcvb_arena_backrooms_pressure.positions(count)
+    end
     local actor = db.actor and db.actor:position()
     if not actor or not count or count < 1 then return {} end
     local candidates = {}
@@ -207,7 +236,7 @@ function get_endless_positions(count)
         -- A different floor does not make a spawn horizontally distant.
         -- Recompute from the live actor position for every wave.
         local distance = math.sqrt(dx*dx+dz*dz)
-        if distance >= 22 and spawn_clear(point) then
+        if distance >= 22 and (data() ~= xcvb_arena_backrooms_data or distance <= 42) and spawn_clear(point) then
             local floor_distance=math.abs(point.y-actor.y)
             candidates[#candidates+1]={point=point,distance=distance,
                 band=floor_distance<0.5 and 1 or (floor_distance<4.5 and 2 or 3),noise=math.random()}
@@ -266,10 +295,15 @@ end
 
 function register_spawn(id, pos, lvid, gvid)
     if not (active() and id and contains(pos)) then return end
+    if data() == xcvb_arena_backrooms_data then
+        local ok,err=pcall(function()
+            alife():set_switch_online(id,true)
+            alife():set_switch_offline(id,false)
+        end)
+        if not ok and printf then printf('[Arena Backrooms] online request failed id=%s: %s',tostring(id),tostring(err)) end
+    end
     pending[id] = {pos=vector():set(pos.x,pos.y,pos.z),lvid=lvid,gvid=gvid,expires=time_global()+15000}
     checked[id] = nil
-    if printf then printf(string.format('[Arena Factory] spawn id=%s node=%s graph=%s pos=%.2f,%.2f,%.2f',
-        tostring(id),tostring(lvid),tostring(gvid),pos.x,pos.y,pos.z)) end
 end
 
 function prepare_npc(npc)
@@ -281,7 +315,7 @@ function prepare_npc(npc)
     if checked[id] then return end
     local current = npc:position()
     local target = pending[id]
-    local retired=xcvb_arena_factory_lights_data and xcvb_arena_factory_lights_data.retired_nodes
+    local retired=data() == xcvb_arena_navigation_data and xcvb_arena_factory_lights_data and xcvb_arena_factory_lights_data.retired_nodes
     local stranded=false
     if retired then
         local ok,node=pcall(function() return npc:level_vertex_id() end)
@@ -294,7 +328,6 @@ function prepare_npc(npc)
         else p,l,g=get_enemy_spawn(xcvb_arena_fight and xcvb_arena_fight.endless_wave or 1) end
         if p then target={pos=p,lvid=l,gvid=g} end
     end
-    local corrected = false
     if target and current then
         local dx,dz = current.x-target.pos.x,current.z-target.pos.z
         local actor=db.actor and db.actor:position()
@@ -309,18 +342,16 @@ function prepare_npc(npc)
             end
             npc:set_npc_position(target.pos)
             npc:set_dest_level_vertex_id(target.lvid)
-            corrected=true
         end
     end
     checked[id]=true
     pending[id]=nil
-    if printf and current then printf(string.format('[Arena Factory] online id=%s actual=%.2f,%.2f,%.2f corrected=%s',
-        tostring(id),current.x,current.y,current.z,tostring(corrected))) end
 end
 
 function clear_runtime()
     restore_ambient()
     pending,checked={},{}
+    hunt_next,hunt_dest=0,{}
     next_update=0
 end
 
@@ -346,10 +377,11 @@ function actor_on_update()
         if ambient_override or next(pending) or next(checked) then clear_runtime() end
         return
     end
-    if data() and data().outdoor then restore_ambient() else update_ambient() end
+    if data() == xcvb_arena_backrooms_data or (data() and data().outdoor) then restore_ambient() else update_ambient() end
     local now=time_global()
     if now<next_update then return end
     next_update=now+500
+    update_backrooms_tournament_hunt(now)
     for id,entry in pairs(pending) do
         local npc=level.object_by_id(id)
         if npc then prepare_npc(npc)
@@ -363,4 +395,38 @@ end
 function on_game_start()
     RegisterScriptCallback('actor_on_update',actor_on_update)
     RegisterScriptCallback('actor_on_net_destroy',clear_runtime)
+end
+
+function update_backrooms_tournament_hunt(now)
+    local fight=xcvb_arena_fight
+    local id=fight and fight.get_backrooms_tournament_enemy_squad_id and fight.get_backrooms_tournament_enemy_squad_id()
+    if not id or xcvb_arena_main.selected_map~="backrooms" then hunt_dest={};hunt_next=0;return end
+    if now<hunt_next then return end
+    hunt_next=now+1500
+    local squad=alife_object(id)
+    if not squad or not db.actor or not db.actor:alive() then hunt_dest={};return end
+    local destination=db.actor:level_vertex_id()
+    if not (xcvb_arena_backrooms_paths and xcvb_arena_backrooms_paths.nodes[destination]) then return end
+    squad.scripted_target="actor";squad.assigned_target_id=0;squad.rush_to_target=true
+    for member in squad:squad_members() do
+        local npc=level.object_by_id(member.id)
+        if npc and npc:alive() and IsStalker and IsStalker(npc) then
+            pcall(function()
+                local enemy=npc:best_enemy()
+                -- Keep native cover/fire decisions while an enemy is actually visible.
+                if enemy and npc:see(enemy) then hunt_dest[member.id]=nil;return end
+                if not npc:accessible(destination) then return end
+                local previous=hunt_dest[member.id]
+                local vertex=npc:level_vertex_id()
+                if previous and previous.vertex~=vertex then previous.vertex=vertex;previous.at=now end
+                if not previous or previous.destination~=destination or now-previous.at>=4500 then
+                    npc:set_path_type(game_object.level_path)
+                    npc:set_dest_level_vertex_id(destination)
+                    npc:set_movement_type(move.run)
+                    npc:set_mental_state(anim.danger)
+                    hunt_dest[member.id]={destination=destination,vertex=vertex,at=now}
+                end
+            end)
+        end
+    end
 end

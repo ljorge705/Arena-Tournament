@@ -1,0 +1,119 @@
+-- Credits are a child dialog: closing it returns to the same menu and selection.
+GUI = nil
+MANIFESTO_GUI = nil
+local SUPPORTER_COUNT = #xcvb_arena_credits_data.supporters
+
+function close()
+    if MANIFESTO_GUI then
+        if MANIFESTO_GUI:IsShown() then MANIFESTO_GUI:HideDialog() end
+        MANIFESTO_GUI = nil
+    end
+    Unregister_UI("UIXcvbArenaManifesto")
+    if GUI then
+        if GUI:IsShown() then GUI:HideDialog() end
+        GUI = nil
+    end
+    Unregister_UI("UIXcvbArenaThanks")
+end
+
+function open()
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
+    close()
+    GUI = UIXcvbArenaThanks()
+    GUI:ShowDialog(true)
+    Register_UI("UIXcvbArenaThanks", "xcvb_arena_credits")
+end
+
+function open_manifesto()
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
+    close()
+    MANIFESTO_GUI = UIXcvbArenaManifesto()
+    MANIFESTO_GUI:ShowDialog(true)
+    Register_UI("UIXcvbArenaManifesto", "xcvb_arena_credits")
+end
+
+function attach(owner)
+    local xml = CScriptXmlInit()
+    xml:ParseFile("ui_xcvb_arena_thanks.xml")
+    if not owner.arena_thanks_button then
+        owner.arena_thanks_button = xml:Init3tButton("thanks_button", owner)
+        owner:Register(owner.arena_thanks_button,"arena_thanks")
+        owner:AddCallback("arena_thanks",ui_events.BUTTON_CLICKED,open,owner)
+    end
+    if not owner.arena_manifesto_button then
+        owner.arena_manifesto_button = xml:Init3tButton("manifesto_button", owner)
+        owner:Register(owner.arena_manifesto_button,"arena_manifesto")
+        owner:AddCallback("arena_manifesto",ui_events.BUTTON_CLICKED,open_manifesto,owner)
+    end
+end
+
+class "UIXcvbArenaThanks" (CUIScriptWnd)
+function UIXcvbArenaThanks:__init() super()
+    self:SetWndRect(Frect():set(0,0,1024,768))
+    self:SetAutoDelete(true)
+    self:AllowWorkInPause(true)
+    local xml = CScriptXmlInit()
+    xml:ParseFile("ui_xcvb_arena_thanks.xml")
+    xml:InitStatic("background",self)
+    xml:InitStatic("panel",self)
+    for _,name in ipairs({"title","intro","subtitle","closing"}) do xml:InitTextWnd(name,self) end
+    self.rows = {}
+    local ratio = utils_xml and utils_xml.screen_ratio and utils_xml.screen_ratio() or 1
+    for i,entry in ipairs(xcvb_arena_credits_data.supporters) do
+        local row = {card=xml:InitStatic("card_"..i,self)}
+        row.avatar = xml:InitStatic("avatar_"..i,self)
+        row.avatar:SetWndSize(vector2():set(32*ratio,32))
+        row.avatar:InitTexture(entry.texture)
+        row.name = xml:InitStatic("name_"..i,self)
+        local width = math.min(116,(256/28)*18*ratio)
+        local height = width/((256/28)*ratio)
+        row.name:SetWndSize(vector2():set(width,height))
+        row.name:SetWndPos(vector2():set(140+((i-1)%5)*168,199+math.floor((i-1)/5)*62+(54-height)/2))
+        row.name:InitTexture(entry.name_texture)
+        self.rows[i] = row
+    end
+    self.back = xml:Init3tButton("back",self)
+    self:Register(self.back,"back")
+    self:AddCallback("back",ui_events.BUTTON_CLICKED,close,self)
+end
+function UIXcvbArenaThanks:__finalize() end
+
+function UIXcvbArenaThanks:OnKeyboard(key,action)
+    if action==ui_events.WINDOW_KEY_PRESSED and key==DIK_keys.DIK_ESCAPE then close();return true end
+    return CUIScriptWnd.OnKeyboard(self,key,action)
+end
+
+function on_game_start()
+    RegisterScriptCallback("actor_on_net_destroy",close)
+end
+
+-- Independent left-aligned paragraphs avoid colored-line layout artifacts.
+class "UIXcvbArenaManifesto" (CUIScriptWnd)
+function UIXcvbArenaManifesto:__init() super()
+    self:SetWndRect(Frect():set(0,0,1024,768))
+    self:SetAutoDelete(true)
+    self:AllowWorkInPause(true)
+    local xml = CScriptXmlInit()
+    xml:ParseFile("ui_xcvb_arena_manifesto.xml")
+    xml:InitStatic("background",self)
+    xml:InitStatic("panel",self)
+    xml:InitTextWnd("title",self)
+    xml:InitTextWnd("hint",self)
+    self.scroll = xml:InitScrollView("scroll",self)
+    self.blocks = {}
+    for _,entry in ipairs(xcvb_arena_manifesto_data.blocks) do
+        local block = xml:InitTextWnd(entry.kind,nil)
+        block:SetText(entry.text)
+        block:AdjustHeightToText()
+        self.scroll:AddWindow(block,true)
+        self.blocks[#self.blocks+1] = block
+    end
+    self.back = xml:Init3tButton("back",self)
+    self:Register(self.back,"back")
+    self:AddCallback("back",ui_events.BUTTON_CLICKED,close,self)
+end
+function UIXcvbArenaManifesto:__finalize() end
+function UIXcvbArenaManifesto:OnKeyboard(key,action)
+    if action==ui_events.WINDOW_KEY_PRESSED and key==DIK_keys.DIK_ESCAPE then close();return true end
+    return CUIScriptWnd.OnKeyboard(self,key,action)
+end

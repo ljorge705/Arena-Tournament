@@ -6,12 +6,12 @@
 -- killing enemies during Endless mode.
 -- =============================================================================
 
-local MAX_COMPANIONS = 3
+local MAX_COMPANIONS = 4
 
 -- Arena Credits (Dinero de la Arena: CLP)
 local arena_credits = 0
 
--- Companion definitions: rank 0–4, cost (in CLP), NPC section, keys
+-- Companion definitions: rank 0â€“4, cost (in CLP), NPC section, keys
 local companion_defs = {
     [1] = {
         rank        = 0,
@@ -50,7 +50,7 @@ local companion_defs = {
     },
 }
 
--- Companion squad section (online_offline_group) — defined in mod_system_xcvbarena.ltx
+-- Companion squad section (online_offline_group) â€” defined in mod_system_xcvbarena.ltx
 local COMPANION_SQUAD_SEC = "arena_companion_squad"
 
 -- Active companions: list of { squad_id, npc_id, def_idx, rank }
@@ -119,9 +119,9 @@ function on_endless_enemy_killed(se_obj, difficulty)
     return 0
 end
 
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- ACCESSORS
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function get_companion_defs()
     return companion_defs
@@ -140,11 +140,11 @@ function get_max_companions()
     return MAX_COMPANIONS
 end
 
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- HIRE / FIRE
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function hire_companion(def_idx)
+local function hire_companion_internal(def_idx, team_spawn, team_slot)
     local gt = game.translate_string
     local def = companion_defs[def_idx]
     if not def then
@@ -160,27 +160,34 @@ function hire_companion(def_idx)
     end
 
     local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
-    if econ_mode == "tokens" then
+    if not team_spawn and econ_mode == "tokens" then
         local token_cost = math.max(10, math.floor(def.cost / 100))
         local tokens = (xcvb_arena_main and xcvb_arena_main.get_arena_tokens and xcvb_arena_main.get_arena_tokens()) or 0
         if tokens < token_cost then
             return false, string.format(gt("st_arena_companion_err_tokens"), token_cost)
         end
-    else
+    elseif not team_spawn then
         local actor_money = (db.actor and db.actor:money()) or 0
         if actor_money < def.cost then
             return false, string.format(gt("st_arena_companion_err_money"), def.cost)
         end
     end
 
-    local sec = _get_safe_companion_section(def.section)
+    local sec = xcvb_arena_factions.section(xcvb_arena_factions.actor_faction(), def.rank + 1)
+    if team_spawn and xcvb_arena_factions.active() then
+        local t = xcvb_arena_factions.options().teams[1]
+        sec = xcvb_arena_factions.section(t.faction, t.rank)
+    end
     if not (sec and ini_sys and ini_sys:section_exist(sec)) then
         return false, gt("st_arena_companion_err_spawn")
     end
 
     local spawn_pos, spawn_lvid, spawn_gvid = xcvb_arena_utils.get_actor_tournament_pos()
-    if xcvb_arena_factory and xcvb_arena_factory.active() then
-        spawn_pos, spawn_lvid, spawn_gvid = xcvb_arena_factory.get_companion_spawn()
+    if team_spawn and xcvb_arena_factions.active() then
+        spawn_pos, spawn_lvid, spawn_gvid = xcvb_arena_factions.spawn_point(1, (team_slot or 1) + 1)
+        if not spawn_pos then return false, gt("st_arena_companion_err_spawn") end
+    elseif xcvb_arena_factory and xcvb_arena_factory.active() then
+        spawn_pos, spawn_lvid, spawn_gvid = xcvb_arena_factory.get_companion_spawn(team_slot or (#active_companions + 1))
         if not spawn_pos then return false, gt("st_arena_companion_err_spawn") end
     elseif db.actor then
         local ap = db.actor:position()
@@ -213,6 +220,7 @@ function hire_companion(def_idx)
         return false, gt("st_arena_companion_err_spawn")
     end
 
+    squad.player_id = xcvb_arena_factions.actor_faction()
     local ok, err = pcall(function()
         squad:add_squad_member(sec, spawn_pos, spawn_lvid, spawn_gvid)
         squad:set_squad_relation()
@@ -243,17 +251,17 @@ function hire_companion(def_idx)
         if se_npc then
             se_save_var(se_npc.id, se_npc:name(), "companion", true)
             se_save_var(se_npc.id, se_npc:name(), "companion_cannot_dismiss", true)
-            se_save_var(se_npc.id, se_npc:name(), "companion_cannot_teleport", true)
+            se_save_var(se_npc.id, se_npc:name(), "companion_cannot_teleport", nil)
         end
     end
 
     local econ_mode = (xcvb_arena_mcm and xcvb_arena_mcm.get_config("economy_mode")) or "tokens"
-    if econ_mode == "tokens" then
+    if not team_spawn and econ_mode == "tokens" then
         local token_cost = math.max(10, math.floor(def.cost / 100))
         if xcvb_arena_main and xcvb_arena_main.spend_arena_tokens then
             xcvb_arena_main.spend_arena_tokens(token_cost)
         end
-    else
+    elseif not team_spawn then
         if db.actor and db.actor.give_money then
             db.actor:give_money(-def.cost)
         end
@@ -264,6 +272,7 @@ function hire_companion(def_idx)
         npc_id   = npc_id,
         def_idx  = def_idx,
         rank     = def.rank,
+        team_slot = team_slot,
     }
     table.insert(active_companions, entry)
     refresh_companion_id_cache()
@@ -291,6 +300,53 @@ function hire_companion(def_idx)
     return true, nil
 end
 
+function hire_companion(def_idx)
+    return hire_companion_internal(def_idx, false)
+end
+
+function ensure_team_companions(initial)
+    local main = xcvb_arena_main
+    if not main or main.endless_selected_variant ~= "team" and main.endless_selected_variant ~= "factions" then return end
+    local o = xcvb_arena_team.options()
+    local target_count = xcvb_arena_team.effective_count(o)
+    if xcvb_arena_factions.active() then
+        if not initial then return end
+    end
+    cleanup_dead_companions()
+    local occupied = {}
+    for _, entry in ipairs(active_companions) do
+        if entry.team_slot then occupied[entry.team_slot] = true end
+    end
+    -- Earlier Team Deathmatch saves did not record per-ally slot numbers.
+    if not initial then
+        for _, entry in ipairs(active_companions) do
+            if not entry.team_slot then
+                for slot = 1, target_count do
+                    if not occupied[slot] then
+                        entry.team_slot, entry.team_equipped = slot, true
+                        occupied[slot] = true
+                        break
+                    end
+                end
+            end
+        end
+    end
+    for _, entry in ipairs(active_companions) do
+        if not initial then entry.native_refresh_pending = true end
+        if entry.team_slot and not initial then entry.team_service_pending = true end
+    end
+    if not initial and not o.replenish then return end
+    for slot = 1, target_count do
+        if not occupied[slot] then
+            local ok, err = hire_companion_internal(o.allies[slot].rank, true, slot)
+            if not ok then
+                if db.actor then news_manager.send_tip(db.actor, err, 0, nil, 5000) end
+                break
+            end
+        end
+    end
+end
+
 function fire_companion(list_idx)
     local gt = game.translate_string
     local entry = active_companions[list_idx]
@@ -304,9 +360,9 @@ function fire_companion(list_idx)
     return true
 end
 
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- CLEANUP
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function cleanup_dead_companions()
     local alive = {}
@@ -329,9 +385,9 @@ function cleanup_all_companions()
     refresh_companion_id_cache()
 end
 
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- AGGRO & COMBAT ENGAGEMENT
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function reassign_companion_aggro(enemy_squad_ids)
     cleanup_dead_companions()
@@ -342,27 +398,21 @@ end
 
 function _setup_single_companion_ai(entry, enemy_squad_ids)
     if not (entry and entry.npc_id) then return false end
+    -- Late online/aggro retries must not re-enlist released companions or
+    -- reapply combat orders after the player has returned to Rostok.
+    if not (xcvb_arena_fight and xcvb_arena_fight.is_endless_active()) or not is_companion(entry.npc_id) then return true end
+    if xcvb_arena_runtime and not xcvb_arena_runtime.combat_active() then return true end
     local npc = level.object_by_id(entry.npc_id)
-    if not (npc and npc:alive()) then return false end
+    if not (npc and npc:alive()) then xcvb_arena_companion_orders.release(entry.npc_id);return false end
 
     -- 1. Ensure squad and NPC are registered in axr_companions
     local squad = entry.squad_id and alife_object(entry.squad_id)
-    local target_sq = enemy_squad_ids and enemy_squad_ids[1]
-    if not target_sq and xcvb_arena_fight and xcvb_arena_fight.get_endless_enemy_squad_ids then
-        local sq_list = xcvb_arena_fight.get_endless_enemy_squad_ids()
-        if sq_list and #sq_list > 0 then target_sq = sq_list[1] end
-    end
-
     if squad then
-        if target_sq then
-            squad.scripted_target = target_sq
-            squad.assigned_target_id = target_sq
-            squad.rush_to_target = true
-        else
-            squad.scripted_target = "actor"
-            squad.assigned_target_id = 0
-            squad.rush_to_target = true
-        end
+        squad.player_id = xcvb_arena_factions.actor_faction()
+        -- Native companion logic owns follow/wait and combat destinations.
+        squad.scripted_target = "actor"
+        squad.assigned_target_id = 0
+        squad.rush_to_target = false
         if axr_companions then
             axr_companions.companion_squads[squad.id] = squad
         end
@@ -374,21 +424,11 @@ function _setup_single_companion_ai(entry, enemy_squad_ids)
         if se_npc then
             se_save_var(se_npc.id, se_npc:name(), "companion", true)
             se_save_var(se_npc.id, se_npc:name(), "companion_cannot_dismiss", true)
-            se_save_var(se_npc.id, se_npc:name(), "companion_cannot_teleport", true)
+            se_save_var(se_npc.id, se_npc:name(), "companion_cannot_teleport", nil)
         end
-        pcall(function() npc:inactualize_patrol_path() end)
-        if axr_companions.setup_companion_logic then
-            pcall(axr_companions.setup_companion_logic, npc, db.storage[entry.npc_id], false, true)
-        end
-        if axr_companions.set_companion_combat_type_default then
-            pcall(axr_companions.set_companion_combat_type_default, npc)
-        end
-        if axr_companions.set_companion_to_attack_state then
-            pcall(axr_companions.set_companion_to_attack_state, npc)
-        end
-        if axr_companions.set_companion_to_loot_nothing then
-            pcall(axr_companions.set_companion_to_loot_nothing, npc)
-        end
+        if not xcvb_arena_companion_orders.initialize(npc, entry.native_refresh_pending) then return false end
+        entry.native_refresh_pending = nil
+        xcvb_arena_companion_orders.update_follow(npc)
     end
 
     -- 2. Prevent companion from leaving the arena
@@ -406,25 +446,28 @@ function _setup_single_companion_ai(entry, enemy_squad_ids)
         end)
     end
 
-    -- 4. Combat alertness & readiness
+    if entry.team_slot then
+        xcvb_arena_team.equip(npc, entry)
+        if not entry.team_equipped then return false end
+        if entry.team_service_pending then
+            xcvb_arena_team.service(npc, entry)
+            entry.team_service_pending = nil
+        end
+    end
+
+    -- 4. Combat alertness & readiness (tactical AI friendly)
     if IsStalker and IsStalker(npc) then
         pcall(function()
-            npc:set_mental_state(anim.danger)
-            npc:set_body_state(move.standing)
-            npc:set_movement_type(move.run)
-            npc:set_custom_panic_threshold(0.0)
-            if npc.register_in_combat then
-                npc:register_in_combat()
-            end
             -- Ensure companion has sufficient ammunition for their firearm
-            if not entry.ammo_given then
-                local bw = npc:best_weapon()
-                if bw then
-                    local a_cls = ini_sys:r_string_ex(bw:section(), "ammo_class") or ""
-                    local first_ammo = str_explode(a_cls, ",")[1]
-                    if first_ammo and ini_sys:section_exist(trim(first_ammo)) then
+            local bw = npc:best_weapon()
+            if bw then
+                local a_cls = ini_sys:r_string_ex(bw:section(), "ammo_class") or ""
+                local first_ammo = str_explode(a_cls, ",")[1]
+                if first_ammo and ini_sys:section_exist(trim(first_ammo)) then
+                    local ammo_sec = trim(first_ammo)
+                    if not entry.ammo_given then
                         for _ = 1, 4 do
-                            alife_create(trim(first_ammo), npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+                            alife_create(ammo_sec, npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
                         end
                         entry.ammo_given = true
                     end
@@ -489,61 +532,20 @@ function _engage_companion_with_enemies(npc, enemy_squad_ids)
 
     if #enemies == 0 then return end
 
-    local nearest_pos = nil
-    local nearest_dist = 999999
-    local nearest_enemy_obj = nil
-    local npc_pos = npc:position()
-
+    -- Arena teams must be hostile, but perception and engagement stay native.
     for _, e_obj in ipairs(enemies) do
         pcall(function()
             npc:set_relation(game_object.enemy, e_obj)
             npc:force_set_goodwill(-5000, e_obj)
             e_obj:set_relation(game_object.enemy, npc)
             e_obj:force_set_goodwill(-5000, npc)
-            npc:make_object_visible_somewhen(e_obj)
-        end)
-        if npc.register_in_combat then
-            pcall(function() npc:register_in_combat() end)
-        end
-        if e_obj.register_in_combat then
-            pcall(function() e_obj:register_in_combat() end)
-        end
-
-        local ep = e_obj:position()
-        local dist = npc_pos:distance_to(ep)
-        if dist < nearest_dist then
-            nearest_dist = dist
-            nearest_pos = ep
-            nearest_enemy_obj = e_obj
-        end
-    end
-
-    if IsStalker and IsStalker(npc) then
-        pcall(function()
-            npc:set_mental_state(anim.danger)
-            if nearest_enemy_obj then
-                npc:set_sight(look.danger, nearest_pos)
-                -- Only navigate toward enemy if far away and without line of sight
-                if nearest_dist > 25 and not npc:see(nearest_enemy_obj) then
-                    local e_lvid = nearest_enemy_obj:level_vertex_id()
-                    if e_lvid and e_lvid > 0 then
-                        npc:set_path_type(game_object.level_path)
-                        npc:set_dest_level_vertex_id(e_lvid)
-                        npc:set_movement_type(move.run)
-                    end
-                else
-                    -- Within combat distance (<= 25m) or seeing enemy:
-                    -- Allow stalker combat logic to take cover, aim, and shoot bursts without forced melee charge
-                    npc:set_movement_type(move.walk)
-                end
-            end
         end)
     end
 end
 
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- INTERNAL HELPERS
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _is_companion_alive(entry)
     if not entry then return false end
@@ -558,7 +560,15 @@ function _is_companion_alive(entry)
 end
 
 function _release_companion_entry(entry)
+    if entry and entry.npc_id then xcvb_arena_companion_orders.release(entry.npc_id) end
     if not entry then return end
+    if entry.squad_id and RemoveTimeEvent then
+        pcall(RemoveTimeEvent, "xcvb_comp_aggro_e", "xcvb_comp_aggro_a_" .. entry.squad_id)
+    end
+    if xcvb_arena_utils and xcvb_arena_utils.arena_spawned_combatant_ids then
+        if entry.npc_id then xcvb_arena_utils.arena_spawned_combatant_ids[entry.npc_id] = nil end
+        if entry.squad_id then xcvb_arena_utils.arena_spawned_combatant_ids[entry.squad_id] = nil end
+    end
     if entry.npc_id then
         local npc = level.object_by_id(entry.npc_id)
         if npc and axr_companions and axr_companions.remove_from_actor_squad then
@@ -573,6 +583,9 @@ function _release_companion_entry(entry)
     end
     local function safe_rel(id)
         if not id then return end
+        if xcvb_arena_utils and xcvb_arena_utils.cancel_arena_npc_restock then
+            xcvb_arena_utils.cancel_arena_npc_restock(id)
+        end
         local se = alife_object(id)
         if se then
             pcall(alife_release, se)
@@ -598,9 +611,9 @@ function _get_safe_companion_section(preferred_sec)
     return "sim_default_stalker_0"
 end
 
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- on_enemy_eval: manage friend / enemy relationships in combat
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function on_enemy_eval(npc, enemy, flags)
     if not (npc and enemy and flags) then return end
@@ -658,12 +671,12 @@ function on_enemy_eval(npc, enemy, flags)
     end
 end
 
--- Mantener el aggro activo periodicamente durante el combate
+-- Mantener el aggro activo periodicamente durante el combate sin interrumpir la IA tactica
 local next_aggro_pulse = 0
 function actor_on_update()
     local tg = time_global()
     if tg > next_aggro_pulse then
-        next_aggro_pulse = tg + 1500
+        next_aggro_pulse = tg + 2500
         if xcvb_arena_fight and xcvb_arena_fight.is_endless_active and xcvb_arena_fight.is_endless_active() then
             if #active_companions > 0 then
                 reassign_companion_aggro()
@@ -672,13 +685,14 @@ function actor_on_update()
     end
 end
 
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- SAVE / LOAD
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-function relocate_companions_to_actor()
+function relocate_companions_to_actor(manual)
     if not db.actor then return end
+    if manual and not (xcvb_arena_runtime and xcvb_arena_runtime.combat_active()) then return end
     local ap = db.actor:position()
     if not ap then return end
     local gvid = db.actor:game_vertex_id()
@@ -690,42 +704,86 @@ function relocate_companions_to_actor()
         local se_npc = npc_id and alife_object(npc_id)
         if se_npc and (not npc or npc:alive()) then
             idx = idx + 1
-            local dir_z = (ap.z < 105.0) and 1 or -1
-            local offset_x = (idx % 2 == 1) and (1.6 * idx) or (-1.6 * idx)
-            local offset_z = dir_z * (2.0 + (idx * 0.4))
-
-            local min_x, max_x, min_z, max_z
-                min_x = 146.0
-                max_x = 157.0
-                min_z = 84.0
-                max_z = 126.0
-            local target_x = math.max(min_x, math.min(max_x, ap.x + offset_x))
-            local target_z = math.max(min_z, math.min(max_z, ap.z + offset_z))
-            local target_pos = vector():set(target_x, ap.y, target_z)
+            local target_pos = nil
             local target_lvid = nil
+
             if xcvb_arena_factory and xcvb_arena_factory.active() then
-                target_pos,target_lvid,gvid=xcvb_arena_factory.get_companion_spawn(idx)
-            elseif level and level.vertex_id then
-                local vid = level.vertex_id(target_pos)
-                if vid and vid > 0 and vid < 2^32 - 1 then
+                target_pos, target_lvid, gvid = xcvb_arena_factory.get_companion_spawn(idx)
+            else
+                local angle = (idx - 1) * (math.pi / 2) + 0.4
+                local dist = 1.8 + (idx * 0.4)
+                local cand_pos = vector():set(ap.x + math.cos(angle) * dist, ap.y, ap.z + math.sin(angle) * dist)
+                local vid = level.vertex_id(cand_pos)
+                if vid and vid > 0 and vid < 2^32 - 1 and level.valid_vertex_id(vid) then
+                    target_pos = cand_pos
                     target_lvid = vid
+                else
+                    target_pos = ap
+                    target_lvid = db.actor:level_vertex_id()
                 end
             end
+
             if target_pos and not target_lvid then
                 target_lvid = db.actor:level_vertex_id()
             end
 
             if target_pos and target_lvid then
-            se_npc.position = vector():set(target_pos.x, target_pos.y, target_pos.z)
-            se_npc.m_level_vertex_id = target_lvid
-            se_npc.m_game_vertex_id = gvid
-            if npc then
-                pcall(npc.set_npc_position, npc, target_pos)
-                pcall(function() npc:set_dest_level_vertex_id(target_lvid) end)
-            end
+                se_npc.position = vector():set(target_pos.x, target_pos.y, target_pos.z)
+                se_npc.m_level_vertex_id = target_lvid
+                se_npc.m_game_vertex_id = gvid
+                if manual then
+                    if db.offline_objects and db.offline_objects[npc_id] then db.offline_objects[npc_id].level_vertex_id = nil end
+                    if db.spawned_vertex_by_id then db.spawned_vertex_by_id[npc_id] = nil end
+                    pcall(function() alife():teleport_object(npc_id,gvid,target_lvid,target_pos) end)
+                    comp_data.native_refresh_pending = true
+                end
+                if npc then
+                    if manual then
+                        if axr_companions and axr_companions.set_companion_to_follow_state then
+                            pcall(axr_companions.set_companion_to_follow_state,npc)
+                        end
+                        pcall(function() npc:disable_info_portion("npcx_beh_substate_relax") end)
+                    end
+                    pcall(npc.set_npc_position, npc, target_pos)
+                    pcall(function() npc:set_dest_level_vertex_id(target_lvid) end)
+                    -- A manual teleport must never heal or generate ammunition.
+                    if not manual then pcall(function()
+                        npc.health = 1.0
+                        local bw = npc:best_weapon()
+                        if bw then
+                            local a_cls = ini_sys:r_string_ex(bw:section(), "ammo_class") or ""
+                            local first_ammo = str_explode(a_cls, ",")[1]
+                            if first_ammo and ini_sys:section_exist(trim(first_ammo)) then
+                                for _ = 1, 2 do
+                                    alife_create(trim(first_ammo), target_pos, target_lvid, gvid, npc:id())
+                                end
+                            end
+                        end
+                    end) end
+                    if manual then
+                        if xcvb_arena_companion_orders.initialize(npc,true) then comp_data.native_refresh_pending = nil end
+                        xcvb_arena_companion_orders.update_follow(npc)
+                    end
+                end
             end
         end
     end
+end
+
+local next_manual_teleport = 0
+function on_companion_teleport_key(key)
+    if not (xcvb_arena_runtime and xcvb_arena_runtime.combat_active()) or #active_companions == 0 then return end
+    -- GAMMA's Controls action resolves whichever physical key the user assigned.
+    local matches = dik_to_bind and key_bindings and key_bindings.kCUSTOM23
+        and dik_to_bind(key) == key_bindings.kCUSTOM23
+    -- Also cooperate with the optional QCT addon, only if it is already loaded.
+    local qct = rawget(_G,"qcteleport_mcm")
+    matches = matches or (type(qct) == "table" and qct.KEY_QCTELEPORT and key == qct.KEY_QCTELEPORT)
+    if not matches then return end
+    local now = time_global()
+    if now < next_manual_teleport then return end
+    next_manual_teleport = now + 250
+    relocate_companions_to_actor(true)
 end
 
 function save_state(m_data)
@@ -737,6 +795,10 @@ function save_state(m_data)
                 npc_id   = entry.npc_id,
                 def_idx  = entry.def_idx,
                 rank     = entry.rank,
+                team_slot = entry.team_slot,
+                team_equipped = entry.team_equipped,
+                ammo_given = entry.ammo_given,
+                team_service_pending = entry.team_service_pending,
             })
         end
     end
@@ -744,6 +806,7 @@ function save_state(m_data)
 end
 
 function load_state(m_data)
+    xcvb_arena_companion_orders.clear()
     active_companions = {}
     local saved = m_data.xcvb_companions or {}
     for _, entry in ipairs(saved) do
@@ -755,6 +818,10 @@ function load_state(m_data)
                     npc_id   = entry.npc_id,
                     def_idx  = entry.def_idx,
                     rank     = entry.rank,
+                    team_slot = entry.team_slot,
+                    team_equipped = entry.team_equipped,
+                    ammo_given = entry.ammo_given,
+                    team_service_pending = entry.team_service_pending,
                 })
             end
         end
@@ -762,12 +829,13 @@ function load_state(m_data)
     refresh_companion_id_cache()
 end
 
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- ENGINE HOOKS
--- ─────────────────────────────────────────────────────────────────────────────
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function on_game_start()
     if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_companions) end
+    RegisterScriptCallback("on_key_release", on_companion_teleport_key)
     RegisterScriptCallback("on_enemy_eval", on_enemy_eval)
     RegisterScriptCallback("actor_on_update", actor_on_update)
     RegisterScriptCallback("save_state", save_state)

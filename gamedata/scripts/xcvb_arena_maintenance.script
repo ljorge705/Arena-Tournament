@@ -1,0 +1,56 @@
+-- Bounded arena maintenance; no synchronous registry sweep or repeated HUD rebuild.
+local lamp_job=nil
+local lamp_retry_at=0
+local refresh_at=nil
+local function now()
+    if time_global_async then return time_global_async() end
+    if os and os.clock then return os.clock()*1000 end
+    return time_global and time_global() or 0
+end
+function request_lamp_scan(check)
+    if lamp_job or now()<lamp_retry_at then return end
+    lamp_job={next_id=1,check=check}
+end
+function request_mag_refresh()
+    -- A short quiet period batches all magazines filled during loadout setup.
+    refresh_at=now()+100
+end
+function refresh_magazines()
+    if magazine_binder then
+        if magazine_binder.update_loadout_slots then pcall(magazine_binder.update_loadout_slots) end
+        if magazine_binder.validate_loadout then pcall(magazine_binder.validate_loadout) end
+    end
+    if magazines and magazines.inventory_refresh then pcall(magazines.inventory_refresh) end
+    if mag_hud and mag_hud.HUD and mag_hud.HUD.Update then
+        pcall(function() mag_hud.HUD:Update(true) end)
+    end
+end
+function clear()
+    lamp_job=nil;lamp_retry_at=0;refresh_at=nil
+end
+function actor_on_update()
+    if not (db and db.actor and level and level.name()=='l05_bar') then clear();return end
+    local stamp=now()
+    if refresh_at and stamp>=refresh_at then
+        refresh_at=nil;refresh_magazines()
+    end
+    if lamp_job then
+        local job=lamp_job
+        local last=math.min(job.next_id+255,65534)
+        local started=now()
+        local completed=job.next_id-1
+        -- No synchronous scan of the complete server registry on fight entry.
+        for id=job.next_id,last do
+            local obj=level.object_by_id(id)
+            if obj then job.check(obj) end
+            completed=id
+            if id%16==0 and now()-started>=2 then break end
+        end
+        job.next_id=completed+1
+        if completed==65534 then lamp_job=nil;lamp_retry_at=stamp+20000 end
+    end
+end
+function on_game_start()
+    RegisterScriptCallback('actor_on_update',actor_on_update)
+    RegisterScriptCallback('actor_on_net_destroy',clear)
+end
