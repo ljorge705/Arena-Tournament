@@ -1,5 +1,5 @@
 -- =============================================================================
--- Arena Tournament Mod - Endless Mode Dedicated System
+-- Arena Reforged Mod - Endless Mode Dedicated System
 -- Script: xcvb_arena_endless.script
 -- Description: Centralized logic for Endless Mode:
 --   1. Custom Loadout Management (Custom Weapon, Ammo, Mags for Endless)

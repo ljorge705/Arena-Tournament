@@ -1,4 +1,4 @@
--- Arena Tournament Main Data & Progression Manager
+-- Arena Reforged Main Data & Progression Manager
 
 -- Progression Variables
 tournament_stalker_unlocked_round = 1

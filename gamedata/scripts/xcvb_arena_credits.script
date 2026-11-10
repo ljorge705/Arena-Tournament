@@ -62,13 +62,12 @@ function UIXcvbArenaThanks:__init() super()
     for i,entry in ipairs(xcvb_arena_credits_data.supporters) do
         local row = {card=xml:InitStatic("card_"..i,self)}
         row.avatar = xml:InitStatic("avatar_"..i,self)
-        row.avatar:SetWndSize(vector2():set(32*ratio,32))
+        row.avatar:SetWndSize(vector2():set(28*ratio,28))
         row.avatar:InitTexture(entry.texture)
         row.name = xml:InitStatic("name_"..i,self)
-        local width = math.min(116,(256/28)*18*ratio)
-        local height = width/((256/28)*ratio)
-        row.name:SetWndSize(vector2():set(width,height))
-        row.name:SetWndPos(vector2():set(140+((i-1)%5)*168,199+math.floor((i-1)/5)*62+(54-height)/2))
+        -- Same canvas and scale for every name; three columns, thirteen rows.
+        row.name:SetWndSize(vector2():set(216*ratio,32))
+        row.name:SetWndPos(vector2():set(136+((i-1)%3)*280,194+math.floor((i-1)/3)*34))
         row.name:InitTexture(entry.name_texture)
         self.rows[i] = row
     end

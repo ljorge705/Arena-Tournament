@@ -5,7 +5,7 @@
 		<text>Tournament Board ($$ACTION_USE$$)</text>
 	</string>
 	<string id="st_arena_title">
-		<text>ARENA TOURNAMENT</text>
+		<text>ARENA REFORGED</text>
 	</string>
 	<string id="st_arena_spectator_title">
 		<text>BETTING</text>
@@ -518,10 +518,10 @@
 		<text>You won %s RU.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_title">
-		<text>Arena Tournament (GAMMA)</text>
+		<text>Arena Reforged (GAMMA)</text>
 	</string>
 	<string id="ui_mcm_menu_xcvb_arena">
-		<text>Arena Tournament</text>
+		<text>Arena Reforged</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_random_equipment">
 		<text>Random Arena Equipment</text>

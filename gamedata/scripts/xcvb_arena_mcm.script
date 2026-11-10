@@ -1,4 +1,4 @@
--- MCM (Mod Configuration Menu) Settings for Arena Tournament
+-- MCM (Mod Configuration Menu) Settings for Arena Reforged
 local defaults = {
 	["random_equipment"] = true,
 	["economy_mode"] = "tokens",

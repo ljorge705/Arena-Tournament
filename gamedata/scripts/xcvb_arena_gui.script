@@ -667,6 +667,10 @@ function UIXcvbArena:InitControls()
 	self.endless_variant = xcvb_arena_main.endless_selected_variant or "classic"
     self.btn_diff_area = xml:Init3tButton("endless_diff_menu:btn_diff_area", self.endless_diff_menu)
     self:Register(self.btn_diff_area, "btn_diff_area")
+    -- Independent label: CUI3tButton resets its own text color every frame.
+    self.diff_area_label = xml:InitTextWnd("endless_diff_menu:btn_diff_area:area_label", self.btn_diff_area)
+    self.diff_area_label:Enable(false) -- Keep mouse input on the Area button.
+
 	self.btn_diff_variant = xml:Init3tButton("endless_diff_menu:btn_diff_variant", self.endless_diff_menu)
 	self:Register(self.btn_diff_variant, "btn_diff_variant")
 	self.btn_diff_team_config = xml:Init3tButton("endless_diff_menu:btn_diff_team_config", self.endless_diff_menu)
@@ -1999,8 +2003,7 @@ function UIXcvbArena:update_map_button()
 		local btn_txt = xcvb_arena_main.selected_map == "backrooms" and "Area: Backrooms (NEW)"
             or (is_factory and "Area: Factory (NEW)" or "Area: Arena (default)")
 		self.btn_map:TextControl():SetText(btn_txt)
-		self.btn_map:TextControl():SetTextColor(is_factory and GetARGB(255,100,210,255)
-            or GetARGB(255,255,220,140))
+		self.btn_map:TextControl():SetTextColor(GetARGB(255,255,165,55))
 	end
 	if self.btn_mode then
 		self.btn_mode:Enable(not self:is_secondary_map())
@@ -7100,8 +7103,9 @@ function UIXcvbArena:update_endless_area_button()
     local map=xcvb_arena_main.selected_map or "arena"
     local name=map=="factory" and "Factory" or map=="backrooms" and "Backrooms (NEW)" or "Arena"
     self.btn_diff_area:Enable(available)
-    self.btn_diff_area:TextControl():SetText(string.format(gt("st_arena_endless_area_fmt"),name))
-    self.btn_diff_area:TextControl():SetTextColor(available and GetARGB(255,255,220,130) or GetARGB(255,140,140,140))
+    self.btn_diff_area:TextControl():SetText("")
+    self.diff_area_label:SetText(string.format(gt("st_arena_endless_area_fmt"),name))
+    self.diff_area_label:SetTextColor(available and GetARGB(255,255,165,55) or GetARGB(255,100,115,120))
 end
 function UIXcvbArena:on_click_endless_area()
     if xcvb_arena_installation and xcvb_arena_installation.factory_enabled==false then

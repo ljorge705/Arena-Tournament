@@ -1,5 +1,5 @@
 -- ==============================================================================
--- Arena Tournament - Environment & Modpack Detection System
+-- Arena Reforged - Environment & Modpack Detection System
 -- Detects runtime platform: GAMMA, Forgotten Zone (OWA), EFP, Custom, Vanilla Anomaly.
 -- Provides capability flags so features adapt seamlessly across modpacks.
 -- ==============================================================================

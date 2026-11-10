@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- xcvb_arena_night.script
--- Night Mode (Modo Noche) para Arena Tournament en S.T.A.L.K.E.R. GAMMA / Anomaly
+-- Night Mode (Modo Noche) para Arena Reforged en S.T.A.L.K.E.R. GAMMA / Anomaly
 -- ==============================================================================
 
 local is_night_active = false
