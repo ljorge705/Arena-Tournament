@@ -84,7 +84,7 @@
 <string id="st_arena_plus_supply_mag_name"><text>Магазины</text></string>
 <string id="st_arena_plus_supply_ammo_desc"><text>Получить %d совместимых патронов россыпью. Вместо выбора модификатора.</text></string>
 <string id="st_arena_plus_supply_mag_desc"><text>Получить один пустой совместимый магазин. Вместо выбора модификатора.</text></string>
-<string id="st_arena_plus_supply_extra_cost"><text>Цена: %d дополнительных врага в следующей волне.</text></string>
+<string id="st_arena_plus_supply_extra_cost"><text>Цена: %d дополнительных врагов в следующей волне.</text></string>
 <string id="st_arena_plus_supply_reward_cost"><text>Цена: награда следующей волны меньше на 10%.</text></string>
 <string id="st_arena_plus_supply_ammo_cost"><text>Цена: %d свободных совместимых патронов. Минимум один патрон в запасе сохраняется.</text></string>
 <string id="st_arena_plus_supply_damage_cost"><text>Цена: состояние магазина и пружины %d%%.</text></string>

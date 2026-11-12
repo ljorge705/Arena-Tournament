@@ -101,7 +101,7 @@
 		<text>1x Novice Bandit armed with a pistol</text>
 	</string>
 	<string id="st_arena_s_round_1_desc">
-		<text>A rookie bandit trying to make a name in the arena. His aim and equipment are mediocre. An ideal match to warm up reflexes.</text>
+		<text>A rookie bandit trying to make a name for himself in the arena. His aim and equipment are mediocre. An ideal match to warm up reflexes.</text>
 	</string>
 	<string id="st_arena_s_round_1_reward">
 		<text>3,000 RU + Bandages &amp; Basic Medkit</text>
@@ -125,7 +125,7 @@
 		<text>3x Bandits with pistols and shotguns</text>
 	</string>
 	<string id="st_arena_s_round_3_desc">
-		<text>Three aggressive rookies attempting to flank your cover. Keep distance and watch your back.</text>
+		<text>Three aggressive rookies attempting to flank your cover. Keep your distance and watch your back.</text>
 	</string>
 	<string id="st_arena_s_round_3_reward">
 		<text>6,000 RU + Basic Maintenance Kit</text>
@@ -788,7 +788,7 @@
 		<text>Bet: %s (%s RU)</text>
 	</string>
 	<string id="st_arena_bc_no_bet">
-		<text>Select a team to bet before starting</text>
+		<text>Select a team to bet on before starting</text>
 	</string>
 	<string id="st_arena_bc_reward_gain">
 		<text>Gain: %s RU</text>
@@ -974,7 +974,7 @@
 		<text>ENDLESS SURVIVAL</text>
 	</string>
 	<string id="st_arena_endless_diff_subtitle">
-		<text>Select combat modifiers and start difficulty</text>
+		<text>Select combat modifiers and starting difficulty</text>
 	</string>
 	<string id="st_arena_endless_diff_easy">
 		<text>Easy</text>
