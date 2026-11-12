@@ -7480,13 +7480,13 @@ local actor_true_community = nil
 function get_actor_true_community()
     if gameplay_disguise and gameplay_disguise.get_default_comm then
         local def = gameplay_disguise.get_default_comm()
-        if def and def ~= "" and not endless_forbidden_factions[def] then
+        if def and def ~= "" then
             return def
         end
     end
     if not actor_true_community and db.actor and character_community then
         local c = character_community(db.actor):sub(7)
-        if c and c ~= "" and not endless_forbidden_factions[c] then
+        if c and c ~= "" then
             actor_true_community = c
         end
     end

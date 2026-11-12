@@ -1,0 +1,34 @@
+-- RTZ compatibility: Arena combatants must be eligible to switch online even
+-- when the real-world hour or A-Life exclusion rules would keep them offline.
+-- No global hooks, clock changes, scheduler replacements or dependency on RTZ.
+local combat_sections = {
+    arena_tournament_enemy_squad = true,
+    arena_tournament_mutant_squad = true,
+}
+for i = 1, 4 do
+    combat_sections["arena_stalker_team_" .. i] = true
+    combat_sections["arena_mutant_team_" .. i] = true
+end
+
+local function enabled()
+    local mcm = rawget(_G, "rtz_mcm")
+    if not mcm or type(mcm.get_config) ~= "function" then return false end
+    return mcm.get_config("enabled") == true
+end
+
+function squad_on_add_npc(squad, npc)
+    if not enabled() or not squad or not npc then return end
+    if not (level and level.name() == "l05_bar") then return end
+    if not combat_sections[squad:section_name()] then return end
+    -- Retain the engine's inherited can_switch_online checks. Never force an
+    -- immediate network spawn or replace the squad class's switching methods.
+    squad.force_online = true
+    squad.forced_online_status = true
+    local sim = alife()
+    sim:set_switch_online(npc.id, true)
+    sim:set_switch_offline(npc.id, false)
+end
+
+function on_game_start()
+    RegisterScriptCallback("squad_on_add_npc", squad_on_add_npc)
+end

@@ -81,6 +81,10 @@ local function factory_available()
     return not xcvb_arena_installation or xcvb_arena_installation.factory_enabled ~= false
 end
 local tourn_saved_selected_map = nil
+local tourn_saved_actor_reputation = nil
+local tourn_saved_community_goodwill = nil
+local endless_saved_actor_reputation = nil
+local endless_saved_community_goodwill = nil
 local trigger_medic_rescue
 local is_medic_rescuing = false
 local last_selected_nvg_sec = "device_torch_nv_1"
@@ -527,6 +531,49 @@ function play_arena_intro_camera(round_id)
 end
 
 --------------------------------------------------------------------------------
+-- REPUTATION & FACTION GOODWILL SAFEGUARDS
+--------------------------------------------------------------------------------
+local arena_tracked_factions = {
+    "stalker", "dolg", "freedom", "csky", "ecolog", "killer", "army", "bandit", "renegade", "monolith", "greh", "isg", "duty", "military"
+}
+
+local function snapshot_actor_goodwill()
+    local gw_table = {}
+    if relation_registry and relation_registry.community_goodwill and db.actor then
+        local aid = db.actor:id()
+        for _, fac in ipairs(arena_tracked_factions) do
+            local ok, val = pcall(relation_registry.community_goodwill, fac, aid)
+            if ok and type(val) == "number" then
+                gw_table[fac] = val
+            end
+        end
+    end
+    return gw_table
+end
+
+local function restore_actor_goodwill(saved_gw)
+    if not (saved_gw and relation_registry and relation_registry.set_community_goodwill and relation_registry.community_goodwill and db.actor) then
+        return
+    end
+    local aid = db.actor:id()
+    for fac, orig_val in pairs(saved_gw) do
+        local ok, cur_val = pcall(relation_registry.community_goodwill, fac, aid)
+        if ok and type(cur_val) == "number" and cur_val < orig_val then
+            pcall(relation_registry.set_community_goodwill, fac, aid, orig_val)
+        end
+    end
+end
+
+local function restore_actor_reputation(saved_rep)
+    if saved_rep and db.actor then
+        local cur_rep = db.actor:character_reputation()
+        if cur_rep < saved_rep then
+            db.actor:change_character_reputation(saved_rep - cur_rep)
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
 -- TOURNAMENT COMBAT MODE (Player in the Arena)
 --------------------------------------------------------------------------------
 function start_tournament_fight(category, round_id, loadout_class, loadout_tier, loadout_ammo, forced_weapon_sec, forced_ammo_sec, scope_mode, forced_scope_sec, forced_mag_sec, forced_mag_count, forced_ammo_count, inventory_ready, forced_outfit_sec, forced_helm_sec, forced_meds_pack, forced_grenades_type)
@@ -597,6 +644,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     current_tournament_is_practice = (remain_sec > 0) or (is_comp and remain_sec < 0) or (xcvb_arena_main.practice_mode_active == true)
 
     tourn_saved_actor_reputation = db.actor:character_reputation()
+    tourn_saved_community_goodwill = snapshot_actor_goodwill()
 
     local ac_pos, ac_lvid, ac_gvid, ac_dir = xcvb_arena_utils.get_actor_tournament_pos(round_id)
     db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
@@ -656,7 +704,14 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
             xcvb_arena_utils.restore_actor_inventory()
         end
         tournament_inventory_stored = false
-        tourn_saved_actor_reputation = nil
+        if tourn_saved_actor_reputation then
+            restore_actor_reputation(tourn_saved_actor_reputation)
+            tourn_saved_actor_reputation = nil
+        end
+        if tourn_saved_community_goodwill then
+            restore_actor_goodwill(tourn_saved_community_goodwill)
+            tourn_saved_community_goodwill = nil
+        end
         current_tournament_category = nil
         current_tournament_round_id = nil
         return false
@@ -854,12 +909,13 @@ function end_tournament_fight(is_victory)
     end
     current_tournament_is_practice = false
 
-    if tourn_saved_actor_reputation and db.actor then
-        local cur_rep = db.actor:character_reputation()
-        if cur_rep < tourn_saved_actor_reputation then
-            db.actor:change_character_reputation(tourn_saved_actor_reputation - cur_rep)
-        end
+    if tourn_saved_actor_reputation then
+        restore_actor_reputation(tourn_saved_actor_reputation)
         tourn_saved_actor_reputation = nil
+    end
+    if tourn_saved_community_goodwill then
+        restore_actor_goodwill(tourn_saved_community_goodwill)
+        tourn_saved_community_goodwill = nil
     end
 
     if tourn_saved_selected_map then
@@ -870,6 +926,7 @@ function end_tournament_fight(is_victory)
     end
     disable_info("xcvb_tournament_started")
     tourn_saved_actor_reputation = nil
+    tourn_saved_community_goodwill = nil
     tournament_enemy_squad_id = nil
     current_tournament_category = nil
     current_tournament_round_id = nil
@@ -1457,6 +1514,10 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
     tournament_fight_closed = true
     endless_fight_closed = false
     is_endless_mode = true
+    if db.actor then
+        endless_saved_actor_reputation = db.actor:character_reputation()
+        endless_saved_community_goodwill = snapshot_actor_goodwill()
+    end
     if xcvb_arena_utils then xcvb_arena_utils.endless_restricted_stalkers = {} end
     endless_wave = math.max(1, start_wave or 1)
     endless_reward = 0
@@ -2187,6 +2248,14 @@ function end_endless_fight(is_victory, voluntary_leave)
     endless_enemy_squad_ids = {}
     endless_wave = 1
     endless_reward = 0
+    if endless_saved_actor_reputation then
+        restore_actor_reputation(endless_saved_actor_reputation)
+        endless_saved_actor_reputation = nil
+    end
+    if endless_saved_community_goodwill then
+        restore_actor_goodwill(endless_saved_community_goodwill)
+        endless_saved_community_goodwill = nil
+    end
     if not is_medic_rescuing then
         schedule_auto_open_arena_gui(1.2)
     end
@@ -2524,10 +2593,19 @@ function actor_on_update()
         if next(battle_royale_initialized_npcs) then reset_battle_royale_cache() end
     end
 
-    if tournament_active and tourn_saved_actor_reputation then
-        local cur_rep = db.actor:character_reputation()
-        if cur_rep < tourn_saved_actor_reputation then
-            db.actor:change_character_reputation(tourn_saved_actor_reputation - cur_rep)
+    if tournament_active then
+        if tourn_saved_actor_reputation then
+            restore_actor_reputation(tourn_saved_actor_reputation)
+        end
+        if tourn_saved_community_goodwill then
+            restore_actor_goodwill(tourn_saved_community_goodwill)
+        end
+    elseif endless_active then
+        if endless_saved_actor_reputation then
+            restore_actor_reputation(endless_saved_actor_reputation)
+        end
+        if endless_saved_community_goodwill then
+            restore_actor_goodwill(endless_saved_community_goodwill)
         end
     end
 end
@@ -3195,6 +3273,9 @@ function save_state(m_data)
     m_data.xcvb_arena_spawned_combatant_ids = xcvb_arena_utils.arena_spawned_combatant_ids
     m_data.xcvb_endless_transitioning = endless_transitioning
     m_data.xcvb_tourn_saved_actor_reputation = tourn_saved_actor_reputation
+    m_data.xcvb_tourn_saved_community_goodwill = tourn_saved_community_goodwill
+    m_data.xcvb_endless_saved_actor_reputation = endless_saved_actor_reputation
+    m_data.xcvb_endless_saved_community_goodwill = endless_saved_community_goodwill
     m_data.xcvb_arena_squad_id_1 = squad_team_1_id
     m_data.xcvb_arena_squad_id_2 = squad_team_2_id
     m_data.xcvb_battle_royale_squad_ids = battle_royale_squad_ids
@@ -3248,6 +3329,9 @@ function load_state(m_data)
     current_tournament_is_practice = m_data.xcvb_tournament_is_practice == true
     resume_endless_transition = m_data.xcvb_endless_transitioning == true
     tourn_saved_actor_reputation = m_data.xcvb_tourn_saved_actor_reputation
+    tourn_saved_community_goodwill = m_data.xcvb_tourn_saved_community_goodwill
+    endless_saved_actor_reputation = m_data.xcvb_endless_saved_actor_reputation
+    endless_saved_community_goodwill = m_data.xcvb_endless_saved_community_goodwill
     squad_team_1_id = m_data.xcvb_arena_squad_id_1
     squad_team_2_id = m_data.xcvb_arena_squad_id_2
     battle_royale_squad_ids = m_data.xcvb_battle_royale_squad_ids or {}
