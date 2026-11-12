@@ -481,6 +481,9 @@
 	<string id="st_arena_tier_unlocked">
 		<text>Arena Rank Promotion! You unlocked a new tier: %s.</text>
 	</string>
+	<string id="st_arena_tier_progress_rank_locked">
+		<text>Tournament progress advanced to %s. Fights remain locked until you reach stalker rank %s. You can disable the rank requirement in MCM.</text>
+	</string>
 	<string id="st_arena_champion_crowned">
 		<text>ATTENTION ALL STALKERS! We have a new Grand Champion of the Arena!</text>
 	</string>

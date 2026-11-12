@@ -811,7 +811,13 @@ function end_tournament_fight(is_victory)
                         local new_tier = math.ceil((current_tournament_round_id + 1) / 3)
                         if xcvb_arena_main.tournament_mutant_tiers_t[new_tier] then
                             local tier_name = gt(xcvb_arena_main.tournament_mutant_tiers_t[new_tier].name)
-                            local tier_msg = string.format(gt("st_arena_tier_unlocked"), tier_name)
+                            local tier_msg
+                            if xcvb_arena_main.is_tier_unlocked_by_rank(new_tier) then
+                                tier_msg = string.format(gt("st_arena_tier_unlocked"), tier_name)
+                            else
+                                local required_rank = xcvb_arena_main.get_tier_required_rank_name(new_tier)
+                                tier_msg = string.format(gt("st_arena_tier_progress_rank_locked"), tier_name, required_rank)
+                            end
                             news_manager.send_tip(db.actor, tier_msg, 0, nil, 12000)
                         end
                     end
@@ -825,7 +831,13 @@ function end_tournament_fight(is_victory)
                         local new_tier = math.ceil((current_tournament_round_id + 1) / 3)
                         if xcvb_arena_main.tournament_stalker_tiers_t[new_tier] then
                             local tier_name = gt(xcvb_arena_main.tournament_stalker_tiers_t[new_tier].name)
-                            local tier_msg = string.format(gt("st_arena_tier_unlocked"), tier_name)
+                            local tier_msg
+                            if xcvb_arena_main.is_tier_unlocked_by_rank(new_tier) then
+                                tier_msg = string.format(gt("st_arena_tier_unlocked"), tier_name)
+                            else
+                                local required_rank = xcvb_arena_main.get_tier_required_rank_name(new_tier)
+                                tier_msg = string.format(gt("st_arena_tier_progress_rank_locked"), tier_name, required_rank)
+                            end
                             news_manager.send_tip(db.actor, tier_msg, 0, nil, 12000)
                         end
                     end

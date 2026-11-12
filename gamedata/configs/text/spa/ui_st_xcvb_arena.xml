@@ -481,6 +481,9 @@
 	<string id="st_arena_tier_unlocked">
 		<text>Ascenso de Rango en la Arena! Has desbloqueado una nueva categor&#237;a: %s.</text>
 	</string>
+	<string id="st_arena_tier_progress_rank_locked">
+		<text>Has avanzado a %s en el torneo. Los combates siguen bloqueados hasta alcanzar el rango de stalker %s. Puedes desactivar el requisito de rango en MCM.</text>
+	</string>
 	<string id="st_arena_champion_crowned">
 		<text>&#161;ATENCI&#211;N A TODA LA ZONA! Tenemos un nuevo Gran Campe&#243;n de la Arena!</text>
 	</string>
