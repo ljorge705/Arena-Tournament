@@ -101,7 +101,7 @@
 		<text>1x Novice Bandit armed with a pistol</text>
 	</string>
 	<string id="st_arena_s_round_1_desc">
-		<text>A rookie bandit trying to make a name for himself in the arena. His aim and equipment are mediocre. An ideal match to warm up reflexes.</text>
+		<text>A rookie bandit trying to make a name for himself in the arena. His aim and equipment are mediocre. An ideal match to warm up your reflexes.</text>
 	</string>
 	<string id="st_arena_s_round_1_reward">
 		<text>3,000 RU + Bandages &amp; Basic Medkit</text>
@@ -152,7 +152,7 @@
 		<text>3x Bandits with shotguns and carbines</text>
 	</string>
 	<string id="st_arena_s_round_5_desc">
-		<text>Renegade hunters armed with 12-gauge shotguns and carbines. Sworn enemies with no quarter in the Zone.</text>
+		<text>Renegade hunters armed with 12-gauge shotguns and carbines. Sworn enemies who show no mercy in the Zone.</text>
 	</string>
 	<string id="st_arena_s_round_5_desc_bandit">
 		<text>A hostile bandit crew armed with 12-gauge shotguns. The Arena pits them against you as your sworn enemies.</text>
@@ -548,7 +548,7 @@
 		<text>Arnie's Emergency Medical Rescue</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_medic_rescue_desc">
-		<text>If you take fatal damage inside the arena, medics pull you out alive for a medical fee instead of permadeath/save reload.</text>
+		<text>If you take fatal damage inside the arena, medics pull you out alive for a medical fee so you can survive without reloading a save.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay">
 		<text>Allow replaying completed bouts</text>
@@ -1583,7 +1583,7 @@
 		<text>The Executioner: final duel</text>
 	</string>
 	<string id="st_arena_boss_executioner_desc">
-		<text>The champion returns for a duel with a PKM. Use his reloads to move between cover positions.</text>
+		<text>The champion returns for a duel with a PKM. Move between cover positions while he reloads.</text>
 	</string>
 	<string id="st_arena_boss_executioner_enemies">
 		<text>1x Champion / PKM</text>
@@ -2021,7 +2021,7 @@
 		<text>SPOILS OF WAR: Claimed %s from fallen enemy!</text>
 	</string>
 	<string id="st_arena_endless_spoils_round_tip">
-		<text>SPOILS OF WAR: Armed with %s from previous round!</text>
+		<text>SPOILS OF WAR: Armed with %s from the previous round!</text>
 	</string>
 	<string id="st_arena_endless_stats_title">
 		<text>--- SURVIVAL STATISTICS ---</text>
@@ -2463,4 +2463,6 @@
 <string id="st_arena_backrooms_device_desc"><text>Choose a flashlight or NVG level 1, 2 or 3. Activate it manually after entering.</text></string>
 	<string id="ui_mcm_xcvb_arena_mutant_no_wait"><text>No waiting between mutant fights</text></string>
 	<string id="ui_mcm_xcvb_arena_mutant_no_wait_desc"><text>Removes the cooldown between mutant challenges offered by the original arena NPC. Collect your reward before requesting the next fight. Disabled by default.</text></string>
+	<string id="st_arena_manifesto_credit_heading"><text>Give Credit</text></string>
+	<string id="st_arena_manifesto_credit_text"><text>If you edit this code or change parts of the project, always credit the original authors and acknowledge where your inspiration came from. Don't be an asshole.</text></string>
 </string_table>

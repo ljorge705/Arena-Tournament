@@ -431,7 +431,7 @@
 		<text>2x Quimeras salvajes adultas</text>
 	</string>
 	<string id="st_arena_m_round_13_desc">
-		<text>Los depredadores apex definitivos de la Zona. Saltos de larga distancia, velocidad desenfrenada y garras mortales.</text>
+		<text>Los mayores depredadores de la Zona. Saltos de larga distancia, velocidad desenfrenada y garras mortales.</text>
 	</string>
 	<string id="st_arena_m_round_13_reward">
 		<text>70,000 RU + Partes raras de mutante + Estimulantes</text>
@@ -548,7 +548,7 @@
 		<text>Rescate m&#233;dico de Arnie al caer en combate</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_medic_rescue_desc">
-		<text>Si caes en combate mortal dentro de la arena, los m&#233;dicos te rescatan con vida a cambio de una tasa m&#233;dica, evitando la muerte definitiva o recargar partida.</text>
+		<text>Si caes en combate mortal dentro de la arena, los m&#233;dicos te rescatan con vida a cambio de una tasa m&#233;dica, para que sobrevivas sin tener que recargar la partida.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_allow_replay">
 		<text>Permitir repetir combates ya ganados</text>
@@ -707,7 +707,7 @@
 		<text>EQUIPAMIENTO PARA EL MODO NOCTURNO</text>
 	</string>
 	<string id="st_arena_night_menu_desc">
-		<text>Selecciona la linterna o visor nocturno para el combate</text>
+		<text>Selecciona una linterna o un visor nocturno para el combate</text>
 	</string>
 	<string id="st_arena_dev_torch">
 		<text>Linterna Frontal (Est&#225;ndar)</text>
@@ -1112,7 +1112,7 @@
 		<text>- Pulsa [F] en la arena para cobrar el bot&#237;n y retirarte.</text>
 	</string>
 	<string id="st_arena_endless_rules_frame_title">
-		<text>NORMAS DE LA ARENA &amp; CONDICIONES DE COMBATE</text>
+		<text>NORMAS DE LA ARENA Y CONDICIONES DE COMBATE</text>
 	</string>
 	<string id="st_arena_endless_rule_line1">
 		<text>- Escalado de Amenaza: 1v1 en Oleada 1, aumentando progresivamente hasta 1v6 enemigos.</text>
@@ -1841,7 +1841,7 @@
 		<text>Bloqueo por Rango Stalker (Rank Gating)</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_rank_gating_desc">
-		<text>Exige alcanzar el rango correspondiente (Novato, Veterano, Leyenda) para desbloquear tiers altos.</text>
+		<text>Exige alcanzar el rango correspondiente (Novato, Veterano, Leyenda) para desbloquear los niveles superiores del torneo.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_map_swap_interval">
 		<text>Rotaci&#243;n de Mapa en Endless (Oleadas)</text>
@@ -1969,7 +1969,7 @@
 		<text>REINICIAR ESTAD&#205;STICAS</text>
 	</string>
 	<string id="st_arena_endless_stats_reset_tip">
-		<text>Las estad&#237;sticas de Supervivencia Endless han sido reiniciadas.</text>
+		<text>Las estad&#237;sticas de supervivencia del modo infinito se han reiniciado.</text>
 	</string>
 	<string id="st_arena_voucher_tag">
 		<text>VALE</text>
@@ -2010,7 +2010,7 @@
 		<text>HUD de Combate Limpio</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_combat_hud_desc">
-		<text>Muestra un overlay t&#225;ctico con oleada, recompensa y cron&#243;metro en tiempo real.</text>
+		<text>Muestra un panel t&#225;ctico con oleada, recompensa y cron&#243;metro en tiempo real.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_endless_immersion">
 		<text>Inmersi&#243;n Sonora de Supervivencia</text>
@@ -2079,7 +2079,7 @@
 		<text>Oleada %d superada en tiempo r&#233;cord</text>
 	</string>
 	<string id="st_arena_medic_rescue_tokens">
-		<text>&#161;Rescate M&#233;dico de Emergencia! Fuiste evacuado inconsciente. El tratamiento cost&#243; %s Tokens.</text>
+		<text>&#161;Rescate M&#233;dico de Emergencia! Fuiste evacuado inconsciente. El tratamiento cost&#243; %s fichas de la arena.</text>
 	</string>
 	<string id="ui_mcm_xcvb_arena_combat_hud_title">
 		<text>Mostrar t&#237;tulo del modo</text>
@@ -2296,7 +2296,7 @@
 		<text>Escuadr&#243;n</text>
 	</string>
 	<string id="st_arena_mode_team_desc">
-		<text>Endless con tu escuadr&#243;n. Los aliados iniciales son gratis. Usa Configuraci&#243;n para personalizar a cada aliado.</text>
+		<text>Modo infinito con tu escuadr&#243;n. Los aliados iniciales son gratis. Usa Configuraci&#243;n para personalizar a cada aliado.</text>
 	</string>
 	<string id="st_arena_mode_factions_name">
 		<text>BATALLA DE FACCIONES</text>
@@ -2415,5 +2415,7 @@
 <string id="st_arena_backrooms_device_title"><text>EQUIPO PARA BACKROOMS</text></string>
 <string id="st_arena_backrooms_device_desc"><text>Elige linterna o visor nocturno de nivel 1, 2 o 3. Act&#237;valo manualmente despu&#233;s de entrar.</text></string>
 	<string id="ui_mcm_xcvb_arena_mutant_no_wait"><text>Sin espera entre combates de mutantes</text></string>
-	<string id="ui_mcm_xcvb_arena_mutant_no_wait_desc"><text>Elimina la pausa entre los desafios de mutantes del NPC original. Cobra la recompensa antes de pedir el siguiente combate. Desactivado por defecto.</text></string>
+	<string id="ui_mcm_xcvb_arena_mutant_no_wait_desc"><text>Elimina la pausa entre los desaf&#237;os de mutantes del NPC original. Cobra la recompensa antes de pedir el siguiente combate. Desactivado por defecto.</text></string>
+	<string id="st_arena_manifesto_credit_heading"><text>Da cr&#233;dito</text></string>
+	<string id="st_arena_manifesto_credit_text"><text>Si editas este c&#243;digo o cambias partes del proyecto, recuerda siempre dar cr&#233;dito a los autores originales y mencionar de d&#243;nde sali&#243; tu inspiraci&#243;n. No seas un imb&#233;cil.</text></string>
 </string_table>

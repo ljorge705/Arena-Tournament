@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <string_table>
-<string id="st_arena_plus_menu_desc"><text>Снаряжение сохраняется. Три предложения после каждой волны. Новая игра начинается с первой волны.</text></string>
+<string id="st_arena_plus_menu_desc"><text>Снаряжение сохраняется. Три предложения после каждой волны. Новый забег начинается с первой волны.</text></string>
 <string id="st_arena_plus_status"><text>Пройдено: %d | Следующая волна: %d | Накоплено: %d %s</text></string>
 <string id="st_arena_plus_choice_help"><text>Волна пройдена. Игра приостановлена. Выберите предложение, пропустите выбор или заберите награду.</text></string>
 <string id="st_arena_plus_confirm_question"><text>Подтвердить решение?</text></string>

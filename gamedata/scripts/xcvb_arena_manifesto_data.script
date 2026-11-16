@@ -68,6 +68,8 @@ blocks = {
     {kind="paragraph", text="Decisions can be criticized."},
     {kind="paragraph", text="Ideas can be replaced by better ideas."},
     {kind="paragraph", text="That is how progress happens."},
+    {kind="heading", text_id="st_arena_manifesto_credit_heading"},
+    {kind="paragraph", text_id="st_arena_manifesto_credit_text"},
     {kind="heading", text="A New Chapter"},
     {kind="paragraph", text="Making YOUR CODE open source does not mean ending a story."},
     {kind="paragraph", text="It means stopping the attempt to decide where that story must end."},

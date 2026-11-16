@@ -78,5 +78,7 @@
     <texture id="xcvb_credits_name_38" x="448" y="648" width="432" height="64"/>
     <texture id="xcvb_credits_avatar_39" x="388" y="836" width="56" height="56"/>
     <texture id="xcvb_credits_name_39" x="896" y="648" width="432" height="64"/>
+    <texture id="xcvb_credits_avatar_40" x="452" y="836" width="56" height="56"/>
+    <texture id="xcvb_credits_name_40" x="1344" y="648" width="432" height="64"/>
   </file>
 </w>
