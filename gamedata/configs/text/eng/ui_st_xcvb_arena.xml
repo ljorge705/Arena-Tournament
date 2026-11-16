@@ -2461,4 +2461,6 @@
 	<string id="st_arena_team_rules_hint"><text>Wave support applies between rounds. Select an ally on the right to set their rank, weapon, scope and ammunition.</text></string>
 <string id="st_arena_backrooms_device_title"><text>BACKROOMS EQUIPMENT</text></string>
 <string id="st_arena_backrooms_device_desc"><text>Choose a flashlight or NVG level 1, 2 or 3. Activate it manually after entering.</text></string>
+	<string id="ui_mcm_xcvb_arena_mutant_no_wait"><text>No waiting between mutant fights</text></string>
+	<string id="ui_mcm_xcvb_arena_mutant_no_wait_desc"><text>Removes the cooldown between mutant challenges offered by the original arena NPC. Collect your reward before requesting the next fight. Disabled by default.</text></string>
 </string_table>

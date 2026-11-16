@@ -580,7 +580,10 @@ local function iterate_alife(callback)
     local sim = alife()
     if not sim then return end
     if sim.iterate_objects then
-        sim:iterate_objects(callback)
+        sim:iterate_objects(function(se)
+            callback(se)
+            return false
+        end)
     else
         for i = 1, 65534 do
             local se = sim:object(i)

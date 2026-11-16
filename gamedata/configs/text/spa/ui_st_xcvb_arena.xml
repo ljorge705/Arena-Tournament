@@ -2414,4 +2414,6 @@
 	<string id="st_arena_team_rules_hint"><text>El apoyo se aplica entre oleadas. Elige un aliado a la derecha para configurar rango, arma, mira y munici&#243;n.</text></string>
 <string id="st_arena_backrooms_device_title"><text>EQUIPO PARA BACKROOMS</text></string>
 <string id="st_arena_backrooms_device_desc"><text>Elige linterna o visor nocturno de nivel 1, 2 o 3. Act&#237;valo manualmente despu&#233;s de entrar.</text></string>
+	<string id="ui_mcm_xcvb_arena_mutant_no_wait"><text>Sin espera entre combates de mutantes</text></string>
+	<string id="ui_mcm_xcvb_arena_mutant_no_wait_desc"><text>Elimina la pausa entre los desafios de mutantes del NPC original. Cobra la recompensa antes de pedir el siguiente combate. Desactivado por defecto.</text></string>
 </string_table>

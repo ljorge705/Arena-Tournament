@@ -2873,6 +2873,11 @@ function npc_on_before_hit(npc, s_hit)
     end
 end
 
+-- Original NPC fights have their own inventory and mission controllers.
+function is_original_arena_combat()
+    return xcvb_arena_original_rescue and xcvb_arena_original_rescue.active()
+end
+
 function trigger_medic_rescue()
     if is_medic_rescuing then return true end
     if xcvb_arena_utils and xcvb_arena_utils.install_itms_manager_safeguard then
@@ -2883,9 +2888,10 @@ function trigger_medic_rescue()
     if not db.actor then return false end
     local in_endless = is_endless_mode or HI("xcvb_endless_started")
     local in_tournament = HI("xcvb_tournament_started")
-    if not in_endless and not in_tournament then return false end
+    local in_original = is_original_arena_combat()
+    if not in_endless and not in_tournament and not in_original then return false end
     if in_endless and endless_fight_closed then return false end
-    if not in_endless and tournament_fight_closed then return false end
+    if in_tournament and not in_endless and tournament_fight_closed then return false end
     is_medic_rescuing = true
     if in_endless and xcvb_arena_main and xcvb_arena_main.record_endless_run_ended then
         local elapsed = (xcvb_arena_combat_hud and xcvb_arena_combat_hud.get_elapsed_seconds and xcvb_arena_combat_hud.get_elapsed_seconds()) or 0
@@ -2899,7 +2905,7 @@ function trigger_medic_rescue()
             and endless_wave and endless_wave > (xcvb_arena_main.endless_checkpoint_wave or 1) then
             xcvb_arena_main.endless_checkpoint_wave = endless_wave
         end
-    else
+    elseif in_tournament then
         tourn_ending = true
         endless_ending = false
     end
@@ -2966,7 +2972,9 @@ function trigger_medic_rescue()
         pcall(level.remove_cam_effector, 987126)
 
         pcall(function()
-            if is_endless_mode or HI("xcvb_endless_started") then
+            if in_original then
+                xcvb_arena_original_rescue.finish()
+            elseif in_endless then
                 end_endless_fight(false, false)
             else
                 end_tournament_fight(false)
@@ -2975,7 +2983,7 @@ function trigger_medic_rescue()
         tourn_ending = false
         endless_ending = false
         is_medic_rescuing = false
-        schedule_auto_open_arena_gui(2.5)
+        if not in_original then schedule_auto_open_arena_gui(2.5) end
 
         pcall(function()
             level.remove_pp_effector(987123)
@@ -3008,7 +3016,7 @@ function trigger_medic_rescue()
             diff = (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or endless_difficulty or "medium"
         else
             local tier = 2
-            if current_tournament_round_id then
+            if not in_original and current_tournament_round_id then
                 tier = math.ceil(current_tournament_round_id / 3)
             end
             if tier <= 1 then diff = "easy"
@@ -3064,7 +3072,7 @@ function actor_on_before_hit(s_hit, bone_id, flags)
         return
     end
 
-    if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode then
+    if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode or is_original_arena_combat() then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false then
             local cur_health = db.actor and db.actor.health or 1.0
@@ -3088,7 +3096,7 @@ function actor_on_before_death(whoID, flags)
         return
     end
 
-    if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode then
+    if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode or is_original_arena_combat() then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
         if rescue_enabled ~= false and trigger_medic_rescue() then
             if flags then flags.ret_value = false end
@@ -3490,7 +3498,7 @@ function install_arena_death_dispatch_guard()
     local original = axr_main.make_callback
     axr_main.make_callback = function(name,...)
         if name == "actor_on_before_death" and
-            (is_medic_rescuing or HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode) and
+            (is_medic_rescuing or HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode or is_original_arena_combat()) and
             xcvb_arena_mcm.get_config("medic_rescue") ~= false then
             local who, flags = ...
             actor_on_before_death(who,flags)

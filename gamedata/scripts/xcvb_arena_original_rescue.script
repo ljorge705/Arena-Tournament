@@ -1,0 +1,130 @@
+-- Medical extraction for the original Bar NPC's stalker and mutant fights.
+-- Keep completed rounds intact; a lost stalker round can be attempted again.
+local mutants = {"pseudodog", "snork", "bloodsucker", "burer", "savage"}
+
+function active()
+    if not db.actor or level.name() ~= "l05_bar" then return false end
+    if has_alife_info("bar_arena_fight") and has_alife_info("bar_arena_fight_begin") then
+        return true
+    end
+    local zone = db.zone_by_name and db.zone_by_name["bar_arena_sr"]
+    return has_alife_info("bar_arena_start") and has_alife_info("bar_arena_monstr_ready")
+        and zone and zone:inside(db.actor:position()) or false
+end
+
+local function clear(info)
+    db.actor:disable_info_portion(info)
+end
+
+local function reset_controllers(round)
+    for id, st in pairs(db.storage) do
+        local file = (st.ini_filename or ""):lower():gsub("\\", "/")
+        local section
+        if round and file:match("/bar_arena_triger%.ltx$") then
+            section = "sr_idle@idle"
+        elseif file:match("/bar_arena_comment_fight_1%.ltx$") and round then
+            section = "sr_idle@" .. round
+        elseif not round and file:match("/bar_arena_sr%.ltx$") then
+            section = "sr_idle@idle"
+        elseif not round and file:match("/bar_arena_spam%.ltx$") then
+            section = "sr_idle@introduce"
+        elseif not round and file:match("/bar_dolg_megafone%.ltx$") then
+            section = "ph_idle@default"
+        end
+        if section and st.ini and st.ini:section_exist(section) then
+            local obj = level.object_by_id(id)
+            if obj then
+                if xr_effects.stop_sound then xr_effects.stop_sound(db.actor, obj) end
+                xr_logic.switch_to_section(obj, st.ini, section)
+            end
+        end
+    end
+end
+
+local function remove_opponents(round)
+    -- Only original arena sections; never touch guards or the manager.
+    local allowed = {}
+    if round then
+        allowed["bar_arena_stalker_" .. round] = true
+        for i = 1, 6 do allowed["bar_arena_stalker_" .. round .. "_" .. i] = true end
+    else
+        for _, name in ipairs(mutants) do allowed["bar_arena_" .. name] = true end
+    end
+    local ids = {}
+    local sim = alife()
+    if sim and sim.iterate_objects then
+        sim:iterate_objects(function(se)
+            if allowed[se:section_name()] then ids[#ids + 1] = se.id end
+            return false -- Monolith stops iteration when the callback returns true.
+        end)
+    else
+        -- Original opponents are online; avoid probing every possible server ID.
+        for id in pairs(db.storage) do
+            local se = alife_object(id)
+            if se and allowed[se:section_name()] then ids[#ids + 1] = id end
+        end
+    end
+    for _, id in ipairs(ids) do
+        if safe_release_manager and safe_release_manager.release then
+            safe_release_manager.release({id = id})
+        else
+            alife_release_id(id)
+        end
+    end
+end
+
+function finish()
+    local round
+    if has_alife_info("bar_arena_fight") then
+        for i = 1, 8 do
+            if has_alife_info("bar_arena_fight_" .. i) then round = i; break end
+        end
+    end
+    -- Clear active flags before releasing opponents so no controller awards a win.
+    clear("bar_arena_fight_begin")
+    clear("bar_arena_fight")
+    clear("bar_arena_start")
+    if round then
+        clear("bar_arena_fight_" .. round)
+        clear("bar_arena_fight_" .. round .. "_done")
+        clear("bar_arena_fight_" .. round .. "_reward")
+        for i = 1, 6 do clear("bar_arena_fight_" .. round .. "_stalker_" .. i .. "_die") end
+        -- Native exit removes loaned equipment and restores the stored inventory.
+        xr_effects.bar_arena_teleport_2(db.actor, nil)
+    else
+        local pos, lvid, gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
+        db.actor:set_actor_position(pos, lvid, gvid)
+        for _, name in ipairs(mutants) do clear("bar_arena_" .. name .. "_choosen") end
+        for _, name in ipairs({"1000_r", "2000_r", "3000_r", "5000_r", "20_p", "50_p", "100_p"}) do
+            clear("bar_arena_" .. name)
+        end
+        for i = 10, 90, 10 do clear("bar_arena_fight_" .. i) end
+    end
+    for _, name in ipairs({"start_introduce", "spawn_monstr", "monstr_ready", "monstr_dead",
+        "state_1", "actor_victory", "actor_lose", "actor_afraid", "actor_dead", "pause"}) do
+        clear("bar_arena_" .. name)
+    end
+    clear("bar_old_arena_pause")
+    clear("bar_old_arena_reset")
+    remove_opponents(round)
+    reset_controllers(round)
+    xcvb_arena_fight.heal_actor_completely()
+end
+
+-- Optional removal of the original mutant arena cooldown; never scan object IDs.
+local next_cooldown_check = 0
+function actor_on_update()
+    local now = time_global()
+    if now < next_cooldown_check then return end
+    next_cooldown_check = now + 500
+    if not db.actor or level.name() ~= "l05_bar" then return end
+    if not (xcvb_arena_mcm and xcvb_arena_mcm.get_config("mutant_no_wait") == true) then return end
+    if has_alife_info("bar_old_arena_pause") then
+        clear("bar_old_arena_pause")
+    end
+end
+
+function on_game_start()
+    RegisterScriptCallback("actor_on_update", actor_on_update)
+    RegisterScriptCallback("actor_on_net_destroy", function() next_cooldown_check = 0 end)
+end

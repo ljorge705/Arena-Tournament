@@ -10,6 +10,7 @@ local saved_cvars = {}
 local turned_off_lamps = {}
 local cached_arena_lamp_ids = {}
 local cached_lamp_level = nil
+local pending_lamp_id = nil
 local function CreateTimeEvent(...)
     if xcvb_arena_runtime then return xcvb_arena_runtime.schedule(...) end
     return _G.CreateTimeEvent(...)
@@ -162,7 +163,15 @@ function turn_off_arena_lamps()
         cached_arena_lamp_ids = {}
     end
 
-    for id = 1, 65534 do
+    pending_lamp_id = pending_lamp_id or 1
+end
+
+local function update_lamp_scan()
+    if not pending_lamp_id then return end
+    local clock = time_global_async or function() return os.clock() * 1000 end
+    local started = clock()
+    local last = math.min(pending_lamp_id + 255, 65534)
+    for id = pending_lamp_id, last do
         local obj = level.object_by_id(id)
         if obj then
             local lamp = nil
@@ -184,10 +193,13 @@ function turn_off_arena_lamps()
                 end
             end
         end
+        pending_lamp_id = id < 65534 and id + 1 or nil
+        if id % 16 == 0 and clock() - started >= 2 then break end
     end
 end
 
 function restore_arena_lamps()
+    pending_lamp_id = nil
     if turned_off_lamps then
         for id, was_on in pairs(turned_off_lamps) do
             if was_on then
@@ -353,10 +365,12 @@ function leave_level()
     -- Lamp objects belong to the unloaded level. Keep no client references.
     turned_off_lamps, cached_arena_lamp_ids = {}, {}
     cached_lamp_level = nil
+    pending_lamp_id = nil
 end
 
 function on_game_start()
     RegisterScriptCallback("actor_on_update", function()
+        update_lamp_scan()
         if is_night_active and not (xcvb_arena_runtime and xcvb_arena_runtime.contains(db.actor and db.actor:position())) then disable() end
     end)
     if xcvb_arena_runtime then xcvb_arena_runtime.protect(xcvb_arena_night) end
