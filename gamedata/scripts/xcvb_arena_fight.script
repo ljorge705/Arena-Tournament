@@ -265,7 +265,7 @@ end
 local function return_actor_to_bar()
     if db.actor then
         local pos, lvid, gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
-        db.actor:set_actor_position(pos, lvid, gvid)
+        db.actor:set_actor_position(pos, false, false)
     end
     if tourn_saved_selected_map then
         xcvb_arena_main.selected_map = tourn_saved_selected_map
@@ -386,6 +386,15 @@ local function get_endless_total_enemies_alive(dying_squad_id)
     return total
 end
 
+function heal_arena_psy_health()
+    if not db.actor then return end
+    db.actor.psy_health = 1.0
+    -- Arszi tracks a separate PSY pool; the engine property does not heal it.
+    if arszi_psy and arszi_psy.set_psy_health then
+        pcall(arszi_psy.set_psy_health, 1.0)
+    end
+end
+
 function heal_actor_completely()
     if not db.actor then return end
     pcall(function()
@@ -393,7 +402,7 @@ function heal_actor_completely()
         -- This setter heals wounds by a fraction; zero leaves them unchanged.
         db.actor.bleeding = 1.0
         db.actor.radiation = 0
-        db.actor.psy_health = 1.0
+        heal_arena_psy_health()
         db.actor.power = 1.0
     end)
     if zzz_player_injuries and zzz_player_injuries.health and zzz_player_injuries.maxhp then
@@ -422,6 +431,22 @@ function heal_actor_completely()
             end
             zzz_player_injuries.myhealth = 1.0
         end)
+    end
+end
+
+-- Refill supplies along with the existing between-wave medical treatment.
+-- Backrooms callers retain their no-heal rule.
+function heal_endless_actor()
+    heal_actor_completely()
+    if not db.actor then return end
+    db.actor.satiety = 1.0
+    if actor_status_thirst and actor_status_thirst.load_state then
+        local now = game.get_game_time()
+        actor_status_thirst.load_state({drink = {
+            last_drink = 0,
+            chk_drink = utils_data.CTime_to_table(now),
+        }})
+        if actor_status_thirst.test_blur then actor_status_thirst.test_blur() end
     end
 end
 
@@ -586,7 +611,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
         xcvb_arena_utils.restore_actor_equipped_slots()
         return false
     end
-    local random_eq = xcvb_arena_mcm.get_config("random_equipment")
+    local random_eq = not xcvb_arena_main.personal_equipment and xcvb_arena_mcm.get_config("random_equipment")
     if random_eq ~= false and not inventory_compatible() then return false end
     if random_eq ~= false and not inventory_ready then
         if not xcvb_arena_utils.store_actor_inventory() then return false end
@@ -599,6 +624,8 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
             return true
         end
     end
+    xcvb_arena_artigrok.begin_match()
+    xcvb_arena_personal_loadout.capture()
     tournament_inventory_stored = random_eq ~= false
     callback_epoch = callback_epoch + 1
     tournament_pending_result = nil
@@ -647,7 +674,7 @@ function start_tournament_fight(category, round_id, loadout_class, loadout_tier,
     tourn_saved_community_goodwill = snapshot_actor_goodwill()
 
     local ac_pos, ac_lvid, ac_gvid, ac_dir = xcvb_arena_utils.get_actor_tournament_pos(round_id)
-    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
+    db.actor:set_actor_position(ac_pos, false, false)
     db.actor:set_actor_direction(ac_dir or 0)
 
     if xcvb_arena_main.night_mode_active then
@@ -765,6 +792,7 @@ function on_tournament_victory(round_id)
     if tournament_fight_closed or tourn_ending or endless_ending then return end
     tourn_ending = true
     tournament_pending_result = true
+    xcvb_arena_personal_loadout.restore()
     heal_actor_completely()
     if xcvb_arena_combat_hud then
         local win_title = gt("st_arena_hud_banner_tourn_win_title")
@@ -800,6 +828,7 @@ function end_tournament_fight(is_victory)
     end
 
     if db.actor then
+        if tournament_inventory_stored then
         pcall(function() db.actor:activate_slot(0) end)
         for s = 1, 15 do
             local itm = db.actor:item_in_slot(s)
@@ -807,8 +836,9 @@ function end_tournament_fight(is_victory)
                 pcall(function() db.actor:move_to_ruck(itm) end)
             end
         end
+        end -- Personal loadouts keep their equipped slots and active weapon.
         local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
-        db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
+        db.actor:set_actor_position(bar_pos, false, false)
         pcall(level.remove_pp_effector, 987123)
         pcall(level.remove_pp_effector, 987124)
         pcall(level.remove_pp_effector, 987125)
@@ -963,7 +993,7 @@ function start_arena_fight(bout_idx)
     end
     
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
-    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
+    db.actor:set_actor_position(ac_pos, false, false)
     local arena_center = vector():set(152.0, -20.0, 105.0)
     local look_dir = vector():sub(arena_center, ac_pos)
     db.actor:set_actor_direction(-look_dir:getH())
@@ -1153,7 +1183,7 @@ function end_arena_fight(winner_team)
     end
 
     local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
-    db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
+    db.actor:set_actor_position(bar_pos, false, false)
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
     pcall(level.show_indicators)
@@ -1266,7 +1296,7 @@ function start_battle_royale_fight(br_data)
     battle_royale_reward = br_data.reward or 0
 
     local ac_pos, ac_lvid, ac_gvid = xcvb_arena_utils.get_actor_arena_pos()
-    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
+    db.actor:set_actor_position(ac_pos, false, false)
     local arena_center = vector():set(152.0, -20.0, 105.0)
     local look_dir = vector():sub(arena_center, ac_pos)
     db.actor:set_actor_direction(-look_dir:getH())
@@ -1415,7 +1445,7 @@ function end_battle_royale(winner_team_idx)
     end
 
     local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
-    db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
+    db.actor:set_actor_position(bar_pos, false, false)
     if game.only_allow_movekeys then pcall(game.only_allow_movekeys, false) end
     pcall(level.enable_input)
     pcall(level.show_indicators)
@@ -1493,7 +1523,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
         local ok, err = xcvb_arena_factions.prepare()
         if not ok then news_manager.send_tip(db.actor, err, 0, nil, 7000); return false end
     end
-    if not inventory_ready then
+    if not xcvb_arena_main.personal_equipment and not inventory_ready then
         if not xcvb_arena_utils.store_actor_inventory() then return false end
         if xcvb_arena_utils.inventory_store_pending then
             xcvb_arena_utils.wait_for_inventory_storage(function()
@@ -1502,6 +1532,8 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
             return true
         end
     end
+    xcvb_arena_artigrok.begin_match()
+    xcvb_arena_personal_loadout.capture()
     xcvb_arena_main.endless_selected_variant = variant or "classic"
     callback_epoch = callback_epoch + 1
     cancel_player_combat_events()
@@ -1567,7 +1599,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
     end
     local ac_pos, ac_lvid, ac_gvid, ac_dir = xcvb_arena_utils.get_actor_tournament_pos(endless_wave)
     if variant == "factions" then ac_pos, ac_lvid, ac_gvid = xcvb_arena_factions.spawn_point(1,1) end
-    db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
+    db.actor:set_actor_position(ac_pos, false, false)
     db.actor:set_actor_direction(ac_dir or 0)
 
     if xcvb_arena_main.night_mode_active then
@@ -1606,7 +1638,7 @@ function start_endless_fight(enemy_type, start_wave, difficulty, use_3dssg, vari
 
     endless_enemy_squad_ids = {}
     if (variant == "team" or variant == "factions") and xcvb_arena_companions then
-        xcvb_arena_companions.ensure_team_companions(true)
+        xcvb_arena_companions.ensure_team_companions(true, endless_wave)
     end
 
     local is_elite = xcvb_arena_immersion and xcvb_arena_immersion.is_wave_elite(endless_wave)
@@ -1708,10 +1740,12 @@ end
 function advance_endless_wave(resume_pending)
     if xcvb_arena_factions.active() and not endless_fight_closed and not endless_ending then
         news_manager.send_tip(db.actor, "FACTION BATTLE: Your team wins!", 0, nil, 7000)
+        xcvb_arena_personal_loadout.restore()
         end_endless_fight(true, false)
         return
     end
     if endless_transitioning or endless_fight_closed or endless_ending or is_medic_rescuing then return end
+    if not resume_pending then xcvb_arena_personal_loadout.restore() end
     if xcvb_arena_plus and xcvb_arena_plus.active() then
         if resume_pending then xcvb_arena_plus.resume(); return end
         local reward = xcvb_arena_plus.complete_wave(endless_wave, endless_difficulty, endless_reward)
@@ -1728,7 +1762,7 @@ function advance_endless_wave(resume_pending)
     local backrooms_overlap=xcvb_arena_backrooms_pressure.has_pending(endless_wave)
     pcall(sync_night_mode_device_from_actor)
     endless_transitioning = true
-    if db.actor and not backrooms_overlap then
+    if db.actor and not backrooms_overlap and not xcvb_arena_main.personal_equipment then
         pcall(function() db.actor:activate_slot(0) end)
     end
 
@@ -1804,7 +1838,7 @@ function advance_endless_wave(resume_pending)
             })
         end
 
-        if not backrooms_overlap then heal_actor_completely() end
+        if not backrooms_overlap then heal_endless_actor() end
 
         endless_wave = endless_wave + 1
         if xcvb_arena_main then
@@ -1855,7 +1889,7 @@ function advance_endless_wave(resume_pending)
             xcvb_arena_main.selected_map = next_map
 
             local ac_pos, ac_lvid, ac_gvid, ac_dir = xcvb_arena_utils.get_actor_tournament_pos(endless_wave)
-            db.actor:set_actor_position(ac_pos, ac_lvid, ac_gvid)
+            db.actor:set_actor_position(ac_pos, false, false)
             db.actor:set_actor_direction(ac_dir or 0)
 
             if xcvb_arena_companions and xcvb_arena_companions.relocate_companions_to_actor then
@@ -1900,9 +1934,9 @@ function advance_endless_wave(resume_pending)
             else
                 pcall(xcvb_arena_utils.toggle_arena_lights, true)
             end
-            if not backrooms_overlap then heal_actor_completely() end
+            if not backrooms_overlap then heal_endless_actor() end
 
-            if xcvb_arena_companions then xcvb_arena_companions.ensure_team_companions(false) end
+            if xcvb_arena_companions then xcvb_arena_companions.ensure_team_companions(false, endless_wave) end
             local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
             endless_enemy_squad_ids = {}
             if next_squads then
@@ -2025,9 +2059,9 @@ function advance_endless_wave(resume_pending)
             else
                 pcall(xcvb_arena_utils.toggle_arena_lights, true)
             end
-            if not backrooms_overlap then heal_actor_completely() end
+            if not backrooms_overlap then heal_endless_actor() end
 
-            if xcvb_arena_companions then xcvb_arena_companions.ensure_team_companions(false) end
+            if xcvb_arena_companions then xcvb_arena_companions.ensure_team_companions(false, endless_wave) end
             local next_squads = xcvb_arena_utils.spawn_endless_squad(endless_wave, endless_enemy_type, endless_difficulty)
             endless_enemy_squad_ids = {}
             if next_squads then
@@ -2116,7 +2150,7 @@ function spawn_plus_wave(extra_enemies)
     if xcvb_arena_main.selected_map ~= "backrooms" and factory_available() and interval > 0 and endless_wave > 1 and (endless_wave - 1) % interval == 0 and swap_allowed then
         xcvb_arena_main.selected_map = xcvb_arena_main.selected_map == "factory" and "arena" or "factory"
         local pos, lv, gv, dir = xcvb_arena_utils.get_actor_tournament_pos(endless_wave)
-        db.actor:set_actor_position(pos, lv, gv); db.actor:set_actor_direction(dir or 0)
+        db.actor:set_actor_position(pos, false, false); db.actor:set_actor_direction(dir or 0)
         if xcvb_arena_companions and xcvb_arena_companions.relocate_companions_to_actor then
             pcall(xcvb_arena_companions.relocate_companions_to_actor)
         end
@@ -2179,7 +2213,7 @@ function end_endless_fight(is_victory, voluntary_leave)
 
     if db.actor then
         local bar_pos, bar_lvid, bar_gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
-        db.actor:set_actor_position(bar_pos, bar_lvid, bar_gvid)
+        db.actor:set_actor_position(bar_pos, false, false)
         pcall(level.remove_pp_effector, 987123)
         pcall(level.remove_pp_effector, 987124)
         pcall(level.remove_pp_effector, 987125)
@@ -2349,6 +2383,21 @@ local function update_npc_night_state(npc, tg, vision_ctx)
 end
 
 function actor_on_update()
+    -- Run before mode-specific early returns and the throttled AI checks.
+    if is_medic_rescuing then
+        heal_arena_psy_health()
+    elseif db.actor and db.actor:alive() and
+        (HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode or is_original_arena_combat()) and
+        xcvb_arena_mcm.get_config("medic_rescue") ~= false then
+        local psy = db.actor.psy_health
+        if arszi_psy and arszi_psy.get_psy_health then
+            local ok, value = pcall(arszi_psy.get_psy_health)
+            if ok and type(value) == "number" then psy = math.min(psy, value) end
+        end
+        if psy <= 0.01 then trigger_medic_rescue() end
+    end
+    if xcvb_arena_utils.update_enemy_spawn_facing then xcvb_arena_utils.update_enemy_spawn_facing() end
+    if xcvb_arena_personal_loadout then xcvb_arena_personal_loadout.actor_on_update() end
     if xcvb_arena_plus and xcvb_arena_plus.active() then
         local ok, err = pcall(xcvb_arena_plus.tick)
         if not ok then xcvb_arena_plus.fail(err); return end
@@ -2429,12 +2478,9 @@ function actor_on_update()
                     for m in squad:squad_members() do
                         local npc = level.object_by_id(m.id)
                         if npc and npc:alive() then
-                            if is_npc_wounded(npc) then
-                                pcall(function()
-                                    if npc.bleeding and npc.bleeding < 0.3 then
-                                        npc.bleeding = 0.5
-                                    end
-                                end)
+                            local incapacitated = xcvb_arena_utils.handle_arena_wounded(npc, tg)
+                            if incapacitated then
+                                -- Let recovery/death finish without resetting its animation.
                             elseif is_night then
                                 update_npc_night_state(npc, tg, vision_ctx)
                             elseif not has_live_enemy(npc) then
@@ -2487,12 +2533,9 @@ function actor_on_update()
                         for m in squad:squad_members() do
                             local npc = level.object_by_id(m.id)
                             if npc and npc:alive() then
-                                if is_npc_wounded(npc) then
-                                    pcall(function()
-                                        if npc.bleeding and npc.bleeding < 0.3 then
-                                            npc.bleeding = 0.5
-                                        end
-                                    end)
+                                local incapacitated = xcvb_arena_utils.handle_arena_wounded(npc, tg)
+                                if incapacitated then
+                                    -- Let recovery/death finish without resetting its animation.
                                 elseif is_night then
                                     update_npc_night_state(npc, tg, vision_ctx)
                                 else
@@ -3090,14 +3133,31 @@ function actor_on_before_death(whoID, flags)
     if xcvb_arena_utils and xcvb_arena_utils.install_itms_manager_safeguard then
         pcall(xcvb_arena_utils.install_itms_manager_safeguard)
     end
+    -- Extraction can clear combat flags before its final heal. Repeated PSY
+    -- kill requests must still be cancelled before Ironman sees the callback.
+    if is_medic_rescuing then
+        if flags then flags.ret_value = false end
+        heal_actor_completely()
+        return
+    end
     if is_spectator_mode() then
         if flags then flags.ret_value = false end
-        if db.actor then db.actor.health = 1.0 end
+        heal_actor_completely()
         return
     end
 
     if HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode or is_original_arena_combat() then
         local rescue_enabled = xcvb_arena_mcm.get_config("medic_rescue")
+        -- A completed fight already has an exit scheduled. Damage during the
+        -- victory fade must not start a second extraction or notify Ironman.
+        if rescue_enabled ~= false and
+            (tourn_ending or endless_ending or
+             (HI("xcvb_tournament_started") and tournament_fight_closed) or
+             ((is_endless_mode or HI("xcvb_endless_started")) and endless_fight_closed)) then
+            if flags then flags.ret_value = false end
+            heal_actor_completely()
+            return
+        end
         if rescue_enabled ~= false and trigger_medic_rescue() then
             if flags then flags.ret_value = false end
             if db.actor then db.actor.health = 1.0 end
@@ -3261,6 +3321,7 @@ function squad_on_npc_death(squad, se_obj, killer)
 end
 
 function save_state(m_data)
+    xcvb_arena_personal_loadout.save_state(m_data)
     xcvb_arena_backrooms_pressure.save_state(m_data)
     m_data.xcvb_arena_interrupted_level = interrupted_level
     if xcvb_arena_plus then xcvb_arena_plus.save_state(m_data) end
@@ -3313,6 +3374,7 @@ function save_state(m_data)
 end
 
 function load_state(m_data)
+    xcvb_arena_personal_loadout.load_state(m_data)
     xcvb_arena_backrooms_pressure.load_state(m_data)
     local saved_map=m_data.xcvb_selected_map
     local retired_layout=saved_map and saved_map~="arena" and ((saved_map~="factory" and saved_map~="backrooms") or not factory_available())
@@ -3498,11 +3560,12 @@ function install_arena_death_dispatch_guard()
     local original = axr_main.make_callback
     axr_main.make_callback = function(name,...)
         if name == "actor_on_before_death" and
-            (is_medic_rescuing or HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode or is_original_arena_combat()) and
-            xcvb_arena_mcm.get_config("medic_rescue") ~= false then
+            (is_spectator_mode() or is_medic_rescuing or
+             ((HI("xcvb_tournament_started") or HI("xcvb_endless_started") or is_endless_mode or is_original_arena_combat()) and
+              xcvb_arena_mcm.get_config("medic_rescue") ~= false)) then
             local who, flags = ...
             actor_on_before_death(who,flags)
-            if is_medic_rescuing and flags and flags.ret_value == false then return end
+            if flags and flags.ret_value == false then return end
         end
         return original(name,...)
     end
@@ -3531,4 +3594,10 @@ function get_backrooms_tournament_enemy_squad_id()
     if is_endless_mode or xcvb_arena_main.selected_map~="backrooms" or tournament_fight_closed or tourn_ending then return nil end
     if not (HI("xcvb_tournament_started") or HI("xcvb_arena_started")) then return nil end
     return tournament_enemy_squad_id
+end
+
+-- ArtiGrok applies only to player Normal/Endless matches, never spectators.
+function is_artigrok_match_active()
+    return (not tournament_fight_closed and current_tournament_round_id ~= nil)
+        or (is_endless_mode and not endless_fight_closed)
 end

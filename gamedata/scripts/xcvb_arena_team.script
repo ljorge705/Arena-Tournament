@@ -6,7 +6,7 @@ end
 function normalize(source)
     local o = type(source) == "table" and source or {}
     local result = {count = integer(o.count, 2, 1, 4), replenish = o.replenish ~= false,
-        heal = o.heal == true, resupply = o.resupply ~= false, allies = {}}
+        heal = o.heal == true, resupply = o.resupply ~= false, reroll = o.reroll == true, allies = {}}
     for i = 1, 4 do
         local a = type(o.allies) == "table" and o.allies[i] or nil
         a = type(a) == "table" and a or {}
@@ -80,15 +80,73 @@ end
 
 function give_ammo(npc, ally, weapon)
     local sec = weapon and xcvb_arena_utils.get_weapon_ammo(weapon, ally.ammo)
+    if xcvb_arena_artigrok then sec = xcvb_arena_artigrok.npc_ammo(npc,weapon,sec) end
     if sec and ini_sys:section_exist(sec) then
         for i = 1, ally.boxes do
             alife_create(sec, npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
         end
     end
 end
+-- Same wave/difficulty progression as the player's Endless equipment.
+function wave_tier(wave, difficulty)
+    wave = tonumber(wave) or 1
+    local thresholds = difficulty == "easy" and {2, 3, 4, 6} or {2, 4, 6, 8}
+    local tier = 1
+    for i, threshold in ipairs(thresholds) do if wave >= threshold then tier = i + 1 end end
+    return tier
+end
+
+function reroll_equipment(npc, entry, ally)
+    local wave = entry.team_wave or 1
+    if entry.team_rearmed_wave == wave then return true end
+    local main = xcvb_arena_main
+    local tier = wave_tier(wave, main.endless_difficulty)
+    local candidates, seen = {}, {}
+    local chosen_classes = ally.class == "default" and {"pistol", "smg", "shotgun", "rifle", "sniper"} or {ally.class}
+    -- Fall back to lower tiers when the installed catalog lacks this tier.
+    for t = tier, 1, -1 do
+        for _, class in ipairs(chosen_classes) do
+            for _, item in ipairs(xcvb_arena_utils.get_all_available_weapons_by_class(class, t) or {}) do
+                local sec = item.sec
+                local ammo = sec and xcvb_arena_utils.get_weapon_ammo(sec, ally.ammo)
+                if sec and ammo and not seen[sec] and ini_sys:section_exist(sec) and ini_sys:section_exist(ammo) then
+                    seen[sec] = true; candidates[#candidates + 1] = sec
+                end
+            end
+        end
+        if #candidates > 0 then break end
+    end
+    if #candidates == 0 then return true end -- retain the existing functional loadout
+    local old_weapon = npc:best_weapon()
+    local previous = old_weapon and old_weapon:section()
+    previous = previous and (ini_sys:r_string_ex(previous, "parent_section") or previous)
+    if #candidates > 1 then
+        for i = #candidates, 1, -1 do if candidates[i] == previous then table.remove(candidates, i) end end
+    end
+    local selected = {weapon = candidates[math.random(#candidates)], scope = ally.scope}
+    local sec = scoped_weapon(selected)
+    local old = {}
+    npc:iterate_inventory(function(_, item)
+        if item and ((IsWeapon and IsWeapon(nil, item:clsid())) or (IsAmmo and IsAmmo(nil, item:clsid()))) then
+            old[#old + 1] = item:id()
+        end
+    end, npc)
+    local created = alife_create(sec, npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+    if not created then return false end -- do not destroy the old weapon on failure
+    for _, id in ipairs(old) do alife_release_id(id) end
+    give_ammo(npc, ally, sec) -- a replacement always needs compatible ammunition
+    entry.team_rearmed_wave, entry.ammo_given = wave, true
+    return true
+end
+
 function equip(npc, entry)
     if not entry.team_slot or entry.team_equipped then return end
     local ally = options().allies[entry.team_slot]
+    if options().reroll and xcvb_arena_main.endless_selected_variant == "team" and ally then
+        if not reroll_equipment(npc, entry, ally) then return end
+        entry.team_equipped, entry.ammo_given = true, true
+        return
+    end
     local sec = ally and scoped_weapon(ally)
     if ally and ally.class ~= "default" and sec and ini_sys:section_exist(sec) then
         local old = {}
@@ -109,8 +167,12 @@ function service(npc, entry)
     local o = options()
     local ally = o.allies[entry.team_slot]
     if o.heal then npc.health = 1 end
+    if o.reroll and xcvb_arena_main.endless_selected_variant == "team" and ally then
+        return reroll_equipment(npc, entry, ally)
+    end
     if o.resupply then
         local weapon = npc:best_weapon()
         give_ammo(npc, ally, weapon and weapon:section())
     end
+    return true
 end

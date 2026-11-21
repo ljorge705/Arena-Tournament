@@ -1,0 +1,32 @@
+-- Enumerate the game's merged configuration, including MO2 and DLTX additions.
+local cache = {}
+function options(kind)
+    if cache[kind] then return cache[kind] end
+    local list = {{sec='auto',tier=0,cost_ru=0}}
+    if kind == 'helmet' then list[#list+1]={sec='none',tier=0,cost_ru=0} end
+    local found = {}
+    ini_sys:section_for_each(function(sec)
+        local class = ini_sys:r_string_ex(sec,'class')
+        if not class then return false end
+        class=class:match('^%s*(.-)%s*$')
+        if class~='EQU_STLK' and class~='E_STLK' and class~='EQ_HLMET' and class~='E_HLMET' then return false end
+        local ok, cls = pcall(function() return ini_sys:r_clsid(sec,'class') end)
+        local matches = ok and ((kind=='outfit' and IsOutfit(nil,cls)) or (kind=='helmet' and IsHeadgear(nil,cls)))
+        local cost=tonumber(ini_sys:r_string_ex(sec,'cost')) or 0
+        local visual=ini_sys:r_string_ex(sec,'visual')
+        local name=ini_sys:r_string_ex(sec,'inv_name')
+        if matches and cost>0 and visual and visual~='' and name and name~='' then
+            local tier=math.max(1,math.min(5,tonumber(ini_sys:r_string_ex(sec,'tier')) or math.ceil(cost/40000)))
+            found[#found+1]={sec=sec,tier=tier,cost_ru=math.max(100,math.floor(cost*.05/100+.5)*100),label=game.translate_string(name)}
+        end
+        return false -- Monolith stops enumeration on true.
+    end)
+    table.sort(found,function(a,b) if a.label==b.label then return a.sec<b.sec end return a.label<b.label end)
+    for _, item in ipairs(found) do list[#list+1]=item end
+    cache[kind]=list
+    return list
+end
+function fee(kind,sec)
+    for _, entry in ipairs(options(kind)) do if entry.sec==sec then return entry.cost_ru end end
+    return kind=='outfit' and 1500 or 1000
+end

@@ -31,10 +31,13 @@ endless_selected_variant = "classic"
 endless_team_options = xcvb_arena_team.normalize(nil)
 faction_battle_options = xcvb_arena_factions.normalize(nil)
 endless_artigrok_ammo = false
+personal_equipment = false
+personal_loadout_options = {ammo=false, meds=false, grenades=false}
 endless_3dssg = false
 endless_weapon_class = "all"
 endless_escalation_mode = false
 endless_spawn_grouping = "random"
+endless_aggressive_ai = false
 practice_mode_active = false
 night_mode_active = false
 night_mode_saved_time = nil
@@ -981,10 +984,14 @@ function save_state(m_data)
 	m_data.xcvb_endless_team_options = endless_team_options
 	m_data.xcvb_faction_battle_options = faction_battle_options
 	m_data.xcvb_endless_artigrok_ammo = endless_artigrok_ammo
+	xcvb_arena_artigrok.save_state(m_data)
+	m_data.xcvb_personal_loadout_options = personal_loadout_options
+	m_data.xcvb_personal_equipment = personal_equipment
 	m_data.xcvb_endless_3dssg = endless_3dssg
 	m_data.xcvb_endless_weapon_class = endless_weapon_class
 	m_data.xcvb_endless_escalation_mode = (endless_escalation_mode == true)
 	m_data.xcvb_endless_spawn_grouping = endless_spawn_grouping
+	m_data.xcvb_endless_aggressive_ai = endless_aggressive_ai
 	m_data.xcvb_practice_mode_active = (practice_mode_active == true)
 	m_data.xcvb_night_mode_active = (night_mode_active == true)
 	m_data.xcvb_night_mode_saved_time = night_mode_saved_time
@@ -1013,10 +1020,13 @@ function load_state(m_data)
 	else
 		endless_selected_variant = m_data.xcvb_endless_plus and m_data.xcvb_endless_plus.active == true and "plus" or "classic"
 	end
+	personal_loadout_options = m_data.xcvb_personal_loadout_options or {ammo=false, meds=false, grenades=false}
+	personal_equipment = m_data.xcvb_personal_equipment == true
 	endless_3dssg = m_data.xcvb_endless_3dssg == true
 	endless_weapon_class = m_data.xcvb_endless_weapon_class or "all"
 	endless_escalation_mode = (m_data.xcvb_endless_escalation_mode == true)
 	endless_spawn_grouping = m_data.xcvb_endless_spawn_grouping or "random"
+	endless_aggressive_ai = m_data.xcvb_endless_aggressive_ai == true
 	night_mode_active = (m_data.xcvb_night_mode_active == true)
 	night_mode_saved_time = m_data.xcvb_night_mode_saved_time
 	night_mode_saved_needs = m_data.xcvb_night_mode_saved_needs
@@ -1084,9 +1094,8 @@ function load_state(m_data)
 	endless_checkpoint_type = m_data.xcvb_endless_checkpoint_type or "stalkers"
 	if endless_checkpoint_type == "random" then endless_checkpoint_type = "stalkers" end
 	endless_difficulty = m_data.xcvb_endless_difficulty or "medium"
-	if m_data.xcvb_endless_artigrok_ammo ~= nil then
-		endless_artigrok_ammo = m_data.xcvb_endless_artigrok_ammo
-	end
+	endless_artigrok_ammo = m_data.xcvb_endless_artigrok_ammo == true
+	xcvb_arena_artigrok.load_state(m_data)
 	if m_data.xcvb_practice_mode_active ~= nil then
 		practice_mode_active = (m_data.xcvb_practice_mode_active == true)
 	end

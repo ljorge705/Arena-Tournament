@@ -35,6 +35,11 @@ local defaults = {
 }
 
 function get_config(key)
+    if key == "special_ammo_support" then
+        local bridge = rawget(_G,"xcvb_arena_artigrok")
+        local saved = bridge and bridge.saved_support()
+        if saved ~= nil then return saved end
+    end
 	local val
 	if ui_mcm then
 		pcall(function()
@@ -82,7 +87,6 @@ function on_mcm_load()
 					{ "disabled", "ui_mcm_xcvb_arena_replay_disabled" },
 				}
 			},
-			{ id = "special_ammo_support", type = "check", val = 1, def = true },
 			{ id = "rental_fee_mult", type = "track", val = 2, min = 0.0, max = 3.0, step = 0.1, def = 1.0 },
 			{ id = "auto_reopen_gui", type = "check", val = 1, def = false },
 

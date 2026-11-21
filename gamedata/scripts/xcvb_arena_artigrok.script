@@ -1,0 +1,342 @@
+-- Optional ArtiGrok bridge. No ArtiGrok files or global MCM values are changed.
+local choices = {"off", "player", "allies", "enemies", "player_allies", "player_enemies", "allies_enemies", "all"}
+local groups = {
+    off = {}, player = {player=true}, allies = {allies=true}, enemies = {enemies=true},
+    player_allies = {player=true, allies=true}, player_enemies = {player=true, enemies=true},
+    allies_enemies = {allies=true, enemies=true}, all = {player=true, allies=true, enemies=true}
+}
+local match_options, issued, next_update = nil, {}, 0
+local actor_ammo = {}
+local hooks = {}
+local metadata
+local scopes = setmetatable({}, {__mode="k"})
+
+local function read(ini, sec, key)
+    if not ini or not sec then return nil end
+    local ok, value = pcall(function()
+        if ini:section_exist(sec) then return ini:r_string_ex(sec, key) end
+    end)
+    if ok and value and value ~= "" then return value end
+end
+
+local function ammo_ini()
+    if metadata then return metadata end
+    for _, name in ipairs({"ballistics_mcm", "cxv_artigrok_bo"}) do
+        local mod = rawget(_G, name)
+        if mod and mod.ini_ammo then metadata = mod.ini_ammo; return metadata end
+    end
+    -- Missing ini_file paths can cause a native fatal error, not a Lua error.
+    if getFS and getFS():exist("$game_config$", "ammo\\importer.ltx") then
+        metadata = ini_file("ammo\\importer.ltx")
+    end
+    return metadata
+end
+
+function installed()
+    local ini = ammo_ini()
+    return ini ~= nil and (read(ini, "ammo_9x18_fmj_bad", "special") ~= nil
+        or read(ini, "ammo_23x75_barrikada_bad", "handler") == "cxv_bullet_handlers.napalm")
+end
+
+function normalize(value)
+    value = type(value) == "table" and value or {}
+    return {enabled = value.enabled ~= false, recipients = groups[value.recipients] and value.recipients or "off"}
+end
+
+function saved_support()
+    local value = xcvb_arena_main and xcvb_arena_main.artigrok_options
+    if type(value) == "table" then return value.enabled ~= false end
+end
+
+function options()
+    local value = xcvb_arena_main and xcvb_arena_main.artigrok_options
+    if type(value) == "table" then return normalize(value) end
+    return {enabled = not xcvb_arena_mcm or xcvb_arena_mcm.get_config("special_ammo_support") ~= false,
+        recipients = xcvb_arena_main and xcvb_arena_main.endless_artigrok_ammo and "player" or "off"}
+end
+
+function configure(value)
+    xcvb_arena_main.artigrok_options = normalize(value)
+    xcvb_arena_main.endless_artigrok_ammo = xcvb_arena_main.artigrok_options.recipients == "player"
+end
+
+function next_recipients(value)
+    for i, name in ipairs(choices) do if name == value then return choices[i % #choices + 1] end end
+    return "off"
+end
+
+function begin_match()
+    match_options, issued, next_update = options(), {}, 0
+    actor_ammo = {}
+    install_hooks()
+end
+
+function remember_actor_ammo(id, sec)
+    if id then actor_ammo[id] = sec end
+end
+
+function get_actor_ammo(id) return actor_ammo[id] end
+
+function selected(group)
+    local o = match_options or options()
+    return installed() and o.enabled and groups[o.recipients][group] == true
+end
+
+function compatible(weapon, sec)
+    if not sec or not ini_sys:section_exist(sec) then return false end
+    for candidate in (read(ini_sys, weapon, "ammo_class") or ""):gmatch("[^,]+") do
+        if candidate:match("^%s*(.-)%s*$") == sec then return true end
+    end
+    return false
+end
+
+function special(sec)
+    if not installed() or not sec or not ini_sys:section_exist(sec) then return false end
+    local low = sec:lower()
+    if low:find("verybad",1,true) or low:find("_old",1,true) or low:find("damaged",1,true) then return false end
+    local ini = ammo_ini()
+    if not ini:section_exist(sec) then return false end
+    local effect, second = read(ini,sec,"special"), read(ini,sec,"special_2")
+    local handler = read(ini,sec,"handler")
+    if (effect and effect ~= "0" and effect ~= "none") or (second and second ~= "0" and second ~= "none") then return true end
+    if handler and handler ~= "arti_handlers.default" and handler ~= "bind_grenade.explode" then return true end
+    -- Several enhanced rounds have ballistic bonuses without elemental effects.
+    return low:find("_bad",1,true) ~= nil and read(ini,sec,"name") ~= nil
+        or low:find("mono",1,true) ~= nil or low:find("+",1,true) ~= nil
+end
+
+function catalog(weapon)
+    local list, seen = {}, {}
+    if not installed() then return list end
+    for sec in (read(ini_sys,weapon,"ammo_class") or ""):gmatch("[^,]+") do
+        sec = sec:match("^%s*(.-)%s*$")
+        if not seen[sec] and special(sec) then seen[sec]=true; list[#list+1]=sec end
+    end
+    return list
+end
+
+function damaged(sec)
+    if not sec then return true end
+    local low = sec:lower()
+    return low:find("verybad",1,true) ~= nil or low:find("_old",1,true) ~= nil
+        or low:find("damaged",1,true) ~= nil
+        or (low:find("_bad",1,true) ~= nil and not special(sec))
+end
+
+function effect_text(sec)
+    local result, seen = {}, {}
+    for _, field in ipairs({"special", "special_2"}) do
+        local effect = read(ammo_ini(), sec, field)
+        if effect and effect ~= "0" and not seen[effect] then
+            local key = "st_ballistics_" .. effect
+            local label = game.translate_string(key)
+            if label and label ~= key and label ~= "" then
+                local amount_key = ({fire="burn_stacks", shock="shock_stacks", frag="frag", flinch="flinch"})[effect]
+                local amount = amount_key and read(ammo_ini(),sec,amount_key)
+                result[#result+1] = (amount and (amount .. " ") or "") .. label
+                seen[effect]=true
+            end
+        end
+    end
+    return table.concat(result, " / ")
+end
+
+-- baseline is the mode's original conventional selection. A forced special
+-- section is accepted only when both the recipient and weapon are eligible.
+function resolve(weapon, group, baseline, preferred)
+    if not installed() then return baseline end
+    if selected(group) then
+        if compatible(weapon,preferred) and special(preferred) then return preferred end
+        local list = catalog(weapon)
+        if #list > 0 then return list[math.random(#list)] end
+    end
+    if compatible(weapon,baseline) and not special(baseline) and not damaged(baseline) then return baseline end
+    return xcvb_arena_utils.get_weapon_ammo(weapon,"fmj")
+end
+
+local function combat()
+    return match_options ~= nil and xcvb_arena_runtime and xcvb_arena_runtime.combat_active()
+        and xcvb_arena_fight.is_artigrok_match_active()
+end
+
+function role(id)
+    if not combat() then return nil end
+    if db.actor and id == db.actor:id() then return "player" end
+    if xcvb_arena_companions and xcvb_arena_companions.is_companion(id) then return "allies" end
+    local registry = xcvb_arena_utils.arena_spawned_combatant_ids or {}
+    if not registry[id] then return nil end
+    local npc = level.object_by_id(id)
+    if not npc or not IsStalker(npc) then return nil end
+    if xcvb_arena_main.endless_selected_variant == "factions" and xcvb_arena_fight.is_endless_active() then
+        local team = xcvb_arena_factions.team_id(id)
+        if team == 1 then return "allies" end
+    end
+    return "enemies"
+end
+
+local function eligible(id)
+    local group = role(id)
+    return group and group ~= "player" and selected(group)
+end
+
+-- LuaJIT 5.1: preserve nils, multiple results, errors and nested overrides.
+local function pack(...) return {n=select("#",...), ...} end
+local function scoped(owner, enabled, fn, ...)
+    local old_effects, old_special = owner.npc_effects, owner.npc_use_special
+    local parent = scopes[owner]
+    scopes[owner] = parent or {effects=old_effects, special=old_special}
+    if enabled == nil then
+        owner.npc_effects, owner.npc_use_special = scopes[owner].effects, scopes[owner].special
+    else owner.npc_effects, owner.npc_use_special = enabled, enabled end
+    local result = pack(pcall(fn,...))
+    owner.npc_effects, owner.npc_use_special = old_effects, old_special
+    scopes[owner] = parent
+    if not result[1] then error(result[2],0) end
+    return unpack(result,2,result.n)
+end
+
+local function hook(owner, name, wrap)
+    if not owner or type(owner[name]) ~= "function" then return end
+    local key = tostring(owner) .. ":" .. name
+    local old = hooks[key]
+    if old and owner[name] == old.wrapper then return end
+    local original = owner[name]
+    local wrapper = wrap(original)
+    owner[name] = wrapper
+    hooks[key] = {wrapper=wrapper}
+end
+
+function install_hooks()
+    if not installed() then return end
+    local bo = rawget(_G,"cxv_artigrok_bo")
+    for _, name in ipairs({"npc_on_before_hit", "mutant_on_before_hit"}) do
+        hook(bo,name,function(original)
+            return function(target, shot, ...)
+                local shooter = shot and shot.draftsman
+                local group = shooter and role(shooter:id())
+                if group and group ~= "player" then
+                    return scoped(bo,selected(group),original,target,shot,...)
+                end
+                if scopes[bo] then return scoped(bo,nil,original,target,shot,...) end
+                return original(target,shot,...)
+            end
+        end)
+    end
+    hook(bo,"trigger_handler",function(original)
+        return function(bullet,...)
+            local group = bullet and role(bullet.parent_id)
+            if group and group ~= "player" then return scoped(bo,selected(group),original,bullet,...) end
+            if scopes[bo] then return scoped(bo,nil,original,bullet,...) end
+            return original(bullet,...)
+        end
+    end)
+    -- The supplied ArtiGrok bullet_on_impact ignores non-player bullets.
+    -- Its remove callback already handles every bullet through trigger_handler.
+    local arti = rawget(_G,"arti_ammo_utils")
+    hook(arti,"process_wpn",function(original)
+        return function(weapon,...)
+            local parent = weapon and weapon:parent()
+            if parent and eligible(parent:id()) then return end
+            return original(weapon,...)
+        end
+    end)
+end
+
+local function issue(npc)
+    if not npc or not npc:alive() or not IsStalker(npc) then return end
+    local group = role(npc:id())
+    if group ~= "allies" and group ~= "enemies" then return end
+    local weapon = npc:best_weapon()
+    if not weapon or not weapon.set_ammo_type then return end
+    local id = weapon:id()
+    local sec = weapon:section()
+    local ammo = resolve(sec,group,xcvb_arena_utils.get_weapon_ammo(sec,"fmj"),issued[id])
+    if not ammo then return end
+    local index, current, compatible_set = nil, nil, {}
+    local current_index = weapon:get_ammo_type()
+    local cast = weapon.cast_Weapon and weapon:cast_Weapon()
+    if cast and cast.AmmoTypeForEach then
+        cast:AmmoTypeForEach(function(i,s)
+            compatible_set[s]=true; if s==ammo and index == nil then index=i end
+            if i==current_index then current=s end
+        end)
+    else
+        local i=0
+        for s in (read(ini_sys,sec,"ammo_class") or ""):gmatch("[^,]+") do
+            s=s:match("^%s*(.-)%s*$"); compatible_set[s]=true
+            if s==ammo and index == nil then index=i end
+            if i==current_index then current=s end
+            i=i+1
+        end
+    end
+    if index == nil then return end
+    if not selected(group) and not special(current) then return end
+    if issued[id] == ammo and current == ammo then return end
+    -- Create first; a failed spawn must leave the current inventory untouched.
+    local supply = alife_create(ammo,npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id())
+    if not supply then return end
+    local remove = {}
+    npc:iterate_inventory(function(_,item)
+        if item and item:section() ~= ammo and compatible_set[item:section()] then remove[#remove+1]=item:id() end
+    end,npc)
+    local count = weapon:get_ammo_in_magazine()
+    local ok = pcall(function()
+        weapon:set_ammo_elapsed(0); weapon:set_ammo_type(index); weapon:set_ammo_elapsed(count)
+    end)
+    if not ok then
+        pcall(function()
+            weapon:set_ammo_elapsed(0); weapon:set_ammo_type(current_index); weapon:set_ammo_elapsed(count)
+        end)
+        alife_release_id(supply.id)
+        return
+    end
+    for _, item_id in ipairs(remove) do alife_release_id(item_id) end
+    issued[id] = ammo
+end
+
+function npc_ammo(npc, weapon, baseline)
+    local group = npc and role(npc:id())
+    if group == "allies" or group == "enemies" then
+        local wpn = npc.best_weapon and npc:best_weapon()
+        local previous = wpn and wpn:section() == weapon and issued[wpn:id()] or nil
+        return resolve(weapon,group,baseline,previous)
+    end
+    return baseline
+end
+
+function actor_on_update()
+    if not combat() then return end
+    local now = time_global()
+    if now < next_update then return end
+    next_update = now + 500
+    if not installed() then return end
+    install_hooks()
+    local ids = {}
+    for id in pairs(xcvb_arena_utils.arena_spawned_combatant_ids or {}) do ids[id]=true end
+    if xcvb_arena_companions and xcvb_arena_companions.get_active_companions then
+        for _, entry in ipairs(xcvb_arena_companions.get_active_companions()) do if entry.npc_id then ids[entry.npc_id]=true end end
+    end
+    for id in pairs(ids) do
+        local npc = level.object_by_id(id)
+        if npc then issue(npc) end
+    end
+end
+
+function save_state(data)
+    data.xcvb_artigrok_options = options()
+    data.xcvb_artigrok_match = match_options and normalize(match_options) or nil
+    data.xcvb_artigrok_issued = issued
+    data.xcvb_artigrok_actor_ammo = actor_ammo
+end
+
+function load_state(data)
+    xcvb_arena_main.artigrok_options = nil
+    if data.xcvb_artigrok_options then configure(data.xcvb_artigrok_options) end
+    match_options = data.xcvb_artigrok_match and normalize(data.xcvb_artigrok_match) or options()
+    issued, next_update = type(data.xcvb_artigrok_issued) == "table" and data.xcvb_artigrok_issued or {}, 0
+    actor_ammo = type(data.xcvb_artigrok_actor_ammo) == "table" and data.xcvb_artigrok_actor_ammo or {}
+end
+
+function on_game_start()
+    RegisterScriptCallback("actor_on_update",actor_on_update)
+end

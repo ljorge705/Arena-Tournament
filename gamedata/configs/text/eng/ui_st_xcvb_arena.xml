@@ -2089,9 +2089,6 @@
 	<string id="st_arena_hud_banner_cd_1">
 		<text>Enemies in 1...</text>
 	</string>
-	<string id="st_arena_hud_banner_start">
-		<text>WAVE %d: COMMENCE</text>
-	</string>
 	<string id="st_arena_hud_banner_start_sub">
 		<text>Fight to survive!</text>
 	</string>
@@ -2464,5 +2461,30 @@
 	<string id="ui_mcm_xcvb_arena_mutant_no_wait"><text>No waiting between mutant fights</text></string>
 	<string id="ui_mcm_xcvb_arena_mutant_no_wait_desc"><text>Removes the cooldown between mutant challenges offered by the original arena NPC. Collect your reward before requesting the next fight. Disabled by default.</text></string>
 	<string id="st_arena_manifesto_credit_heading"><text>Give Credit</text></string>
-	<string id="st_arena_manifesto_credit_text"><text>If you edit this code or change parts of the project, always credit the original authors and acknowledge where your inspiration came from. Don't be an asshole.</text></string>
+	<string id="st_arena_manifesto_credit_text"><text>If you copy or modify any code you find online, give credit to the original authors and acknowledge the sources that inspired your work. Respect their licenses and contributions.</text></string>
+	<string id="st_arena_team_reroll">
+		<text>New gear each round: %s</text>
+	</string>
+<string id="st_arena_addon_silencer"><text>Suppressor: %s</text></string>
+<string id="st_arena_addon_launcher"><text>Grenade launcher: %s</text></string>
+<string id="st_arena_addon_grenades"><text>Launcher grenades: %s</text></string>
+	<string id="st_arena_endless_aggression_normal"><text>Enemy aggression: Normal</text></string>
+	<string id="st_arena_endless_aggression_aggressive"><text>Enemy aggression: Direct pursuit</text></string>
+	<string id="st_arena_endless_enter_area"><text>ENTER THE AREA</text></string>
+<string id="st_arena_arti_support"><text>ArtiGrok support</text></string>
+<string id="st_arena_arti_recipients"><text>Recipients</text></string>
+<string id="st_arena_arti_on"><text>ON</text></string>
+<string id="st_arena_arti_off"><text>OFF</text></string>
+<string id="st_arena_arti_disabled"><text>Disabled</text></string>
+<string id="st_arena_arti_player"><text>Only me</text></string>
+<string id="st_arena_arti_allies"><text>Only allies</text></string>
+<string id="st_arena_arti_enemies"><text>Only enemies</text></string>
+<string id="st_arena_arti_player_allies"><text>Me and allies</text></string>
+<string id="st_arena_arti_player_enemies"><text>Me and enemies</text></string>
+<string id="st_arena_arti_allies_enemies"><text>Allies and enemies</text></string>
+<string id="st_arena_arti_all"><text>Everyone</text></string>
+<string id="st_arena_arti_save"><text>Save and return</text></string>
+<string id="st_arena_arti_cancel"><text>Cancel</text></string>
+<string id="st_arena_arti_desc"><text>Shared by Normal and Endless. Applies next match. Controls ammunition issued by Arena; personal equipment is preserved. NPC effects apply only to selected Arena participants.</text></string>
+<string id="st_arena_arti_selected"><text>Selected</text></string>
 </string_table>

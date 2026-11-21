@@ -17,8 +17,15 @@ function contains(pos)
     return pos.x >= 140 and pos.x <= 164 and pos.z >= 78 and pos.z <= 132
         and pos.y >= -23 and pos.y <= -16.5
 end
+-- Spectator fights place the actor on the balcony above the combat floor.
+-- Keep contains() as the physical combatant bounds used by NPC/lighting checks.
+function is_combat_position(pos)
+    if contains(pos) then return true end
+    return allowed() and pos and pos.x >= 140 and pos.x <= 144
+        and pos.z >= 98 and pos.z <= 106 and pos.y >= -15 and pos.y <= -11.5 or false
+end
 function combat_active()
-    if not (db and db.actor and contains(db.actor:position())) then return false end
+    if not (db and db.actor and is_combat_position(db.actor:position())) then return false end
     return xcvb_arena_utils and xcvb_arena_utils.is_any_arena_fight_active() or false
 end
 function generation() return epoch end

@@ -285,6 +285,7 @@ local function safe_equip_gun(gun_obj, preferred_slot)
 end
 
 function equip_endless_loadout(wave, difficulty, use_3dssg)
+    if xcvb_arena_main.personal_equipment then return end
     xcvb_arena_wearable.finish_inspection()
     local cur_wave = wave or 1
     local diff = difficulty or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
@@ -430,7 +431,7 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
             else
                 local ammo_types = { "fmj", "ap", "hp" }
                 chosen_ammo = ammo_types[math.random(#ammo_types)]
-                if xcvb_arena_main and xcvb_arena_main.endless_artigrok_ammo and xcvb_arena_utils.is_artigrok_active() then
+                if xcvb_arena_artigrok.selected("player") then
                     chosen_ammo = "special"
                 end
             end
@@ -442,6 +443,7 @@ function equip_endless_loadout(wave, difficulty, use_3dssg)
                 ammo_sec = xcvb_arena_utils.get_weapon_ammo(wpn_sec, chosen_ammo)
             end
 
+            ammo_sec = xcvb_arena_artigrok.resolve(wpn_sec,"player",ammo_sec, is_custom and custom_loadout.special_ammo_sec or nil)
             if ammo_sec then
                 local num_mags = is_custom and custom_loadout.mag_count or 4
                 local pref_mag = is_custom and custom_loadout.mag_sec or nil

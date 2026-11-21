@@ -93,7 +93,7 @@ function finish()
         xr_effects.bar_arena_teleport_2(db.actor, nil)
     else
         local pos, lvid, gvid = xcvb_arena_utils.get_actor_bar_safe_pos()
-        db.actor:set_actor_position(pos, lvid, gvid)
+        db.actor:set_actor_position(pos, false, false)
         for _, name in ipairs(mutants) do clear("bar_arena_" .. name .. "_choosen") end
         for _, name in ipairs({"1000_r", "2000_r", "3000_r", "5000_r", "20_p", "50_p", "100_p"}) do
             clear("bar_arena_" .. name)

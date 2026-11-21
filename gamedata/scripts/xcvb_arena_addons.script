@@ -1,0 +1,123 @@
+-- Per-weapon arena accessories. Actor and each squad slot have separate presets.
+local presets, completed, pending = {}, {}, {}
+local next_update = 0
+function base(sec)
+    return sec and (ini_sys:r_string_ex(sec, 'parent_section') or sec)
+end
+function selection(owner, sec)
+    owner, sec = tostring(owner or 'actor'), base(sec)
+    presets[owner] = presets[owner] or {}
+    presets[owner][sec] = presets[owner][sec] or {silencer=false, launcher=false, grenades=0}
+    return presets[owner][sec]
+end
+function capabilities(sec)
+    local result = {}
+    if not sec or not ini_sys:section_exist(sec) then return result end
+    for _, kind in ipairs({'silencer','grenade_launcher'}) do
+        local status = tonumber(ini_sys:r_string_ex(sec, kind .. '_status')) or 0
+        local addon = ini_sys:r_string_ex(sec, kind .. '_name')
+        result[kind] = status == 1 or (status == 2 and addon and ini_sys:section_exist(addon)) or false
+        result[kind .. '_fixed'] = status == 1
+        result[kind .. '_name'] = status == 2 and addon or nil
+    end
+    local ammo = ini_sys:r_string_ex(sec, 'grenade_class') or ''
+    result.ammo = ammo:match('^%s*([^,%s]+)')
+    if result.ammo and not ini_sys:section_exist(result.ammo) then result.ammo=nil end
+    return result
+end
+local function track(se, actor_owned)
+    if se and actor_owned then xcvb_arena_utils.temporary_arena_item_ids[se.id] = true end
+end
+local function attach(owner, weapon, kind, section, state, actor_owned)
+    local attached = kind == 'silencer' and weapon:weapon_is_silencer() or
+        kind == 'launcher' and weapon:weapon_is_grenadelauncher()
+    if attached then return true end
+    if not section then return false end
+    local id = state[kind]
+    if not id then
+        local se = alife_create(section, owner:position(), owner:level_vertex_id(), owner:game_vertex_id(), owner:id())
+        if not se then return false end
+        track(se, actor_owned); state[kind] = se.id; return false
+    end
+    local addon = level.object_by_id(id)
+    if not addon then return false end
+    weapon:weapon_addon_attach(addon)
+    return kind == 'silencer' and weapon:weapon_is_silencer() or
+        kind == 'launcher' and weapon:weapon_is_grenadelauncher()
+end
+function apply(owner, weapon, key, actor_owned)
+    local token = tostring(owner:id()) .. ':' .. tostring(weapon:id()) .. ':' .. weapon:section()
+    if completed[token] then return end
+    local opts = selection(key, weapon:section())
+    if not opts.silencer and not opts.launcher then completed[token]=true; return end
+    local cap = capabilities(weapon:section())
+    local state = pending[token]
+    if not state then pending[token]={after=time_global()+1200, attempts=0}; return end
+    if time_global() < state.after then return end
+    state.attempts = state.attempts + 1
+    local ready = true
+    if opts.silencer and cap.silencer and not cap.silencer_fixed then
+        ready = attach(owner, weapon, 'silencer', cap.silencer_name, state, actor_owned) and ready
+    end
+    if opts.launcher and cap.grenade_launcher then
+        local fitted = cap.grenade_launcher_fixed or attach(owner, weapon, 'launcher', cap.grenade_launcher_name, state, actor_owned)
+        ready = fitted and ready
+        if fitted and cap.ammo and not state.ammo then
+            local remaining = math.max(0, math.min(20, math.floor(tonumber(opts.grenades) or 0)))
+            local box = math.max(1, tonumber(ini_sys:r_string_ex(cap.ammo,'box_size')) or 1)
+            while remaining > 0 do
+                local count = math.min(box, remaining)
+                local se = alife():create_ammo(cap.ammo, owner:position(), owner:level_vertex_id(), owner:game_vertex_id(), owner:id(), count)
+                if not se then break end
+                track(se, actor_owned); remaining = remaining - count
+            end
+            state.ammo = true
+        end
+    end
+    if ready or state.attempts >= 10 then
+        completed[token] = true; pending[token] = nil
+        -- Clean up addons that were refused by the engine.
+        for _, kind in ipairs({'silencer','launcher'}) do
+            if state[kind] and alife_object(state[kind]) then alife_release_id(state[kind]) end
+        end
+    end
+end
+function actor_on_update()
+    if xcvb_arena_runtime and not xcvb_arena_runtime.allowed() then return end
+    if time_global() < next_update then return end
+    next_update=time_global()+500
+    if not db.actor then return end
+    local original = xcvb_arena_original_rescue and xcvb_arena_original_rescue.active()
+    if not original and not (xcvb_arena_fight and xcvb_arena_fight.is_fight_in_progress()) then return end
+    for token in pairs(completed) do
+        local id=tonumber(token:match('^%d+:(%d+):'))
+        if id and not alife_object(id) then completed[token]=nil end
+    end
+    local tracked=xcvb_arena_utils.temporary_arena_item_ids or {}
+    db.actor:iterate_inventory(function(_, item)
+        if item and IsWeapon(nil,item:clsid()) and
+            (tracked[item:id()] or original or xcvb_arena_main.personal_equipment) then
+            apply(db.actor,item,'actor',true)
+        end
+    end, db.actor)
+    for _, entry in ipairs(xcvb_arena_companions.get_active_companions()) do
+        local npc=entry.team_slot and entry.npc_id and level.object_by_id(entry.npc_id)
+        if npc and npc:alive() then
+            npc:iterate_inventory(function(_, item)
+                if item and IsWeapon(nil,item:clsid()) then apply(npc,item,entry.team_slot,false) end
+            end,npc)
+        end
+    end
+end
+function save_state(data) data.xcvb_arena_addons={presets=presets, completed=completed, pending=pending} end
+function load_state(data)
+    local saved=data.xcvb_arena_addons or {}
+    presets,completed,pending=saved.presets or {},saved.completed or {},saved.pending or {}
+    for _, state in pairs(pending) do state.after = time_global()+1200 end
+    next_update=0
+end
+function on_game_start()
+    RegisterScriptCallback('actor_on_update',actor_on_update)
+    RegisterScriptCallback('save_state',save_state)
+    RegisterScriptCallback('load_state',load_state)
+end

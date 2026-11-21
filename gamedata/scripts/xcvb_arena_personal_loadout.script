@@ -1,0 +1,155 @@
+-- Personal supplies are measured once at entry, never from arena rental items.
+local baseline, pending = nil, {}
+local next_update = 0
+
+function options()
+    local main = xcvb_arena_main
+    main.personal_loadout_options = main.personal_loadout_options or {}
+    return main.personal_loadout_options
+end
+
+local function param(sec, key, fallback)
+    return SYS_GetParam(0, sec, key, fallback) or fallback
+end
+
+local function category(sec)
+    local kind = param(sec, 'kind', '')
+    if sec:find('^ammo_') or kind == 'w_ammo' then return 'ammo' end
+    if sec:find('^grenade_') then return 'grenades' end
+    if kind == 'i_medical' then return 'meds' end
+    if kind == '' and (sec:find('^medkit') or sec:find('^bandage') or sec:find('^antirad')
+        or sec:find('^drug_') or sec:find('^stimpack')) then return 'meds' end
+end
+
+local function units(obj, cat)
+    if cat == 'ammo' then return obj:ammo_get_count() end
+    if cat == 'meds' and obj.get_remaining_uses then
+        local ok, value = pcall(obj.get_remaining_uses, obj)
+        if ok and value and value >= 0 then return value end
+    end
+    return 1
+end
+
+local function add(out, cat, sec, count)
+    if count and count > 0 then out[cat][sec] = (out[cat][sec] or 0) + count end
+end
+
+-- Count loose and loaded bullets together: reloading must not generate supplies.
+function count_supplies()
+    local out = {ammo={}, meds={}, grenades={}}
+    if not db.actor then return out end
+    db.actor:iterate_inventory(function(_, obj)
+        if not obj or pending[obj:id()] then return end
+        local sec = obj:section()
+        local cat = category(sec)
+        if cat then add(out, cat, sec, units(obj, cat)); return end
+        local data
+        if magazine_binder and magazine_binder.get_data then
+            local ok, value = pcall(magazine_binder.get_data, obj:id())
+            if ok then data = value end
+        end
+        local loaded = data and data.loaded
+        if type(loaded) == 'table' then
+            for _, ammo in ipairs(loaded) do
+                if type(ammo) == 'string' then add(out, 'ammo', ammo, 1) end
+            end
+        end
+        if IsWeapon and IsWeapon(obj) and obj.get_ammo_in_magazine then
+            local count = obj:get_ammo_in_magazine()
+            -- Magazine binders can mirror the same weapon bullets in loaded[].
+            count = math.max(0, count - (type(loaded) == 'table' and #loaded or 0))
+            local sections = {}
+            for ammo in string.gmatch(param(sec, 'ammo_class', ''), '[^,%s]+') do sections[#sections+1] = ammo end
+            local ok, index = pcall(function() return obj:get_ammo_type() end)
+            local ammo = sections[(ok and index or 0)+1]
+            if ammo then add(out, 'ammo', ammo, count) end
+        end
+    end, db.actor)
+    for _, receipt in pairs(pending) do add(out, receipt.cat, receipt.sec, receipt.count) end
+    return out
+end
+
+function capture()
+    if not xcvb_arena_main.personal_equipment then baseline = nil; return end
+    process_pending()
+    baseline = count_supplies()
+end
+
+-- Keep receipts until the newly spawned object is online and its exact portions
+-- are set. Receipts also prevent duplicate grants across save/load or callbacks.
+function process_pending()
+    if not db.actor then return end
+    for id, receipt in pairs(pending) do
+        local obj = db.actor:object_id(id)
+        if obj then
+            local ok = true
+            if receipt.cat == 'ammo' then
+                ok = pcall(function() obj:ammo_set_count(receipt.count) end)
+            elseif receipt.cat == 'meds' and obj.set_remaining_uses then
+                ok = pcall(function() obj:set_remaining_uses(receipt.count) end)
+            end
+            if ok then pending[id] = nil end
+        elseif alife_object and not alife_object(id) then
+            pending[id] = nil
+        end
+    end
+end
+
+local function grant(cat, sec, count)
+    local actor = db.actor
+    local obj
+    if cat == 'ammo' then
+        local created = create_ammo(sec, actor:position(), actor:level_vertex_id(), actor:game_vertex_id(), actor:id(), count)
+        obj = created and created[1]
+    else
+        obj = alife_create(sec, actor:position(), actor:level_vertex_id(), actor:game_vertex_id(), actor:id())
+    end
+    if not obj then return false end
+    pending[obj.id] = {cat=cat, sec=sec, count=count}
+    return true
+end
+
+function restore()
+    if not (xcvb_arena_main.personal_equipment and baseline and db.actor) then return end
+    process_pending()
+    local current, enabled = count_supplies(), options()
+    for _, cat in ipairs({'ammo', 'meds', 'grenades'}) do
+        if enabled[cat] == true then
+            for sec, target in pairs(baseline[cat] or {}) do
+                if ini_sys:section_exist(sec) then
+                    local missing = math.max(0, target - (current[cat][sec] or 0))
+                    local cap = cat == 'ammo' and math.max(1, SYS_GetParam(2, sec, 'box_size', 1))
+                        or cat == 'meds' and math.max(1, SYS_GetParam(2, sec, 'max_uses', 1)) or 1
+                    while missing > 0 do
+                        local count = math.min(missing, cap)
+                        if not grant(cat, sec, count) then break end
+                        missing = missing - count
+                    end
+                end
+            end
+        end
+    end
+end
+
+function save_state(data)
+    data.xcvb_personal_supply_baseline = baseline
+    data.xcvb_personal_supply_pending = pending
+end
+
+function load_state(data)
+    baseline = data.xcvb_personal_supply_baseline
+    pending = data.xcvb_personal_supply_pending or {}
+    next_update = 0
+end
+
+function actor_on_update()
+    if not next(pending) then return end
+    local now = time_global()
+    if now < next_update then return end
+    next_update = now + 250
+    process_pending()
+end
+
+function on_game_start()
+    RegisterScriptCallback('actor_on_update', actor_on_update)
+end

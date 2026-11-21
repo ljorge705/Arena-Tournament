@@ -144,7 +144,7 @@ end
 -- HIRE / FIRE
 -- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-local function hire_companion_internal(def_idx, team_spawn, team_slot)
+local function hire_companion_internal(def_idx, team_spawn, team_slot, team_wave)
     local gt = game.translate_string
     local def = companion_defs[def_idx]
     if not def then
@@ -273,6 +273,7 @@ local function hire_companion_internal(def_idx, team_spawn, team_slot)
         def_idx  = def_idx,
         rank     = def.rank,
         team_slot = team_slot,
+        team_wave = team_wave or 1,
     }
     table.insert(active_companions, entry)
     refresh_companion_id_cache()
@@ -304,7 +305,7 @@ function hire_companion(def_idx)
     return hire_companion_internal(def_idx, false)
 end
 
-function ensure_team_companions(initial)
+function ensure_team_companions(initial, wave)
     local main = xcvb_arena_main
     if not main or main.endless_selected_variant ~= "team" and main.endless_selected_variant ~= "factions" then return end
     local o = xcvb_arena_team.options()
@@ -333,12 +334,15 @@ function ensure_team_companions(initial)
     end
     for _, entry in ipairs(active_companions) do
         if not initial then entry.native_refresh_pending = true end
-        if entry.team_slot and not initial then entry.team_service_pending = true end
+        if entry.team_slot then
+            entry.team_wave = wave or entry.team_wave or 1
+            if not initial then entry.team_service_pending = true end
+        end
     end
     if not initial and not o.replenish then return end
     for slot = 1, target_count do
         if not occupied[slot] then
-            local ok, err = hire_companion_internal(o.allies[slot].rank, true, slot)
+            local ok, err = hire_companion_internal(o.allies[slot].rank, true, slot, wave)
             if not ok then
                 if db.actor then news_manager.send_tip(db.actor, err, 0, nil, 5000) end
                 break
@@ -406,6 +410,7 @@ function _setup_single_companion_ai(entry, enemy_squad_ids)
     if not (npc and npc:alive()) then xcvb_arena_companion_orders.release(entry.npc_id);return false end
 
     -- 1. Ensure squad and NPC are registered in axr_companions
+    local native_ready = false
     local squad = entry.squad_id and alife_object(entry.squad_id)
     if squad then
         squad.player_id = xcvb_arena_factions.actor_faction()
@@ -426,9 +431,14 @@ function _setup_single_companion_ai(entry, enemy_squad_ids)
             se_save_var(se_npc.id, se_npc:name(), "companion_cannot_dismiss", true)
             se_save_var(se_npc.id, se_npc:name(), "companion_cannot_teleport", nil)
         end
-        if not xcvb_arena_companion_orders.initialize(npc, entry.native_refresh_pending) then return false end
-        entry.native_refresh_pending = nil
-        xcvb_arena_companion_orders.update_follow(npc)
+        native_ready = xcvb_arena_companion_orders.initialize(npc, entry.native_refresh_pending)
+        if native_ready then
+            entry.native_refresh_pending = nil
+            if not entry.initial_orders_set then
+                entry.initial_orders_set = xcvb_arena_companion_orders.start_combat_duty(npc)
+            end
+            xcvb_arena_companion_orders.update_follow(npc)
+        end
     end
 
     -- 2. Prevent companion from leaving the arena
@@ -446,11 +456,15 @@ function _setup_single_companion_ai(entry, enemy_squad_ids)
         end)
     end
 
+    -- Apply mutual hostility even when the companion scheme or loadout is still pending.
+    _engage_companion_with_enemies(npc, enemy_squad_ids)
+    if not native_ready or not entry.initial_orders_set then return false end
+
     if entry.team_slot then
         xcvb_arena_team.equip(npc, entry)
         if not entry.team_equipped then return false end
         if entry.team_service_pending then
-            xcvb_arena_team.service(npc, entry)
+            if xcvb_arena_team.service(npc, entry) == false then return false end
             entry.team_service_pending = nil
         end
     end
@@ -465,7 +479,8 @@ function _setup_single_companion_ai(entry, enemy_squad_ids)
                 local first_ammo = str_explode(a_cls, ",")[1]
                 if first_ammo and ini_sys:section_exist(trim(first_ammo)) then
                     local ammo_sec = trim(first_ammo)
-                    if not entry.ammo_given then
+                    ammo_sec = xcvb_arena_artigrok.npc_ammo(npc,bw:section(),ammo_sec)
+                    if ammo_sec and not entry.ammo_given then
                         for _ = 1, 4 do
                             alife_create(ammo_sec, npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
                         end
@@ -476,8 +491,6 @@ function _setup_single_companion_ai(entry, enemy_squad_ids)
         end)
     end
 
-    -- 5. Engage against enemies
-    _engage_companion_with_enemies(npc, enemy_squad_ids)
     return true
 end
 
@@ -541,6 +554,7 @@ function _engage_companion_with_enemies(npc, enemy_squad_ids)
             e_obj:force_set_goodwill(-5000, npc)
         end)
     end
+    xcvb_arena_companion_orders.alert_to_visible_enemy(npc, enemies)
 end
 
 -- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -798,7 +812,10 @@ function save_state(m_data)
                 team_slot = entry.team_slot,
                 team_equipped = entry.team_equipped,
                 ammo_given = entry.ammo_given,
+                initial_orders_set = entry.initial_orders_set,
                 team_service_pending = entry.team_service_pending,
+                team_wave = entry.team_wave,
+                team_rearmed_wave = entry.team_rearmed_wave,
             })
         end
     end
@@ -821,7 +838,10 @@ function load_state(m_data)
                     team_slot = entry.team_slot,
                     team_equipped = entry.team_equipped,
                     ammo_given = entry.ammo_given,
+                    initial_orders_set = entry.initial_orders_set,
                     team_service_pending = entry.team_service_pending,
+                team_wave = entry.team_wave,
+                team_rearmed_wave = entry.team_rearmed_wave,
                 })
             end
         end

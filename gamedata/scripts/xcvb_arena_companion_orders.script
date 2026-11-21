@@ -24,6 +24,39 @@ function initialize(npc, refresh)
     return true
 end
 
+-- Set the starting combat order once per arena recruit. Player orders take over afterwards.
+function start_combat_duty(npc)
+    return pcall(function()
+        if axr_companions.set_companion_to_attack_state then
+            axr_companions.set_companion_to_attack_state(npc)
+        else
+            npc:disable_info_portion("npcx_beh_ignore_combat")
+            npc:disable_info_portion("npcx_beh_ignore_actor_enemies")
+        end
+        if npc:has_info("npcx_beh_wait") or npc:has_info("npcx_beh_hide_in_cover")
+            or npc:has_info("npcx_beh_patrol_mode") then
+            if axr_companions.set_companion_to_follow_state then
+                axr_companions.set_companion_to_follow_state(npc)
+            end
+        end
+    end)
+end
+
+function alert_to_visible_enemy(npc, enemies)
+    if not (npc.register_in_combat and npc.see and IsStalker and IsStalker(npc)) then return end
+    pcall(function()
+        if npc:has_info("npcx_beh_ignore_combat") or npc:has_info("npcx_beh_ignore_actor_enemies")
+            or xcvb_arena_utils.is_npc_wounded(npc) then return end
+        if npc:best_enemy() then return end
+        for _, enemy in ipairs(enemies) do
+            if npc:see(enemy) then
+                npc:register_in_combat()
+                return
+            end
+        end
+    end)
+end
+
 -- Keep native follow destinations and orders; only tighten the formation across floors.
 function restore_follow(id)
     local saved=follow[id]

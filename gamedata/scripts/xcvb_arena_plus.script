@@ -186,6 +186,13 @@ local function set_health(cap, heal, amount)
     end
 end
 
+-- New supplies follow the match policy; refunds preserve their original type.
+local function arena_supply_ammo(sec, kind)
+    local baseline = xcvb_arena_utils.get_weapon_ammo(sec,kind)
+    if xcvb_arena_artigrok then return xcvb_arena_artigrok.resolve(sec,"player",baseline) end
+    return baseline
+end
+
 local function grant(sec, count)
     assert(sec and ini_sys:section_exist(sec), "Endless+: unavailable supply " .. tostring(sec))
     local obj
@@ -230,7 +237,7 @@ local function deliver_round_supply()
     if not receipt or receipt.delivered then return end
     if not receipt.sec then
         local w = weapon()
-        local ammo = w and xcvb_arena_utils.get_weapon_ammo(w:section(), "fmj")
+        local ammo = w and arena_supply_ammo(w:section(), "fmj")
         if not ammo then receipt.delivered, receipt.skipped = true, true; return end
         receipt.sec = ammo
         receipt.count = periodic_amount(xcvb_arena_utils.get_weapon_class(w:section()), state.difficulty)
@@ -330,7 +337,7 @@ local function edit_rounds(fill)
             if type(data) == "table" and data.section ~= "no_mag" then
                 data.loaded = data.loaded or {}
                 if fill then
-                    local ammo = data.loaded[1] or xcvb_arena_utils.get_weapon_ammo(w:section(), "auto")
+                    local ammo = data.loaded[1] or arena_supply_ammo(w:section(), "auto")
                     local cap = SYS_GetParam(2, data.section, "max_mag_size", 1)
                     for i = #data.loaded + 1, cap do data.loaded[i] = ammo end
                 else
@@ -343,7 +350,7 @@ local function edit_rounds(fill)
         local current = w:get_ammo_in_magazine()
         w:set_ammo_elapsed(fill and SYS_GetParam(2, w:section(), "ammo_mag_size", current) or math.ceil(current / 2))
         if fill then
-            grant_ammo(xcvb_arena_utils.get_weapon_ammo(w:section(), "auto"), budgets[xcvb_arena_utils.get_weapon_class(w:section())] or 60)
+            grant_ammo(arena_supply_ammo(w:section(), "auto"), budgets[xcvb_arena_utils.get_weapon_class(w:section())] or 60)
         end
     end
     refresh(w)
@@ -712,7 +719,7 @@ local function replace_weapon(candidate, worn)
     -- Allocate the replacement before releasing the old supply. All new IDs
     -- are immediately owned by the arena, including during async materialization.
     local sec, cls = candidate.sec, candidate.class
-    local id = grant(sec); local ammo = assert(xcvb_arena_utils.get_weapon_ammo(sec, "auto"))
+    local id = grant(sec); local ammo = assert(arena_supply_ammo(sec, "auto"))
     local budget = budgets[cls] or 60
     if worn then budget = math.floor(budget * 1.5) end
     if contract then budget = math.max(1, math.floor(budget * contract.ammo)) end
@@ -862,7 +869,7 @@ function choose(id, candidate_index)
                     end
                 end
             end
-            if id == "supply_ammo" then grant_ammo(xcvb_arena_utils.get_weapon_ammo(w:section(), "auto"), roll.count)
+            if id == "supply_ammo" then grant_ammo(arena_supply_ammo(w:section(), "auto"), roll.count)
             else
                 local mid = grant(roll.sec)
                 magazine_binder.set_data(mid, {section = roll.sec, loaded = {}, is_weapon = false})
@@ -912,7 +919,7 @@ function choose(id, candidate_index)
         elseif id == "recycle_meds" then
             local items = inventory_sections("bandage"); release(items[1]:id()); release(items[2]:id())
             local w = assert(weapon())
-            grant_ammo(xcvb_arena_utils.get_weapon_ammo(w:section(), "auto"), math.max(1,
+            grant_ammo(arena_supply_ammo(w:section(), "auto"), math.max(1,
                 math.floor((budgets[xcvb_arena_utils.get_weapon_class(w:section())] or 60) / 4)))
         elseif id == "recycle_ammo" then
             halve_loose(weapon()); grant("medkit"); grant("bandage"); grant("bandage")
@@ -921,14 +928,14 @@ function choose(id, candidate_index)
         elseif id == "cache" then
             local w = assert(weapon())
             local count = math.max(1, math.floor((budgets[xcvb_arena_utils.get_weapon_class(w:section())] or 60) * state.rolls.cache.percent / 100))
-            grant_ammo(xcvb_arena_utils.get_weapon_ammo(w:section(), "auto"), count)
+            grant_ammo(arena_supply_ammo(w:section(), "auto"), count)
             state.reward_mult = free and 1 or 0.75
         elseif id == "gun_service" then
             set_weapon_condition(weapon(), 1); if not free then edit_rounds(false) end
         elseif id == "armour_service" then
             db.actor:item_in_slot(7):set_condition(1); state.extra = free and 0 or 3
         elseif id == "scavenged" then
-            local w = assert(weapon()); local ammo = xcvb_arena_utils.get_weapon_ammo(w:section(), "auto")
+            local w = assert(weapon()); local ammo = arena_supply_ammo(w:section(), "auto")
             local supplies = {}
             for _, mag in ipairs(state.rolls.scavenged.mags) do
                 local mid = grant(mag.sec)

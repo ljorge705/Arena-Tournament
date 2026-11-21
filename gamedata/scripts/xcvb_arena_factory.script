@@ -224,26 +224,28 @@ function get_companion_spawn(index)
     if selected then return selected.pos,selected.lvid,selected.gvid end
 end
 
-function get_endless_positions(count)
+function get_endless_positions(count, force_grouped)
     if xcvb_arena_main.selected_map == "backrooms" and xcvb_arena_backrooms_pressure.active() then
         return xcvb_arena_backrooms_pressure.positions(count)
     end
     local actor = db.actor and db.actor:position()
     if not actor or not count or count < 1 then return {} end
+    local grouped = force_grouped == true or xcvb_arena_main.endless_spawn_grouping == "together"
+    local map_data = data()
     local candidates = {}
-    for _,point in ipairs(data().factory_pool) do
+    for _,point in ipairs(map_data.factory_pool) do
         local dx,dz = point.x-actor.x,point.z-actor.z
         -- A different floor does not make a spawn horizontally distant.
         -- Recompute from the live actor position for every wave.
         local distance = math.sqrt(dx*dx+dz*dz)
-        if distance >= 22 and (data() ~= xcvb_arena_backrooms_data or distance <= 42) and spawn_clear(point) then
+        if distance >= 22 and (map_data ~= xcvb_arena_backrooms_data or distance <= 42) and spawn_clear(point) then
             local floor_distance=math.abs(point.y-actor.y)
             candidates[#candidates+1]={point=point,distance=distance,
                 band=floor_distance<0.5 and 1 or (floor_distance<4.5 and 2 or 3),noise=math.random()}
         end
     end
-    table.sort(candidates,function(a,b) return a.distance>b.distance end)
-    if xcvb_arena_main.endless_spawn_grouping == "together" and candidates[1] then
+    if grouped and candidates[1] then
+        table.sort(candidates,function(a,b) return a.distance>b.distance end)
         local anchor = candidates[1].point
         for _,candidate in ipairs(candidates) do
             if candidate.band==1 then anchor=candidate.point;break end
@@ -255,7 +257,6 @@ function get_endless_positions(count)
             return score(a)<score(b)
         end)
     end
-    local grouped=xcvb_arena_main.endless_spawn_grouping == "together"
     if not grouped then
         -- Roughly half the pressure comes from the player's own floor; the
         -- rest approaches through adjacent stairs. Do not strand a small wave
@@ -270,7 +271,7 @@ function get_endless_positions(count)
             if math.abs(p.y-entry.pos.y)<0.5 and (p.x-entry.pos.x)^2+(p.z-entry.pos.z)^2<spacing^2 then return false end
         end
         local pos,lvid,gvid=resolve(candidate.point)
-        if not pos then return false end
+        if not pos or used[lvid] or (pos.x-actor.x)^2+(pos.z-actor.z)^2 < 22^2 then return false end
         result[#result+1]={pos=pos,lvid=lvid,gvid=gvid};used[lvid]=true
         return true
     end
@@ -330,10 +331,8 @@ function prepare_npc(npc)
     end
     if target and current then
         local dx,dz = current.x-target.pos.x,current.z-target.pos.z
-        local actor=db.actor and db.actor:position()
-        local relocated_near_actor=actor and (current.x-actor.x)^2+(current.z-actor.z)^2<22^2
-            and dx*dx+dz*dz>9
-        if not contains(current) or stranded or relocated_near_actor or (dx*dx+dz*dz<4 and math.abs(current.y-target.pos.y)>0.8) then
+        -- Ordinary approach movement is not a broken spawn.
+        if not contains(current) or stranded or (dx*dx+dz*dz<4 and math.abs(current.y-target.pos.y)>0.8) then
             local se = alife_object(id)
             if se then
                 se.position=vector():set(target.pos.x,target.pos.y,target.pos.z)
@@ -344,6 +343,7 @@ function prepare_npc(npc)
             npc:set_dest_level_vertex_id(target.lvid)
         end
     end
+    if xcvb_arena_utils and xcvb_arena_utils.face_enemy_on_spawn then xcvb_arena_utils.face_enemy_on_spawn(npc) end
     checked[id]=true
     pending[id]=nil
 end
@@ -367,7 +367,7 @@ function actor_on_update()
         if p and p.x>=186 and p.x<=232 and p.z>=83 and p.z<=125 and p.y>-15.15 and p.y<=-6 then
             local pos,lv,gv,dir=get_actor_spawn(3)
             if pos then
-                db.actor:set_actor_position(pos,lv,gv)
+                db.actor:set_actor_position(pos, false, false)
                 if dir and db.actor.set_actor_direction then db.actor:set_actor_direction(dir) end
             end
         end

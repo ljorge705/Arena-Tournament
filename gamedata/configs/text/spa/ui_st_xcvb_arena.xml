@@ -2045,9 +2045,6 @@
 	<string id="st_arena_hud_banner_elite_1">
 		<text>&#161;ALERTA: PREP&#193;RATE!</text>
 	</string>
-	<string id="st_arena_hud_banner_start">
-		<text>OLEADA %d: COMIENZA</text>
-	</string>
 	<string id="st_arena_hud_banner_start_sub">
 		<text>&#161;A luchar por tu vida!</text>
 	</string>
@@ -2418,4 +2415,29 @@
 	<string id="ui_mcm_xcvb_arena_mutant_no_wait_desc"><text>Elimina la pausa entre los desaf&#237;os de mutantes del NPC original. Cobra la recompensa antes de pedir el siguiente combate. Desactivado por defecto.</text></string>
 	<string id="st_arena_manifesto_credit_heading"><text>Da cr&#233;dito</text></string>
 	<string id="st_arena_manifesto_credit_text"><text>Si editas este c&#243;digo o cambias partes del proyecto, recuerda siempre dar cr&#233;dito a los autores originales y mencionar de d&#243;nde sali&#243; tu inspiraci&#243;n. No seas un imb&#233;cil.</text></string>
+	<string id="st_arena_team_reroll">
+		<text>Cambiar equipo por ronda: %s</text>
+	</string>
+<string id="st_arena_addon_silencer"><text>Silenciador: %s</text></string>
+<string id="st_arena_addon_launcher"><text>Lanzagranadas: %s</text></string>
+<string id="st_arena_addon_grenades"><text>Granadas de fusil: %s</text></string>
+	<string id="st_arena_endless_aggression_normal"><text>Agresividad enemiga: Normal</text></string>
+	<string id="st_arena_endless_aggression_aggressive"><text>Agresividad enemiga: Persecuci&#243;n directa</text></string>
+	<string id="st_arena_endless_enter_area"><text>ENTRAR EN LA ZONA</text></string>
+<string id="st_arena_arti_support"><text>Soporte ArtiGrok</text></string>
+<string id="st_arena_arti_recipients"><text>Destinatarios</text></string>
+<string id="st_arena_arti_on"><text>ACTIVADO</text></string>
+<string id="st_arena_arti_off"><text>DESACTIVADO</text></string>
+<string id="st_arena_arti_disabled"><text>Desactivada</text></string>
+<string id="st_arena_arti_player"><text>Solo yo</text></string>
+<string id="st_arena_arti_allies"><text>Solo aliados</text></string>
+<string id="st_arena_arti_enemies"><text>Solo enemigos</text></string>
+<string id="st_arena_arti_player_allies"><text>Yo y aliados</text></string>
+<string id="st_arena_arti_player_enemies"><text>Yo y enemigos</text></string>
+<string id="st_arena_arti_allies_enemies"><text>Aliados y enemigos</text></string>
+<string id="st_arena_arti_all"><text>Todos</text></string>
+<string id="st_arena_arti_save"><text>Guardar y volver</text></string>
+<string id="st_arena_arti_cancel"><text>Cancelar</text></string>
+<string id="st_arena_arti_desc"><text>Compartido entre Normal y Endless. Se aplica en la siguiente partida. Controla la munici&#243;n entregada por Arena; conserva el equipo personal. Los efectos NPC se aplican solo a participantes seleccionados.</text></string>
+<string id="st_arena_arti_selected"><text>Seleccionado</text></string>
 </string_table>

@@ -256,6 +256,8 @@ function UIXcvbArena:InitControls()
 	self.btn_beta = xml:Init3tButton("beta_btn", self.bg)
 	self:Register(self.btn_beta, "btn_beta")
 
+    self.btn_enemy_type = xml:Init3tButton("btn_enemy_type", self.bg)
+    self:Register(self.btn_enemy_type, "btn_enemy_type")
 	self.btn_map = xml:Init3tButton("btn_map", self.bg)
 	if self.btn_map then
 		self:Register(self.btn_map, "btn_map")
@@ -344,8 +346,6 @@ function UIXcvbArena:InitControls()
 		self:Register(btn, "btn_loadout_ammo_" .. at)
 	end
 
-	self.btn_3dssg = xml:Init3tButton("tournament_cont:btn_3dssg", self.tournament_cont)
-	self:Register(self.btn_3dssg, "btn_3dssg")
 
 	-- Magazine Controls (Center Column)
 	self.btn_mag_prev = xml:Init3tButton("tournament_cont:btn_mag_prev", self.tournament_cont)
@@ -365,6 +365,9 @@ function UIXcvbArena:InitControls()
 
 	-- Loadout Summary Frame (Left Side)
 	self.loadout_summary_frame = xml:InitStatic("tournament_cont:loadout_summary_frame", self.tournament_cont)
+	self.btn_3dssg = xml:Init3tButton("tournament_cont:loadout_summary_frame:btn_accessories", self.loadout_summary_frame)
+	self:Register(self.btn_3dssg, "btn_3dssg")
+
 	self.summary_title = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_title", self.loadout_summary_frame)
 	self.summary_round = xml:InitTextWnd("tournament_cont:loadout_summary_frame:summary_round", self.loadout_summary_frame)
 	self.btn_weapon_prev = xml:Init3tButton("tournament_cont:loadout_summary_frame:btn_weapon_prev", self.loadout_summary_frame)
@@ -380,16 +383,16 @@ function UIXcvbArena:InitControls()
 	-- Tournament Loadout Icons
 	if self.loadout_summary_frame then
 		self.loadout_slots = {
-			weapon  = create_ui_icon_slot(self.loadout_summary_frame, 26, 36, 252, 36, "ui_inGame2_Mp_bigbuttone", "btn_slot_weapon", self),
-			scope   = create_ui_icon_slot(self.loadout_summary_frame, 286, 36, 52, 36, "ui_inGame2_Mp_bigbuttone", "btn_slot_scope", self),
-			outfit  = create_ui_icon_slot(self.loadout_summary_frame, 22, 92, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_outfit", self),
-			helmet  = create_ui_icon_slot(self.loadout_summary_frame, 102, 92, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_helmet", self),
-			ammo    = create_ui_icon_slot(self.loadout_summary_frame, 192, 92, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_ammo", self),
-			mag     = create_ui_icon_slot(self.loadout_summary_frame, 272, 92, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_mag", self),
-			knife   = create_ui_icon_slot(self.loadout_summary_frame, 22, 146, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_knife", self),
-			meds    = create_ui_icon_slot(self.loadout_summary_frame, 102, 146, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_meds", self),
-			grenade = create_ui_icon_slot(self.loadout_summary_frame, 192, 146, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_grenade", self),
-			device  = create_ui_icon_slot(self.loadout_summary_frame, 272, 146, 70, 48, "ui_inGame2_Mp_bigbuttone", "btn_slot_device", self),
+			weapon  = create_ui_icon_slot(self.loadout_summary_frame, 12, 36, 146, 32, "ui_inGame2_Mp_bigbuttone", "btn_slot_weapon", self),
+			scope   = create_ui_icon_slot(self.loadout_summary_frame, 166, 36, 32, 32, "ui_inGame2_Mp_bigbuttone", "btn_slot_scope", self),
+			outfit  = create_ui_icon_slot(self.loadout_summary_frame, 12, 82, 42, 42, "ui_inGame2_Mp_bigbuttone", "btn_slot_outfit", self),
+			helmet  = create_ui_icon_slot(self.loadout_summary_frame, 60, 82, 42, 42, "ui_inGame2_Mp_bigbuttone", "btn_slot_helmet", self),
+			ammo    = create_ui_icon_slot(self.loadout_summary_frame, 108, 82, 42, 42, "ui_inGame2_Mp_bigbuttone", "btn_slot_ammo", self),
+			mag     = create_ui_icon_slot(self.loadout_summary_frame, 156, 82, 42, 42, "ui_inGame2_Mp_bigbuttone", "btn_slot_mag", self),
+			knife   = create_ui_icon_slot(self.loadout_summary_frame, 12, 142, 38, 38, "ui_inGame2_Mp_bigbuttone", "btn_slot_knife", self),
+			meds    = create_ui_icon_slot(self.loadout_summary_frame, 60, 142, 38, 38, "ui_inGame2_Mp_bigbuttone", "btn_slot_meds", self),
+			grenade = create_ui_icon_slot(self.loadout_summary_frame, 108, 142, 38, 38, "ui_inGame2_Mp_bigbuttone", "btn_slot_grenade", self),
+			device  = create_ui_icon_slot(self.loadout_summary_frame, 156, 142, 38, 38, "ui_inGame2_Mp_bigbuttone", "btn_slot_device", self),
 		}
 		for k, slot in pairs(self.loadout_slots) do
 			if k ~= "scope" then
@@ -399,6 +402,10 @@ function UIXcvbArena:InitControls()
 		end
 	end
 
+    self.btn_personal_equipment = xml:Init3tButton("tournament_cont:loadout_summary_frame:btn_personal_equipment", self.loadout_summary_frame)
+    self:Register(self.btn_personal_equipment, "btn_personal_equipment")
+    self.btn_personal_options = xml:Init3tButton("tournament_cont:loadout_summary_frame:btn_personal_options", self.loadout_summary_frame)
+    self:Register(self.btn_personal_options, "btn_personal_options")
 	-- Main Action Button
 	-- Dedicated Loadout Options Buttons (Main Screen)
 	self.btn_loadout_armor = xml:Init3tButton("tournament_cont:btn_loadout_armor", self.tournament_cont)
@@ -436,6 +443,7 @@ function UIXcvbArena:InitControls()
 	self.btn_shop = xml:Init3tButton("tournament_cont:btn_shop", self.tournament_cont)
 	if self.btn_shop then
 		self:Register(self.btn_shop, "btn_shop")
+        self.btn_shop:TextControl():SetTextColor(GetARGB(255,255,210,100))
 	end
 
 	self.endless_custom_eq_btn_main = xml:Init3tButton("tournament_cont:endless_custom_eq_btn_main", self.tournament_cont)
@@ -665,6 +673,9 @@ function UIXcvbArena:InitControls()
 	self.btn_diff_custom = xml:Init3tButton("endless_diff_menu:btn_diff_custom", self.endless_diff_menu)
 	self:Register(self.btn_diff_custom, "btn_diff_custom")
 	self.endless_variant = xcvb_arena_main.endless_selected_variant or "classic"
+    self.btn_diff_enemies = xml:Init3tButton("endless_diff_menu:btn_diff_enemies", self.endless_diff_menu)
+    self:Register(self.btn_diff_enemies, "btn_diff_enemies")
+    self.diff_enemy_label = xml:InitTextWnd("endless_diff_menu:btn_diff_enemies:enemy_label", self.btn_diff_enemies)
     self.btn_diff_area = xml:Init3tButton("endless_diff_menu:btn_diff_area", self.endless_diff_menu)
     self:Register(self.btn_diff_area, "btn_diff_area")
     -- Independent label: CUI3tButton resets its own text color every frame.
@@ -708,7 +719,8 @@ function UIXcvbArena:InitControls()
     for _, name in ipairs({"settings_panel", "equipment_panel", "preview_panel"}) do
         xml:InitStatic("team_menu:" .. name, self.team_menu)
     end
-    self.team_hint = xml:InitTextWnd("team_menu:squad_hint", self.team_menu)
+    -- Hide the squad help text that overlaps the support buttons.
+    self.team_hint = nil
     self.team_title = xml:InitTextWnd("team_menu:title", self.team_menu)
     xml:InitTextWnd("team_menu:squad_header", self.team_menu)
     xml:InitTextWnd("team_menu:loadout_header", self.team_menu)
@@ -721,7 +733,7 @@ function UIXcvbArena:InitControls()
     self.team_scope_icon = xml:InitStatic("team_menu:scope_icon", self.team_menu)
     self.team_weapon_icon:Enable(false); self.team_scope_icon:Enable(false)
     self.team_buttons = {}
-    for _, name in ipairs({"count", "count_minus", "count_plus", "replenish", "heal", "resupply", "slot1", "slot2", "slot3", "slot4",
+    for _, name in ipairs({"count", "count_minus", "count_plus", "replenish", "heal", "resupply", "reroll", "slot1", "slot2", "slot3", "slot4",
         "rank", "class", "weapon", "scope", "ammo", "boxes", "reset", "modes", "back"}) do
         local option = name
         local button = xml:Init3tButton("team_menu:" .. name, self.team_menu)
@@ -745,6 +757,7 @@ function UIXcvbArena:InitControls()
     for i=1,4 do self.faction_labels[i] = xml:InitTextWnd("factions_menu:team" .. i, self.factions_menu) end
 
 	self.diff_summary_frame = xml:InitStatic("endless_diff_menu:diff_summary_frame", self.endless_diff_menu)
+
 	if self.diff_summary_frame then
 		self.diff_sum_title = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:title", self.diff_summary_frame)
 		self.diff_sum_diff = xml:InitTextWnd("endless_diff_menu:diff_summary_frame:sum_diff", self.diff_summary_frame)
@@ -778,6 +791,11 @@ function UIXcvbArena:InitControls()
 
 	self.diff_start_title = xml:InitTextWnd("endless_diff_menu:title_start", self.endless_diff_menu)
 
+    self.btn_diff_personal = xml:Init3tButton("endless_diff_menu:diff_summary_frame:btn_diff_personal", self.diff_summary_frame)
+    self:Register(self.btn_diff_personal, "btn_diff_personal")
+    self.btn_diff_personal_options = xml:Init3tButton("endless_diff_menu:diff_summary_frame:btn_diff_personal_options", self.diff_summary_frame)
+    self:Register(self.btn_diff_personal_options, "btn_diff_personal_options")
+
 	self.btn_diff_easy = xml:Init3tButton("endless_diff_menu:btn_diff_easy", self.endless_diff_menu)
 	self:Register(self.btn_diff_easy, "btn_diff_easy")
 
@@ -786,6 +804,9 @@ function UIXcvbArena:InitControls()
 
 	self.btn_diff_hard = xml:Init3tButton("endless_diff_menu:btn_diff_hard", self.endless_diff_menu)
 	self:Register(self.btn_diff_hard, "btn_diff_hard")
+
+	self.btn_diff_aggression = xml:Init3tButton("endless_diff_menu:btn_diff_aggression", self.endless_diff_menu)
+	self:Register(self.btn_diff_aggression, "btn_diff_aggression")
 
 	self.btn_diff_enter = xml:Init3tButton("endless_diff_menu:btn_diff_enter", self.endless_diff_menu)
 	self:Register(self.btn_diff_enter, "btn_diff_enter")
@@ -885,6 +906,21 @@ function UIXcvbArena:InitControls()
 
 	-- 3DSSG Selection Popup Menu (Mirrors + Kits)
 	self.dssg_menu = xml:InitStatic("dssg_menu", self.bg)
+    self.addon_buttons = {}
+    for _, name in ipairs({"grenades_minus", "grenades_plus"}) do
+        local option = name
+        local btn = xml:Init3tButton("dssg_menu:addon_" .. name, self.dssg_menu)
+        self:Register(btn, "addon_" .. name)
+        self:AddCallback("addon_" .. name, ui_events.BUTTON_CLICKED, function() self:on_addon_option(option) end, self)
+        self.addon_buttons[name] = btn
+    end
+    for _, name in ipairs({"silencer", "launcher", "grenades"}) do
+        local option = name
+        local btn = xml:Init3tButton("dssg_menu:addon_" .. name, self.dssg_menu)
+        self.addon_buttons[name] = btn
+        self:Register(btn, "addon_" .. name)
+        self:AddCallback("addon_" .. name, ui_events.BUTTON_CLICKED, function() self:on_addon_option(option) end, self)
+    end
 	self.dssg_menu:Show(false)
 	self.dssg_menu_title = xml:InitTextWnd("dssg_menu:title", self.dssg_menu)
 	self.dssg_menu_subtitle = xml:InitTextWnd("dssg_menu:subtitle", self.dssg_menu)
@@ -1026,6 +1062,19 @@ function UIXcvbArena:InitControls()
 
 	-- Outfit Selection Popup Menu
 	self.outfit_menu = xml:InitStatic("outfit_menu", self.bg)
+    self.outfit_page_label = xml:InitTextWnd("outfit_menu:catalog_page", self.outfit_menu)
+    for _, dir in ipairs({-1,1}) do
+        local step = dir
+        local name = "outfit_catalog_" .. tostring(dir)
+        local btn = xml:Init3tButton("outfit_menu:" .. (dir<0 and "catalog_prev" or "catalog_next"), self.outfit_menu)
+        self:Register(btn,name)
+        self:AddCallback(name,ui_events.BUTTON_CLICKED,function()
+            local entries = xcvb_arena_gear_catalog.options("outfit")
+            local pages=math.max(1,math.ceil(#entries/6))
+            self.outfit_page=((self.outfit_page or 1)-1+step)%pages+1
+            self:update_outfit_menu()
+        end,self)
+    end
 	if self.outfit_menu then
 		self.outfit_menu:Show(false)
 		self.arr_outfit_rows = {}
@@ -1046,6 +1095,19 @@ function UIXcvbArena:InitControls()
 
 	-- Helmet Selection Popup Menu
 	self.helmet_menu = xml:InitStatic("helmet_menu", self.bg)
+    self.helmet_page_label = xml:InitTextWnd("helmet_menu:catalog_page", self.helmet_menu)
+    for _, dir in ipairs({-1,1}) do
+        local step = dir
+        local name = "helmet_catalog_" .. tostring(dir)
+        local btn = xml:Init3tButton("helmet_menu:" .. (dir<0 and "catalog_prev" or "catalog_next"), self.helmet_menu)
+        self:Register(btn,name)
+        self:AddCallback(name,ui_events.BUTTON_CLICKED,function()
+            local entries = xcvb_arena_gear_catalog.options("helmet")
+            local pages=math.max(1,math.ceil(#entries/7))
+            self.helmet_page=((self.helmet_page or 1)-1+step)%pages+1
+            self:update_helmet_menu()
+        end,self)
+    end
 	if self.helmet_menu then
 		self.helmet_menu:Show(false)
 		self.arr_helmet_rows = {}
@@ -1151,6 +1213,37 @@ function UIXcvbArena:InitControls()
 		if self.btn_grenade_close then self:Register(self.btn_grenade_close, "btn_grenade_close") end
 	end
 
+    self.personal_options_menu = xml:InitStatic("personal_options_menu", self.bg)
+    xml:InitTextWnd("personal_options_menu:title", self.personal_options_menu)
+    xml:InitTextWnd("personal_options_menu:desc", self.personal_options_menu)
+    self.personal_option_buttons = {}
+    for _, key in ipairs({"ammo", "meds", "grenades"}) do
+        local btn = xml:Init3tButton("personal_options_menu:btn_" .. key, self.personal_options_menu)
+        self.personal_option_buttons[key] = btn
+        self:Register(btn, "btn_personal_restore_" .. key)
+    end
+    self.btn_personal_options_close = xml:Init3tButton("personal_options_menu:close", self.personal_options_menu)
+    self:Register(self.btn_personal_options_close, "btn_personal_options_close")
+    self.personal_options_menu:Show(false)
+    self.personal_options_menu:Enable(false)
+
+    self.artigrok_menu = xml:InitStatic("artigrok_menu", self.bg)
+    xml:InitTextWnd("artigrok_menu:title", self.artigrok_menu)
+    xml:InitTextWnd("artigrok_menu:desc", self.artigrok_menu)
+    xml:InitTextWnd("artigrok_menu:recipients", self.artigrok_menu)
+    self.artigrok_selection = xml:InitTextWnd("artigrok_menu:selection", self.artigrok_menu)
+    self.artigrok_buttons = {}
+    for _, name in ipairs({"support", "recipient_disabled", "recipient_player", "recipient_allies", "recipient_enemies", "recipient_player_allies", "recipient_player_enemies", "recipient_allies_enemies", "recipient_all", "save", "cancel"}) do
+        local button = xml:Init3tButton("artigrok_menu:" .. name, self.artigrok_menu)
+        self.artigrok_buttons[name] = button
+        self:Register(button,"artigrok_" .. name)
+    end
+    self.artigrok_menu:Show(false)
+    self.artigrok_menu:Enable(false)
+    self.spec_effects = xml:InitTextWnd("tournament_cont:spec_effects", self.tournament_cont)
+    self.spec_effects:Show(false)
+    self.ec_spec_effects = xml:InitTextWnd("endless_custom_menu:ec_spec_effects",self.endless_custom_menu)
+
 	xml:InitStatic("vert_line1", self.bg)
 	xml:InitStatic("vert_line2", self.bg)
 	xml:InitStatic("vert_line3", self.bg)
@@ -1165,6 +1258,7 @@ function UIXcvbArena:InitControls()
 	self:set_modal_active("helmet", false)
 	self:set_modal_active("meds", false)
 	self:update_endless_custom_btn()
+    self:update_endless_arti_btn()
 end
 
 function UIXcvbArena:set_modal_active(modal_name, is_active)
@@ -1187,7 +1281,16 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 
 	local off_pos = vector2():set(-5000, -5000)
 
-	if modal_name == "dssg" then
+    if modal_name == "artigrok" then
+        if self.endless_diff_menu and self.endless_diff_menu:IsShown() then self.endless_diff_menu:Enable(not is_shown) end
+        self.artigrok_menu:SetWndPos(is_shown and vector2():set(180,140) or off_pos)
+        self.artigrok_menu:Show(is_shown)
+        self.artigrok_menu:Enable(is_shown)
+    elseif modal_name == "personal_options" then
+        self.personal_options_menu:Show(is_shown)
+        self.personal_options_menu:Enable(is_shown)
+        if self.endless_diff_menu and self.endless_diff_menu:IsShown() then self.endless_diff_menu:Enable(not is_shown) end
+    elseif modal_name == "dssg" then
 		if self.dssg_menu then
 			local pos = is_shown and (self.modal_orig_pos.dssg or vector2():set(50, 96)) or off_pos
 			self.dssg_menu:SetWndPos(pos)
@@ -1264,6 +1367,11 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		if self.btn_diff_easy then self.btn_diff_easy:Show(is_shown); self.btn_diff_easy:Enable(is_shown) end
 		if self.btn_diff_medium then self.btn_diff_medium:Show(is_shown); self.btn_diff_medium:Enable(is_shown) end
 		if self.btn_diff_hard then self.btn_diff_hard:Show(is_shown); self.btn_diff_hard:Enable(is_shown) end
+		if self.btn_diff_aggression then
+			local available = is_shown and self.endless_variant ~= "factions"
+			self.btn_diff_aggression:Show(available)
+			self.btn_diff_aggression:Enable(available)
+		end
 		if self.btn_diff_enter then self.btn_diff_enter:Show(is_shown); self.btn_diff_enter:Enable(is_shown) end
 		if self.btn_diff_cancel then self.btn_diff_cancel:Show(is_shown); self.btn_diff_cancel:Enable(is_shown) end
 		if self.btn_diff_reset_stats then self.btn_diff_reset_stats:Show(is_shown); self.btn_diff_reset_stats:Enable(is_shown) end
@@ -1474,7 +1582,9 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 		end
 	end
 
-	local any_modal_open = (self.dssg_menu and self.dssg_menu:IsShown())
+	local any_modal_open = (self.artigrok_menu and self.artigrok_menu:IsShown())
+        or (self.personal_options_menu and self.personal_options_menu:IsShown())
+        or (self.dssg_menu and self.dssg_menu:IsShown())
 		or (self.mag_menu and self.mag_menu:IsShown())
 		or (self.endless_diff_menu and self.endless_diff_menu:IsShown())
 		or (self.endless_custom_menu and self.endless_custom_menu:IsShown())
@@ -1506,6 +1616,7 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 	if self.btn_beta then self.btn_beta:Enable(allow_bg) end
 	if self.btn_practice then self.btn_practice:Enable(allow_bg) end
 	if self.btn_map then self.btn_map:Enable(allow_bg) end
+    self:update_entry_options(allow_bg)
 	if self.beta_tab_br then self.beta_tab_br:Enable(allow_bg and not self:is_secondary_map()) end
 
 	if not any_modal_open then
@@ -1515,6 +1626,25 @@ function UIXcvbArena:set_modal_active(modal_name, is_active)
 end
 
 function UIXcvbArena:InitCallbacks()
+    for _, name in ipairs({"support", "recipient_disabled", "recipient_player", "recipient_allies", "recipient_enemies", "recipient_player_allies", "recipient_player_enemies", "recipient_allies_enemies", "recipient_all", "save", "cancel"}) do
+        local action = name
+        self:AddCallback("artigrok_" .. name,ui_events.BUTTON_CLICKED,function() self:on_artigrok_option(action) end,self)
+    end
+    for _, name in ipairs({"btn_personal_options", "btn_diff_personal_options"}) do
+        self:AddCallback(name, ui_events.BUTTON_CLICKED, function()
+            self:update_personal_options()
+            self:set_modal_active("personal_options", true)
+        end, self)
+    end
+    self:AddCallback("btn_personal_options_close", ui_events.BUTTON_CLICKED, function() self:set_modal_active("personal_options", false) end, self)
+    for _, key in ipairs({"ammo", "meds", "grenades"}) do
+        self:AddCallback("btn_personal_restore_" .. key, ui_events.BUTTON_CLICKED, function()
+            local opts = xcvb_arena_personal_loadout.options()
+            opts[key] = not (opts[key] == true)
+            self:update_personal_options()
+        end, self)
+    end
+
 	self:AddCallback("btn_practice", ui_events.BUTTON_CLICKED, self.on_click_practice_toggle, self)
 	self:AddCallback("btn_mode", ui_events.BUTTON_CLICKED, self.on_click_mode, self)
 	self:AddCallback("btn_endless", ui_events.BUTTON_CLICKED, self.on_click_quick_endless, self)
@@ -1522,6 +1652,20 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_endless_arti", ui_events.BUTTON_CLICKED, self.on_click_endless_arti_toggle, self)
 	self:AddCallback("btn_endless_arti_main", ui_events.BUTTON_CLICKED, self.on_click_endless_arti_toggle, self)
 	self:AddCallback("btn_beta", ui_events.BUTTON_CLICKED, self.on_click_beta_mode, self)
+    self:AddCallback("btn_personal_equipment", ui_events.BUTTON_CLICKED, function()
+        self:toggle_personal_equipment()
+    end, self)
+    self:AddCallback("btn_diff_personal", ui_events.BUTTON_CLICKED, self.toggle_personal_equipment, self)
+    self:AddCallback("btn_diff_enemies", ui_events.BUTTON_CLICKED, function()
+        local next_type = {stalkers="mutants", mutants="chaos", chaos="stalkers"}
+        self.endless_target_enemy_type = next_type[self.endless_target_enemy_type or self.endless_enemy_type] or "stalkers"
+        self.endless_enemy_type = self.endless_target_enemy_type
+        self:update_endless_menu_all()
+    end, self)
+    self:AddCallback("btn_enemy_type", ui_events.BUTTON_CLICKED, function()
+        local next_type = {stalkers="mutants", mutants="chaos", chaos="stalkers"}
+        self:on_click_endless_type(next_type[self.endless_enemy_type] or "stalkers")
+    end, self)
 	self:AddCallback("btn_map", ui_events.BUTTON_CLICKED, self.on_click_map, self)
 
 	-- Endless Mode Difficulty callbacks
@@ -1536,6 +1680,7 @@ function UIXcvbArena:InitCallbacks()
 	self:AddCallback("btn_diff_hard", ui_events.BUTTON_CLICKED, function() self:on_click_diff_btn("hard") end, self)
     self:AddCallback("btn_diff_area", ui_events.BUTTON_CLICKED, self.on_click_endless_area, self)
 	self:AddCallback("btn_diff_enter", ui_events.BUTTON_CLICKED, self.on_confirm_endless_start, self)
+	self:AddCallback("btn_diff_aggression", ui_events.BUTTON_CLICKED, self.on_click_endless_aggression, self)
 	self:AddCallback("btn_diff_escalation", ui_events.BUTTON_CLICKED, self.on_click_endless_escalation, self)
 	self:AddCallback("btn_diff_spawn_type", ui_events.BUTTON_CLICKED, self.on_click_endless_spawn_type, self)
 	self:AddCallback("btn_diff_3dssg", ui_events.BUTTON_CLICKED, self.on_click_endless_3dssg, self)
@@ -1993,7 +2138,71 @@ function UIXcvbArena:map_matches(forced_map)
     return xcvb_arena_main.selected_map == "backrooms" or not forced_map or forced_map == xcvb_arena_main.selected_map
 end
 
+function UIXcvbArena:update_personal_options()
+    local opts = xcvb_arena_personal_loadout.options()
+    for key, btn in pairs(self.personal_option_buttons) do
+        btn:TextControl():SetText(gt("st_arena_personal_restore_" .. key) .. (opts[key] == true and " [ON]" or " [OFF]"))
+        btn:TextControl():SetTextColor(opts[key] == true and GetARGB(255,140,240,140) or GetARGB(255,190,190,190))
+    end
+end
+
+function UIXcvbArena:toggle_personal_equipment()
+    xcvb_arena_main.personal_equipment = not xcvb_arena_main.personal_equipment
+    self:update_entry_options(true)
+    self:update_loadout_buttons()
+    if self.endless_diff_menu and self.endless_diff_menu:IsShown() then self:update_endless_menu_all() end
+end
+
+-- Preview the actual owned objects, without spawning copies or changing slots.
+function UIXcvbArena:paint_personal_equipment(slots)
+    if not slots or not db.actor then return end
+    local actor = db.actor
+    local function in_slot(n) return actor:item_in_slot(n) end
+    local weapon = in_slot(3) or in_slot(2)
+    local items = {weapon=weapon, outfit=in_slot(7), helmet=in_slot(12), knife=in_slot(1), grenade=in_slot(4), device=in_slot(9)}
+    local counts = {}
+    local ammo_sec = weapon and xcvb_arena_utils.get_weapon_basic_ammo(weapon:section())
+    actor:iterate_inventory(function(_, item)
+        local sec = item:section()
+        if sec == ammo_sec then
+            items.ammo = items.ammo or item
+            local ok, count = pcall(function() return item:ammo_get_count() end)
+            counts.ammo = (counts.ammo or 0) + (ok and count or 0)
+        end
+        if sec:find("^medkit") then items.meds = items.meds or item end
+        if sec:find("^mag_") then items.mag = items.mag or item end
+    end, actor)
+    for key, slot in pairs(slots) do
+        local item = items[key]
+        paint_slot_item(slot, item and item:section(), counts[key] and tostring(counts[key]), gt("st_arena_gear_personal"))
+        if slot.btn then slot.btn:Enable(false) end
+    end
+end
+
+function UIXcvbArena:update_entry_options(enabled)
+    local endless = self.current_mode == "beta" and self.beta_subview ~= "br"
+    local playable = self.current_mode == "tournament" or endless
+    if self.btn_personal_equipment then
+        self.btn_personal_equipment:Show(self.current_mode == "tournament")
+        self.btn_personal_options:Show(self.current_mode == "tournament" and xcvb_arena_main.personal_equipment == true)
+        self.btn_personal_options:Enable(playable and enabled ~= false)
+        self.btn_personal_options:TextControl():SetTextColor(GetARGB(255,255,220,130))
+        self.btn_personal_equipment:Enable(playable and enabled ~= false)
+        self.btn_personal_equipment:TextControl():SetText((xcvb_arena_main.personal_equipment and "OWN LOADOUT [ON]" or "OWN LOADOUT [OFF]"))
+        self.btn_personal_equipment:TextControl():SetTextColor(xcvb_arena_main.personal_equipment and GetARGB(255,140,240,140) or GetARGB(255,255,220,130))
+    end
+    if self.btn_enemy_type then
+        self.btn_enemy_type:Show(endless)
+        self.btn_enemy_type:Enable(endless and enabled ~= false)
+        local labels = {stalkers="S.T.A.L.K.E.R", mutants="MUTANTS", chaos="S.T.A.L.K.E.R - MUTANTS"}
+        self.btn_enemy_type:TextControl():SetText(labels[self.endless_enemy_type] or labels.stalkers)
+        self.btn_enemy_type:TextControl():SetTextColor(GetARGB(255,100,220,255))
+    end
+    if self.btn_mode then self.btn_mode:Show(not endless) end
+end
+
 function UIXcvbArena:update_map_button()
+    self:update_entry_options(true)
 	local available = not xcvb_arena_installation or xcvb_arena_installation.factory_enabled ~= false
 	if not available then xcvb_arena_main.selected_map = "arena" end
 	if self.btn_map then self.btn_map:Enable(available) end
@@ -2691,6 +2900,7 @@ function UIXcvbArena:format_rental_fee(fee)
 end
 
 function UIXcvbArena:get_current_loadout_rental_fee()
+    if xcvb_arena_main.personal_equipment then return 0 end
 	return xcvb_arena_utils.get_loadout_rental_fee(
 		self.selected_round_id,
 		self.selected_loadout_class,
@@ -2709,6 +2919,7 @@ function UIXcvbArena:get_current_loadout_rental_fee()
 end
 
 function UIXcvbArena:get_current_endless_rental_fee(diff)
+    if xcvb_arena_main.personal_equipment then return 0 end
 	local d = diff or self.selected_endless_diff or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "easy"
 	if xcvb_arena_utils and xcvb_arena_utils.get_endless_loadout_rental_fee then
 		return xcvb_arena_utils.get_endless_loadout_rental_fee(d)
@@ -2930,6 +3141,7 @@ function UIXcvbArena:on_click_3dssg()
 end
 
 function UIXcvbArena:update_loadout_buttons()
+    for _, slot in pairs(self.loadout_slots or {}) do if slot.btn then slot.btn:Enable(true) end end
 	local class_names = {
 		random = gt("st_arena_class_random"),
 		pistol = gt("st_arena_class_pistol"),
@@ -3058,20 +3270,11 @@ function UIXcvbArena:update_loadout_buttons()
 	if self.selected_3dssg_mode == "custom" and not self.selected_3dssg_scope then
 		self.selected_3dssg_mode = "random"
 	end
-	if self.btn_3dssg then
-		local has_3dssg = next(scope_list) ~= nil
-		if not has_3dssg then
-			self.selected_3dssg_scope = nil
-			self.selected_3dssg_mode = "off"
-		end
-		local mode_text = self.selected_3dssg_mode == "random" and "3DSSG [ON] [RANDOM]"
-			or self.selected_3dssg_mode == "custom" and "3DSSG [ON] [CUSTOM]" or "3DSSG [OFF]"
-		self.btn_3dssg:TextControl():SetText(has_3dssg and mode_text or "3DSSG [OFF]")
-		self.btn_3dssg:Enable(has_3dssg)
-		self.btn_3dssg:TextControl():SetTextColor(has_3dssg
-			and (self.selected_3dssg_mode == "off" and GetARGB(255, 150, 150, 150) or GetARGB(255, 100, 255, 100))
-			or GetARGB(255, 90, 90, 90))
-	end
+    if self.btn_3dssg then
+        self.btn_3dssg:TextControl():SetText("ACCESSORIES  >")
+        self.btn_3dssg:TextControl():SetTextColor(GetARGB(255,90,225,255))
+        self.btn_3dssg:Enable(true)
+    end
 
 	-- Query compatible magazines for currently selected weapon
 	-- Determine effective ammo section and box size
@@ -3189,6 +3392,10 @@ function UIXcvbArena:update_loadout_buttons()
 					local a_sec = spec_ammos[actual_idx]
 					if a_sec and self.selected_weapon_sec then
 						btn:Show(true)
+                        local hint = xcvb_arena_utils.get_item_name(a_sec)
+                        local effects = xcvb_arena_artigrok.effect_text(a_sec)
+                        if effects ~= "" then hint = hint .. "\n" .. effects end
+                        if btn.SetHint then btn:SetHint(hint) end
 						local s_name = xcvb_arena_utils.get_item_short_name(a_sec)
 						if string.len(s_name) > 13 then
 							s_name = string.sub(s_name, 1, 11) .. ".."
@@ -3246,6 +3453,11 @@ function UIXcvbArena:update_loadout_buttons()
 		end
 	end
 
+    if self.spec_effects then
+        local show = self.current_mode == "tournament" and self.selected_loadout_ammo == "special"
+        self.spec_effects:Show(show)
+        self.spec_effects:SetText(show and xcvb_arena_artigrok.effect_text(self.selected_special_ammo_sec) or "")
+    end
 	self:update_endless_arti_btn()
 
 	local function format_label(prefix, val)
@@ -3397,14 +3609,14 @@ function UIXcvbArena:update_loadout_buttons()
 					self.loadout_slots.weapon.bg:SetWndSize(vector2():set(252, 36))
 				end
 				paint_slot_item(self.loadout_slots.weapon, eff_wpn, nil, gt("st_arena_loadout_weapon_title"))
-				paint_slot_item(self.loadout_slots.scope, eff_scope, nil, "3DSSG")
+				paint_slot_item(self.loadout_slots.scope, eff_scope, nil, "Accessories")
 			else
 				self.loadout_slots.weapon.w = 312
 				if self.loadout_slots.weapon.bg then
 					self.loadout_slots.weapon.bg:SetWndSize(vector2():set(312, 36))
 				end
 				paint_slot_item(self.loadout_slots.weapon, eff_wpn, nil, gt("st_arena_loadout_weapon_title"))
-				paint_slot_item(self.loadout_slots.scope, nil, nil, "3DSSG")
+				paint_slot_item(self.loadout_slots.scope, nil, nil, "Accessories")
 			end
 
 			-- 3. Outfit & Helmet
@@ -3610,6 +3822,11 @@ function UIXcvbArena:update_loadout_buttons()
 		self.btn_grenade_qty:TextControl():SetText(g_qty_badge)
 	end
 
+    if xcvb_arena_main.personal_equipment then
+        self:paint_personal_equipment(self.loadout_slots)
+        if self.summary_cost then self.summary_cost:SetText(gt("st_arena_gear_personal")) end
+        if self.summary_title then self.summary_title:SetText(gt("st_arena_gear_personal")) end
+    elseif self.summary_title then self.summary_title:SetText(gt("st_arena_loadout_summary_title")) end
 	self:update_tourn_start_button()
 end
 
@@ -3713,6 +3930,7 @@ function UIXcvbArena:on_click_tourn_start()
 		chosen_mag,
 		chosen_mag_count,
 		chosen_ammo_count,
+        false, -- inventory_ready: storage must finish before combat starts
 		chosen_outfit,
 		chosen_helmet,
 		chosen_meds,
@@ -4411,6 +4629,7 @@ function UIXcvbArena:update_beta_display()
 end
 
 function UIXcvbArena:update_endless_display()
+    self:update_entry_options(true)
 	if not self.beta_cont or not self.beta_cont:IsShown() then return end
 
 	local best = xcvb_arena_main.best_endless_wave or 0
@@ -4449,6 +4668,43 @@ function UIXcvbArena:on_click_endless_type(t)
 	self:update_endless_display()
 end
 
+function UIXcvbArena:addon_target()
+    if self.dssg_menu_target_mode == "team" then
+        return self.team_picker_slot or self.team_selected_slot or 1, self:team_picker_ally().weapon
+    elseif self.dssg_menu_target_mode == "endless" then
+        return "actor", xcvb_arena_endless.get_custom_loadout().weapon_sec
+    end
+    return "actor", self.selected_weapon_sec
+end
+function UIXcvbArena:update_addon_options()
+    local owner, sec = self:addon_target()
+    if not sec then return end
+    local opts = xcvb_arena_addons.selection(owner, sec)
+    local cap = xcvb_arena_addons.capabilities(sec)
+    local enabled = cap.grenade_launcher and opts.launcher and cap.ammo
+    self.addon_buttons.grenades_minus:Enable(enabled and opts.grenades > 0)
+    self.addon_buttons.grenades_plus:Enable(enabled and opts.grenades < 20)
+    for _, name in ipairs({"silencer", "launcher", "grenades"}) do
+        local btn = self.addon_buttons[name]
+        local supported = name == "silencer" and cap.silencer or name ~= "silencer" and cap.grenade_launcher
+        local fixed = name == "silencer" and cap.silencer_fixed or name == "launcher" and cap.grenade_launcher_fixed
+        local value = name == "grenades" and tostring(opts.grenades) or
+            (((name == "silencer" and fixed) or opts[name]) and "ON" or "OFF")
+        if not supported then value = "Not compatible" end
+        btn:TextControl():SetText(string.format(({silencer="Suppressor: %s", launcher="Grenade launcher: %s", grenades="Grenades: %s"})[name], value))
+        btn:Enable(supported and (name ~= "grenades" or (opts.launcher and cap.ammo)) and (not fixed or name == "launcher"))
+    end
+end
+function UIXcvbArena:on_addon_option(name)
+    local owner, sec = self:addon_target()
+    if not sec then return end
+    local opts = xcvb_arena_addons.selection(owner,sec)
+    if name == "grenades_minus" then opts.grenades = math.max(0, opts.grenades - 1)
+    elseif name == "grenades_plus" or name == "grenades" then opts.grenades = math.min(20, opts.grenades + 1)
+    else opts[name] = not opts[name] end
+    self:update_addon_options()
+end
+
 function UIXcvbArena:open_dssg_menu(target_mode)
 	self.dssg_menu_target_mode = target_mode or "tournament"
 	local wpn_sec = nil
@@ -4462,7 +4718,6 @@ function UIXcvbArena:open_dssg_menu(target_mode)
 	end
 	if not wpn_sec then return end
 	local entries = (xcvb_arena_utils and xcvb_arena_utils.get_weapon_scopes and xcvb_arena_utils.get_weapon_scopes(wpn_sec)) or {}
-	if #entries == 0 then return end
 	local kits, scopes = {}, {}
 	for _, sec in ipairs(entries) do
 		if ini_sys:section_exist(sec) and ini_sys:r_bool_ex(sec, "weapon_kit", false) then
@@ -4495,6 +4750,7 @@ function UIXcvbArena:show_dssg_menu(show)
 end
 
 function UIXcvbArena:update_dssg_menu()
+    self:update_addon_options()
 	if not self.dssg_menu or not self.dssg_menu:IsShown() then return end
 	local entries = self.selected_3dssg_entry_list or {}
 	local total = #entries
@@ -4514,7 +4770,7 @@ function UIXcvbArena:update_dssg_menu()
 			or (xcvb_arena_utils and xcvb_arena_utils.get_item_name and xcvb_arena_utils.get_item_name(w_sec)) or w_sec or ""
 	end
 	if self.dssg_menu_title then
-		self.dssg_menu_title:SetText("3DSSG: " .. w_name)
+		self.dssg_menu_title:SetText("Accessories: " .. w_name)
 	end
 	if self.dssg_menu_subtitle then
 		local lbl_sk = gt("st_arena_dssg_scopes_kits")
@@ -4550,19 +4806,19 @@ function UIXcvbArena:update_dssg_menu()
 
 	if self.btn_3dssg_off then
 		if cur_mode == "off" then
-			self.btn_3dssg_off:TextControl():SetText("3DSSG [OFF] [x]")
+			self.btn_3dssg_off:TextControl():SetText("Accessories [OFF] [x]")
 			self.btn_3dssg_off:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
 		else
-			self.btn_3dssg_off:TextControl():SetText("3DSSG [OFF]")
+			self.btn_3dssg_off:TextControl():SetText("Accessories [OFF]")
 			self.btn_3dssg_off:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
 		end
 	end
 	if self.btn_3dssg_random then
 		if cur_mode == "random" then
-			self.btn_3dssg_random:TextControl():SetText("3DSSG [RANDOM] [x]")
+			self.btn_3dssg_random:TextControl():SetText("Accessories [RANDOM] [x]")
 			self.btn_3dssg_random:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
 		else
-			self.btn_3dssg_random:TextControl():SetText("3DSSG [RANDOM]")
+			self.btn_3dssg_random:TextControl():SetText("Accessories [RANDOM]")
 			self.btn_3dssg_random:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
 		end
 	end
@@ -4967,7 +5223,7 @@ function UIXcvbArena:on_team_option(option)
     elseif option == "count" then o.count = o.count % 4 + 1
     elseif option == "count_minus" then o.count = math.max(1, o.count - 1)
     elseif option == "count_plus" then o.count = math.min(4, o.count + 1)
-    elseif option == "replenish" or option == "heal" or option == "resupply" then o[option] = not o[option]
+    elseif option == "replenish" or option == "heal" or option == "resupply" or option == "reroll" then o[option] = not o[option]
     elseif option == "rank" then ally.rank = ally.rank % 5 + 1
     elseif option == "class" then
         ally.class = xcvb_arena_team.next_class(ally.class)
@@ -5011,7 +5267,7 @@ function UIXcvbArena:update_team_options()
     local o = xcvb_arena_team.options()
     local faction_match = self.endless_variant == "factions"
     local count = xcvb_arena_team.effective_count(o)
-    for _, name in ipairs({"count", "count_minus", "count_plus", "rank", "replenish", "heal", "resupply"}) do
+    for _, name in ipairs({"count", "count_minus", "count_plus", "rank", "replenish", "heal", "resupply", "reroll"}) do
         self.team_buttons[name]:Enable(not faction_match)
     end
     self.team_selected_slot = math.min(self.team_selected_slot or 1, count)
@@ -5027,7 +5283,7 @@ function UIXcvbArena:update_team_options()
 
     local on_str = game.translate_string("st_arena_state_on")
     local off_str = game.translate_string("st_arena_state_off")
-    for _, name in ipairs({"replenish", "heal", "resupply"}) do
+    for _, name in ipairs({"replenish", "heal", "resupply", "reroll"}) do
         local state = (not faction_match and o[name])
         local state_text = state and ("[" .. on_str .. "]") or ("[" .. off_str .. "]")
         label(name, string.format(game.translate_string("st_arena_team_" .. name), state_text))
@@ -5055,7 +5311,7 @@ function UIXcvbArena:update_team_options()
     self.team_weapon:SetText(xcvb_arena_team.weapon_label(ally))
 
     local custom = ally.class ~= "default" and #xcvb_arena_team.weapons(ally) > 0
-    self.team_buttons.scope:Enable(custom and #xcvb_arena_utils.get_weapon_scopes(ally.weapon) > 0)
+    self.team_buttons.scope:Enable(ally.weapon ~= nil)
     local scope = ally.scope ~= "off" and ally.scope ~= "random" and ally.scope or nil
     local scope_name = scope and xcvb_arena_utils.get_item_short_name(scope) or string.upper(ally.scope or "off")
     self.team_scope_label:SetText(string.format(game.translate_string("st_arena_team_scope_fmt"), scope_name))
@@ -5070,6 +5326,17 @@ function UIXcvbArena:update_team_options()
 end
 
 function UIXcvbArena:update_endless_menu_all()
+    local personal = xcvb_arena_main.personal_equipment == true
+    self.btn_diff_personal_options:Show(personal)
+    self.btn_diff_personal_options:Enable(personal)
+    self.btn_diff_personal:Show(true)
+    self.btn_diff_personal:Enable(true)
+    self.btn_diff_personal:TextControl():SetText((personal and "OWN LOADOUT [ON]" or "OWN LOADOUT [OFF]"))
+    self.btn_diff_personal:TextControl():SetTextColor(personal and GetARGB(255,140,240,140) or GetARGB(255,255,220,130))
+    self.btn_diff_enemies:Show(true)
+    self.btn_diff_enemies:Enable(self.endless_variant ~= "factions")
+    local labels = {stalkers="S.T.A.L.K.E.R", mutants="MUTANTS", chaos="MIX CHAOS"}
+    self.diff_enemy_label:SetText(labels[self.endless_target_enemy_type or self.endless_enemy_type] or labels.stalkers)
 	local plus = self.endless_variant == "plus"
     local names={classic="st_arena_endless_variant_classic",team="st_arena_mode_team_name",factions="st_arena_endless_variant_factions"}
     self.btn_diff_variant:TextControl():SetText(plus and "Endless+" or gt(names[self.endless_variant] or names.classic))
@@ -5095,7 +5362,7 @@ function UIXcvbArena:update_endless_menu_all()
 	self:update_endless_summary()
     local faction_match = self.endless_variant == "factions"
     self.btn_diff_escalation:Enable(not faction_match)
-    self.btn_diff_spawn_type:Enable(not faction_match)
+    self.btn_diff_spawn_type:Enable(not faction_match and self.endless_target_enemy_type ~= "mutants")
 end
 
 function UIXcvbArena:on_select_endless_wpn_class(cls)
@@ -5240,6 +5507,22 @@ function UIXcvbArena:on_select_endless_difficulty(diff)
 	end)
 end
 
+function UIXcvbArena:on_click_endless_aggression()
+	if self.endless_variant == "factions" then return end
+	xcvb_arena_main.endless_aggressive_ai = not xcvb_arena_main.endless_aggressive_ai
+	self:update_endless_aggression_button()
+end
+
+function UIXcvbArena:update_endless_aggression_button()
+	if not self.btn_diff_aggression then return end
+	local available = self.endless_variant ~= "factions"
+	local aggressive = xcvb_arena_main.endless_aggressive_ai
+	self.btn_diff_aggression:Show(available)
+	self.btn_diff_aggression:Enable(available)
+	self.btn_diff_aggression:TextControl():SetText(gt(aggressive
+		and "st_arena_endless_aggression_aggressive" or "st_arena_endless_aggression_normal"))
+end
+
 function UIXcvbArena:on_click_endless_escalation()
 	if xcvb_arena_main then
 		xcvb_arena_main.endless_escalation_mode = not (xcvb_arena_main.endless_escalation_mode == true)
@@ -5274,7 +5557,7 @@ end
 
 function UIXcvbArena:update_endless_spawn_type_button()
 	if not self.btn_diff_spawn_type then return end
-	local cur = (xcvb_arena_main and xcvb_arena_main.endless_spawn_grouping) or "random"
+	local cur = self.endless_target_enemy_type == "mutants" and "together" or (xcvb_arena_main and xcvb_arena_main.endless_spawn_grouping) or "random"
 	local state_lbl = (cur == "together") and "GROUPED" or "SCATTERED"
 	self.btn_diff_spawn_type:TextControl():SetText("SPAWN: [" .. state_lbl .. "]")
 	if cur == "together" then
@@ -5294,7 +5577,7 @@ function UIXcvbArena:update_endless_3dssg_button()
 	if not self.btn_diff_3dssg then return end
 	local is_on = xcvb_arena_main and xcvb_arena_main.endless_3dssg == true
 	local status_str = is_on and "ON" or "OFF"
-	self.btn_diff_3dssg:TextControl():SetText("3DSSG: [" .. status_str .. "]")
+	self.btn_diff_3dssg:TextControl():SetText("Accessories: [" .. status_str .. "]")
 	self.btn_diff_3dssg:TextControl():SetTextColor(is_on and GetARGB(255, 100, 255, 100) or GetARGB(255, 190, 190, 190))
 end
 
@@ -5312,12 +5595,14 @@ function UIXcvbArena:on_click_endless_reset_stats()
 end
 
 function UIXcvbArena:update_endless_summary()
+    for _, slot in pairs(self.endless_diff_slots or {}) do if slot.btn then slot.btn:Enable(true) end end
 	if not self.diff_summary_frame then return end
+	self:update_endless_aggression_button()
 	local diff = self.selected_endless_diff or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "easy"
 	local w_cls = (xcvb_arena_main and xcvb_arena_main.endless_weapon_class) or "all"
 	local is_3dssg = (xcvb_arena_main and xcvb_arena_main.endless_3dssg == true)
 	local is_escala = (xcvb_arena_main and xcvb_arena_main.endless_escalation_mode == true)
-	local spawn_grp = (xcvb_arena_main and xcvb_arena_main.endless_spawn_grouping) or "random"
+	local spawn_grp = self.endless_target_enemy_type == "mutants" and "together" or (xcvb_arena_main and xcvb_arena_main.endless_spawn_grouping) or "random"
 	local is_custom = (xcvb_arena_endless and xcvb_arena_endless.is_custom_loadout_enabled())
 
 	-- 1. Difficulty string (NO WAVE)
@@ -5359,7 +5644,7 @@ function UIXcvbArena:update_endless_summary()
 	local dssg_str = is_3dssg and (gt("st_arena_endless_sum_3dssg_on") or "Enabled (Scopes on valid guns)")
 		or (gt("st_arena_endless_sum_3dssg_off") or "Disabled")
 	if self.diff_sum_3dssg then
-		self.diff_sum_3dssg:SetText(string.format(gt("st_arena_endless_sum_3dssg") or "3DSSG Optics: %s", dssg_str))
+		self.diff_sum_3dssg:SetText(string.format(gt("st_arena_endless_sum_3dssg") or "Accessories Optics: %s", dssg_str))
 		self.diff_sum_3dssg:SetTextColor(is_3dssg and GetARGB(255, 120, 240, 255) or GetARGB(255, 160, 160, 160))
 	end
 
@@ -5427,7 +5712,7 @@ function UIXcvbArena:update_endless_summary()
 			self.btn_diff_enter:Enable(false)
 		else
 			local extra = (is_custom and fee > 0 and not has_voucher) and (" (" .. self:format_rental_fee(fee) .. ")") or ""
-			self.btn_diff_enter:TextControl():SetText((gt("st_arena_btn_enter") or "ENTRAR A LA ARENA") .. extra)
+			self.btn_diff_enter:TextControl():SetText(gt("st_arena_endless_enter_area") .. extra)
 			self.btn_diff_enter:TextControl():SetTextColor(GetARGB(255, 240, 220, 130))
 			self.btn_diff_enter:Enable(true)
 		end
@@ -5494,7 +5779,8 @@ function UIXcvbArena:update_endless_summary()
 				end
 			end
 			local c_ammo_type = cl.ammo_type or "auto"
-			if c_ammo_type == "special" and cl.special_ammo_sec and ini_sys:section_exist(cl.special_ammo_sec) then
+			if c_ammo_type == "special" and xcvb_arena_artigrok.compatible(cl.weapon_sec,cl.special_ammo_sec)
+            and xcvb_arena_artigrok.special(cl.special_ammo_sec) then
 				e_ammo = cl.special_ammo_sec
 			else
 				e_ammo = xcvb_arena_utils.get_weapon_ammo(e_wpn, c_ammo_type)
@@ -5528,7 +5814,7 @@ function UIXcvbArena:update_endless_summary()
 		med_badge = (diff == "easy") and "3x" or "2x"
 
 		paint_slot_item(self.endless_diff_slots.weapon, e_wpn, nil, gt("st_arena_loadout_weapon_title"))
-		paint_slot_item(self.endless_diff_slots.scope, e_scope, nil, "3DSSG")
+		paint_slot_item(self.endless_diff_slots.scope, e_scope, nil, "Accessories")
 		paint_slot_item(self.endless_diff_slots.outfit, outfit_sec, nil, gt("st_arena_loadout_sum_outfit"))
 		paint_slot_item(self.endless_diff_slots.helmet, helm_sec, nil, gt("st_arena_loadout_sum_helmet"))
 		paint_slot_item(self.endless_diff_slots.ammo, e_ammo, ammo_badge, gt("st_arena_loadout_ammo_title"))
@@ -5536,6 +5822,10 @@ function UIXcvbArena:update_endless_summary()
 		paint_slot_item(self.endless_diff_slots.knife, e_knife, nil, gt("st_arena_knife_title") or "Cuchillo")
 		paint_slot_item(self.endless_diff_slots.meds, e_meds, med_badge, gt("st_arena_meds_title") or "Meds")
 	end
+    if xcvb_arena_main.personal_equipment then
+        self:paint_personal_equipment(self.endless_diff_slots)
+        if self.diff_sum_loadout then self.diff_sum_loadout:SetText(gt("st_arena_gear_personal")) end
+    end
 end
 
 function UIXcvbArena:on_click_endless_start()
@@ -5544,7 +5834,7 @@ function UIXcvbArena:on_click_endless_start()
 end
 
 function UIXcvbArena:on_click_quick_endless()
-	self.endless_target_enemy_type = "stalkers"
+	self.endless_target_enemy_type = self.endless_enemy_type or "stalkers"
 	self:show_endless_difficulty_menu(true)
 end
 
@@ -5602,24 +5892,58 @@ function UIXcvbArena:on_click_continue_endless()
 end
 
 function UIXcvbArena:on_click_endless_arti_toggle()
-	xcvb_arena_main.endless_artigrok_ammo = not xcvb_arena_main.endless_artigrok_ammo
-	self:update_endless_arti_btn()
+    if not xcvb_arena_artigrok.installed() then return end
+    self.artigrok_draft = xcvb_arena_artigrok.options()
+    self:update_artigrok_menu()
+    self:set_modal_active("artigrok",true)
+end
+
+function UIXcvbArena:update_artigrok_menu()
+    local o = self.artigrok_draft
+    if not o then return end
+    self.artigrok_buttons.support:TextControl():SetText(gt("st_arena_arti_support") .. ": " .. gt(o.enabled and "st_arena_arti_on" or "st_arena_arti_off"))
+    for _, key in ipairs({"disabled", "player", "allies", "enemies", "player_allies", "player_enemies", "allies_enemies", "all"}) do
+        local button = self.artigrok_buttons["recipient_" .. key]
+        local selected = o.recipients == (key == "disabled" and "off" or key)
+        button:Enable(o.enabled)
+        button:TextControl():SetText((selected and "> " or "") .. gt("st_arena_arti_" .. key) .. (selected and " <" or ""))
+        button:TextControl():SetTextColor(not o.enabled and GetARGB(255,120,120,120) or selected and GetARGB(255,145,240,170) or GetARGB(255,225,225,235))
+    end
+    self.artigrok_selection:SetText(gt("st_arena_arti_selected") .. ": " .. gt("st_arena_arti_" .. (o.recipients == "off" and "disabled" or o.recipients)) .. " | " .. gt(o.enabled and "st_arena_arti_on" or "st_arena_arti_off"))
+end
+
+function UIXcvbArena:on_artigrok_option(action)
+    local o = self.artigrok_draft
+    if not o then return end
+    if action == "support" then o.enabled = not o.enabled
+    elseif action:sub(1,10) == "recipient_" and o.enabled and self.artigrok_buttons[action] then
+        local key = action:sub(11)
+        o.recipients = key == "disabled" and "off" or key
+    elseif action == "save" or action == "cancel" then
+        if action == "save" then xcvb_arena_artigrok.configure(o) end
+        self.artigrok_draft = nil
+        self:set_modal_active("artigrok",false)
+        self:update_endless_arti_btn()
+        return
+    end
+    self:update_artigrok_menu()
 end
 
 function UIXcvbArena:update_endless_arti_btn()
-	local is_on = (xcvb_arena_main and xcvb_arena_main.endless_artigrok_ammo) == true
-	local base_str = gt("st_arena_endless_artigrok_ammo") or "ARTIGROK AMMO"
-	local text = base_str .. (is_on and ": ON" or ": OFF")
-	local col = is_on and GetARGB(255, 100, 255, 100) or GetARGB(255, 180, 180, 180)
-
-	if self.endless_arti_btn then
-		self.endless_arti_btn:TextControl():SetText(text)
-		self.endless_arti_btn:TextControl():SetTextColor(col)
-	end
-	if self.endless_arti_btn_main then
-		self.endless_arti_btn_main:TextControl():SetText(text)
-		self.endless_arti_btn_main:TextControl():SetTextColor(col)
-	end
+    local installed = xcvb_arena_artigrok.installed()
+    local picker = self.current_mode == "tournament" and self.selected_loadout_ammo == "special"
+    if self.btn_shop then self.btn_shop:Show(not picker) end
+    if self.endless_arti_btn then
+        self.endless_arti_btn:TextControl():SetText("%c[255,255,110,110]A%c[255,255,175,85]R%c[255,255,225,100]T%c[255,140,235,120]I%c[255,90,220,210]G%c[255,100,175,255]R%c[255,185,145,255]O%c[255,245,135,215]K%c[default]")
+        self.endless_arti_btn:Show(installed)
+        self.endless_arti_btn:Enable(installed)
+    end
+    if self.endless_arti_btn_main then
+        self.endless_arti_btn_main:TextControl():SetText("%c[255,255,110,110]A%c[255,255,175,85]R%c[255,255,225,100]T%c[255,140,235,120]I%c[255,90,220,210]G%c[255,100,175,255]R%c[255,185,145,255]O%c[255,245,135,215]K%c[default]")
+        self.endless_arti_btn_main:SetWndPos(vector2():set(474,picker and 582 or 408))
+        self.endless_arti_btn_main:Show(installed)
+        self.endless_arti_btn_main:Enable(installed)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -5870,14 +6194,7 @@ end
 -- TOURNAMENT LOADOUT: OUTFIT, HELMET, MEDS & GRENADE SELECTION
 --------------------------------------------------------------------------------
 
-local outfit_menu_options = {
-	{ sec = "auto", tier = 0, cost_ru = 0 },
-	{ sec = "novice_outfit", tier = 1, cost_ru = 500 },
-	{ sec = "stalker_outfit", tier = 2, cost_ru = 1500 },
-	{ sec = "specops_outfit", tier = 3, cost_ru = 3000 },
-	{ sec = "military_outfit", tier = 4, cost_ru = 5000 },
-	{ sec = "exo_outfit", tier = 5, cost_ru = 8000 },
-}
+local outfit_menu_options = {}
 
 function UIXcvbArena:show_outfit_menu(is_shown, target_mode)
 	if target_mode then self.outfit_menu_target_mode = target_mode end
@@ -5892,6 +6209,9 @@ function UIXcvbArena:show_outfit_menu(is_shown, target_mode)
 end
 
 function UIXcvbArena:update_outfit_menu()
+    outfit_menu_options = xcvb_arena_gear_catalog.options("outfit")
+    self.outfit_page = math.max(1, math.min(self.outfit_page or 1, math.ceil(#outfit_menu_options/6)))
+    self.outfit_page_label:SetText(tostring(self.outfit_page) .. " / " .. tostring(math.ceil(#outfit_menu_options/6)))
 	if not self.outfit_menu or not self.outfit_menu:IsShown() then return end
 	local is_endless = (self.outfit_menu_target_mode == "endless")
 	local eff_tier = 1
@@ -5907,7 +6227,9 @@ function UIXcvbArena:update_outfit_menu()
 
 	for i = 1, 6 do
 		local btn = self.arr_outfit_rows and self.arr_outfit_rows[i]
-		local opt = outfit_menu_options[i]
+		local opt = outfit_menu_options[((self.outfit_page or 1)-1)*6+i]
+		if btn then btn:Show(opt ~= nil) end
+        if self.arr_outfit_icons and self.arr_outfit_icons[i] then self.arr_outfit_icons[i]:Show(false) end
 		if btn and opt then
 			btn:Show(true)
 			btn:Enable(true)
@@ -5955,7 +6277,7 @@ function UIXcvbArena:update_outfit_menu()
 end
 
 function UIXcvbArena:on_click_outfit_row(idx)
-	local opt = outfit_menu_options[idx]
+	local opt = outfit_menu_options[((self.outfit_page or 1)-1)*6+idx]
 	if not opt then return end
 	if self.outfit_menu_target_mode == "endless" then
 		if xcvb_arena_endless and xcvb_arena_endless.set_custom_outfit then
@@ -5972,15 +6294,7 @@ function UIXcvbArena:on_click_outfit_row(idx)
 	end
 end
 
-local helmet_menu_options = {
-	{ sec = "auto", tier = 0, cost_ru = 0 },
-	{ sec = "none", tier = 0, cost_ru = 0 },
-	{ sec = "helm_respirator", tier = 1, cost_ru = 300 },
-	{ sec = "helm_ach7", tier = 2, cost_ru = 1000 },
-	{ sec = "helm_protective", tier = 3, cost_ru = 1800 },
-	{ sec = "helm_battle", tier = 4, cost_ru = 2800 },
-	{ sec = "helm_exo", tier = 5, cost_ru = 4000 },
-}
+local helmet_menu_options = {}
 
 function UIXcvbArena:show_helmet_menu(is_shown, target_mode)
 	if target_mode then self.helmet_menu_target_mode = target_mode end
@@ -5995,6 +6309,9 @@ function UIXcvbArena:show_helmet_menu(is_shown, target_mode)
 end
 
 function UIXcvbArena:update_helmet_menu()
+    helmet_menu_options = xcvb_arena_gear_catalog.options("helmet")
+    self.helmet_page = math.max(1, math.min(self.helmet_page or 1, math.ceil(#helmet_menu_options/7)))
+    self.helmet_page_label:SetText(tostring(self.helmet_page) .. " / " .. tostring(math.ceil(#helmet_menu_options/7)))
 	if not self.helmet_menu or not self.helmet_menu:IsShown() then return end
 	local is_endless = (self.helmet_menu_target_mode == "endless")
 	local eff_tier = 1
@@ -6010,7 +6327,9 @@ function UIXcvbArena:update_helmet_menu()
 
 	for i = 1, 7 do
 		local btn = self.arr_helmet_rows and self.arr_helmet_rows[i]
-		local opt = helmet_menu_options[i]
+		local opt = helmet_menu_options[((self.helmet_page or 1)-1)*7+i]
+		if btn then btn:Show(opt ~= nil) end
+        if self.arr_helmet_icons and self.arr_helmet_icons[i] then self.arr_helmet_icons[i]:Show(false) end
 		if btn and opt then
 			btn:Show(true)
 			btn:Enable(true)
@@ -6064,7 +6383,7 @@ function UIXcvbArena:update_helmet_menu()
 end
 
 function UIXcvbArena:on_click_helmet_row(idx)
-	local opt = helmet_menu_options[idx]
+	local opt = helmet_menu_options[((self.helmet_page or 1)-1)*7+idx]
 	if not opt then return end
 	if self.helmet_menu_target_mode == "endless" then
 		if xcvb_arena_endless and xcvb_arena_endless.set_custom_helmet then
@@ -6537,7 +6856,19 @@ function UIXcvbArena:update_endless_custom_menu()
 	if not xcvb_arena_endless then return end
 
 	local cl = xcvb_arena_endless.get_custom_loadout()
-	local is_on = cl.enabled == true
+    local is_on = cl.enabled == true
+    local special_list = xcvb_arena_utils.get_weapon_special_ammos(cl.weapon_sec)
+    local valid = false
+    for _, sec in ipairs(special_list) do if sec == cl.special_ammo_sec then valid=true end end
+    if not valid then cl.special_ammo_sec = special_list[1] end
+    if self.ec_spec_effects then
+        local show = cl.ammo_type == "special" and cl.special_ammo_sec ~= nil
+        self.ec_spec_effects:Show(show)
+        if self.ec_sum_note then self.ec_sum_note:Show(not show) end
+        local name = show and xcvb_arena_utils.get_item_name(cl.special_ammo_sec) or ""
+        local effects = show and xcvb_arena_artigrok.effect_text(cl.special_ammo_sec) or ""
+        self.ec_spec_effects:SetText(name .. (effects ~= "" and ("\n" .. effects) or ""))
+    end
 
 	-- 1. Toggle button
 	if self.btn_ec_toggle and self.btn_ec_toggle:TextControl() then
@@ -6582,24 +6913,24 @@ function UIXcvbArena:update_endless_custom_menu()
 	end
 	if self.btn_ec_3dssg and self.btn_ec_3dssg:TextControl() then
 		if not has_scopes then
-			self.btn_ec_3dssg:TextControl():SetText("3DSSG [N/A]")
-			self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255, 130, 130, 130))
-			self.btn_ec_3dssg:Enable(false)
+			self.btn_ec_3dssg:TextControl():SetText("Accessories [N/A]")
+			self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255,90,225,255))
+			self.btn_ec_3dssg:Enable(cur_sec ~= nil)
 		else
 			self.btn_ec_3dssg:Enable(true)
 			if not cur_scope or cur_scope == "off" then
-				self.btn_ec_3dssg:TextControl():SetText("3DSSG [OFF]")
-				self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255, 180, 180, 180))
+				self.btn_ec_3dssg:TextControl():SetText("Accessories [OFF]")
+				self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255,90,225,255))
 			elseif cur_scope == "random" then
-				self.btn_ec_3dssg:TextControl():SetText("3DSSG [RANDOM]")
-				self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255, 100, 255, 100))
+				self.btn_ec_3dssg:TextControl():SetText("Accessories [RANDOM]")
+				self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255,90,225,255))
 			else
 				local sc_name = (xcvb_arena_utils and xcvb_arena_utils.get_item_short_name and xcvb_arena_utils.get_item_short_name(cur_scope)) or cur_scope
 				if string.len(sc_name) > 14 then
 					sc_name = string.sub(sc_name, 1, 12) .. ".."
 				end
-				self.btn_ec_3dssg:TextControl():SetText("3DSSG: " .. sc_name)
-				self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255, 120, 240, 255))
+				self.btn_ec_3dssg:TextControl():SetText("Accessories: " .. sc_name)
+				self.btn_ec_3dssg:TextControl():SetTextColor(GetARGB(255,90,225,255))
 			end
 		end
 	end
@@ -6695,7 +7026,7 @@ function UIXcvbArena:update_endless_custom_menu()
 		local sc_txt = ""
 		if cur_scope and cur_scope ~= "off" then
 			if cur_scope == "random" then
-				sc_txt = " + 3DSSG [RANDOM]"
+				sc_txt = " + Accessories [RANDOM]"
 			else
 				local s_nm = (xcvb_arena_utils and xcvb_arena_utils.get_item_short_name and xcvb_arena_utils.get_item_short_name(cur_scope)) or cur_scope
 				sc_txt = " + " .. s_nm
@@ -6795,7 +7126,8 @@ function UIXcvbArena:update_endless_custom_menu()
 
 		local eff_ammo = nil
 		local c_ammo_type = cl.ammo_type or "auto"
-		if c_ammo_type == "special" and cl.special_ammo_sec and ini_sys:section_exist(cl.special_ammo_sec) then
+		if c_ammo_type == "special" and xcvb_arena_artigrok.compatible(cl.weapon_sec,cl.special_ammo_sec)
+            and xcvb_arena_artigrok.special(cl.special_ammo_sec) then
 			eff_ammo = cl.special_ammo_sec
 		elseif cur_sec then
 			eff_ammo = xcvb_arena_utils.get_weapon_ammo(cur_sec, c_ammo_type)
@@ -6857,7 +7189,7 @@ function UIXcvbArena:update_endless_custom_menu()
 		end
 
 		paint_slot_item(self.endless_custom_slots.weapon, cur_sec, nil, gt("st_arena_loadout_weapon_title"))
-		paint_slot_item(self.endless_custom_slots.scope, eff_scope, nil, "3DSSG")
+		paint_slot_item(self.endless_custom_slots.scope, eff_scope, nil, "Accessories")
 		paint_slot_item(self.endless_custom_slots.ammo, eff_ammo, ammo_badge, gt("st_arena_loadout_ammo_title"))
 		paint_slot_item(self.endless_custom_slots.mag, eff_mag, mag_badge, gt("st_arena_loadout_mag_title"))
 		paint_slot_item(self.endless_custom_slots.outfit, outfit_sec, nil, gt("st_arena_loadout_sum_outfit"))
@@ -6943,7 +7275,6 @@ function UIXcvbArena:on_click_ec_3dssg()
 	local wpn_sec = cl and cl.weapon_sec
 	if not wpn_sec then return end
 	local entries = xcvb_arena_utils and xcvb_arena_utils.get_weapon_scopes and xcvb_arena_utils.get_weapon_scopes(wpn_sec)
-	if not entries or #entries == 0 then return end
 	self:show_endless_custom_menu(false)
 	self:open_dssg_menu("endless")
 end
@@ -6959,8 +7290,14 @@ end
 function UIXcvbArena:on_click_ec_ammo(ammo_type)
 	if not xcvb_arena_endless then return end
 	local cl = xcvb_arena_endless.get_custom_loadout()
-	if ammo_type == "spec" then
-		cl.ammo_type = "special"
+    if ammo_type == "spec" then
+        local list = xcvb_arena_utils.get_weapon_special_ammos(cl.weapon_sec)
+        local index = 0
+        if cl.ammo_type == "special" then
+            for i,sec in ipairs(list) do if sec == cl.special_ammo_sec then index=i end end
+        end
+        cl.special_ammo_sec = #list > 0 and list[index % #list + 1] or nil
+        cl.ammo_type = "special"
 	else
 		cl.ammo_type = ammo_type
 	end
@@ -7018,6 +7355,14 @@ function UIXcvbArena:OnKeyboard(dik, keyboard_action)
 	if res == false then
 		local bind = dik_to_bind(dik)
 		if bind == key_bindings.kQUIT or dik == DIK_keys.DIK_ESCAPE then
+            if self.artigrok_menu and self.artigrok_menu:IsShown() then
+                self:on_artigrok_option("cancel")
+                return true
+            end
+            if self.personal_options_menu and self.personal_options_menu:IsShown() then
+                self:set_modal_active("personal_options", false)
+                return true
+            end
 			if self.wpn_menu and self.wpn_menu:IsShown() then
 				self:show_wpn_menu(false)
 				return true
@@ -7064,6 +7409,9 @@ function UIXcvbArena:OnKeyboard(dik, keyboard_action)
 end
 
 function UIXcvbArena:Close()
+    self.artigrok_draft = nil
+    if self.artigrok_menu then self.artigrok_menu:Show(false); self.artigrok_menu:Enable(false) end
+    if self.personal_options_menu then self.personal_options_menu:Show(false); self.personal_options_menu:Enable(false) end
     self.backrooms_device_context=nil
     if self.factions_menu then self.factions_menu:Show(false) end
     if self.wpn_menu_target_mode == "team" then self.wpn_menu_target_mode = "tournament" end

@@ -93,4 +93,11 @@
 <string id="st_arena_plus_initial_reserve"><text>Additional initial reserve: %d loose rounds. Granted once.</text></string>
 <string id="st_arena_plus_round_supply_received"><text>Round supply: %d rounds of %s.</text></string>
 <string id="st_arena_gear_restore_pending"><text>Equipment return is incomplete. Your items are safe. Open the arena and try entering again to retry the return.</text></string>
+<string id="st_arena_gear_personal"><text>Gear: personal</text></string>
+<string id="st_arena_gear_rental"><text>Gear: arena</text></string>
+<string id="st_arena_personal_options_desc"><text>Restore the supplies you had at entry after every completed round or wave. Each option is independent.</text></string>
+<string id="st_arena_personal_restore_ammo"><text>Restore ammunition</text></string>
+<string id="st_arena_personal_restore_meds"><text>Restore medicine</text></string>
+<string id="st_arena_personal_restore_grenades"><text>Restore grenades</text></string>
+<string id="st_arena_personal_options_back"><text>Back</text></string>
 </string_table>

@@ -11,9 +11,20 @@ function sound_if_exists(path)
     return nil
 end
 
+local function use_native_combat_perception()
+    if not xcvb_arena_main then return false end
+    if xcvb_arena_fight and xcvb_arena_fight.is_endless_active
+        and xcvb_arena_fight.is_endless_active() then
+        return xcvb_arena_main.endless_selected_variant == "factions"
+            or xcvb_arena_main.endless_aggressive_ai ~= true
+    end
+    return xcvb_arena_main.selected_map == "factory"
+end
+
 -- The Lua binding exists on all game objects, but set_enemy only supports
 -- bloodsuckers. Other combatants use relations, squad targets and hit memory.
 function set_bloodsucker_enemy(npc, target)
+    if use_native_combat_perception() then return end
     if not (npc and target and clsid and clsid.bloodsucker_s) then return end
     if npc:clsid() ~= clsid.bloodsucker_s then return end
     if npc.set_enemy then
@@ -24,6 +35,9 @@ end
 temporary_arena_item_ids = {}
 inventory_api_version = 3
 arena_spawned_combatant_ids = {}
+local spawn_facing_pending = {}
+local next_spawn_facing_update = 0
+local arena_wounded_since = {}
 xcvb_arena_storage_box_id = nil
 saved_equipped_slots = {}
 saved_belt_items = {}
@@ -90,6 +104,9 @@ local excluded_ammo_keywords = {
 local function is_excluded_special_ammo(sec)
     if not sec then return true end
     local low = string.lower(sec)
+    if xcvb_arena_artigrok.installed() then
+        return xcvb_arena_artigrok.special(sec) or xcvb_arena_artigrok.damaged(sec)
+    end
     for _, kw in ipairs(excluded_ammo_keywords) do
         if string.find(low, kw, 1, true) then
             return true
@@ -102,23 +119,7 @@ local function is_excluded_special_ammo(sec)
 end
 
 function is_artigrok_active()
-    local enabled_in_mcm = xcvb_arena_mcm and xcvb_arena_mcm.get_config("special_ammo_support")
-    if enabled_in_mcm == false then return false end
-    
-    if _G.ballistics_utils ~= nil or _G.arti_ammo_utils ~= nil or _G.cxv_artigrok_bo ~= nil or _G.cxv_ammo_stats_tbl ~= nil then
-        return true
-    end
-    
-    if ini_sys and (ini_sys:section_exist("ammo_5.45x39_fmj_bad") or ini_sys:section_exist("ammo_12x70_devastator") or ini_sys:section_exist("ammo_9x19_pbp_bad")) then
-        return true
-    end
-    
-    local ok, res = pcall(function()
-        return ballistics_utils ~= nil or arti_ammo_utils ~= nil
-    end)
-    if ok and res then return true end
-    
-    return false
+    return xcvb_arena_artigrok.installed() and xcvb_arena_artigrok.options().enabled
 end
 
 function get_weapon_ammo(weapon_sec, ammo_type)
@@ -129,32 +130,13 @@ function get_weapon_ammo(weapon_sec, ammo_type)
     local ammo_list = str_explode(ammo_class_str, ",")
     local at = ammo_type or "auto"
     
-    -- Special handling for ArtiGrok Ballistics
+    -- Manual and random selection share the same metadata-backed catalog.
     if at == "special" and is_artigrok_active() then
-        local special_candidates = {}
-        for _, a_sec in ipairs(ammo_list) do
-            local clean_sec = trim(a_sec)
-            if ini_sys:section_exist(clean_sec) then
-                local low = string.lower(clean_sec)
-                if is_excluded_special_ammo(clean_sec)
-                or string.find(low, "bad", 1, true)
-                or string.find(low, "devastator", 1, true)
-                or string.find(low, "star", 1, true)
-                or string.find(low, "mono", 1, true)
-                or string.find(low, "+", 1, true)
-                or string.find(low, "special", 1, true) then
-                    table.insert(special_candidates, clean_sec)
-                end
-            end
-        end
-        if #special_candidates > 0 then
-            return special_candidates[math.random(#special_candidates)]
-        end
-        -- Fallback if this specific weapon has no special ammo
-        local fallbacks = { "fmj", "ap", "hp" }
-        at = fallbacks[math.random(#fallbacks)]
+        local candidates = get_weapon_special_ammos(weapon_sec)
+        if #candidates > 0 then return candidates[math.random(#candidates)] end
     end
-    
+    if at == "special" then at = "fmj" end
+
     local valid_ammos = {}
     for _, a_sec in ipairs(ammo_list) do
         local clean_sec = trim(a_sec)
@@ -174,6 +156,7 @@ function get_weapon_ammo(weapon_sec, ammo_type)
     end
     
     if #valid_ammos == 0 then
+        if xcvb_arena_artigrok.installed() then return nil end
         local clean_sec = trim(ammo_list[1])
         if ini_sys:section_exist(clean_sec) then
             table.insert(valid_ammos, clean_sec)
@@ -308,80 +291,8 @@ function get_unique_weapon_name(sec)
 end
 
 function get_weapon_special_ammos(weapon_sec)
-    if not weapon_sec then return {} end
-    local ammo_class_str = ini_sys:r_string_ex(weapon_sec, "ammo_class")
-    if not ammo_class_str then return {} end
-    
-    local special_list = {}
-    local seen = {}
-    local ammo_list = str_explode(ammo_class_str, ",")
-    for _, a_sec in ipairs(ammo_list) do
-        local clean_sec = trim(a_sec)
-        if ini_sys:section_exist(clean_sec) and not seen[clean_sec] then
-            local low_sec = string.lower(clean_sec)
-            -- Exclude old, verybad, damaged variants
-            local is_old = string.find(low_sec, "verybad", 1, true) or string.find(low_sec, "_old", 1, true)
-            if not is_old then
-                local full_name = get_item_name(clean_sec) or ""
-                local short_name = get_item_short_name(clean_sec) or ""
-                local low_name = string.lower(full_name .. " " .. short_name)
-                
-                local name_is_old = string.find(low_name, "old ", 1, true)
-                    or string.find(low_name, "damaged ", 1, true)
-                    or string.find(low_name, "viejo", 1, true)
-                    or string.find(low_name, "dañado", 1, true)
-                    or string.find(low_name, "стар", 1, true)
-                    or string.find(full_name, "Стар", 1, true)
-                    or string.find(short_name, "Стар", 1, true)
-                    or string.find(low_name, "поврежд", 1, true)
-                    or string.find(full_name, "Поврежд", 1, true)
-                    or string.find(short_name, "Поврежд", 1, true)
-                    or string.find(low_name, "поношен", 1, true)
-                    or string.find(full_name, "Поношен", 1, true)
-                    or string.find(short_name, "Поношен", 1, true)
-                    
-                if not name_is_old then
-                    local is_spec = false
-                    
-                    -- Check if it contains "+" in section or display name
-                    if string.find(clean_sec, "+", 1, true)
-                    or string.find(full_name, "+", 1, true)
-                    or string.find(short_name, "+", 1, true) then
-                        is_spec = true
-                    end
-                    
-                    -- Check special keywords
-                    if not is_spec then
-                        local spec_kws = {
-                            "flechette", "dragon", "devastator", "star", "grav",
-                            "shock", "acid", "cor", "varma", "cluster", "firebomb",
-                            "chaos", "mono", "special"
-                        }
-                        for _, kw in ipairs(spec_kws) do
-                            if string.find(low_sec, kw, 1, true) or string.find(low_name, kw, 1, true) then
-                                is_spec = true
-                                break
-                            end
-                        end
-                    end
-                    
-                    -- In ArtiGrok, modified _bad sections that aren't verybad
-                    if not is_spec and is_artigrok_active() and string.find(low_sec, "_bad", 1, true) then
-                        local inv_name = ini_sys:r_string_ex(clean_sec, "inv_name") or ""
-                        if string.find(inv_name, "ammo_new_", 1, true) then
-                            is_spec = true
-                        end
-                    end
-                    
-                    if is_spec then
-                        seen[clean_sec] = true
-                        table.insert(special_list, clean_sec)
-                    end
-                end
-            end
-        end
-    end
-    return special_list
+    if not is_artigrok_active() then return {} end
+    return xcvb_arena_artigrok.catalog(weapon_sec)
 end
 
 function get_weapon_compatible_mags(weapon_sec)
@@ -1266,12 +1177,39 @@ function spawn_tournament_squad(round_data)
         end
         sections[#sections + 1] = safe_sec
     end
-    if #sections == 0 then return nil end
+    if #sections == 0 then printe("! xcvb arena: Empty round combatant list"); return nil end
     local r_idx = round_data.id or (round_data.wave or 1)
     local pos, lvid, gvid = get_tournament_enemy_pos(r_idx)
+    local combat_positions = get_enemy_spawn_positions(#sections,true,r_idx)
+    if (not combat_positions or #combat_positions==0) and not factory_arena_selected() then
+        -- Stock/custom Bar AI maps may have fewer nodes than the Endless grid.
+        -- Use tournament anchors, retaining the actual resolved AI positions.
+        combat_positions = {}
+        local site = ARENA_SPAWN_SITES[((r_idx-1)%#ARENA_SPAWN_SITES)+1]
+        local actor_pos = site.actor.pos
+        local seen = {}
+        for _, slot in ipairs(site.enemy_slots) do
+            local id = get_safe_arena_lvid(slot.pos,slot.fallback_lvid)
+            local ok, node = pcall(level.vertex_position,id)
+            if ok and node and not seen[id] and math.abs(node.y-slot.pos.y)<1.5
+                and (node.x-actor_pos.x)^2+(node.z-actor_pos.z)^2>=22^2
+                and node.x>=140 and node.x<=164 and node.z>=80 and node.z<=131 then
+                combat_positions[#combat_positions+1]={pos=node,lvid=id,gvid=slot.gvid}
+                seen[id]=true
+            end
+        end
+    end
+    if not combat_positions or #combat_positions==0 then
+        printe("! xcvb arena: No valid enemy AI positions for map=%s round=%s",tostring(xcvb_arena_main.selected_map),tostring(r_idx))
+        return nil
+    end
+    pos,lvid,gvid = combat_positions[1].pos,combat_positions[1].lvid,combat_positions[1].gvid
     local squad_sec = (round_data.squad_type == "mutant") and "arena_tournament_mutant_squad" or "arena_tournament_enemy_squad"
     local squad = alife_create(squad_sec, pos, lvid, gvid)
-    if not squad then return nil end
+    if not squad then
+        printe("! xcvb arena: Squad creation returned nil: %s lvid=%s gvid=%s",squad_sec,tostring(lvid),tostring(gvid))
+        return nil
+    end
     
     local is_intro = (xcvb_arena_fight and xcvb_arena_fight.is_intro_camera_active and xcvb_arena_fight.is_intro_camera_active())
     if not is_intro then
@@ -1287,41 +1225,16 @@ function spawn_tournament_squad(round_data)
     local ok, err = pcall(function()
         for index, sec in ipairs(sections) do
             local offset_pos, member_lvid, member_gvid
-            if factory_arena_selected() then
-                offset_pos, member_lvid, member_gvid = xcvb_arena_factory.get_formation_slot(index, r_idx)
-            else
-                local num_sites = (ARENA_SPAWN_SITES and #ARENA_SPAWN_SITES > 0) and #ARENA_SPAWN_SITES or 1
-                local s_idx = ((r_idx - 1) % num_sites) + 1
-                local site = ARENA_SPAWN_SITES[s_idx]
-                if site and site.enemy_slots and site.enemy_slots[index] then
-                    local sl = site.enemy_slots[index]
-                    if sl.pos then
-                        offset_pos = vector():set(sl.pos.x, sl.pos.y, sl.pos.z)
-                    elseif sl[1] then
-                        offset_pos = vector():set(sl[1], sl[2], sl[3])
-                    else
-                        offset_pos = vector():set(pos.x, pos.y, pos.z)
-                    end
-                    local raw_lvid = sl.fallback_lvid or sl.lvid or sl[4] or lvid
-                    member_lvid = get_safe_arena_lvid(offset_pos, raw_lvid)
-                    member_gvid = sl.gvid or gvid
-                else
-                    local spread = 5
-                    offset_pos = (index == 1)
-                        and vector():set(pos.x, pos.y, pos.z)
-                        or vector():set(pos.x + math.random(-spread, spread), pos.y, pos.z + math.random(-spread, spread))
-                    member_lvid = get_safe_arena_lvid(offset_pos, lvid)
-                    member_gvid = gvid
-                end
-            end
+            local point = combat_positions[((index-1) % #combat_positions)+1]
+            offset_pos,member_lvid,member_gvid = point.pos,point.lvid,point.gvid
             squad:add_squad_member(sec, offset_pos, member_lvid, member_gvid)
         end
         if factory_arena_selected() then
             local index=0
             for m in squad:squad_members() do
                 index=index+1
-                local p,l,g=xcvb_arena_factory.get_formation_slot(index,r_idx)
-                xcvb_arena_factory.register_spawn(m.id,p,l,g)
+                local point=combat_positions[((index-1) % #combat_positions)+1]
+                xcvb_arena_factory.register_spawn(m.id,point.pos,point.lvid,point.gvid)
             end
         end
         squad:set_squad_relation()
@@ -1334,6 +1247,7 @@ function spawn_tournament_squad(round_data)
     end
     for m in squad:squad_members() do
         arena_spawned_combatant_ids[m.id] = true
+        spawn_facing_pending[m.id] = time_global()+15000
     end
     return squad
 end
@@ -2293,6 +2207,7 @@ function apply_realistic_night_vision(npc, vision_ctx)
         if npc.set_fov then
             npc:set_fov(target_fov)
         end
+        if use_native_combat_perception() then return end
         if db.actor and db.actor:alive() then
             local npc_pos = npc:position()
             local actor_pos = db.actor:position()
@@ -2904,6 +2819,7 @@ function equip_tournament_combatant_loadout(npc, round_data, member_idx)
     -- Create specified weapon in inventory
     alife_create_item(wpn_sec, npc)
     local ammo_sec = get_weapon_ammo(wpn_sec)
+    ammo_sec = xcvb_arena_artigrok.npc_ammo(npc, wpn_sec, ammo_sec)
     if ammo_sec and ini_sys:section_exist(ammo_sec) then
         for _ = 1, 8 do
             alife_create_item(ammo_sec, npc)
@@ -3067,6 +2983,7 @@ function apply_endless_stalker_weapon_restriction(npc, target_cls)
         if target_sec and ini_sys:section_exist(target_sec) then
             alife_create_item(target_sec, npc)
             local ammo_sec = get_weapon_ammo(target_sec, "auto")
+            ammo_sec = xcvb_arena_artigrok.npc_ammo(npc, target_sec, ammo_sec)
             if ammo_sec and ini_sys:section_exist(ammo_sec) then
                 for _ = 1, 8 do
                     alife_create_item(ammo_sec, npc)
@@ -3076,6 +2993,7 @@ function apply_endless_stalker_weapon_restriction(npc, target_cls)
     else
         target_sec = target_wpn:section()
         local ammo_sec = get_weapon_ammo(target_sec, "auto")
+        ammo_sec = xcvb_arena_artigrok.npc_ammo(npc,target_sec,ammo_sec)
         if ammo_sec and ini_sys:section_exist(ammo_sec) then
             for _ = 1, 8 do
                 alife_create_item(ammo_sec, npc)
@@ -3124,14 +3042,18 @@ function apply_endless_ai_difficulty(npc, is_monster, diff)
     diff = diff or (xcvb_arena_fight and xcvb_arena_fight.endless_difficulty) or (xcvb_arena_main and xcvb_arena_main.endless_difficulty) or "medium"
 
     if is_monster then
-        if diff == "hard" then
-            pcall(function() npc:berserk() end)
-            pcall(function() npc:set_custom_panic_threshold(0.0) end)
-        elseif diff == "medium" then
-            pcall(function() npc:berserk() end)
-            pcall(function() npc:set_custom_panic_threshold(0.0) end)
-        else -- "easy"
-            pcall(function() npc:set_custom_panic_threshold(0.25) end)
+        -- Difficulty changes the wave composition; arena mutants always fight.
+        pcall(function() npc:berserk() end)
+        pcall(function() npc:set_custom_panic_threshold(0) end)
+        if npc.skip_transfer_enemy then pcall(function() npc:skip_transfer_enemy(false) end) end
+        if db.actor then
+            pcall(function() npc:set_relation(game_object.enemy, db.actor) end)
+            pcall(function() npc:force_set_goodwill(-5000, db.actor) end)
+            if not use_native_combat_perception() and npc.make_enemy_visible then
+                pcall(function() npc:make_enemy_visible(db.actor) end)
+            end
+            if npc.register_in_combat then pcall(function() npc:register_in_combat() end) end
+            set_bloodsucker_enemy(npc, db.actor)
         end
         return
     end
@@ -3203,7 +3125,7 @@ function setup_tournament_squad_aggro(squad_id)
         member_idx = member_idx + 1
 
         local npc = level.object_by_id(m.id)
-        if npc and npc:alive() then
+        if npc and npc:alive() and not is_npc_wounded(npc) then
             online_count = online_count + 1
             if factory_arena_selected() then
                 xcvb_arena_factory.prepare_npc(npc)
@@ -3217,7 +3139,7 @@ function setup_tournament_squad_aggro(squad_id)
             if is_night then
                 apply_realistic_night_vision(npc)
                 equip_and_enable_npc_torch(npc)
-            else
+            elseif not use_native_combat_perception() then
                 set_bloodsucker_enemy(npc, db.actor)
                     if npc.set_sight and db.actor then
                         pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
@@ -3232,8 +3154,7 @@ function setup_tournament_squad_aggro(squad_id)
             end
             
             if IsMonster and IsMonster(npc) then
-                pcall(function() npc:berserk() end)
-                pcall(function() npc:set_custom_panic_threshold(0) end)
+                apply_endless_ai_difficulty(npc, true)
             elseif IsStalker and IsStalker(npc) then
                 pcall(function() npc:set_mental_state(anim.danger) end)
                 pcall(function() npc:set_custom_panic_threshold(0.05) end)
@@ -3270,7 +3191,7 @@ function setup_endless_squads_aggro(squad_ids)
                 total_members = total_members + 1
 
                 local npc = level.object_by_id(m.id)
-                if npc and npc:alive() then
+                if npc and npc:alive() and not is_npc_wounded(npc) then
                     online_members = online_members + 1
                     table.insert(all_npcs, npc)
                     if factory_arena_selected() then
@@ -3302,7 +3223,7 @@ function setup_endless_squads_aggro(squad_ids)
                     if is_night then
                         apply_realistic_night_vision(npc)
                         equip_and_enable_npc_torch(npc)
-                    else
+                    elseif not use_native_combat_perception() then
                         set_bloodsucker_enemy(npc, db.actor)
                         if npc.register_in_combat then
                             pcall(function() npc:register_in_combat() end)
@@ -3313,7 +3234,7 @@ function setup_endless_squads_aggro(squad_ids)
                         end
                     end
                     
-                    if db.actor then
+                    if db.actor and not use_native_combat_perception() then
                         if npc.make_enemy_visible then pcall(npc.make_enemy_visible, npc, db.actor) end
                         pcall(function() npc:set_sight(look.fire_point, db.actor:position()) end)
                         xcvb_arena_utils.scr_hit(db.actor, npc, 0.005)
@@ -3408,8 +3329,10 @@ function clean_arena_corpses()
         if ok and alive == false then
             safe_release_by_id(id)
             arena_spawned_combatant_ids[id] = nil
+            spawn_facing_pending[id]=nil;arena_wounded_since[id]=nil
         elseif not alife_object(id) then
             arena_spawned_combatant_ids[id] = nil
+            spawn_facing_pending[id]=nil;arena_wounded_since[id]=nil
         end
     end
 
@@ -3535,6 +3458,8 @@ function clean_tournament_squad(squad_id)
             end
             for _, id in ipairs(member_ids) do
                 arena_spawned_combatant_ids[id] = nil
+                spawn_facing_pending[id]=nil
+                arena_wounded_since[id]=nil
                 cancel_arena_npc_restock(id)
                 RemoveTimeEvent("arena_aggro_" .. id, "aggro_" .. id)
                 if safe_release_manager and safe_release_manager.release then
@@ -3850,7 +3775,8 @@ function get_all_available_weapons_by_class(loadout_class, specific_tier)
 end
 
 function get_loadout_effective_ammo_sec(weapon_sec, ammo_type, special_sec, tier)
-    if ammo_type == "special" and special_sec and ini_sys:section_exist(special_sec) then
+    if ammo_type == "special" and is_artigrok_active() and xcvb_arena_artigrok.special(special_sec)
+        and xcvb_arena_artigrok.compatible(weapon_sec, special_sec) then
         return special_sec
     end
     if weapon_sec and ini_sys:section_exist(weapon_sec) then
@@ -4183,6 +4109,8 @@ function attach_arena_scope(weapon, requested_scope)
                             end
 
                             local target_ammo_sec = get_weapon_ammo(new_sec, "auto")
+                            target_ammo_sec = xcvb_arena_artigrok.resolve(new_sec,"player",target_ammo_sec,
+                                xcvb_arena_artigrok.get_actor_ammo(weapon_id))
                             if target_ammo_sec and ini_sys:section_exist(target_ammo_sec) then
                                 if spawn_and_fill_mags then
                                     pcall(spawn_and_fill_mags, new_sec, target_ammo_sec, 4, attached_weapon:id())
@@ -4199,6 +4127,17 @@ function attach_arena_scope(weapon, requested_scope)
                             pcall(function()
                                 attached_weapon:set_ammo_elapsed(mag_size)
                             end)
+                        end
+                        -- Scope attachment replaces the weapon ID even without
+                        -- changing caliber. Preserve the issued special round.
+                        local issued_ammo = xcvb_arena_artigrok.get_actor_ammo(weapon_id)
+                        if not caliber_changed and xcvb_arena_artigrok.selected("player")
+                            and xcvb_arena_artigrok.compatible(new_sec,issued_ammo) then
+                            xcvb_arena_artigrok.remember_actor_ammo(attached_weapon:id(),issued_ammo)
+                            if not (magazine_binder and magazine_binder.is_supported_weapon
+                                and magazine_binder.is_supported_weapon(new_sec)) then
+                                initialize_arena_weapon_ammo(attached_weapon:id(),new_sec,issued_ammo)
+                            end
                         end
                         return true
                     end
@@ -4463,6 +4402,7 @@ local function fill_arena_magazine(mag_id, mag_sec, ammo_sec)
     if not (mag_id and mag_sec and ammo_sec) then return end
     if not temporary_arena_item_ids[mag_id] or not alife_object(mag_id) then return end
     
+    xcvb_arena_artigrok.remember_actor_ammo(wpn_id,ammo_sec)
     local cap = SYS_GetParam(2, mag_sec, "max_mag_size") or 30
     
     if mags_patches and mags_patches.fill_mag then
@@ -4542,6 +4482,7 @@ end
 
 function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id, chosen_mag_sec)
     if not (wpn_sec and ammo_sec) then return ammo_sec end
+    xcvb_arena_artigrok.remember_actor_ammo(wpn_id,ammo_sec)
     if not (magazine_binder and magazine_binder.is_supported_weapon and magazine_binder.is_supported_weapon(wpn_sec)) then
         initialize_arena_weapon_ammo(wpn_id, wpn_sec, ammo_sec)
         return ammo_sec
@@ -4586,6 +4527,7 @@ function spawn_and_fill_mags(wpn_sec, ammo_sec, count, wpn_id, chosen_mag_sec)
         end
     end
     
+    xcvb_arena_artigrok.remember_actor_ammo(wpn_id,ammo_sec)
     local cap = SYS_GetParam(2, mag_sec, "max_mag_size") or 30
     
     if wpn_id then
@@ -4832,6 +4774,7 @@ function equip_tournament_random_loadout(round_tier, loadout_class, forced_tier,
                 ammo_sec = get_weapon_ammo(wpn_sec, chosen_ammo_type)
             end
             
+            ammo_sec = xcvb_arena_artigrok.resolve(wpn_sec, "player", ammo_sec, forced_ammo_sec)
             if ammo_sec then
                 local m_cnt = tonumber(forced_mag_count)
                 if not m_cnt or m_cnt < 1 or forced_mag_count == "auto" or is_free_loadout then
@@ -5328,7 +5271,8 @@ function set_teams_relation(squad_id1, squad_id2)
     pcall(function() squad1:set_relation(squad2, "enemy") end)
     pcall(function() squad2:set_relation(squad1, "enemy") end)
     
-    -- Force individual goodwill, relations, team separation, and combat memory
+    -- Factory uses native perception while preserving team hostility.
+    local force_visibility = not use_native_combat_perception()
     for m1 in squad1:squad_members() do
         local npc1 = level.object_by_id(m1.id)
         if npc1 and npc1:alive() then
@@ -5343,10 +5287,10 @@ function set_teams_relation(squad_id1, squad_id2)
                         pcall(function() npc2:force_set_goodwill(-9999, npc1) end)
                         pcall(function() npc1:set_relation(game_object.enemy, npc2) end)
                         pcall(function() npc2:set_relation(game_object.enemy, npc1) end)
-                        if npc1.make_enemy_visible then
+                        if force_visibility and npc1.make_enemy_visible then
                             pcall(function() npc1:make_enemy_visible(npc2) end)
                         end
-                        if npc2.make_enemy_visible then
+                        if force_visibility and npc2.make_enemy_visible then
                             pcall(function() npc2:make_enemy_visible(npc1) end)
                         end
                         if npc1.register_in_combat then
@@ -5361,7 +5305,7 @@ function set_teams_relation(squad_id1, squad_id2)
                         pcall(function() npc1:force_set_goodwill(-9999, npc2) end)
                         pcall(function() npc1:set_relation(game_object.enemy, npc2) end)
                         pcall(function() npc2:set_relation(game_object.enemy, npc1) end)
-                        if npc1.make_enemy_visible then
+                        if force_visibility and npc1.make_enemy_visible then
                             pcall(function() npc1:make_enemy_visible(npc2) end)
                         end
                         if npc1.register_in_combat then
@@ -5375,7 +5319,7 @@ function set_teams_relation(squad_id1, squad_id2)
                         pcall(function() npc2:force_set_goodwill(-9999, npc1) end)
                         pcall(function() npc2:set_relation(game_object.enemy, npc1) end)
                         pcall(function() npc1:set_relation(game_object.enemy, npc2) end)
-                        if npc2.make_enemy_visible then
+                        if force_visibility and npc2.make_enemy_visible then
                             pcall(function() npc2:make_enemy_visible(npc1) end)
                         end
                         if npc2.register_in_combat then
@@ -5391,10 +5335,10 @@ function set_teams_relation(squad_id1, squad_id2)
                         pcall(function() npc2:set_relation(game_object.enemy, npc1) end)
                         pcall(function() npc1:force_set_goodwill(-9999, npc2) end)
                         pcall(function() npc2:force_set_goodwill(-9999, npc1) end)
-                        if npc1.make_enemy_visible then
+                        if force_visibility and npc1.make_enemy_visible then
                             pcall(function() npc1:make_enemy_visible(npc2) end)
                         end
-                        if npc2.make_enemy_visible then
+                        if force_visibility and npc2.make_enemy_visible then
                             pcall(function() npc2:make_enemy_visible(npc1) end)
                         end
                         if npc1.register_in_combat then
@@ -5572,10 +5516,10 @@ function force_mutant_aggro(squad_id1, squad_id2, initial_wake)
             pcall(function() target:set_relation(game_object.enemy, mutant) end)
             pcall(function() mutant:force_set_goodwill(-9999, target) end)
             pcall(function() target:force_set_goodwill(-9999, mutant) end)
-            if mutant.make_enemy_visible then
+            if not use_native_combat_perception() and mutant.make_enemy_visible then
                 pcall(function() mutant:make_enemy_visible(target) end)
             end
-            if target.make_enemy_visible then
+            if not use_native_combat_perception() and target.make_enemy_visible then
                 pcall(function() target:make_enemy_visible(mutant) end)
             end
             set_bloodsucker_enemy(mutant, target)
@@ -5639,6 +5583,8 @@ function force_stalker_aggro(squad_id1, squad_id2, initial_wake)
 
         pcall(function() stalker:set_custom_panic_threshold(0.05) end)
 
+        if use_native_combat_perception() then return end
+
         local current_enemy = nil
         pcall(function()
             current_enemy = stalker:best_enemy()
@@ -5695,6 +5641,72 @@ function force_stalker_aggro(squad_id1, squad_id2, initial_wake)
     end
 end
 
+function face_enemy_on_spawn(npc)
+    local id = npc and npc:id()
+    if not (id and spawn_facing_pending[id] and db.actor and npc:alive()) then return end
+    if use_native_combat_perception() or is_npc_wounded(npc) then spawn_facing_pending[id]=nil;return end
+    local pos,target = npc:position(),db.actor:position()
+    local dx,dz = target.x-pos.x,target.z-pos.z
+    local length=math.sqrt(dx*dx+dz*dz)
+    if length>.01 then
+        pcall(function() npc:set_desired_direction(vector():set(dx/length,0,dz/length)) end)
+        if IsStalker and IsStalker(npc) then
+            pcall(function() npc:set_sight(look.fire_point,target) end)
+        end
+    end
+    spawn_facing_pending[id]=nil
+end
+
+function update_enemy_spawn_facing()
+    if not next(spawn_facing_pending) then return end
+    local now=time_global()
+    if now<next_spawn_facing_update then return end
+    next_spawn_facing_update=now+100
+    for id,expires in pairs(spawn_facing_pending) do
+        local npc=level.object_by_id(id)
+        if npc and npc:alive() then
+            if factory_arena_selected() then xcvb_arena_factory.prepare_npc(npc) end
+            face_enemy_on_spawn(npc)
+        elseif now>expires then spawn_facing_pending[id]=nil end
+    end
+end
+
+-- Only arena-owned incapacitated stalkers are eligible; leave ordinary NPCs alone.
+-- Allow a recovery window, then finish a persistent downed state through the
+-- engine's normal death path so the squad's death callbacks can advance combat.
+function handle_arena_wounded(npc, now)
+    local id=npc and npc:id()
+    if not (id and arena_spawned_combatant_ids[id]) then return false end
+    if not is_npc_wounded(npc) then arena_wounded_since[id]=nil;return false end
+    now=now or time_global()
+    local incapacitated=false
+    local function check(fn, arg)
+        if fn then local ok,value=pcall(fn,arg);if ok and value then incapacitated=true end end
+    end
+    check(IsWounded,npc)
+    if xr_wounded then
+        check(xr_wounded.is_wounded,npc)
+        check(xr_wounded.is_heavy_wounded,id)
+        check(xr_wounded.is_psy_wounded,id)
+    end
+    if npc.critically_wounded then check(function() return npc:critically_wounded() end) end
+    local entry=arena_wounded_since[id]
+    if not incapacitated then
+        -- Low health alone is not a reason to kill an upright combatant.
+        -- Brief get-up phases retain the clock, genuine recovery clears it.
+        if entry and now-(entry.last_seen or entry.since)>4000 then arena_wounded_since[id]=nil end
+        return true
+    end
+    if not entry then entry={since=now,section=npc:section()};arena_wounded_since[id]=entry end
+    if entry.section~=npc:section() then entry={since=now,section=npc:section()};arena_wounded_since[id]=entry end
+    entry.last_seen=now
+    if now-entry.since>=6000 and (not entry.last_attempt or now-entry.last_attempt>=3000) then
+        entry.last_attempt=now
+        pcall(function() npc:kill(db.actor) end)
+    end
+    return true
+end
+
 function is_npc_wounded(npc)
     if not (npc and npc:alive()) then return false end
     -- Anomaly's IsStalker includes script_actor/actor as well as human NPCs.
@@ -5737,6 +5749,7 @@ function is_npc_wounded(npc)
 end
 
 function scr_hit(npc, who, power)
+    if use_native_combat_perception() then return end
     if not (npc and who) then return end
     if xcvb_arena_fight and xcvb_arena_fight.is_intro_camera_active and xcvb_arena_fight.is_intro_camera_active() then return end
     if is_npc_wounded(who) or is_npc_wounded(npc) then return end
@@ -5755,28 +5768,37 @@ function scr_hit(npc, who, power)
 end
 
 local orig_get_script_target
+local arena_combat_sections = {
+    arena_tournament_enemy_squad = true,
+    arena_tournament_mutant_squad = true,
+}
+for i = 1, 4 do
+    arena_combat_sections["arena_stalker_team_" .. i] = true
+    arena_combat_sections["arena_mutant_team_" .. i] = true
+end
 local function arena_get_script_target(self)
-    if not (xcvb_arena_runtime and xcvb_arena_runtime.combat_active()) then
+    if not (xcvb_arena_runtime and xcvb_arena_runtime.combat_active())
+        or not arena_combat_sections[self:section_name()] then
         return orig_get_script_target and orig_get_script_target(self)
     end
-    local arena_sec = self:section_name()
-    if not (arena_sec and arena_sec:find("arena_", 1, true)) then return orig_get_script_target and orig_get_script_target(self) end
-    if self.scripted_target then
-        if self.scripted_target == "actor" or self.scripted_target == 0 then
-            return 0
-        end
-        local new_id = tonumber(self.scripted_target)
-        if new_id then return new_id end
+    if self.scripted_target == "actor" or self.scripted_target == 0 then
+        return 0
     end
-    
-    local sec = self:section_name()
-    if sec and string.find(sec, "arena_") then
-        return self.id
+    local new_id = tonumber(self.scripted_target)
+    local target = new_id and alife_object(new_id)
+    -- Match Anomaly's target type checks: IDs can be removed or reused for
+    -- inventory objects while temporary enemy squads are being cleaned up.
+    if target and (target:clsid() == clsid.online_offline_group_s
+        or target:clsid() == clsid.smart_terrain) then
+        return new_id
     end
-    
-    if orig_get_script_target then
-        return orig_get_script_target(self)
-    end
+    -- Hold position instead of handing a stale target to the A-Life scheduler.
+    self.scripted_target = self.id
+    self.assigned_target_id = self.id
+    self.current_target_id = self.id
+    self.current_action = 0
+    self.rush_to_target = false
+    return self.id
 end
 
 --------------------------------------------------------------------------------
@@ -6091,6 +6113,7 @@ function ensure_npc_combat_loadout(npc)
             end
         end)
         local ammo_sec = get_weapon_ammo(sec, "auto")
+        ammo_sec = xcvb_arena_artigrok.npc_ammo(npc, sec, ammo_sec)
         if ammo_sec and ini_sys:section_exist(ammo_sec) then
             for _ = 1, 8 do
                 alife_create_item(ammo_sec, npc)
@@ -6354,12 +6377,22 @@ end
 --------------------------------------------------------------------------------
 
 local endless_mutant_sections_by_tier = {
-    [1] = { "tushkano_normal", "dog_weak_red", "dog_normal_white", "flesh_weak", "cat_weak" },
-    [2] = { "dog_strong_black", "pseudodog_normal", "boar_normal", "snork_weak", "flesh_normal" },
-    [3] = { "snork_normal", "bloodsucker_normal", "psysucker_weak", "boar_strong", "fracture_normal" },
-    [4] = { "bloodsucker_strong", "burer_normal", "psysucker_normal", "snork_strong", "chimera_weak" },
-    [5] = { "chimera_normal", "gigant_normal", "burer_strong", "bloodsucker_strong" },
+    [1] = { "tushkano_normal", "dog_weak_red", "dog_normal_white", "dog_normal_red", "flesh_weak", "flesh_normal", "cat_normal_a", "cat_normal_b", "zombie_normal" },
+    [2] = { "dog_strong_black", "pseudodog_normal", "boar_normal", "snork_weak", "flesh_normal", "cat_strong_a", "lurker_1_normal", "lurker_2_normal", "fracture_normal", "zombie_strong" },
+    [3] = { "snork_normal", "snork_normal2", "bloodsucker_normal", "psysucker_2_normal", "boar_strong", "fracture_normal", "fracture_strong", "lurker_3_strong", "psy_dog_normal", "pseudodog_grey_strong", "zombie_blind" },
+    [4] = { "bloodsucker_strong", "burer_normal", "psysucker_3_normal", "snork_strong", "chimera_weak", "psy_dog_normal", "lurker_3_strong", "m_controller_normal" },
+    [5] = { "chimera_normal", "chimera_strong", "gigant_normal", "gigant_strong", "burer_strong", "bloodsucker_strong", "psysucker_3_strong", "m_controller_normal" },
 }
+
+-- Use the session RNG instead of reseeding each spawn in the same millisecond.
+function pick_endless_mutant_section(tier)
+    local valid = {}
+    for _, sec in ipairs(endless_mutant_sections_by_tier[tier] or endless_mutant_sections_by_tier[1]) do
+        if ini_sys:section_exist(sec) then valid[#valid+1] = sec end
+    end
+    if #valid == 0 then return nil end
+    return valid[math.random(#valid)]
+end
 
 local endless_enemy_factions = { "bandit", "renegade", "killer", "army", "dolg", "freedom", "zombied" }
 
@@ -6372,127 +6405,99 @@ local endless_forbidden_factions = {
 
 local endless_north_spawn_zones = {
     -- North Center Gate & Approach (Exact ground elevations & verified lvids)
-    { pos = vector():set(151.2, -20.0543, 128.0), fallback_lvid = 40551, gvid = 1796 },
-    { pos = vector():set(151.2, -20.0543, 126.0), fallback_lvid = 40551, gvid = 1796 },
-    { pos = vector():set(148.0, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 },
-    { pos = vector():set(154.5, -20.0543, 126.5), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(151.2, -21.05974, 128.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(151.2, -21.05974, 126.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(148.0, -21.05974, 126.5), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(154.5, -21.05974, 126.5), fallback_lvid = 40551, gvid = 1796 },
     -- North Flanks & Corners
-    { pos = vector():set(145.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 },
-    { pos = vector():set(158.5, -20.0543, 123.0), fallback_lvid = 40551, gvid = 1796 },
-    { pos = vector():set(144.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 },
-    { pos = vector():set(160.0, -20.0543, 122.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(145.5, -21.05974, 123.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(158.5, -21.05974, 123.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(144.0, -21.05974, 122.0), fallback_lvid = 40551, gvid = 1796 },
+    { pos = vector():set(160.0, -21.05974, 122.0), fallback_lvid = 40551, gvid = 1796 },
 }
 
 local endless_south_spawn_zones = {
     -- South Center Gate & Approach (Exact ground elevations & verified lvids)
-    { pos = vector():set(152.6, -20.0598, 81.5), fallback_lvid = 40761, gvid = 1684 },
-    { pos = vector():set(152.6, -20.0598, 84.0), fallback_lvid = 40761, gvid = 1684 },
-    { pos = vector():set(149.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 },
-    { pos = vector():set(156.0, -20.0598, 83.5), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(152.6, -21.05974, 81.5), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(152.6, -21.05974, 84.0), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(149.0, -21.05974, 83.5), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(156.0, -21.05974, 83.5), fallback_lvid = 40761, gvid = 1684 },
     -- South Flanks & Corners
-    { pos = vector():set(145.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 },
-    { pos = vector():set(158.5, -20.0598, 87.0), fallback_lvid = 40761, gvid = 1684 },
-    { pos = vector():set(144.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 },
-    { pos = vector():set(160.0, -20.0598, 88.0), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(145.5, -21.05974, 87.0), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(158.5, -21.05974, 87.0), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(144.0, -21.05974, 88.0), fallback_lvid = 40761, gvid = 1684 },
+    { pos = vector():set(160.0, -21.05974, 88.0), fallback_lvid = 40761, gvid = 1684 },
 }
 
-local function get_safe_endless_spawn_positions(num_enemies)
-    local n_req = math.max(1, num_enemies or 1)
-    if factory_arena_selected() then return xcvb_arena_factory.get_endless_positions(n_req) end
-    local actor_pos = nil
-    if db.actor and db.actor:alive() then
-        pcall(function() actor_pos = db.actor:position() end)
-    end
-    if not actor_pos then
-        actor_pos = get_actor_tournament_pos()
-    end
-
-    -- Centro de la arena en Z es ~105.0. Porton norte ~128.0, porton sur ~81.2.
-    local dist_to_north = math.abs(126.0 - actor_pos.z)
-    local dist_to_south = math.abs(actor_pos.z - 83.5)
-
-    local primary_zones = (dist_to_north >= dist_to_south) and endless_north_spawn_zones or endless_south_spawn_zones
-    local backup_zones = (dist_to_north >= dist_to_south) and endless_south_spawn_zones or endless_north_spawn_zones
-
-    local MIN_SAFE_DIST = 18.0 -- Distancia minima absoluta en metros respecto al jugador
-
-    local function evaluate_pool(pool)
-        local candidates = {}
-        for _, z in ipairs(pool) do
-            local mapped_zone = {
-                    pos = z.pos,
-                    fallback_lvid = z.fallback_lvid,
-                    gvid = z.gvid,
-                }
-            local d = 0
-            pcall(function() d = actor_pos:distance_to(mapped_zone.pos) end)
-            table.insert(candidates, { zone = mapped_zone, dist = d })
+local function get_safe_endless_spawn_positions(num_enemies, force_grouped, wave)
+    local count = math.max(1,num_enemies or 1)
+    if factory_arena_selected() then return xcvb_arena_factory.get_endless_positions(count,force_grouped,wave) end
+    local actor = db.actor and db.actor:position()
+    if not actor then return {} end
+    local north = math.abs(126-actor.z) >= math.abs(actor.z-83.5)
+    local primary = north and endless_north_spawn_zones or endless_south_spawn_zones
+    local backup = north and endless_south_spawn_zones or endless_north_spawn_zones
+    local grouped = force_grouped or (xcvb_arena_main and xcvb_arena_main.endless_spawn_grouping == "together")
+    local function collect(zones)
+        local out,seen = {},{}
+        local function add(wanted,zone)
+            if wanted.x<144 or wanted.x>160 or wanted.z<81.5 or wanted.z>128 then return end
+            if (wanted.x-actor.x)^2+(wanted.z-actor.z)^2<20.5^2 then return end
+            local id = get_safe_arena_lvid(wanted,zone.fallback_lvid)
+            local ok,pos = pcall(level.vertex_position,id)
+            if ok and pos and not seen[id] and math.abs(pos.y-zone.pos.y)<.6
+                and (pos.x-wanted.x)^2+(pos.z-wanted.z)^2<=2.25
+                and (pos.x-actor.x)^2+(pos.z-actor.z)^2>=22^2 then
+                seen[id]=true
+                out[#out+1]={pos=vector():set(pos.x,pos.y,pos.z),lvid=id,gvid=zone.gvid}
+            end
         end
-        table.sort(candidates, function(a, b) return a.dist > b.dist end)
-        return candidates
-    end
-
-    local prim_eval = evaluate_pool(primary_zones)
-    local safe_zones = {}
-
-    for _, c in ipairs(prim_eval) do
-        if c.dist >= MIN_SAFE_DIST then
-            table.insert(safe_zones, c.zone)
+        for _,zone in ipairs(zones) do
+            for ox=-2,2 do for oz=-2,2 do
+                add(vector():set(zone.pos.x+ox*.7,zone.pos.y,zone.pos.z+oz*.7),zone)
+            end end
         end
+        -- Include the full far approach, not just a few sparse gate anchors.
+        -- The distance prefilter avoids vertex lookups in the player's half.
+        local zone=zones[1]
+        local north_side=zones==endless_north_spawn_zones
+        for ix=0,32 do for iz=0,46 do
+            local z=north_side and (105+iz*.5) or (105-iz*.5)
+            add(vector():set(144+ix*.5,zone.pos.y,z),zone)
+        end end
+        table.sort(out,function(a,b)
+            local da=(a.pos.x-actor.x)^2+(a.pos.z-actor.z)^2
+            local db=(b.pos.x-actor.x)^2+(b.pos.z-actor.z)^2
+            if da==db then return a.lvid<b.lvid end
+            return da>db
+        end)
+        return out
     end
-
-    -- Si la piscina primaria no tiene suficientes puntos sobre la distancia minima, comprobar el respaldo
-    if #safe_zones < n_req then
-        local back_eval = evaluate_pool(backup_zones)
-        for _, c in ipairs(back_eval) do
-            if c.dist >= MIN_SAFE_DIST then
-                table.insert(safe_zones, c.zone)
+    local candidates,other = collect(primary),collect(backup)
+    if grouped then
+        if #other>#candidates then candidates=other end
+    else
+        for _,point in ipairs(other) do candidates[#candidates+1]=point end
+    end
+    local result,used = {},{}
+    -- Relax spacing, never the player distance or validity of an AI node.
+    for _,spacing in ipairs({2.2,1.4,.7}) do
+        for _,point in ipairs(candidates) do
+            if #result>=count then return result end
+            if not used[point.lvid] then
+                local clear=true
+                for _,taken in ipairs(result) do
+                    if (point.pos.x-taken.pos.x)^2+(point.pos.z-taken.pos.z)^2<spacing^2 then clear=false;break end
+                end
+                if clear then result[#result+1]=point;used[point.lvid]=true end
             end
         end
     end
+    return result
+end
 
-    -- Respaldo de seguridad: si por algun motivo no hay zonas que cumplan la cota, usar las mas lejanas de la primaria
-    if #safe_zones == 0 then
-        for _, c in ipairs(prim_eval) do
-            table.insert(safe_zones, c.zone)
-        end
-    end
-
-    local is_together = (xcvb_arena_main and xcvb_arena_main.endless_spawn_grouping == "together")
-    if is_together and #safe_zones > 0 then
-        local base_zone = safe_zones[1]
-        local positions = {}
-        for i = 1, n_req do
-            local angle = (i - 1) * (2 * math.pi / math.min(n_req, 8))
-            local radius = (i == 1) and 0 or (1.2 + math.floor((i - 1) / 8) * 1.2)
-            local ox = math.cos(angle) * radius
-            local oz = math.sin(angle) * radius
-            local p = vector():set(base_zone.pos.x + ox, base_zone.pos.y, base_zone.pos.z + oz)
-            local lvid = get_safe_arena_lvid(p, base_zone.fallback_lvid)
-            local gvid = base_zone.gvid
-            table.insert(positions, { pos = p, lvid = lvid, gvid = gvid })
-        end
-        return positions
-    end
-
-    -- Barajar las zonas seguras para distribuir enemigos entre distintos portones y flancos
-    for i = #safe_zones, 2, -1 do
-        local j = math.random(i)
-        safe_zones[i], safe_zones[j] = safe_zones[j], safe_zones[i]
-    end
-
-    local positions = {}
-    for i = 1, n_req do
-        local zone = safe_zones[((i - 1) % #safe_zones) + 1]
-        local ox = (math.random() * 1.0) - 0.5
-        local oz = (math.random() * 1.0) - 0.5
-        local p = vector():set(zone.pos.x + ox, zone.pos.y, zone.pos.z + oz)
-        local lvid = get_safe_arena_lvid(p, zone.fallback_lvid)
-        local gvid = zone.gvid
-        table.insert(positions, { pos = p, lvid = lvid, gvid = gvid })
-    end
-
-    return positions
+function get_enemy_spawn_positions(count, grouped, wave)
+    return get_safe_endless_spawn_positions(count,grouped,wave)
 end
 
 function get_random_endless_spawn_pos(prefer_idx)
@@ -6500,8 +6505,17 @@ function get_random_endless_spawn_pos(prefer_idx)
     if positions and positions[1] then
         return positions[1].pos, positions[1].lvid, positions[1].gvid
     end
-    local p = vector():set(151.2, -20.0543, 128.0)
-    return p, get_safe_arena_lvid(p, 40551), 1796
+    return nil
+end
+
+-- Both Chaos lists share one reservation set. Never wrap onto an occupied node.
+local function unique_endless_spawn_point(points, used, preferred_index)
+    if not points or #points == 0 then return nil end
+    for offset=0,#points-1 do
+        local point=points[((preferred_index-1+offset) % #points)+1]
+        if point and not used[point.lvid] then return point end
+    end
+    return nil
 end
 
 function spawn_endless_squad(wave, enemy_type, difficulty, extra_enemies, enemy_mult)
@@ -6592,9 +6606,13 @@ function spawn_endless_squad(wave, enemy_type, difficulty, extra_enemies, enemy_
         rank = math.max(1, math.min(4, tier))
     end
     
-    local spawn_points = get_safe_endless_spawn_positions(num_enemies)
+    local spawn_points = get_safe_endless_spawn_positions(num_enemies, e_type == "mutants", cur_wave)
     if not spawn_points or #spawn_points==0 then return nil end
+    num_enemies = math.min(num_enemies, #spawn_points)
 
+    local mutant_points = e_type == "chaos" and get_safe_endless_spawn_positions(num_enemies, true, cur_wave) or spawn_points
+    local mutant_index = 0
+    local used_spawn_vertices = {}
     local wave_fac = nil
     if e_type == "stalkers" then
         local fac_candidates = {}
@@ -6616,8 +6634,7 @@ function spawn_endless_squad(wave, enemy_type, difficulty, extra_enemies, enemy_
         local choose_mutant = (e_type == "mutants") or (e_type == "chaos" and (math.random(1, 2) == 1))
         
         if choose_mutant then
-            local m_list = endless_mutant_sections_by_tier[tier] or endless_mutant_sections_by_tier[1]
-            sec = pick_valid_section(m_list)
+            sec = pick_endless_mutant_section(tier)
         else
             local chosen_fac = wave_fac
             if not chosen_fac then
@@ -6644,7 +6661,16 @@ function spawn_endless_squad(wave, enemy_type, difficulty, extra_enemies, enemy_
         end
         
         if sec and ini_sys:section_exist(sec) then
-            local sp = spawn_points[i] or spawn_points[1]
+            local sp
+            if choose_mutant then
+                mutant_index = mutant_index + 1
+                sp = unique_endless_spawn_point(mutant_points,used_spawn_vertices,mutant_index)
+            else
+                sp = unique_endless_spawn_point(spawn_points,used_spawn_vertices,i)
+            end
+            -- If a grouped pool is exhausted, omit this combatant rather than
+            -- stacking it or moving the mutant pack onto another floor.
+            if sp then
             local m_pos, m_lvid, m_gvid = sp.pos, sp.lvid, sp.gvid
             
             local is_m = choose_mutant or (sec and not string.find(sec, "^sim_default_"))
@@ -6731,12 +6757,15 @@ function spawn_endless_squad(wave, enemy_type, difficulty, extra_enemies, enemy_
 
                 for m in sq:squad_members() do
                     arena_spawned_combatant_ids[m.id] = true
+        spawn_facing_pending[m.id] = time_global()+15000
                     if factory_arena_selected() then
                         xcvb_arena_factory.register_spawn(m.id, m_pos, m_lvid, m_gvid)
                     end
                 end
+                used_spawn_vertices[m_lvid] = true
                 table.insert(spawned_squads, sq)
             end
+            end -- unique position available
         end
     end
     
@@ -6876,12 +6905,13 @@ function equip_endless_random_loadout(wave, difficulty, use_3dssg)
             
             local ammo_types = { "fmj", "ap", "hp" }
             local chosen_ammo = ammo_types[math.random(#ammo_types)]
-            if xcvb_arena_main and xcvb_arena_main.endless_artigrok_ammo then
+            if xcvb_arena_artigrok.selected("player") then
                 if is_artigrok_active() then
                     chosen_ammo = "special"
                 end
             end
             local ammo_sec = get_weapon_ammo(wpn_sec, chosen_ammo)
+            ammo_sec = xcvb_arena_artigrok.resolve(wpn_sec,"player",ammo_sec)
             if ammo_sec then
                 ammo_sec = spawn_and_fill_mags(wpn_sec, ammo_sec, 4, spawned_wpn_id) or ammo_sec
                 local count = (t_data.ammo_count or 5) + 1
@@ -7236,7 +7266,7 @@ function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_a
             military_outfit = 5000,
             exo_outfit = 8000,
         }
-        total_fee = total_fee + (outfit_costs[forced_outfit_sec] or 1500)
+        total_fee = total_fee + xcvb_arena_gear_catalog.fee("outfit", forced_outfit_sec)
     end
 
     -- 7. Custom Helmet fee
@@ -7248,7 +7278,7 @@ function get_loadout_rental_fee(round_id, loadout_class, loadout_tier, loadout_a
             helm_battle = 2800,
             helm_exo = 4000,
         }
-        total_fee = total_fee + (helm_costs[forced_helm_sec] or 1000)
+        total_fee = total_fee + xcvb_arena_gear_catalog.fee("helmet", forced_helm_sec)
     end
 
     -- 8. Custom Medical pack fee
@@ -7497,7 +7527,7 @@ function get_actor_true_community()
 end
 
 function is_any_arena_fight_active()
-    if not (db and db.actor and xcvb_arena_runtime and xcvb_arena_runtime.contains(db.actor:position())) then return false end
+    if not (db and db.actor and xcvb_arena_runtime and xcvb_arena_runtime.is_combat_position(db.actor:position())) then return false end
     -- Fuera del nivel del Bar (donde radica la Arena), jamás hay combate de arena
     if not (level and level.name and level.name() == "l05_bar") then
         return false

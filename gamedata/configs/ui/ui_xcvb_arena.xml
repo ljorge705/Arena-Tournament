@@ -83,7 +83,16 @@
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 
 	</btn_night_device>
-
+    <btn_enemy_type x="470" y="30" width="160" height="28" check_mode="0">
+        <text r="100" g="220" b="255" font="letterica16" align="c" vert_align="c">S.T.A.L.K.E.R - MUTANTS</text>
+        <texture>ui_inGame2_Mp_bigbuttone</texture>
+        <text_color>
+            <e r="100" g="220" b="255" a="255"/>
+            <h r="180" g="245" b="255" a="255"/>
+            <t r="255" g="255" b="255" a="255"/>
+            <d r="100" g="115" b="120" a="255"/>
+        </text_color>
+    </btn_enemy_type>
 	<btn_map x="305" y="30" width="160" height="28" check_mode="0">
 
 		<text r="255" g="165" b="55" font="letterica16" align="c" vert_align="c"></text>
@@ -211,7 +220,7 @@
 
 				<texture>ui_inGame2_Mp_bigbuttone</texture>
 
-			</action_btn>
+			<text_color><e r="255" g="220" b="120" a="255" /><d r="100" g="105" b="110" a="255" /><h r="255" g="255" b="155" a="255" /><t r="230" g="195" b="95" a="255" /></text_color></action_btn>
 
 		</tourn_row_1>
 
@@ -251,7 +260,7 @@
 
 				<texture>ui_inGame2_Mp_bigbuttone</texture>
 
-			</action_btn>
+			<text_color><e r="255" g="220" b="120" a="255" /><d r="100" g="105" b="110" a="255" /><h r="255" g="255" b="155" a="255" /><t r="230" g="195" b="95" a="255" /></text_color></action_btn>
 
 		</tourn_row_2>
 
@@ -291,7 +300,7 @@
 
 				<texture>ui_inGame2_Mp_bigbuttone</texture>
 
-			</action_btn>
+			<text_color><e r="255" g="220" b="120" a="255" /><d r="100" g="105" b="110" a="255" /><h r="255" g="255" b="155" a="255" /><t r="230" g="195" b="95" a="255" /></text_color></action_btn>
 
 		</tourn_row_3>
 
@@ -389,6 +398,18 @@
 
 			</summary_scope>
 
+		
+
+	<btn_accessories x="208" y="78" width="146" height="30"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica18" r="90" g="225" b="255" align="c">ACCESSORIES &gt;</text><text_color><e r="90" g="225" b="255" a="255" /><d r="100" g="105" b="110" a="255" /><h r="125" g="255" b="255" a="255" /><t r="65" g="200" b="230" a="255" /></text_color></btn_accessories>
+    <btn_personal_options x="208" y="150" width="146" height="30" check_mode="0">
+        <text font="letterica16" align="c" vert_align="c">OPTIONS</text>
+        <texture>ui_inGame2_Mp_bigbuttone</texture>
+    <text_color><e r="255" g="210" b="110" a="255" /><d r="100" g="105" b="110" a="255" /><h r="255" g="245" b="145" a="255" /><t r="230" g="185" b="85" a="255" /></text_color></btn_personal_options>
+<btn_personal_equipment x="208" y="114" width="146" height="30" check_mode="0">
+        <text font="letterica16" align="c" vert_align="c">st_arena_gear_rental</text>
+        <texture>ui_inGame2_Mp_bigbuttone</texture>
+    <text_color><e r="125" g="235" b="150" a="255" /><d r="100" g="105" b="110" a="255" /><h r="160" g="255" b="185" a="255" /><t r="100" g="210" b="125" a="255" /></text_color></btn_personal_equipment>
+    
 		</loadout_summary_frame>
 
 
@@ -621,17 +642,10 @@
 
 		<!-- Row 3: 3DSSG Optics Quick Toggle & ArtiGrok Special Ammo -->
 
-		<btn_3dssg x="0" y="408" width="450" height="26" check_mode="0">
+		
+<endless_arti_btn_main x="474" y="408" width="450" height="26" check_mode="0">
 
-			<text font="letterica16">3DSSG [OFF]</text>
-
-			<texture>ui_inGame2_Mp_bigbuttone</texture>
-
-		</btn_3dssg>
-
-		<endless_arti_btn_main x="474" y="408" width="450" height="26" check_mode="0">
-
-			<text font="letterica16">st_arena_endless_artigrok_ammo</text>
+			<text font="letterica16" complex_mode="1">%c[255,255,110,110]A%c[255,255,175,85]R%c[255,255,225,100]T%c[255,140,235,120]I%c[255,90,220,210]G%c[255,100,175,255]R%c[255,185,145,255]O%c[255,245,135,215]K%c[default]</text>
 
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 
@@ -641,7 +655,7 @@
 
 		<!-- Row 4: Magazine Selection & Quick Endless Mode -->
 
-		<btn_mag_prev x="0" y="438" width="28" height="26" check_mode="0">
+		<btn_mag_prev x="0" y="408" width="28" height="26" check_mode="0">
 
 			<text font="letterica16">&lt;</text>
 
@@ -649,7 +663,7 @@
 
 		</btn_mag_prev>
 
-		<btn_mag x="32" y="438" width="386" height="26" check_mode="0">
+		<btn_mag x="32" y="408" width="386" height="26" check_mode="0">
 
 			<text font="letterica16">st_arena_loadout_mag_title</text>
 
@@ -657,7 +671,7 @@
 
 		</btn_mag>
 
-		<btn_mag_next x="422" y="438" width="28" height="26" check_mode="0">
+		<btn_mag_next x="422" y="408" width="28" height="26" check_mode="0">
 
 			<text font="letterica16">&gt;</text>
 
@@ -671,13 +685,13 @@
 
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 
-		</endless_btn>
+		<text_color><e r="100" g="215" b="255" a="255" /><d r="100" g="105" b="110" a="255" /><h r="135" g="250" b="255" a="255" /><t r="75" g="190" b="230" a="255" /></text_color></endless_btn>
 
 
 
 		<!-- Row 5: Ammo Quantity & Continue Endless Mode -->
 
-		<btn_ammo_prev x="0" y="468" width="28" height="26" check_mode="0">
+		<btn_ammo_prev x="0" y="438" width="28" height="26" check_mode="0">
 
 			<text font="letterica16">-</text>
 
@@ -685,7 +699,7 @@
 
 		</btn_ammo_prev>
 
-		<btn_ammo_qty x="32" y="468" width="386" height="26" check_mode="0">
+		<btn_ammo_qty x="32" y="438" width="386" height="26" check_mode="0">
 
 			<text font="letterica16">st_arena_loadout_ammo_qty_title</text>
 
@@ -693,7 +707,7 @@
 
 		</btn_ammo_qty>
 
-		<btn_ammo_next x="422" y="468" width="28" height="26" check_mode="0">
+		<btn_ammo_next x="422" y="438" width="28" height="26" check_mode="0">
 
 			<text font="letterica16">+</text>
 
@@ -707,19 +721,19 @@
 
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 
-		</endless_cont_btn>
+		<text_color><e r="100" g="215" b="255" a="255" /><d r="100" g="105" b="110" a="255" /><h r="135" g="250" b="255" a="255" /><t r="75" g="190" b="230" a="255" /></text_color></endless_cont_btn>
 
 
 
 		<!-- Row 6: Main Actions (Enter Arena & Arena Store) -->
 
-		<tourn_start_btn x="0" y="500" width="450" height="66" check_mode="0">
+		<tourn_start_btn x="0" y="468" width="450" height="98" check_mode="0">
 
 			<text font="graffiti19">st_arena_btn_enter</text>
 
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 
-		</tourn_start_btn>
+		<text_color><e r="125" g="240" b="155" a="255" /><d r="100" g="105" b="110" a="255" /><h r="160" g="255" b="190" a="255" /><t r="100" g="215" b="130" a="255" /></text_color></tourn_start_btn>
 
 		<btn_shop x="474" y="500" width="450" height="66" check_mode="0">
 
@@ -727,7 +741,7 @@
 
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 
-		</btn_shop>
+		<text_color><e r="255" g="205" b="90" a="255" /><d r="100" g="105" b="110" a="255" /><h r="255" g="240" b="125" a="255" /><t r="230" g="180" b="65" a="255" /></text_color></btn_shop>
 
 
 
@@ -839,6 +853,9 @@
 
 
 
+        <spec_effects x="474" y="514" width="450" height="60" complex_mode="1">
+            <text font="letterica16" r="255" g="220" b="130" />
+        </spec_effects>
 	</tournament_cont>
 
 
@@ -1801,7 +1818,7 @@
 
 		<endless_arti_btn x="515" y="412" width="160" height="48" check_mode="0">
 
-			<text font="letterica16">st_arena_endless_artigrok_ammo</text>
+			<text font="letterica16" complex_mode="1">%c[255,255,110,110]A%c[255,255,175,85]R%c[255,255,225,100]T%c[255,140,235,120]I%c[255,90,220,210]G%c[255,100,175,255]R%c[255,185,145,255]O%c[255,245,135,215]K%c[default]</text>
 
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 
@@ -1819,7 +1836,7 @@
 
 				<endless_diff_menu x="50" y="96" width="924" height="640" stretch="1">
 		<texture>ui_table_back</texture>
-		<title x="260" y="12" width="642" height="28">
+		<title x="474" y="12" width="428" height="28">
 				<text r="255" g="220" b="130" font="graffiti22" align="c" vert_align="c">st_arena_endless_menu_title</text>
 		</title>
 		<desc x="22" y="48" width="880" height="24" complex_mode="1">
@@ -1919,6 +1936,15 @@
 						<text font="letterica16">st_arena_endless_reset_stats_btn</text>
 						<texture>ui_inGame2_Mp_bigbuttone</texture>
 				</btn_diff_reset_stats>
+		
+    <btn_diff_personal x="244" y="220" width="190" height="30" check_mode="0">
+        <text font="letterica18" align="c" vert_align="c">st_arena_gear_rental</text>
+        <texture>ui_inGame2_Mp_bigbuttone</texture>
+    </btn_diff_personal>
+    <btn_diff_personal_options x="244" y="254" width="190" height="28" check_mode="0">
+        <text font="letterica16" align="c" vert_align="c">OPTIONS</text>
+        <texture>ui_inGame2_Mp_bigbuttone</texture>
+    </btn_diff_personal_options>
 		</diff_summary_frame>
 		<title_start x="522" y="182" width="380" height="20">
 				<text r="255" g="220" b="130" font="letterica18" align="c" vert_align="c">st_arena_endless_start_title</text>
@@ -1943,11 +1969,15 @@
 				<text font="letterica16">st_arena_endless_configuration</text>
 				<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_team_config>
-		<btn_diff_enter x="522" y="438" width="380" height="52" check_mode="0">
-				<text font="graffiti22">st_arena_btn_enter</text>
+		<btn_diff_aggression x="522" y="430" width="380" height="30" check_mode="0">
+				<text font="letterica16">st_arena_endless_aggression_normal</text>
+				<texture>ui_inGame2_Mp_bigbuttone</texture>
+		</btn_diff_aggression>
+		<btn_diff_enter x="522" y="470" width="380" height="52" check_mode="0">
+				<text font="graffiti22">st_arena_endless_enter_area</text>
 				<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_enter>
-		<btn_diff_cancel x="522" y="500" width="380" height="42" check_mode="0">
+		<btn_diff_cancel x="522" y="532" width="380" height="42" check_mode="0">
 				<text font="letterica18">st_arena_endless_diff_cancel</text>
 				<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_diff_cancel>
@@ -1965,6 +1995,14 @@
                 <text font="letterica16" r="255" g="165" b="55" align="c" vert_align="c">Area: Arena</text>
             </area_label>
         </btn_diff_area>
+    <btn_diff_enemies x="250" y="12" width="220" height="32" check_mode="0">
+        <text font="letterica16"></text>
+        <texture>ui_inGame2_Mp_bigbuttone</texture>
+        <enemy_label x="0" y="0" width="220" height="32">
+            <text font="letterica16" r="100" g="220" b="255" align="c" vert_align="c">S.T.A.L.K.E.R</text>
+        </enemy_label>
+        <text_color><e r="100" g="220" b="255" a="255"/><h r="180" g="245" b="255" a="255"/><t r="255" g="255" b="255" a="255"/><d r="100" g="115" b="120" a="255"/></text_color>
+    </btn_diff_enemies>
 </endless_diff_menu>
 
 	<!-- ============================================== -->
@@ -2020,7 +2058,7 @@
 		<btn_ec_3dssg x="660" y="122" width="242" height="32" check_mode="0">
 			<text font="letterica16">3DSSG [OFF]</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
-		</btn_ec_3dssg>
+		<text_color><e r="90" g="225" b="255" a="255" /><d r="100" g="105" b="110" a="255" /><h r="125" g="255" b="255" a="255" /><t r="65" g="200" b="230" a="255" /></text_color></btn_ec_3dssg>
 
 		<!-- Ammo Type Selector Row -->
 		<btn_ec_ammo_auto x="22" y="160" width="168" height="28" check_mode="0">
@@ -2127,6 +2165,7 @@
 			<text font="letterica18">st_arena_btn_close</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_ec_cancel>
+        <ec_spec_effects x="42" y="426" width="440" height="95" complex_mode="1"><text font="letterica16" r="255" g="220" b="130" /></ec_spec_effects>
 	</endless_custom_menu>
 
 
@@ -2142,7 +2181,7 @@
 		<dssg_menu x="50" y="96" width="924" height="640" stretch="1">
 		<texture>ui_table_back</texture>
 		<title x="20" y="14" width="884" height="24">
-			<text r="255" g="220" b="140" font="graffiti22" align="c" vert_align="c">3DSSG</text>
+			<text r="255" g="220" b="140" font="graffiti22" align="c" vert_align="c">Accessories</text>
 		</title>
 		<subtitle x="20" y="38" width="884" height="18">
 			<text r="200" g="200" b="200" font="letterica16" align="c" vert_align="c"></text>
@@ -2198,7 +2237,12 @@
 			<text font="letterica18">st_arena_endless_diff_cancel</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</dssg_close_btn>
-	</dssg_menu>
+<addon_silencer x="22" y="548" width="288" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16" /></addon_silencer>
+<addon_launcher x="318" y="548" width="288" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16" /></addon_launcher>
+<addon_grenades x="658" y="548" width="200" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16" /></addon_grenades>
+	<addon_grenades_minus x="614" y="548" width="40" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">-</text></addon_grenades_minus>
+<addon_grenades_plus x="862" y="548" width="40" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">+</text></addon_grenades_plus>
+</dssg_menu>
 
 
 
@@ -2465,7 +2509,10 @@
 			<text font="letterica18">st_arena_btn_close</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_outfit_close>
-	</outfit_menu>
+	<catalog_prev x="300" y="428" width="70" height="28"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">&lt;</text></catalog_prev>
+<catalog_page x="380" y="428" width="164" height="28"><text font="letterica16" align="c">1 / 1</text></catalog_page>
+<catalog_next x="554" y="428" width="70" height="28"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">&gt;</text></catalog_next>
+</outfit_menu>
 
 
 
@@ -2511,7 +2558,10 @@
 			<text font="letterica18">st_arena_btn_close</text>
 			<texture>ui_inGame2_Mp_bigbuttone</texture>
 		</btn_helmet_close>
-	</helmet_menu>
+	<catalog_prev x="300" y="452" width="70" height="28"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">&lt;</text></catalog_prev>
+<catalog_page x="380" y="452" width="164" height="28"><text font="letterica16" align="c">1 / 1</text></catalog_page>
+<catalog_next x="554" y="452" width="70" height="28"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">&gt;</text></catalog_next>
+</helmet_menu>
 
 
 
@@ -2799,6 +2849,10 @@
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 		<text font="letterica16" />
 	</resupply>
+	<reroll x="40" y="366" width="268" height="38">
+        <texture>ui_inGame2_Mp_bigbuttone</texture>
+        <text font="letterica16" />
+    </reroll>
 	<reset x="40" y="482" width="268" height="36">
 		<texture>ui_inGame2_Mp_bigbuttone</texture>
 		<text font="letterica16">st_arena_team_reset</text>
@@ -2877,7 +2931,7 @@
 	<preview_panel x="360" y="316" width="504" height="120" stretch="1">
 		<texture>xcvb_arena_gui_row_frame</texture>
 	</preview_panel>
-	<squad_hint x="40" y="374" width="268" height="78" complex_mode="1">
+	<squad_hint x="40" y="414" width="268" height="60" complex_mode="1">
 		<text font="letterica16" r="170" g="185" b="205" align="l" vert_align="t">st_arena_team_rules_hint</text>
 	</squad_hint>
 </team_menu>
@@ -2907,5 +2961,50 @@
 <modes x="35" y="495" width="220" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">Choose mode</text></modes>
 <back x="475" y="495" width="290" height="34"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">Save and return</text></back>
 </factions_menu>
+
+    <personal_options_menu x="50" y="96" width="924" height="640" stretch="1">
+        <texture>ui_table_back</texture>
+        <title x="40" y="120" width="844" height="36">
+            <text font="graffiti22" r="140" g="240" b="140" align="c" vert_align="c">OWN LOADOUT - OPTIONS</text>
+        </title>
+        <desc x="120" y="170" width="684" height="60" complex_mode="1">
+            <text font="letterica18" align="c" vert_align="c">st_arena_personal_options_desc</text>
+        </desc>
+        <btn_ammo x="230" y="250" width="464" height="46" check_mode="0">
+            <text font="letterica18" align="c" vert_align="c">st_arena_personal_restore_ammo</text>
+            <texture>ui_inGame2_Mp_bigbuttone</texture>
+        </btn_ammo>
+        <btn_meds x="230" y="312" width="464" height="46" check_mode="0">
+            <text font="letterica18" align="c" vert_align="c">st_arena_personal_restore_meds</text>
+            <texture>ui_inGame2_Mp_bigbuttone</texture>
+        </btn_meds>
+        <btn_grenades x="230" y="374" width="464" height="46" check_mode="0">
+            <text font="letterica18" align="c" vert_align="c">st_arena_personal_restore_grenades</text>
+            <texture>ui_inGame2_Mp_bigbuttone</texture>
+        </btn_grenades>
+        <close x="300" y="460" width="324" height="42" check_mode="0">
+            <text font="letterica18" align="c" vert_align="c">st_arena_personal_options_back</text>
+            <texture>ui_inGame2_Mp_bigbuttone</texture>
+        </close>
+    </personal_options_menu>
+
+<artigrok_menu x="180" y="140" width="664" height="540" stretch="1">
+    <texture>ui_inGame2_opt_dialog_window</texture>
+    <title x="30" y="18" width="604" height="34" complex_mode="1"><text font="graffiti22" align="c">%c[255,255,110,110]A%c[255,255,175,85]R%c[255,255,225,100]T%c[255,140,235,120]I%c[255,90,220,210]G%c[255,100,175,255]R%c[255,185,145,255]O%c[255,245,135,215]K%c[default]</text></title>
+    <desc x="35" y="58" width="594" height="80" complex_mode="1"><text font="letterica16" r="200" g="210" b="225" align="c">st_arena_arti_desc</text></desc>
+    <support x="45" y="144" width="574" height="36"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16" /></support>
+    <recipients x="45" y="188" width="574" height="24"><text font="letterica16" r="200" g="210" b="225" align="c">st_arena_arti_recipients</text></recipients>
+    <recipient_disabled x="45" y="220" width="280" height="38"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">st_arena_arti_disabled</text></recipient_disabled>
+    <recipient_player x="339" y="220" width="280" height="38"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">st_arena_arti_player</text></recipient_player>
+    <recipient_allies x="45" y="266" width="280" height="38"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">st_arena_arti_allies</text></recipient_allies>
+    <recipient_enemies x="339" y="266" width="280" height="38"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">st_arena_arti_enemies</text></recipient_enemies>
+    <recipient_player_allies x="45" y="312" width="280" height="38"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">st_arena_arti_player_allies</text></recipient_player_allies>
+    <recipient_player_enemies x="339" y="312" width="280" height="38"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">st_arena_arti_player_enemies</text></recipient_player_enemies>
+    <recipient_allies_enemies x="45" y="358" width="280" height="38"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">st_arena_arti_allies_enemies</text></recipient_allies_enemies>
+    <recipient_all x="339" y="358" width="280" height="38"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">st_arena_arti_all</text></recipient_all>
+    <selection x="45" y="410" width="574" height="42" complex_mode="1"><text font="letterica16" r="145" g="240" b="170" align="c" /></selection>
+    <save x="45" y="474" width="280" height="42"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">st_arena_arti_save</text></save>
+    <cancel x="339" y="474" width="280" height="42"><texture>ui_inGame2_Mp_bigbuttone</texture><text font="letterica16">st_arena_arti_cancel</text></cancel>
+</artigrok_menu>
 </w>
 

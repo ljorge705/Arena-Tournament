@@ -93,4 +93,11 @@
 <string id="st_arena_plus_initial_reserve"><text>Reserva inicial adicional: %d cartuchos sueltos. Se entrega una sola vez.</text></string>
 <string id="st_arena_plus_round_supply_received"><text>Suministro de ronda: %d cartuchos de %s.</text></string>
 <string id="st_arena_gear_restore_pending"><text>La devolución del equipo está pendiente. Tus objetos están a salvo. Abre la arena e intenta entrar de nuevo para reintentar la devolución.</text></string>
+<string id="st_arena_gear_personal"><text>Equipo: propio</text></string>
+<string id="st_arena_gear_rental"><text>Equipo: de arena</text></string>
+<string id="st_arena_personal_options_desc"><text>Repone los consumibles que tenías al entrar al completar cada ronda u oleada. Cada opción es independiente.</text></string>
+<string id="st_arena_personal_restore_ammo"><text>Restablecer munición</text></string>
+<string id="st_arena_personal_restore_meds"><text>Restablecer medicinas</text></string>
+<string id="st_arena_personal_restore_grenades"><text>Restablecer granadas</text></string>
+<string id="st_arena_personal_options_back"><text>Volver</text></string>
 </string_table>
